@@ -396,30 +396,47 @@ UI_LoadBots
 */
 void UI_LoadBots(void)
 {
-	vmCvar_t	botsFile;
+	vmCvar_t	ui_md_bots_ot;
+	vmCvar_t	ui_md_bots_Legends;
+	vmCvar_t	ui_md_bots_pt;
+
 	char		dirlist[1024];
 	int			dirlen = 0;
 
 	ui_numBots = 0;
 
-	trap->Cvar_Register(&botsFile, "g_botsFile", "", CVAR_INIT | CVAR_ROM);
-	if (*botsFile.string)
+	trap->Cvar_Register(&ui_md_bots_ot, "g_botsFile1", "", CVAR_INIT | CVAR_ROM);
+
+	trap->Cvar_Register(&ui_md_bots_Legends, "g_botsFile2", "", CVAR_INIT | CVAR_ROM);
+
+	trap->Cvar_Register(&ui_md_bots_pt, "g_botsFile3", "", CVAR_INIT | CVAR_ROM);
+
+	if (*ui_md_bots_ot.string)
 	{
-		UI_LoadBotsFromFile(botsFile.string);
+		UI_LoadBotsFromFile(ui_md_bots_ot.string);
+	}
+	else if (*ui_md_bots_Legends.string)
+	{
+		UI_LoadBotsFromFile(ui_md_bots_Legends.string);
+	}
+	else if (*ui_md_bots_pt.string)
+	{
+		UI_LoadBotsFromFile(ui_md_bots_pt.string);
 	}
 	else
 	{
-		UI_LoadBotsFromFile("botfiles/bots.txt");
+		UI_LoadBotsFromFile("botfiles/md_bots_JKA.txt");
 	}
 
 	// get all bots from .bot files
-	const int numdirs = trap->FS_GetFileList("scriptsmp", ".bot", dirlist, 1024);
+	const int numdirs = trap->FS_GetFileList("botfiles", ".bot", dirlist, 1024);
+
 	char* dirptr = dirlist;
 	for (int i = 0; i < numdirs; i++, dirptr += dirlen + 1)
 	{
 		char filename[128];
 		dirlen = strlen(dirptr);
-		strcpy(filename, "scriptsmp/");
+		strcpy(filename, "botfiles/");
 		strcat(filename, dirptr);
 		UI_LoadBotsFromFile(filename);
 	}

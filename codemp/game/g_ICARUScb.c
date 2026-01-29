@@ -1345,7 +1345,7 @@ static int Icarus_SoundTime(char soundName[MAX_QPATH])
 	if (time < 0)
 	{
 		//couldn't find it in the original file.  Try looking into OJP's supplimental file.
-		time = GetIDForString(SubtitleTimeTable, va("zojp_coop_%s", sound));
+		time = GetIDForString(SubtitleTimeTable, va("MD_CooP_%s", sound));
 	}
 	if (time < 0)
 	{

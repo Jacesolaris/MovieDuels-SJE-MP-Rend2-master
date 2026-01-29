@@ -31,6 +31,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifdef _G2_GORE
 #include "G2_gore_r2.h"
 #endif
+#include <gl\GL.h>
+#include "tr_postprocess.h"
+#include <rd-common\tr_common.h>
 
 static size_t STATIC_UNIFORM_BUFFER_SIZE = 1 * 1024 * 1024;
 static size_t FRAME_UNIFORM_BUFFER_SIZE = 8 * 1024 * 1024;
@@ -292,8 +295,9 @@ static void R_Splash()
 
 	GL_Cull(CT_TWO_SIDED);
 
-	image_t* pImage;
-	const int splash_pick = rand() % 5;
+	image_t* pImage = R_FindImageFile("menu/splash", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+	
+	/*const int splash_pick = rand() % 5;
 
 	switch (splash_pick)
 	{
@@ -315,7 +319,7 @@ static void R_Splash()
 	default:
 		pImage = R_FindImageFile("menu/splash", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		break;
-	}
+	}*/
 
 	if (pImage)
 		GL_Bind(pImage);

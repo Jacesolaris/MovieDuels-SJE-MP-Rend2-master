@@ -4758,7 +4758,7 @@ gentity_t* NPC_SpawnType(const gentity_t* ent, const char* npc_type, const char*
 	{
 		Com_Printf(
 			S_COLOR_RED"Error, expected one of:\n"S_COLOR_WHITE
-			" NPC spawn [NPC type (from ext_data/mpnpcs)]\n NPC spawn vehicle [VEH type (from ext_data/vehicles)]\n");
+			" NPC spawn [NPC type (from ext_data/MD_MP_NPC)]\n NPC spawn vehicle [VEH type (from ext_data/vehicles)]\n");
 		return NULL;
 	}
 

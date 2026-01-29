@@ -24,6 +24,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "tr_local.h"
 #include "glext.h"
 #include "tr_WorldEffects.h"
+#include <qcommon\q_color.h>
+#include <rd-common\tr_common.h>
+#include <qcommon\q_shared.h>
 
 backEndData_t* backEndData;
 backEndState_t	backEnd;

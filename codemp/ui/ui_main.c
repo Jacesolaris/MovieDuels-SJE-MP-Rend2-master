@@ -854,7 +854,7 @@ static void UI_LoadNonIngame()
 	const char* menuSet = UI_Cvar_VariableString("ui_menuFilesMP");
 	if (menuSet == NULL || menuSet[0] == '\0')
 	{
-		menuSet = "ui/movieduels-mpmenus.txt";
+		menuSet = "ui/MovieDuels-MP-Menus.txt";
 	}
 	UI_LoadMenus(menuSet, qfalse);
 	uiInfo.inGameLoad = qfalse;
@@ -1537,10 +1537,10 @@ void UI_LoadMenus(const char* menuFile, qboolean reset)
 	if (!handle)
 	{
 		Com_Printf(S_COLOR_YELLOW "menu file not found: %s, using default\n", menuFile);
-		handle = trap->PC_LoadSource("ui/movieduels-mpmenus.txt");
+		handle = trap->PC_LoadSource("ui/MovieDuels-MP-Menus.txt");
 		if (!handle)
 		{
-			trap->Error(ERR_DROP, S_COLOR_RED "default menu file not found: ui/movieduels-mpmenus.txt, unable to continue!\n");
+			trap->Error(ERR_DROP, S_COLOR_RED "default menu file not found: ui/MovieDuels-MP-Menus.txt, unable to continue!\n");
 		}
 	}
 
@@ -1598,7 +1598,7 @@ void UI_Load(void)
 
 	if (uiInfo.inGameLoad)
 	{
-		menuSet = "ui/MovieDuels-mpingame.txt";
+		menuSet = "ui/MovieDuels-MP-Ingame.txt";
 	}
 	else
 	{
@@ -1606,7 +1606,7 @@ void UI_Load(void)
 	}
 	if (menuSet == NULL || menuSet[0] == '\0')
 	{
-		menuSet = "ui/movieduels-mpmenus.txt";
+		menuSet = "ui/MovieDuels-MP-Menus.txt";
 	}
 
 	String_Init();
@@ -10830,14 +10830,13 @@ static void UI_Init(qboolean inGameLoad)
 	const char* menuSet = UI_Cvar_VariableString("ui_menuFilesMP");
 	if (menuSet == NULL || menuSet[0] == '\0')
 	{
-		menuSet = "ui/movieduels-mpmenus.txt";
+		menuSet = "ui/MovieDuels-MP-Menus.txt";
 	}
 
 #if 1
 	if (inGameLoad)
 	{
-		UI_LoadMenus("ui/MovieDuels-mpingame.txt", qtrue);
-		UI_LoadMenus("ui/menutest.txt", qfalse);
+		UI_LoadMenus("ui/MovieDuels-MP-Ingame.txt", qtrue);
 	}
 	else if (!ui_bypassMainMenuLoad.integer)
 	{
@@ -10845,7 +10844,7 @@ static void UI_Init(qboolean inGameLoad)
 	}
 #else //this was adding quite a giant amount of time to the load time
 	UI_LoadMenus(menuSet, qtrue);
-	UI_LoadMenus("ui/MovieDuels-mpingame.txt", qtrue);
+	UI_LoadMenus("ui/MovieDuels-MP-Ingame.txt", qtrue);
 #endif
 
 	{
@@ -11274,7 +11273,7 @@ static void UI_DrawConnectScreen(qboolean overlay)
 
 	if (!Q_stricmp(cstate.servername, "localhost"))
 	{
-		trap->SE_GetStringTextString("MENUS_STARTING_UP", sStringEdTemp, sizeof sStringEdTemp);
+		trap->SE_GetStringTextString("MD_MENU_MP_STARTING_UP", sStringEdTemp, sizeof sStringEdTemp);
 		Text_PaintCenter(centerPoint, yStart + 48, scale, colorWhite, sStringEdTemp, ITEM_TEXTSTYLE_SHADOWEDMORE,
 			FONT_SMALL2);
 	}

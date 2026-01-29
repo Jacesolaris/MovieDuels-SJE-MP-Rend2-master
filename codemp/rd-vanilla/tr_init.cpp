@@ -292,8 +292,9 @@ void RE_GetBModelVerts(const int bmodelIndex, vec3_t* verts, vec3_t normal);
 
 static void R_Splash()
 {
-	image_t* pImage;
-	const int splash_pick = rand() % 5;
+	image_t* pImage = R_FindImageFile("menu/splash", qfalse, qfalse, qfalse, GL_CLAMP);
+	
+	/*const int splash_pick = rand() % 5;
 
 	switch (splash_pick)
 	{
@@ -315,7 +316,7 @@ static void R_Splash()
 	default:
 		pImage = R_FindImageFile("menu/splash", qfalse, qfalse, qfalse, GL_CLAMP);
 		break;
-	}
+	}*/
 
 	extern void	RB_SetGL2D();
 	RB_SetGL2D();

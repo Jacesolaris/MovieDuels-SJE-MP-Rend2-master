@@ -297,7 +297,7 @@ static void CG_LoadHud_f(void)
 
 	if (hudSet[0] == '\0')
 	{
-		hudSet = "ui/MovieDuelshud.txt";
+		hudSet = "ui/MovieDuels-MP-Hud.txt";
 	}
 
 	String_Init();

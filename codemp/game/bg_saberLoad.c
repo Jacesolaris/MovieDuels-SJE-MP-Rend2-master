@@ -3091,7 +3091,7 @@ void WP_SaberLoadParms()
 	*marker = 0;
 
 	//now load in the extra .sab extensions
-	const int fileCnt = trap->FS_GetFileList("ext_data/sabers", ".sab", saberExtensionListBuf,
+	const int fileCnt = trap->FS_GetFileList("ext_data/MD_MP_Sabers", ".sab", saberExtensionListBuf,
 		sizeof saberExtensionListBuf);
 
 	char* holdChar = saberExtensionListBuf;
@@ -3099,7 +3099,7 @@ void WP_SaberLoadParms()
 	{
 		saberExtFNLen = strlen(holdChar);
 
-		len = trap->FS_Open(va("ext_data/sabers/%s", holdChar), &f, FS_READ);
+		len = trap->FS_Open(va("ext_data/MD_MP_Sabers/%s", holdChar), &f, FS_READ);
 
 		if (!f)
 		{

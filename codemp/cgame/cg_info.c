@@ -24,6 +24,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // cg_info.c -- display information while data is being loading
 
 #include "cg_local.h"
+#include <qcommon\q_shared.h>
+#include <qcommon\qfiles.h>
+#include <string.h>
+#include <stdlib.h>
+#include <game\bg_weapons.h>
+#include <qcommon\q_color.h>
 
 #define MAX_LOADING_PLAYER_ICONS	16
 #define MAX_LOADING_ITEM_ICONS		26
@@ -209,71 +215,71 @@ static void LoadTips(void)
 		switch (index)
 		{
 		case 0:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP2"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP2"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 1:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP3"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP3"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 2:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP4"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP4"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 3:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP5"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP5"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 4:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP6"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP6"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 5:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP7"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP7"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 6:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP8"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP8"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 7:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP9"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP9"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 8:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP10"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP10"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 9:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP11"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP11"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 10:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP12"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP12"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 11:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP13"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP13"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 12:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP14"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP14"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 13:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP15"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP15"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		case 14:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP1"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP1"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		default:
-			CG_DrawProportionalString(300, 390, CG_GetStringEdString("LOADTIPS", "TIP1"),
+			CG_DrawSmallProportionalString(500, 390, CG_GetStringEdString("LOADTIPS", "TIP1"),
 				UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			break;
 		}
-		SCREENTIP_NEXT_UPDATE_TIME = time + 3500;
+		SCREENTIP_NEXT_UPDATE_TIME = time + 5000;
 	}
 }
 
@@ -567,11 +573,11 @@ void CG_LoadBar(void)
 		{
 			if (com_rend2.integer == 1) //rend2 is on
 			{
-				CG_DrawSmallProportionalString(300, 2, CG_GetStringEdString("LOADTIPS", "REND2TIP"), UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
+				CG_DrawSmallProportionalString(400, 2, CG_GetStringEdString("MD_MENU_MP", "REND2TIP"), UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			}
 		}
-		const int x = (640 - LOADBAR_CLIP_WIDTH) / 2;
-		const int y = 50;
+		/*const int x = (640 - LOADBAR_CLIP_WIDTH) / 2;
+		const int y = 50;*/
 
 		//CG_DrawPic(x, y, LOADBAR_CLIP_WIDTH, LOADBAR_CLIP_HEIGHT, cgs.media.load_SerenitySaberSystems);
 	}

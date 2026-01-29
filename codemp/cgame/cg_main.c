@@ -2535,10 +2535,10 @@ void CG_LoadMenus(const char* menuFile)
 			trap->Print(S_COLOR_YELLOW "hud menu file not found: %s, using default\n", menuFile);
 		}
 
-		len = trap->FS_Open("ui/MovieDuelshud.txt", &f, FS_READ);
+		len = trap->FS_Open("ui/MovieDuels-MP-Hud.txt", &f, FS_READ);
 		if (!f)
 		{
-			trap->Error(ERR_DROP, S_COLOR_RED "default hud menu file not found: ui/MovieDuelshud.txt, unable to continue!");
+			trap->Error(ERR_DROP, S_COLOR_RED "default hud menu file not found: ui/MovieDuels-MP-Hud.txt, unable to continue!");
 		}
 	}
 
@@ -2586,7 +2586,7 @@ CG_LoadHudMenu();
 
 =================
 */
-void CG_LoadHudMenu()
+static void CG_LoadHudMenu()
 {
 	cgDC.registerShaderNoMip = trap->R_RegisterShaderNoMip;
 	cgDC.setColor = trap->R_SetColor;
@@ -2647,7 +2647,7 @@ void CG_LoadHudMenu()
 	const char* hudSet = cg_hudFiles.string;
 	if (hudSet[0] == '\0')
 	{
-		hudSet = "ui/MovieDuelshud.txt";
+		hudSet = "ui/MovieDuels-MP-Hud.txt";
 	}
 
 	CG_LoadMenus(hudSet);
