@@ -30,6 +30,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "icarus/GameInterface.h"
 #include "qcommon/timing.h"
 #include "NPCNav/navigator.h"
+#include <string.h>
 
 botlib_export_t* botlib_export;
 
@@ -1578,13 +1579,9 @@ static int SV_AAS_PredictClientMovement(void* move, const int entnum, vec3_t ori
 		frametime, stopevent, stopareanum, visualize);
 }
 
-static int SV_AAS_AlternativeRouteGoals(vec3_t start, const int startareanum, vec3_t goal, const int goalareanum,
-	const int travelflags, void* altroutegoals, const int maxaltroutegoals,
-	const int type)
+static int SV_AAS_AlternativeRouteGoals(vec3_t start, const int startareanum, vec3_t goal, const int goalareanum,const int travelflags, void* altroutegoals, const int maxaltroutegoals,const int type)
 {
-	return botlib_export->aas.AAS_AlternativeRouteGoals(start, startareanum, goal, goalareanum, travelflags,
-		static_cast<aas_altroutegoal_s*>(altroutegoals),
-		maxaltroutegoals, type);
+	return botlib_export->aas.AAS_AlternativeRouteGoals(start, startareanum, goal, goalareanum, travelflags,static_cast<aas_altroutegoal_s*>(altroutegoals),maxaltroutegoals, type);
 }
 
 static int SV_AAS_PredictRoute(void* route, const int areanum, vec3_t origin, const int goalareanum,
@@ -1883,11 +1880,33 @@ static qboolean SV_G2API_GetBoneAnim(void* ghoul2, const char* boneName, const i
 		animSpeed, modelList);
 }
 
+//static void SV_G2API_GetGLAName(void* ghoul2, const int modelIndex, char* fillBuf)
+//{
+//	assert(ghoul2 && "invalid g2 handle");
+//
+//	const char* tmp = re->G2API_GetGLAName(*static_cast<CGhoul2Info_v*>(ghoul2), modelIndex);
+//	if (tmp)
+//	{
+//		strcpy(fillBuf, tmp);
+//	}
+//}
+
+// This fucker has been grinding my gears for days because ghoul2 can be null here.
 static void SV_G2API_GetGLAName(void* ghoul2, const int modelIndex, char* fillBuf)
 {
-	assert(ghoul2 && "invalid g2 handle");
+	if (!ghoul2)
+	{
+		return;
+	}
 
+	CGhoul2Info_v* g2 = static_cast<CGhoul2Info_v*>(ghoul2);
+
+	if (!g2)
+	{
+		return;
+	}
 	const char* tmp = re->G2API_GetGLAName(*static_cast<CGhoul2Info_v*>(ghoul2), modelIndex);
+
 	if (tmp)
 	{
 		strcpy(fillBuf, tmp);

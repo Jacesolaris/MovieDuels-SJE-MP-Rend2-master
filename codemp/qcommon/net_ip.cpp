@@ -29,7 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/serenityjediengine-20											///
+///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -479,7 +479,7 @@ static SOCKET NET_IPSocket(char* net_interface, const int port, int* err)
 	Com_Printf("----------------------- MovieDuels-SJE-SP -----------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Update 7.0 ---------------------------\n");
-	Com_Printf("--------------------- Build Date 27/01/2026 ---------------------\n");
+	Com_Printf("--------------------- Build Date 29/01/2026 ---------------------\n");// build date
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Lightsaber ---------------------------\n");
 	Com_Printf("---------- An elegant weapon for a more civilized age -----------\n");

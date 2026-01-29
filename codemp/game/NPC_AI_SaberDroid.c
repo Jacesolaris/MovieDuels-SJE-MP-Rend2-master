@@ -3,9 +3,10 @@
 #include "b_local.h"
 #include "g_nav.h"
 #include "anims.h"
+#include "g_local.h"
 
 extern void WP_DeactivateSaber(const gentity_t* self);
-extern int PM_AnimLength(animNumber_t anim);
+extern int PM_AnimLength(const animNumber_t anim);
 
 qboolean NPC_CheckPlayerTeamStealth(void);
 

@@ -28,7 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/serenityjediengine-20											///
+///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -60,7 +60,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_SJE_CLIENTVERSION		"Day-27,Month-01,Year-26,BuildNum-01" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-29,Month-01,Year-26,BuildNum-02" // build date
 
 #define	STEPSIZE		18
 

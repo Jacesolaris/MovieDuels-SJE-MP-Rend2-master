@@ -27,7 +27,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/serenityjediengine-20											///
+///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -50,15 +50,14 @@ extern qboolean PM_SaberInBrokenParry(int move);
 extern qboolean BG_InSlowBounce(const playerState_t* ps);
 extern qboolean PM_FaceProtectAnim(int anim);
 extern void G_KnockOver(gentity_t* self, const gentity_t* attacker, const vec3_t push_dir, float strength,
-	qboolean break_saber_lock);
+	qboolean breakSaberLock);
 extern qboolean PM_InKnockDown(const playerState_t* ps);
 extern qboolean PM_SaberInTransitionAny(int move);
 extern qboolean PM_Saberinstab(int move);
 extern qboolean PM_CrouchAnim(int anim);
 extern qboolean PM_RestAnim(int anim);
 extern void BG_ReduceSaberMishapLevel(playerState_t* ps);
-extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength,
-	qboolean break_saber_lock);
+extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength, const qboolean breakSaberLock);
 extern qboolean PM_SaberInParry(int move);
 extern void PM_AddFatigue(playerState_t* ps, int fatigue);
 extern void Boba_FlyStart(gentity_t* self);

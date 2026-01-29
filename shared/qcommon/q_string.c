@@ -423,6 +423,7 @@ const char* Q_strchrs(const char* string, const char* search)
 }
 
 #if defined(_MSC_VER)
+
 /*
 =============
 Q_vsnprintf

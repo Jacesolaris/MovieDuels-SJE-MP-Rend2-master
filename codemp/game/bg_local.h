@@ -22,6 +22,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include "anims.h"
 
 // bg_local.h -- local definitions for the bg (both games) files
 
@@ -79,7 +80,7 @@ qboolean PM_SpinningAnim(int anim);
 qboolean PM_InOnGroundAnim(const int anim);
 qboolean PM_InRollComplete(const playerState_t* ps, int anim);
 
-int PM_AnimLength(animNumber_t anim);
+int PM_AnimLength(const animNumber_t anim);
 
 int PM_ReadyPoseForsaber_anim_level(void);
 int PM_IdlePoseForsaber_anim_level(void);

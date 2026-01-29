@@ -622,7 +622,8 @@ retryModel:
 	trap->G2API_GetGLAName(ci->ghoul2Model, 0, gla_name);
 	if (gla_name[0] != 0)
 	{
-		if (!strstr(gla_name, "players/_humanoid_MP/")) //only allow rockettrooper in siege
+		if (!strstr(gla_name, "players/_humanoid/")) //only allow rockettrooper in siege
+		//if (!strstr(gla_name, "players/_humanoid_MP/")) //only allow rockettrooper in siege
 		{
 			//Bad!
 			bad_model = qtrue;
@@ -650,23 +651,28 @@ retryModel:
 		}
 
 		//rww - All player models must use humanoid, no matter what.
-		if (Q_stricmp(afilename, "models/players/_humanoid_MP/animation.cfg"))
+		//if (Q_stricmp(afilename, "models/players/_humanoid_MP/animation.cfg"))
+		if (Q_stricmp(afilename, "models/players/_humanoid/animation.cfg"))
 		{
 			Com_Printf("Model does not use supported animation config.\n");
 			return qfalse;
 		}
-		if (bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
+		//if (bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
+		if (bg_parse_animation_file("models/players/_humanoid/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
 		{
-			Com_Printf("Failed to load animation file models/players/_humanoid_MP/animation.cfg\n");
+			//Com_Printf("Failed to load animation file models/players/_humanoid_MP/animation.cfg\n");
+			Com_Printf("Failed to load animation file models/players/_humanoid/animation.cfg\n");
 			return qfalse;
 		}
 
-		BG_ParseAnimationEvtFile("models/players/_humanoid_MP/", 0, -1); //get the sounds for the humanoid anims
+		//BG_ParseAnimationEvtFile("models/players/_humanoid_MP/", 0, -1); //get the sounds for the humanoid anims
+		BG_ParseAnimationEvtFile("models/players/_humanoid/", 0, -1); //get the sounds for the humanoid anims
 	}
 	else if (!bgAllEvents[0].eventsParsed)
 	{
 		//make sure the player anim sounds are loaded even if the anims already are
-		BG_ParseAnimationEvtFile("models/players/_humanoid_MP/", 0, -1);
+		//BG_ParseAnimationEvtFile("models/players/_humanoid_MP/", 0, -1);
+		BG_ParseAnimationEvtFile("models/players/_humanoid/", 0, -1);
 	}
 
 	if (CG_ParseSurfsFile(model_name, skin_name, surf_off, surf_on))
@@ -14148,7 +14154,8 @@ void CG_G2AnimEntModelLoad(centity_t* cent)
 			strcpy(original_model_name, model_name);
 
 			if (gla_name[0] &&
-				!strstr(gla_name, "players/_humanoid_MP/"))
+				//!strstr(gla_name, "players/_humanoid_MP/"))
+				!strstr(gla_name, "players/_humanoid/"))
 			{
 				//it doesn't use humanoid anims.
 				slash = Q_strrchr(gla_name, '/');

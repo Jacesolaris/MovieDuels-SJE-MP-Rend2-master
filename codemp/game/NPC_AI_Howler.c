@@ -222,8 +222,7 @@ static qboolean Howler_Move()
 //---------------------------------------------------------
 //replaced with SP version
 extern qboolean PM_InKnockDown(const playerState_t* ps);
-extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength,
-	qboolean break_saber_lock);
+extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength, const qboolean breakSaberLock);
 
 static void Howler_TryDamage(const int damage, const qboolean tongue, const qboolean knockdown)
 {

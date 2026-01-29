@@ -28,6 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "cg_local.h"
+#include <game\bg_public.h>
 
 /*
 =============
@@ -325,7 +326,7 @@ static int spawncmp(const void* a, const void* b)
 	return Q_stricmp(a, ((spawn_t*)b)->name);
 }
 
-void CG_ParseEntityFromSpawnVars(void)
+static void CG_ParseEntityFromSpawnVars(void)
 {
 	int i;
 	char* classname;

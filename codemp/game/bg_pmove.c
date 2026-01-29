@@ -31,7 +31,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/serenityjediengine-20											///
+///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -8020,8 +8020,7 @@ static void PM_GroundTraceMissed(void)
 }
 
 #ifdef _GAME
-extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength,
-	qboolean breakSaberLock);
+extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength, const qboolean breakSaberLock);
 #endif
 
 static qboolean BG_InDFA()

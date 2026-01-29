@@ -35,6 +35,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "game/bg_public.h"
 #include "game/anims.h"
 #include "ghoul2/G2.h"
+#include <qcommon\q_color.h>
+#include <string.h>
+
 extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
 extern void UI_UpdateCharacterSkin(void);
 
@@ -127,7 +130,7 @@ extern qboolean ItemParse_asset_model_go(itemDef_t* item, const char* name, int*
 extern qboolean ItemParse_model_g2anim_go(itemDef_t* item, const char* animName);
 
 #ifdef _CGAME
-#define MEM_POOL_SIZE  (256 * 1024)
+#define MEM_POOL_SIZE  (1 * 1024 * 1024) // was 256 * 1024
 #else
 #define MEM_POOL_SIZE  (8 * 1024 * 1024)
 #endif

@@ -28,12 +28,13 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #elif _CGAME
 #include "cgame/cg_local.h"
 #endif
+#include "anims.h"
 #ifdef _GAME //SP or game side MP
 extern vmCvar_t cg_thirdPersonAlpha;
 extern vec3_t player_mins;
 extern vec3_t player_maxs;
 extern void ChangeWeapon(const gentity_t* ent, int newWeapon);
-extern int PM_AnimLength(animNumber_t anim);
+extern int PM_AnimLength(const animNumber_t anim);
 extern void G_VehicleTrace(trace_t* results, const vec3_t start, const vec3_t tMins, const vec3_t tMaxs,
 	const vec3_t end, int pass_entity_num, int contentmask);
 extern void G_DamageFromKiller(gentity_t* pEnt, gentity_t* pVehEnt, gentity_t* attacker, vec3_t org, int damage,

@@ -30,7 +30,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/serenityjediengine-20											///
+///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -5552,7 +5552,8 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		//Looks like it has not yet been loaded. Allocate space for the anim set if we need to, and continue along.
 		if (!anim_set)
 		{
-			if (strstr(filename, "players/_humanoid_MP/"))
+			//if (strstr(filename, "players/_humanoid_MP/"))
+			if (strstr(filename, "players/_humanoid/"))
 			{
 				//then use the static humanoid set.
 				anim_set = bgHumanoidAnimations;

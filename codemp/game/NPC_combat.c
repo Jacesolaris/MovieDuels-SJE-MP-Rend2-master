@@ -27,7 +27,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/serenityjediengine-20											///
+///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -559,8 +559,8 @@ void G_SetEnemy(gentity_t* self, gentity_t* enemy)
 			&& enemy->client && enemy->client->playerTeam == NPCTEAM_PLAYER)
 		{
 			//make the player "evil" so that everyone goes after him
-			enemy->client->enemyTeam = (npcteam_t)TEAM_FREE;
-			enemy->client->playerTeam = (npcteam_t)TEAM_FREE;
+			enemy->client->enemyTeam = (npcteam_t)(team_t)TEAM_FREE;
+			enemy->client->playerTeam = (npcteam_t)(team_t)TEAM_FREE;
 		}
 
 		//If have an anger script, run that instead of yelling

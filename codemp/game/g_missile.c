@@ -28,7 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/serenityjediengine-20											///
+///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -73,7 +73,7 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 extern int WP_SaberBoltBlockCost(gentity_t* defender, const gentity_t* attacker);
 extern void WP_BlockPointsDrain(const gentity_t* self, int fatigue);
 extern void G_KnockOver(gentity_t* self, const gentity_t* attacker, const vec3_t push_dir, float strength,
-	qboolean break_saber_lock);
+	qboolean breakSaberLock);
 extern float manual_running_and_saberblocking(const gentity_t* defender);
 extern qboolean WP_SaberFatiguedParryDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 

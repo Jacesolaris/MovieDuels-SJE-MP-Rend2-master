@@ -1814,7 +1814,8 @@ static void SP_worldspawn(void)
 	//when the first client connnects.
 	if (!bgpa_ftext_loaded)
 	{
-		bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue);
+		//bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue);
+		bg_parse_animation_file("models/players/_humanoid/animation.cfg", bgHumanoidAnimations, qtrue);
 	}
 
 	if (!precachedKyle)

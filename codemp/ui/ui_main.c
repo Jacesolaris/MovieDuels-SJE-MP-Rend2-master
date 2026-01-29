@@ -43,6 +43,8 @@ USER INTERFACE MAIN
 #include "cgame/animtable.h" //we want this to be compiled into the module because we access it in the shared module.
 #include "game/bg_saga.h"
 #include "ui_shared.h"
+#include <string.h>
+#include <qcommon\q_shared.h>
 
 extern void UI_SaberAttachToChar(itemDef_t* item);
 
@@ -301,7 +303,8 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 		//Looks like it has not yet been loaded. Allocate space for the anim set if we need to, and continue along.
 		if (!animset)
 		{
-			if (strstr(filename, "players/_humanoid_MP/"))
+			//if (strstr(filename, "players/_humanoid_MP/"))
+			if (strstr(filename, "players/_humanoid/"))
 			{
 				//then use the static humanoid set.
 				animset = uiHumanoidAnimations;

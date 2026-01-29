@@ -409,8 +409,7 @@ void NPC_TavionSithSword_Precache(void)
 	G_SoundIndex("sound/weapons/scepter/recharge.wav");
 }
 
-extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength,
-	qboolean break_saber_lock);
+extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength, const qboolean breakSaberLock);
 
 void Tavion_ScepterDamage(void)
 {
@@ -4322,9 +4321,9 @@ static qboolean jedi_strafe(const int strafe_time_min, const int strafe_time_max
 	return qfalse;
 }
 
-extern int PM_AnimLength(animNumber_t anim);
+extern int PM_AnimLength(const animNumber_t anim);
 
-evasionType_t Jedi_CheckFlipEvasions(gentity_t* self, const float rightdot, float zdiff)
+static evasionType_t Jedi_CheckFlipEvasions(gentity_t* self, const float rightdot, float zdiff)
 {
 	if (self->NPC && self->NPC->scriptFlags & SCF_NO_ACROBATICS)
 	{
