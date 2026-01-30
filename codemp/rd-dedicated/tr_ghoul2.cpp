@@ -97,6 +97,7 @@ void G2Time_ReportTimers(void)
 #include <cfloat>
 #endif
 #include <string.h>
+#include <qcommon\q_string.h>
 
 //rww - RAGDOLL_END
 
@@ -3377,8 +3378,18 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		LL(mdxm->ofsSurfHierarchy);
 		LL(mdxm->ofsEnd);
 	}
+	// Force all humanoid models to use the MP humanoid skeleton
+	if (strstr(mdxm->animName, "models/players/_humanoid/") &&
+		!strstr(mdxm->animName, "rockettrooper"))
+	{
+		Q_strncpyz(
+			mdxm->animName,
+			"models/players/_humanoid_MP/_humanoid",
+			sizeof(mdxm->animName)
+		);
+	}
 
-	// first up, go load in the animation file we need that has the skeletal animation info for this model
+	// Now load the GLA for this model
 	mdxm->animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
 
 	if (!mdxm->animIndex)
@@ -3395,8 +3406,9 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 	}
 
 	bool isAnOldModelFile = false;
-	//if (mdxm->numBones == 72 && strstr(mdxm->animName, "_humanoid_MP"))
-	if (mdxm->numBones == 72 && strstr(mdxm->animName, "_humanoid"))
+	if (mdxm->numBones == 72 &&
+		(strstr(mdxm->animName, "_humanoid") ||
+			strstr(mdxm->animName, "_humanoid_MP")))
 	{
 		isAnOldModelFile = true;
 	}

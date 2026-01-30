@@ -33,6 +33,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // ui_cvar.c
 #define XCVAR_PROTO
 #include "ui_xcvar.h"
+#include <qcommon\qfiles.h>
 #undef XCVAR_PROTO
 void UI_RegisterCvars(void);
 void UI_UpdateCvars(void);
@@ -129,7 +130,7 @@ typedef struct playerInfo_s {
 #define MAX_ALIASES				64
 #define MAX_TEAMS				64
 #define MAX_GAMETYPES			16
-#define MAX_MAPS				1024
+#define MAX_MAPS				2048
 #define PLAYERS_PER_TEAM		8 //5
 #define MAX_PINGREQUESTS		32
 #define MAX_DISPLAY_SERVERS		2048

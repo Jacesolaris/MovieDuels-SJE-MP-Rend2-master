@@ -5552,20 +5552,19 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		//Looks like it has not yet been loaded. Allocate space for the anim set if we need to, and continue along.
 		if (!anim_set)
 		{
-			//if (strstr(filename, "players/_humanoid_MP/"))
-			if (strstr(filename, "players/_humanoid/"))
+			if (strstr(filename, "players/_humanoid/") ||
+				strstr(filename, "players/_humanoid_MP/"))
 			{
-				//then use the static humanoid set.
+				// then use the static humanoid set.
 				anim_set = bgHumanoidAnimations;
 				next_index = 0;
 			}
 			else if (strstr(filename, "players/rockettrooper/"))
 			{
-				//rockettrooper always index 1
+				// rockettrooper always index 1
 				next_index = 1;
 				anim_set = BG_AnimsetAlloc();
 				dyn_alloc = qtrue;
-				//so we know to free this memory in case we have to return early. Don't want any leaks.
 
 				if (!anim_set)
 				{
@@ -5577,7 +5576,6 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 			{
 				anim_set = BG_AnimsetAlloc();
 				dyn_alloc = qtrue;
-				//so we know to free this memory in case we have to return early. Don't want any leaks.
 
 				if (!anim_set)
 				{

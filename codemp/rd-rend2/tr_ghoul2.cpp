@@ -4058,8 +4058,9 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 	}
 
 	bool isAnOldModelFile = false;
-	//if (mdxm->numBones == 72 && strstr(mdxm->animName, "_humanoid_MP"))
-	if (mdxm->numBones == 72 && strstr(mdxm->animName, "_humanoid"))
+	if (mdxm->numBones == 72 &&
+		(strstr(mdxm->animName, "_humanoid") ||
+			strstr(mdxm->animName, "_humanoid_MP")))
 	{
 		isAnOldModelFile = true;
 	}

@@ -1339,69 +1339,35 @@ static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_
 		if (bs->lastucmd.buttons & BUTTON_ATTACK) bi.actionflags &= ~(ACTION_RESPAWN | ACTION_ATTACK);
 	}
 
+	// Saber combat walking logic
 	if (bs->cur_ps.weapon == WP_SABER)
 	{
-		if (bs->currentEnemy
-			&& bs->currentEnemy->client
-			&& bs->currentEnemy->health > 0
-			&& bs->jumpTime <= level.time // Don't walk during jumping...
-			&& (VectorDistance(g_entities[bs->cur_ps.clientNum].r.currentOrigin, bs->currentEnemy->r.currentOrigin) < 300
-				|| walktime[bs->cur_ps.clientNum] > level.time))
+		gentity_t* self = &g_entities[bs->cur_ps.clientNum];
+		gentity_t* enemy = bs->currentEnemy;
+
+		qboolean inSaberCombat = qfalse;
+
+		if (enemy &&
+			enemy->client &&
+			enemy->health > 0 &&
+			!bs->cur_ps.saberHolstered) // saber ignited
 		{
-			if (visible(&g_entities[bs->cur_ps.clientNum], bs->currentEnemy) || walktime[bs->cur_ps.clientNum] > level.time)
+			float dist = VectorDistance(self->r.currentOrigin, enemy->r.currentOrigin);
+
+			// Duel distance (feels natural in Movie Duels)
+			if (dist < 200.0f)
 			{
-				bi.actionflags |= ACTION_WALK;
-				walktime[bs->cur_ps.clientNum] = level.time + 2000;
-				if (bs->cur_ps.saberHolstered)
-				{
-					bs->cur_ps.saberHolstered = 0;
-				}
+				inSaberCombat = qtrue;
 			}
-			else
-			{
-				// Reset.
-				walktime[bs->cur_ps.clientNum] = 0;
-				bi.actionflags &= ~ACTION_WALK;
-			}
+		}
+
+		if (inSaberCombat)
+		{
+			bi.actionflags |= ACTION_WALK;
 		}
 		else
 		{
-			// Reset.
-			walktime[bs->cur_ps.clientNum] = 0;
 			bi.actionflags &= ~ACTION_WALK;
-		}
-	}
-
-	if (next_kick[bs->cur_ps.clientNum] <= level.time && bot_thinklevel.integer >= 0)
-	{
-		if (bs->currentEnemy
-			&& bs->currentEnemy->client
-			&& bs->currentEnemy->health > 0
-			&& bs->currentEnemy->client->ps.groundEntityNum != ENTITYNUM_NONE
-			&& VectorDistance(g_entities[bs->cur_ps.clientNum].r.currentOrigin, bs->currentEnemy->r.currentOrigin) < SABER_KICK_RANGE
-			|| next_kick[bs->cur_ps.clientNum] > level.time)
-		{
-			if (visible(&g_entities[bs->cur_ps.clientNum], bs->currentEnemy) || next_kick[bs->cur_ps.clientNum] > level.time)
-			{
-				bi.actionflags |= ACTION_KICK;
-
-				int check_val = bot_thinklevel.integer;
-
-				if (check_val <= 0)
-					check_val = 1;
-
-				next_kick[bs->cur_ps.clientNum] = level.time + 20000 / check_val;
-			}
-			else
-			{
-				// Reset.
-				next_kick[bs->cur_ps.clientNum] = 0;
-			}
-		}
-		else
-		{
-			// Reset.
-			next_kick[bs->cur_ps.clientNum] = 0;
 		}
 	}
 
@@ -2402,15 +2368,16 @@ static void copy_route(bot_route_t routesource, bot_route_t routedest)
 //badwp is for situations where you need to recalc a path when you dynamically discover
 //that a wp is bad (door locked, blocked, etc).
 //doRoute = actually set botRoute
-static float find_ideal_pathto_wp(bot_state_t* bs, const int start, const int end, const int badwp, bot_route_t route)
+static float find_ideal_pathto_wp(bot_state_t* bs,
+	const int start,
+	const int end,
+	const int badwp,
+	bot_route_t route)
 {
 	int i;
 
 	if (bs->PathFindDebounce > level.time)
 	{
-		//currently debouncing the path finding to prevent a massive overload of AI thinking
-		//in weird situations, like when the target near a waypoint where the bot can't
-		//get to (like in an area where you need a specific force power to get to).
 		return -1;
 	}
 
@@ -2421,7 +2388,7 @@ static float find_ideal_pathto_wp(bot_state_t* bs, const int start, const int en
 		return 0;
 	}
 
-	//reset node lists
+	// reset node lists
 	for (i = 0; i < MAX_WPARRAY_SIZE; i++)
 	{
 		open_list[i].wpNum = -1;
@@ -2429,10 +2396,7 @@ static float find_ideal_pathto_wp(bot_state_t* bs, const int start, const int en
 		open_list[i].g = -1;
 		open_list[i].h = -1;
 		open_list[i].pNum = -1;
-	}
 
-	for (i = 0; i < MAX_WPARRAY_SIZE; i++)
-	{
 		close_list[i].wpNum = -1;
 		close_list[i].f = -1;
 		close_list[i].g = -1;
@@ -2444,40 +2408,61 @@ static float find_ideal_pathto_wp(bot_state_t* bs, const int start, const int en
 
 	while (!open_list_empty() && find_open_list(end) == -1)
 	{
-		//open list not empty
-		//we're using a binary pile so the first slot always has the lowest f score
+		// take best node from open list
 		add_close_list(1);
 		i = open_list[1].wpNum;
 		remove_first_open_list();
 
-		//Add surrounding nodes
-		if (gWPArray[i + 1] && gWPArray[i + 1]->inuse)
+		// sanity check on i before using it
+		if (i < 0 || i >= gWPNum)
 		{
-			if (gWPArray[i]->disttonext < 1000
-				&& find_close_list(i + 1) == -1 && i + 1 != badwp)
-			{
-				//Add next sequential node
-				add_open_list(bs, i + 1, i, end);
-			}
+			continue;
 		}
 
-		if (i > 0)
+		if (!gWPArray[i] || !gWPArray[i]->inuse)
 		{
-			if (gWPArray[i - 1]->disttonext < 1000 && gWPArray[i - 1]->inuse
-				&& find_close_list(i - 1) == -1 && i - 1 != badwp)
-			{
-				//Add previous sequential node
-				add_open_list(bs, i - 1, i, end);
-			}
+			continue;
 		}
 
-		if (gWPArray[i]->neighbornum)
+		// Add next sequential node (i + 1)
+		if (i + 1 < gWPNum &&
+			gWPArray[i + 1] &&
+			gWPArray[i + 1]->inuse &&
+			gWPArray[i]->disttonext < 1000 &&
+			find_close_list(i + 1) == -1 &&
+			(i + 1) != badwp)
+		{
+			add_open_list(bs, i + 1, i, end);
+		}
+
+		// Add previous sequential node (i - 1)
+		if (i - 1 >= 0 &&
+			gWPArray[i - 1] &&
+			gWPArray[i - 1]->inuse &&
+			gWPArray[i - 1]->disttonext < 1000 &&
+			find_close_list(i - 1) == -1 &&
+			(i - 1) != badwp)
+		{
+			add_open_list(bs, i - 1, i, end);
+		}
+
+		// Add neighbor nodes
+		if (gWPArray[i]->neighbornum > 0)
 		{
 			for (int x = 0; x < gWPArray[i]->neighbornum; x++)
 			{
-				if (x != badwp && find_close_list(gWPArray[i]->neighbors[x].num) == -1)
+				int n = gWPArray[i]->neighbors[x].num;
+
+				// basic safety on neighbor index
+				if (n < 0 || n >= gWPNum)
 				{
-					add_open_list(bs, gWPArray[i]->neighbors[x].num, i, end);
+					continue;
+				}
+
+				if (n != badwp &&
+					find_close_list(n) == -1)
+				{
+					add_open_list(bs, n, i, end);
 				}
 			}
 		}
@@ -2487,28 +2472,29 @@ static float find_ideal_pathto_wp(bot_state_t* bs, const int start, const int en
 
 	if (i != -1)
 	{
-		//we have a valid route to the end point
 		clear_route(route);
 		addto_route(end, route);
+
 		const float dist = open_list[i].g;
-		i = open_list[i].pNum;
-		i = find_close_list(i);
+		int parent = open_list[i].pNum;
+
+		i = find_close_list(parent);
 		while (i != -1)
 		{
 			addto_route(close_list[i].wpNum, route);
 			i = find_close_list(close_list[i].pNum);
 		}
-		//only have the debouncer when we fail to find a route.
+
 		bs->PathFindDebounce = level.time;
 		return dist;
 	}
 
 	if (bot_wp_edit.integer)
 	{
-		//print error message if in edit mode.
+		// optional: print debug info here
 	}
-	bs->PathFindDebounce = level.time + 3000; //try again in 3 seconds.
 
+	bs->PathFindDebounce = level.time + 3000;
 	return -1;
 }
 

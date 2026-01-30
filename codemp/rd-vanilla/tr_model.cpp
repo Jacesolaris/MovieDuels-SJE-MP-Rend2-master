@@ -836,8 +836,19 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 		LL(mdxm->ofsEnd);
 	}
 
-	// first up, go load in the animation file we need that has the skeletal animation info for this model
-	mdxm->animIndex = RE_RegisterServerModel(va("%s.gla", mdxm->animName));
+	// Force all humanoid models to use the MP humanoid skeleton
+	if (strstr(mdxm->animName, "models/players/_humanoid/") &&
+		!strstr(mdxm->animName, "rockettrooper"))
+	{
+		Q_strncpyz(
+			mdxm->animName,
+			"models/players/_humanoid_MP/_humanoid",
+			sizeof(mdxm->animName)
+		);
+	}
+
+	// Now load the GLA for this model
+	mdxm->animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
 	if (!mdxm->animIndex)
 	{
 		return qfalse;

@@ -2028,10 +2028,13 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 				gla_name[0] = 0;
 				trap->G2API_GetGLAName(ent->ghoul2, 0, gla_name);
 
-				//if (!gla_name[0] || !strstr(gla_name, "players/_humanoid_MP/") && ent->s.number < MAX_CLIENTS && !G_PlayerHasCustomSkeleton(ent))
-				if (!gla_name[0] || !strstr(gla_name, "players/_humanoid/") && ent->s.number < MAX_CLIENTS && !G_PlayerHasCustomSkeleton(ent))
+				if (!gla_name[0] ||
+					(!strstr(gla_name, "players/_humanoid/") &&
+						!strstr(gla_name, "players/_humanoid_MP/")) &&
+					ent->s.number < MAX_CLIENTS &&
+					!G_PlayerHasCustomSkeleton(ent))
 				{
-					//a bad model
+					// a bad model
 					trap->G2API_CleanGhoul2Models(&ent->ghoul2);
 					ent->ghoul2 = NULL;
 					trap->G2API_DuplicateGhoul2Instance(precachedKyle, &ent->ghoul2);
@@ -2079,11 +2082,15 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 
 	if (!bgpa_ftext_loaded)
 	{
-		//if (bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
-		if (bg_parse_animation_file("models/players/_humanoid/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
+		// Try to load humanoid_MP first
+		if (bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
 		{
-			Com_Printf("Failed to load humanoid animation file\n");
-			return;
+			// Fallback to original humanoid
+			if (bg_parse_animation_file("models/players/_humanoid/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
+			{
+				Com_Printf("Failed to load humanoid animation file (both _humanoid_MP and _humanoid)\n");
+				return;
+			}
 		}
 	}
 
@@ -2095,21 +2102,20 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 		trap->G2API_GetGLAName(ent->ghoul2, 0, gla_name);
 
 		if (gla_name[0] &&
-			//!strstr(gla_name, "players/_humanoid_MP/"))
-			!strstr(gla_name, "players/_humanoid/"))
+			!strstr(gla_name, "players/_humanoid/") &&
+			!strstr(gla_name, "players/_humanoid_MP/"))
 		{
-			//it doesn't use humanoid anims.
+			// non-humanoid anims
 			char* slash = Q_strrchr(gla_name, '/');
 			if (slash)
 			{
 				strcpy(slash, "/animation.cfg");
-
 				ent->localAnimIndex = bg_parse_animation_file(gla_name, NULL, qfalse);
 			}
 		}
 		else
 		{
-			//humanoid index.
+			// humanoid or humanoid_MP
 			if (strstr(gla_name, "players/rockettrooper/"))
 			{
 				ent->localAnimIndex = 1;

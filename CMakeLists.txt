@@ -163,9 +163,9 @@ set(MPUI "MovieDuels-ui${Architecture}")
 set(MPRend2 "MovieDuels-rdmp-rend2_${Architecture}")
 set(SPRend2 "MovieDuels-rdsp-rend2_${Architecture}")
 
-set(JK2SPEngine "SerenityJediEngineJO2026-SP.${Architecture}")
-set(JK2SPGame "SerenityJediEngineJO2026-game${Architecture}")
-set(JK2SPVanillaRenderer "SerenityJediEngineJO2026-josp_${Architecture}")
+set(JK2SPEngine "MovieDuels_JO2026-SP.${Architecture}")
+set(JK2SPGame "MovieDuels_JO2026-game${Architecture}")
+set(JK2SPVanillaRenderer "MovieDuels_JO2026-josp_${Architecture}")
 
 set(AssetsPk3 "MovieDuels-Assets-0-${Architecture}.pk3")
 # Library names

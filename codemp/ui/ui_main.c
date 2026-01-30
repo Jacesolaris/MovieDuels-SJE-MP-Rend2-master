@@ -45,6 +45,8 @@ USER INTERFACE MAIN
 #include "ui_shared.h"
 #include <string.h>
 #include <qcommon\q_shared.h>
+#include <game\bg_weapons.h>
+#include "ui_public.h"
 
 extern void UI_SaberAttachToChar(itemDef_t* item);
 
@@ -303,10 +305,10 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 		//Looks like it has not yet been loaded. Allocate space for the anim set if we need to, and continue along.
 		if (!animset)
 		{
-			//if (strstr(filename, "players/_humanoid_MP/"))
-			if (strstr(filename, "players/_humanoid/"))
+			if (strstr(filename, "players/_humanoid/") ||
+				strstr(filename, "players/_humanoid_MP/"))
 			{
-				//then use the static humanoid set.
+				// then use the static humanoid set.
 				animset = uiHumanoidAnimations;
 				is_humanoid = qtrue;
 				nextIndex = 0;
@@ -630,7 +632,7 @@ static const char* GetNetSourceString(int iSource)
 	return result;
 }
 
-void AssetCache(void)
+static void AssetCache(void)
 {
 	//if (Assets.textFont == NULL) {
 	//}
@@ -670,7 +672,7 @@ void AssetCache(void)
 	}
 }
 
-void _UI_DrawSides(float x, float y, float w, float h, float size)
+static void _UI_DrawSides(float x, float y, float w, float h, float size)
 {
 	size *= uiInfo.uiDC.xscale;
 	trap->R_DrawStretchPic(x, y, size, h, 0, 0, 0, 0, uiInfo.uiDC.whiteShader);
@@ -691,7 +693,7 @@ UI_DrawRect
 Coordinates are 640*480 virtual values
 =================
 */
-void _UI_DrawRect(float x, float y, float width, float height, float size, const float* color)
+static void _UI_DrawRect(float x, float y, float width, float height, float size, const float* color)
 {
 	trap->R_SetColor(color);
 
@@ -715,14 +717,14 @@ int MenuFontToHandle(int i_menu_font)
 	return uiInfo.uiDC.Assets.qhMediumFont; // 0;
 }
 
-int Text_Width(const char* text, float scale, int i_menu_font)
+static int Text_Width(const char* text, float scale, int i_menu_font)
 {
 	const int iFontIndex = MenuFontToHandle(i_menu_font);
 
 	return trap->R_Font_StrLenPixels(text, iFontIndex, scale);
 }
 
-int Text_Height(const char* text, float scale, int i_menu_font)
+static int Text_Height(const char* text, float scale, int i_menu_font)
 {
 	const int iFontIndex = MenuFontToHandle(i_menu_font);
 
@@ -1102,7 +1104,7 @@ const char* UI_GetStringEdString(const char* refSection, const char* refName)
 	return text;
 }
 
-void UI_SetColor(const float* rgba)
+static void UI_SetColor(const float* rgba)
 {
 	trap->R_SetColor(rgba);
 }
@@ -1695,9 +1697,9 @@ static const char* UI_GetGameTypeName(int gtEnum)
 	case GT_HOLOCRON:
 		return UI_GetStringEdString("MENUS", "HOLOCRON_FFA"); //"Holocron FFA";
 	case GT_JEDIMASTER:
-		return UI_GetStringEdString("OJP_MENUS", "JEDIMASTER"); //"Jedi Master";??
+		return UI_GetStringEdString("MD_MENU_MP", "JEDIMASTER"); //"Jedi Master";??
 	case GT_SINGLE_PLAYER:
-		return UI_GetStringEdString("OJP_MENUS", "COOP"); //"Team FFA";
+		return UI_GetStringEdString("MD_MENU_MP", "COOP"); //"Team FFA";
 	case GT_DUEL:
 		return UI_GetStringEdString("MENUS", "DUEL"); //"Team FFA";
 	case GT_POWERDUEL:
@@ -3102,8 +3104,8 @@ static void UI_DrawRedBlue(rectDef_t* rect, float scale, vec4_t color, int textS
 		//print different team names for CoOp
 		Text_Paint(rect->x, rect->y, scale, color,
 			uiInfo.redBlue == 0
-			? UI_GetStringEdString("OJP_MENUS", "ENEMYTEAM")
-			: UI_GetStringEdString("OJP_MENUS", "PLAYERTEAM"), 0, 0, textStyle, i_menu_font);
+			? UI_GetStringEdString("MD_MENU_MP", "ENEMYTEAM")
+			: UI_GetStringEdString("MD_MENU_MP", "PLAYERTEAM"), 0, 0, textStyle, i_menu_font);
 	}
 	else
 	{
@@ -10562,7 +10564,7 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 		if (strcmp(dirptr, ".") == 0 || strcmp(dirptr, "..") == 0)
 			continue;
 
-		Com_sprintf(fpath, sizeof fpath, "models/players/%s/PlayerChoice.txt", dirptr);
+		Com_sprintf(fpath, sizeof fpath, "models/players/%s/playerchoice_mp.txt", dirptr);
 
 		int filelen = trap->FS_Open(fpath, &f, FS_READ);
 

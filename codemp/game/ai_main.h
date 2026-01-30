@@ -24,6 +24,11 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include "bg_saga.h"
+#include "bg_weapons.h"
+#include <qcommon\q_platform.h>
+#include "g_local.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_shared.h>
 
 #define MAX_CHAT_BUFFER_SIZE 8192
 #define MAX_CHAT_LINE_SIZE 128
@@ -483,8 +488,6 @@ void B_Free(void* ptr);
 
 //resets the whole bot state
 void bot_reset_state(bot_state_t* bs);
-//returns the number of bots in the game
-int num_bots(void);
 
 void BotUtilizePersonality(bot_state_t* bs);
 int BotDoChat(bot_state_t* bs, const char* section, int always);

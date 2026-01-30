@@ -622,10 +622,10 @@ retryModel:
 	trap->G2API_GetGLAName(ci->ghoul2Model, 0, gla_name);
 	if (gla_name[0] != 0)
 	{
-		if (!strstr(gla_name, "players/_humanoid/")) //only allow rockettrooper in siege
-		//if (!strstr(gla_name, "players/_humanoid_MP/")) //only allow rockettrooper in siege
+		if (!strstr(gla_name, "players/_humanoid/") &&
+			!strstr(gla_name, "players/_humanoid_MP/")) // allow both humanoid sets
 		{
-			//Bad!
+			// Bad!
 			bad_model = qtrue;
 			goto retryModel;
 		}
@@ -651,28 +651,37 @@ retryModel:
 		}
 
 		//rww - All player models must use humanoid, no matter what.
-		//if (Q_stricmp(afilename, "models/players/_humanoid_MP/animation.cfg"))
-		if (Q_stricmp(afilename, "models/players/_humanoid/animation.cfg"))
+		// Allow both humanoid_MP and humanoid
+		if (!strstr(afilename, "_humanoid"))
 		{
 			Com_Printf("Model does not use supported animation config.\n");
 			return qfalse;
 		}
-		//if (bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
-		if (bg_parse_animation_file("models/players/_humanoid/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
+		// Try to load humanoid_MP first
+		if (bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
 		{
-			//Com_Printf("Failed to load animation file models/players/_humanoid_MP/animation.cfg\n");
-			Com_Printf("Failed to load animation file models/players/_humanoid/animation.cfg\n");
-			return qfalse;
+			// Fallback to original humanoid
+			if (bg_parse_animation_file("models/players/_humanoid/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
+			{
+				Com_Printf("Failed to load humanoid animation config (both _humanoid_MP and _humanoid)\n");
+				return qfalse;
+			}
 		}
 
-		//BG_ParseAnimationEvtFile("models/players/_humanoid_MP/", 0, -1); //get the sounds for the humanoid anims
-		BG_ParseAnimationEvtFile("models/players/_humanoid/", 0, -1); //get the sounds for the humanoid anims
+		// Try MP humanoid events first
+		if (!BG_ParseAnimationEvtFile("models/players/_humanoid_MP/", 0, -1))
+		{
+			// Fallback to original humanoid events
+			BG_ParseAnimationEvtFile("models/players/_humanoid/", 0, -1);
+		}
 	}
 	else if (!bgAllEvents[0].eventsParsed)
 	{
-		//make sure the player anim sounds are loaded even if the anims already are
-		//BG_ParseAnimationEvtFile("models/players/_humanoid_MP/", 0, -1);
-		BG_ParseAnimationEvtFile("models/players/_humanoid/", 0, -1);
+		// Make sure events are loaded even if anims already are
+		if (!BG_ParseAnimationEvtFile("models/players/_humanoid_MP/", 0, -1))
+		{
+			BG_ParseAnimationEvtFile("models/players/_humanoid/", 0, -1);
+		}
 	}
 
 	if (CG_ParseSurfsFile(model_name, skin_name, surf_off, surf_on))
@@ -14153,30 +14162,25 @@ void CG_G2AnimEntModelLoad(centity_t* cent)
 
 			strcpy(original_model_name, model_name);
 
+			// If the model does NOT use humanoid or humanoid_MP animations
 			if (gla_name[0] &&
-				//!strstr(gla_name, "players/_humanoid_MP/"))
-				!strstr(gla_name, "players/_humanoid/"))
+				!strstr(gla_name, "players/_humanoid/") &&
+				!strstr(gla_name, "players/_humanoid_MP/"))
 			{
-				//it doesn't use humanoid anims.
+				// Non-humanoid anims
 				slash = Q_strrchr(gla_name, '/');
 				if (slash)
 				{
 					strcpy(slash, "/animation.cfg");
-
 					cent->localAnimIndex = bg_parse_animation_file(gla_name, NULL, qfalse);
 				}
 			}
 			else
 			{
-				//humanoid index.
+				// Humanoid or humanoid_MP
 				trap->G2API_AddBolt(cent->ghoul2, 0, "*r_hand");
 				trap->G2API_AddBolt(cent->ghoul2, 0, "*l_hand");
-
-				//rhand must always be first bolt. lhand always second. Whichever you want the
-				//jetpack bolted to must always be third.
 				trap->G2API_AddBolt(cent->ghoul2, 0, "*chestg");
-
-				//claw bolts
 				trap->G2API_AddBolt(cent->ghoul2, 0, "*r_hand_cap_r_arm");
 				trap->G2API_AddBolt(cent->ghoul2, 0, "*l_hand_cap_l_arm");
 
@@ -14193,6 +14197,7 @@ void CG_G2AnimEntModelLoad(centity_t* cent)
 				{
 					trap->G2API_AddBolt(cent->ghoul2, 0, "ceyebrow");
 				}
+
 				trap->G2API_AddBolt(cent->ghoul2, 0, "Motion");
 			}
 

@@ -4005,7 +4005,7 @@ void cg_draw_inventory_select(void)
 			strcpy(upper_key, bg_itemlist[item_ndex].classname);
 
 			if (trap->SE_GetStringTextString(va("SP_INGAME_%s", Q_strupr(upper_key)), text, sizeof text)
-				|| trap->SE_GetStringTextString(va("OJP_MENUS_%s", Q_strupr(upper_key)), text, sizeof text))
+				|| trap->SE_GetStringTextString(va("MD_MENU_MP_%s", Q_strupr(upper_key)), text, sizeof text))
 			{
 				CG_DrawProportionalString(320, y + 45, text, UI_CENTER | UI_SMALLFONT, text_color);
 			}
@@ -9244,7 +9244,7 @@ static void CG_DrawVote(void)
 		else if (!Q_stricmp("Capture the Ysalamiri", cgs.voteString + 11))
 			s_parm = CG_GetStringEdString(
 				"MENUS", "CAPTURE_THE_YSALIMARI");
-		else if (!Q_stricmp("Single Player", cgs.voteString + 11)) s_parm = CG_GetStringEdString("OJP_MENUS", "COOP");
+		else if (!Q_stricmp("Single Player", cgs.voteString + 11)) s_parm = CG_GetStringEdString("MD_MENU_MP", "COOP");
 	}
 	else if (!Q_strncmp(cgs.voteString, "map", 3))
 	{

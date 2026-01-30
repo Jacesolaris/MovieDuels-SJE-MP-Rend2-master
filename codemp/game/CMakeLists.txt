@@ -231,7 +231,7 @@ endif()
 if(MakeApplicationBundles AND BuildMPEngine)
 	install(TARGETS ${MPGame}
 		LIBRARY
-		DESTINATION "${JKAInstallDir}/${MPEngine}.app/Contents/MacOS/SerenityJediEngine2026"
+		DESTINATION "${JKAInstallDir}/${MPEngine}.app/Contents/MacOS/MovieDuels2026"
 		COMPONENT ${JKAMPCoreComponent})
 	install(TARGETS ${MPGame}
 		LIBRARY
@@ -240,7 +240,7 @@ if(MakeApplicationBundles AND BuildMPEngine)
 elseif(WIN32)
 	install(TARGETS ${MPGame}
 		RUNTIME
-		DESTINATION "${JKAInstallDir}/SerenityJediEngine2026"
+		DESTINATION "${JKAInstallDir}/MovieDuels2026"
 		COMPONENT ${JKAMPCoreComponent})
 	if (WIN64)
 		# Don't do this on 32-bit Windows to avoid overwriting
@@ -253,7 +253,7 @@ elseif(WIN32)
 else()
 	install(TARGETS ${MPGame}
 		LIBRARY
-		DESTINATION "${JKAInstallDir}/SerenityJediEngine2026"
+		DESTINATION "${JKAInstallDir}/MovieDuels2026"
 		COMPONENT ${JKAMPCoreComponent})
 	install(TARGETS ${MPGame}
 		LIBRARY

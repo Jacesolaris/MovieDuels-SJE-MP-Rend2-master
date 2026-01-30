@@ -1287,7 +1287,7 @@ void Cvar_List_f(void)
 		Com_Printf("%i cvar indexes\n", cvar_numIndexes);
 }
 
-void Cvar_SerenityJediEngine_f(void)
+void Cvar_MovieDuels_f(void)
 {
 	Com_Printf("-----A basic guide to player debugging----------\n");
 	Com_Printf("-----------------------------------------------\n");
@@ -1694,7 +1694,7 @@ void Cvar_Init()
 	Cmd_AddCommand("cvar_usercreated", Cvar_ListUserCreated_f, "Show all user created cvars");
 	Cmd_AddCommand("cvar_modified", Cvar_ListModified_f, "Show all modified cvars");
 	Cmd_AddCommand("cvar_restart", Cvar_Restart_f, "Resetart the cvar sub-system");
-	Cmd_AddCommand("helpdebug", Cvar_SerenityJediEngine_f, "serenityjediengine note");
+	Cmd_AddCommand("helpdebug", Cvar_MovieDuels_f, "MovieDuels note");
 }
 
 static void Cvar_Realloc(char** string, char* memPool, int& memPoolUsed)

@@ -2080,11 +2080,11 @@ extern int force_power_dark_light[NUM_FORCE_POWERS];
 #define MAX_WALL_GRAB_SLOPE	0.2f
 
 #define ARENAS_PER_TIER		4
-#define MAX_ARENAS			1024
-#define	MAX_ARENAS_TEXT		8192
+#define MAX_ARENAS			2048
+#define	MAX_ARENAS_TEXT		16384
 
-#define MAX_BOTS			1024
-#define MAX_BOTS_TEXT		8192
+#define MAX_BOTS			2048
+#define MAX_BOTS_TEXT		16384
 
 #define	HYPERSPACE_TIME				4000 //For hyperspace triggers
 #define	HYPERSPACE_TELEPORT_FRAC	0.75f

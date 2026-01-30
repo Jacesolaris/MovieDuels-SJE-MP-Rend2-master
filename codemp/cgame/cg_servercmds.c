@@ -30,6 +30,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "ui/menudef.h"
 #include "ghoul2/G2.h"
 #include "ui/ui_public.h"
+#include <string.h>
 
 /*
 =================
@@ -386,7 +387,7 @@ static const char* GetCustomSoundForType(const int setType, const int index)
 	}
 }
 
-void SetCustomSoundForType(clientInfo_t* ci, const int setType, const int index, const sfxHandle_t sfx)
+static void SetCustomSoundForType(clientInfo_t* ci, const int setType, const int index, const sfxHandle_t sfx)
 {
 	switch (setType)
 	{
@@ -1197,7 +1198,7 @@ static void CG_RemoveChatEscapeChar(char* text)
 
 #define MAX_STRINGED_SV_STRING 1024	// this is an quake-engine limit, not a StringEd limit
 
-void CG_CheckSVStringEdRef(char* buf, const char* str)
+static void CG_CheckSVStringEdRef(char* buf, const char* str)
 {
 	//I don't really like doing this. But it utilizes the system that was already in place.
 	int i = 0;
@@ -1253,13 +1254,13 @@ void CG_CheckSVStringEdRef(char* buf, const char* str)
 
 					if (buf[0] && buf[0] == '?' && buf[1] && buf[1] == '?')
 					{
-						//couldn't find the string in MP_SVGAME, try the OJP_MENUS.str
+						//couldn't find the string in MP_SVGAME, try the MD_MENU_MP.str
 						buf[b] = 0;
-						Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("OJP_MENUS", stringRef));
+						Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("MD_MENU_MP", stringRef));
 					}
 					if (buf[0] && buf[0] == '?' && buf[1] && buf[1] == '?')
 					{
-						//couldn't find the string in MP_SVGAME or OJP_MENUS, try the OJP_MENUS.str
+						//couldn't find the string in MP_SVGAME or MD_MENU_MP, try the SP_INGAME.str
 						buf[b] = 0;
 						Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("SP_INGAME", stringRef));
 					}
