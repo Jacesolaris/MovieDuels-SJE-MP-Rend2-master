@@ -116,45 +116,35 @@ void Q_strncpyz(char* dest, const char* src, const int destsize)
 
 int Q_stricmpn(const char* s1, const char* s2, int n)
 {
-	int c1;
+	int c1, c2;
 
-	if (s1 == NULL)
-	{
+	if (s1 == NULL) {
 		if (s2 == NULL)
 			return 0;
 		return -1;
 	}
+
 	if (s2 == NULL)
 		return 1;
 
-	do
-	{
+	do {
 		c1 = *s1++;
-		int c2 = *s2++;
+		c2 = *s2++;
 
-		if (!n--)
-		{
-			return 0; // strings are equal until end point
-		}
+		if (--n == 0)
+			return 0;
 
-		if (c1 != c2)
-		{
+		if (c1 != c2) {
 			if (c1 >= 'a' && c1 <= 'z')
-			{
-				c1 -= 'a' - 'A';
-			}
+				c1 -= ('a' - 'A');
 			if (c2 >= 'a' && c2 <= 'z')
-			{
-				c2 -= 'a' - 'A';
-			}
+				c2 -= ('a' - 'A');
 			if (c1 != c2)
-			{
 				return c1 < c2 ? -1 : 1;
-			}
 		}
-	} while (c1);
+	} while (c1 != 0 && c2 != 0);
 
-	return 0; // strings are equal
+	return c1 < c2 ? -1 : c1 > c2;
 }
 
 int Q_stricmp(const char* s1, const char* s2)

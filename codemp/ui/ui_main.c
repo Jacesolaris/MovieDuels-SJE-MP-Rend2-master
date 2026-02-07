@@ -67,9 +67,9 @@ const char* forcepowerDesc[NUM_FORCE_POWERS] =
 	"@MENUS_EFFECT_JEDI_ALLIES_NEFFECT",
 	"@MENUS_VARIABLE_NAREA_OF_EFFECT",
 	"@MENUS_EFFECT_NAREA_OF_EFFECT",
-	"@SP_INGAME_FORCE_SABER_OFFENSE_DESC",
-	"@SP_INGAME_FORCE_SABER_DEFENSE_DESC",
-	"@SP_INGAME_FORCE_SABER_THROW_DESC"
+	"@MD_MP_GAMEFORCE_SABER_OFFENSE_DESC",
+	"@MD_MP_GAMEFORCE_SABER_DEFENSE_DESC",
+	"@MD_MP_GAMEFORCE_SABER_THROW_DESC"
 };
 
 // Movedata Sounds
@@ -288,27 +288,30 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 
 	fileHandle_t f;
 
+	// Detect and reuse existing non-humanoid sets
 	if (!is_humanoid)
 	{
 		i = 1;
 		while (i < uiNumAllAnims)
 		{
-			//see if it's been loaded already
+			// see if it's been loaded already
 			if (!Q_stricmp(bgAllAnims[i].filename, filename))
 			{
 				animset = bgAllAnims[i].anims;
-				return i; //alright, we already have it.
+				return i; // already have it
 			}
 			i++;
 		}
 
-		//Looks like it has not yet been loaded. Allocate space for the anim set if we need to, and continue along.
+		// Looks like it has not yet been loaded. Allocate space for the anim set if we need to, and continue along.
 		if (!animset)
 		{
+			// Detect ANY humanoid by path (base or variant)
 			if (strstr(filename, "players/_humanoid/") ||
-				strstr(filename, "players/_humanoid_MP/"))
+				strstr(filename, "players/_humanoid_") ||
+				strstr(filename, "models/players/_humanoid/") ||
+				strstr(filename, "models/players/_humanoid_"))
 			{
-				// then use the static humanoid set.
 				animset = uiHumanoidAnimations;
 				is_humanoid = qtrue;
 				nextIndex = 0;
@@ -332,11 +335,80 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 	}
 #endif
 
+	// Decide which filename to actually load:
+	// - For humanoids: prefer _humanoid_mp if present, otherwise fall back to the original.
+	// - For non-humanoids: use the given filename as-is.
+	const char* animFileName = filename;
+
+	if (is_humanoid)
+	{
+		// Normalize to a canonical humanoid path root if possible
+		// We only care about swapping _humanoid -> _humanoid_mp in the path.
+		char mpPath[MAX_QPATH];
+
+		// If it's already an MP humanoid path, just use it.
+		if (strstr(filename, "_humanoid_mp/"))
+		{
+			animFileName = filename;
+		}
+		else
+		{
+			// Try to build an MP humanoid path from the original
+			Q_strncpyz(mpPath, filename, sizeof(mpPath));
+			// Replace first occurrence of "_humanoid/" with "_humanoid_mp/"
+			// Try to build an MP humanoid path from the original
+			Q_strncpyz(mpPath, filename, sizeof(mpPath));
+
+			char* pos = strstr(mpPath, "_humanoid/");
+			char* posVar = strstr(mpPath, "_humanoid_");
+
+			if (posVar && (!pos || posVar < pos))
+			{
+				// Handle variant: _humanoid_xxx/
+				char* slash = strchr(posVar, '/');
+				if (slash)
+				{
+					char tail[MAX_QPATH];
+					Q_strncpyz(tail, slash + 1, sizeof(tail));
+					*posVar = '\0';
+					Q_strcat(mpPath, sizeof(mpPath), "_humanoid_mp/");
+					Q_strcat(mpPath, sizeof(mpPath), tail);
+				}
+			}
+			else if (pos)
+			{
+				// Handle plain: _humanoid/
+				char tail[MAX_QPATH];
+				Q_strncpyz(tail, pos + strlen("_humanoid/"), sizeof(tail));
+				*pos = '\0';
+				Q_strcat(mpPath, sizeof(mpPath), "_humanoid_mp/");
+				Q_strcat(mpPath, sizeof(mpPath), tail);
+			}
+
+			// Try MP humanoid first
+			int lenTest = trap->FS_Open(mpPath, &f, FS_READ);
+			if (f && lenTest > 0)
+			{
+				// MP humanoid exists, use it
+				trap->FS_Close(f);
+				animFileName = mpPath;
+			}
+			else
+			{
+				// Fallback to original filename
+				if (f)
+				{
+					trap->FS_Close(f);
+				}
+				animFileName = filename;
+			}
+		}
+	}
+
 	// load the file
 	if (!UIPAFtextLoaded || !is_humanoid)
 	{
-		//rww - We are always using the same animation config now. So only load it once.
-		const int len = trap->FS_Open(filename, &f, FS_READ);
+		const int len = trap->FS_Open(animFileName, &f, FS_READ);
 
 		if (!f)
 		{
@@ -345,7 +417,7 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 		if (len >= sizeof UIPAFtext - 1)
 		{
 			trap->FS_Close(f);
-			Com_Error(ERR_DROP, "%s exceeds the allowed ui-side animation buffer!", filename);
+			Com_Error(ERR_DROP, "%s exceeds the allowed ui-side animation buffer!", animFileName);
 		}
 
 		trap->FS_Read(UIPAFtext, len, f);
@@ -354,15 +426,14 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 	}
 	else
 	{
-		return 0; //humanoid index
+		// Humanoid already loaded, reuse index 0
+		return 0;
 	}
 
 	// parse the text
 	text_p = UIPAFtext;
 
-	//FIXME: have some way of playing anims backwards... negative numFrames?
-
-	//initialize anim array so that from 0 to MAX_ANIMATIONS, set default values of 0 1 0 100
+	// initialize anim array
 	for (i = 0; i < MAX_ANIMATIONS; i++)
 	{
 		animset[i].firstFrame = 0;
@@ -386,9 +457,8 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 		const int animNum = GetIDForString(animTable, token);
 		if (animNum == -1)
 		{
-			//#ifndef FINAL_BUILD
 #ifdef _DEBUG
-			//Com_Printf(S_COLOR_RED"WARNING: Unknown token %s in %s\n", token, filename);
+			//Com_Printf(S_COLOR_RED"WARNING: Unknown token %s in %s\n", token, animFileName);
 #endif
 			continue;
 		}
@@ -422,11 +492,11 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 		float fps = atof(token);
 		if (fps == 0)
 		{
-			fps = 1; //Don't allow divide by zero error
+			fps = 1; // avoid divide by zero
 		}
 		if (fps < 0)
 		{
-			//backwards
+			// backwards
 			animset[animNum].frameLerp = floor(1000.0f / fps);
 		}
 		else
@@ -435,26 +505,10 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 		}
 	}
 
-#ifdef _DEBUG
-	//Check the array, and print the ones that have nothing in them.
-	/*
-	for(i = 0; i < MAX_ANIMATIONS; i++)
-	{
-		if (animTable[i].name != NULL)		// This animation reference exists.
-		{
-			if (animset[i].firstFrame <= 0 && animset[i].numFrames <=0)
-			{	// This is an empty animation reference.
-				Com_Printf("***ANIMTABLE reference #%d (%s) is empty!\n", i, animTable[i].name);
-			}
-		}
-	}
-	*/
-#endif // _DEBUG
-
 	if (is_humanoid)
 	{
 		bgAllAnims[0].anims = animset;
-		Q_strncpyz(bgAllAnims[0].filename, filename, sizeof bgAllAnims[0].filename);
+		Q_strncpyz(bgAllAnims[0].filename, animFileName, sizeof bgAllAnims[0].filename);
 		UIPAFtextLoaded = qtrue;
 
 		used_index = 0;
@@ -462,13 +516,13 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 	else
 	{
 		bgAllAnims[nextIndex].anims = animset;
-		Q_strncpyz(bgAllAnims[nextIndex].filename, filename, sizeof bgAllAnims[nextIndex].filename);
+		Q_strncpyz(bgAllAnims[nextIndex].filename, animFileName, sizeof bgAllAnims[nextIndex].filename);
 
 		used_index = nextIndex;
 
 		if (nextIndex)
 		{
-			//don't bother increasing the number if this ended up as a humanoid load.
+			// don't bother increasing the number if this ended up as a humanoid load.
 			uiNumAllAnims++;
 		}
 		else
@@ -583,7 +637,7 @@ static const char* GetCRDelineatedString(const char* psStripFileRef, const char*
 
 static const char* GetMonthAbbrevString(int iMonth)
 {
-	const char* p = GetCRDelineatedString("MP_INGAME", "MONTHS", iMonth);
+	const char* p = GetCRDelineatedString("MD_MP_INGAME", "MONTHS", iMonth);
 
 	return p ? p : "Jan"; // sanity
 }
@@ -622,7 +676,7 @@ static const char* GetNetSourceString(int iSource)
 {
 	static char result[256] = { 0 };
 
-	Q_strncpyz(result, GetCRDelineatedString("MP_INGAME", "NET_SOURCES", UI_SourceForLAN()), sizeof result);
+	Q_strncpyz(result, GetCRDelineatedString("MD_MP_INGAME", "NET_SOURCES", UI_SourceForLAN()), sizeof result);
 
 	if (iSource >= UIAS_GLOBAL1 && iSource <= UIAS_GLOBAL5)
 	{
@@ -1697,9 +1751,9 @@ static const char* UI_GetGameTypeName(int gtEnum)
 	case GT_HOLOCRON:
 		return UI_GetStringEdString("MENUS", "HOLOCRON_FFA"); //"Holocron FFA";
 	case GT_JEDIMASTER:
-		return UI_GetStringEdString("MD_MENU_MP", "JEDIMASTER"); //"Jedi Master";??
+		return UI_GetStringEdString("MD_MP_MENU", "JEDIMASTER"); //"Jedi Master";??
 	case GT_SINGLE_PLAYER:
-		return UI_GetStringEdString("MD_MENU_MP", "COOP"); //"Team FFA";
+		return UI_GetStringEdString("MD_MP_MENU", "COOP"); //"Team FFA";
 	case GT_DUEL:
 		return UI_GetStringEdString("MENUS", "DUEL"); //"Team FFA";
 	case GT_POWERDUEL:
@@ -1757,7 +1811,7 @@ static void UI_DrawAutoSwitch(rectDef_t* rect, float scale, vec4_t color, int te
 		break;
 	}
 
-	const char* stripString = UI_GetStringEdString("MP_INGAME", (char*)switchString);
+	const char* stripString = UI_GetStringEdString("MD_MP_INGAME", (char*)switchString);
 
 	if (stripString)
 	{
@@ -1874,7 +1928,7 @@ static void UI_DrawSkill(rectDef_t* rect, float scale, vec4_t color, int textSty
 	{
 		i = 1;
 	}
-	Text_Paint(rect->x, rect->y, scale, color, (char*)UI_GetStringEdString("MP_INGAME", (char*)skillLevels[i - 1]), 0,
+	Text_Paint(rect->x, rect->y, scale, color, (char*)UI_GetStringEdString("MD_MP_INGAME", (char*)skillLevels[i - 1]), 0,
 		0, textStyle, i_menu_font);
 }
 
@@ -1906,7 +1960,7 @@ static void UI_DrawForceMastery(rectDef_t* rect, float scale, vec4_t color, int 
 		i = max;
 	}
 
-	const char* s = (char*)UI_GetStringEdString("MP_INGAME", forceMasteryLevels[i]);
+	const char* s = (char*)UI_GetStringEdString("MD_MP_INGAME", forceMasteryLevels[i]);
 	Text_Paint(rect->x, rect->y, scale, color, s, 0, 0, textStyle, i_menu_font);
 }
 
@@ -2203,7 +2257,7 @@ static void UI_DrawTeamMember(rectDef_t* rect, float scale, vec4_t color, qboole
 	Text_Paint(rect->x, rect->y, scale, finalColor, text, 0, 0, textStyle, i_menu_font);
 }
 
-int SCREENSHOT_TOTAL = -1;
+int SCREENSHOT_TOTAL = 8;
 int SCREENSHOT_CHOICE = 0;
 int SCREENSHOT_NEXT_UPDATE_TIME = 0;
 
@@ -2213,33 +2267,8 @@ static char* UI_GetCurrentLevelshot(void)
 
 	if (SCREENSHOT_NEXT_UPDATE_TIME < time)
 	{
-		if (SCREENSHOT_TOTAL < 0)
-		{
-			// Count and register them...
-			SCREENSHOT_TOTAL = 0;
-
-			while (1)
-			{
-				char screenShot[128] = { 0 };
-
-				strcpy(screenShot, va("menu/art/unknownmap%i", SCREENSHOT_TOTAL));
-
-				if (!trap->R_RegisterShaderNoMip(screenShot))
-				{
-					// Found the last one...
-					break;
-				}
-
-				SCREENSHOT_TOTAL++;
-			}
-
-			SCREENSHOT_TOTAL--;
-		}
-
-		SCREENSHOT_NEXT_UPDATE_TIME = time + 2500;
-		SCREENSHOT_CHOICE++;
-
-		if (SCREENSHOT_CHOICE > SCREENSHOT_TOTAL) SCREENSHOT_CHOICE = 0;
+		SCREENSHOT_NEXT_UPDATE_TIME = time + 5000;
+		SCREENSHOT_CHOICE = Q_irand(0, SCREENSHOT_TOTAL);
 	}
 
 	return va("menu/art/unknownmap%i", SCREENSHOT_CHOICE);
@@ -2650,7 +2679,7 @@ static const char* UI_AIFromName(const char* name)
 			return uiInfo.aliasList[j].ai;
 		}
 	}
-	return "Kyle";
+	return "_humanoid_mp";
 }
 
 /*
@@ -2904,7 +2933,7 @@ static int UI_OwnerDrawWidth(int ownerDraw, float scale)
 			i = 1;
 		}
 
-		s = (char*)UI_GetStringEdString("MP_INGAME", forceMasteryLevels[i]);
+		s = (char*)UI_GetStringEdString("MD_MP_INGAME", forceMasteryLevels[i]);
 		break;
 	case UI_FORCE_RANK_HEAL:
 	case UI_FORCE_RANK_LEVITATION:
@@ -2947,7 +2976,7 @@ static int UI_OwnerDrawWidth(int ownerDraw, float scale)
 		{
 			i = 1;
 		}
-		s = (char*)UI_GetStringEdString("MP_INGAME", (char*)skillLevels[i - 1]);
+		s = (char*)UI_GetStringEdString("MD_MP_INGAME", (char*)skillLevels[i - 1]);
 		break;
 	case UI_BLUETEAMNAME:
 		i = UI_TeamIndexFromName(UI_Cvar_VariableString("ui_blueTeam"));
@@ -3055,7 +3084,7 @@ static int UI_OwnerDrawWidth(int ownerDraw, float scale)
 	case UI_KEYBINDSTATUS:
 		if (Display_KeyBindPending())
 		{
-			s = UI_GetStringEdString("MP_INGAME", "WAITING_FOR_NEW_KEY");
+			s = UI_GetStringEdString("MD_MP_INGAME", "WAITING_FOR_NEW_KEY");
 		}
 		else
 		{
@@ -3092,7 +3121,7 @@ static void UI_DrawBotSkill(rectDef_t* rect, float scale, vec4_t color, int text
 	if (uiInfo.skillIndex >= 0 && uiInfo.skillIndex < numSkillLevels)
 	{
 		Text_Paint(rect->x, rect->y, scale, color,
-			(char*)UI_GetStringEdString("MP_INGAME", (char*)skillLevels[uiInfo.skillIndex]), 0, 0, textStyle,
+			(char*)UI_GetStringEdString("MD_MP_INGAME", (char*)skillLevels[uiInfo.skillIndex]), 0, 0, textStyle,
 			i_menu_font);
 	}
 }
@@ -3104,15 +3133,15 @@ static void UI_DrawRedBlue(rectDef_t* rect, float scale, vec4_t color, int textS
 		//print different team names for CoOp
 		Text_Paint(rect->x, rect->y, scale, color,
 			uiInfo.redBlue == 0
-			? UI_GetStringEdString("MD_MENU_MP", "ENEMYTEAM")
-			: UI_GetStringEdString("MD_MENU_MP", "PLAYERTEAM"), 0, 0, textStyle, i_menu_font);
+			? UI_GetStringEdString("MD_MP_MENU", "ENEMYTEAM")
+			: UI_GetStringEdString("MD_MP_MENU", "PLAYERTEAM"), 0, 0, textStyle, i_menu_font);
 	}
 	else
 	{
 		Text_Paint(rect->x, rect->y, scale, color,
 			uiInfo.redBlue == 0
-			? UI_GetStringEdString("MP_INGAME", "RED")
-			: UI_GetStringEdString("MP_INGAME", "BLUE"), 0, 0, textStyle, i_menu_font);
+			? UI_GetStringEdString("MD_MP_INGAME", "RED")
+			: UI_GetStringEdString("MD_MP_INGAME", "BLUE"), 0, 0, textStyle, i_menu_font);
 	}
 }
 
@@ -3151,7 +3180,7 @@ static void UI_DrawServerRefreshDate(rectDef_t* rect, float scale, vec4_t color,
 		lowLight[3] = 0.8 * color[3];
 		LerpColor(color, lowLight, newColor, 0.5 + 0.5 * sin((float)(uiInfo.uiDC.realTime / PULSE_DIVISOR)));
 
-		trap->SE_GetStringTextString("MP_INGAME_GETTINGINFOFORSERVERS", holdSPString, sizeof holdSPString);
+		trap->SE_GetStringTextString("MD_MP_INGAME_GETTINGINFOFORSERVERS", holdSPString, sizeof holdSPString);
 		Text_Paint(rect->x, rect->y, scale, newColor,
 			va((char*)holdSPString, trap->LAN_GetServerCount(UI_SourceForLAN())), 0, 0, textStyle, i_menu_font);
 	}
@@ -3159,7 +3188,7 @@ static void UI_DrawServerRefreshDate(rectDef_t* rect, float scale, vec4_t color,
 	{
 		char buff[64];
 		Q_strncpyz(buff, UI_Cvar_VariableString(va("ui_lastServerRefresh_%i", ui_netSource.integer)), sizeof buff);
-		trap->SE_GetStringTextString("MP_INGAME_SERVER_REFRESHTIME", holdSPString, sizeof holdSPString);
+		trap->SE_GetStringTextString("MD_MP_INGAME_SERVER_REFRESHTIME", holdSPString, sizeof holdSPString);
 
 		Text_Paint(rect->x, rect->y, scale, color, va("%s: %s", holdSPString, buff), 0, 0, textStyle, i_menu_font);
 	}
@@ -3250,7 +3279,7 @@ static void UI_DrawKeyBindStatus(rectDef_t* rect, float scale, vec4_t color, int
 {
 	if (Display_KeyBindPending())
 	{
-		Text_Paint(rect->x, rect->y, scale, color, UI_GetStringEdString("MP_INGAME", "WAITING_FOR_NEW_KEY"), 0, 0,
+		Text_Paint(rect->x, rect->y, scale, color, UI_GetStringEdString("MD_MP_INGAME", "WAITING_FOR_NEW_KEY"), 0, 0,
 			textStyle, i_menu_font);
 	}
 	else
@@ -10520,7 +10549,6 @@ UI_BuildPlayerModel_List
 static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 {
 	static const size_t DIR_LIST_SIZE = 16384;
-
 	size_t dirListSize = DIR_LIST_SIZE;
 	char stackDirList[8192];
 	int dirlen;
@@ -10589,8 +10617,16 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 			if (uiInfo.playerSpeciesCount >= uiInfo.playerSpeciesMax)
 			{
 				uiInfo.playerSpeciesMax *= 2;
-				uiInfo.playerSpecies = (playerSpeciesInfo_t*)realloc(
-					uiInfo.playerSpecies, uiInfo.playerSpeciesMax * sizeof(playerSpeciesInfo_t));
+
+				void* newPtr = realloc(uiInfo.playerSpecies,
+					uiInfo.playerSpeciesMax * sizeof(playerSpeciesInfo_t));
+
+				if (!newPtr)
+				{
+					Com_Error(ERR_FATAL, "Out of memory expanding player species list");
+				}
+
+				uiInfo.playerSpecies = newPtr;
 			}
 			playerSpeciesInfo_t* species = &uiInfo.playerSpecies[uiInfo.playerSpeciesCount];
 			memset(species, 0, sizeof(playerSpeciesInfo_t));
@@ -10635,8 +10671,18 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 						if (species->SkinHeadCount >= species->SkinHeadMax)
 						{
 							species->SkinHeadMax *= 2;
-							species->SkinHead = (skinName_t*)realloc(
-								species->SkinHead, species->SkinHeadMax * sizeof(skinName_t));
+
+							void* newPtr = realloc(
+								species->SkinHead,
+								species->SkinHeadMax * sizeof(skinName_t)
+							);
+
+							if (!newPtr)
+							{
+								Com_Error(ERR_FATAL, "Out of memory expanding SkinHead");
+							}
+
+							species->SkinHead = newPtr;
 						}
 						Q_strncpyz(species->SkinHead[species->SkinHeadCount++].name, skinname, SKIN_LENGTH);
 						iSkinParts |= 1 << 0;
@@ -10646,9 +10692,20 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 						if (species->SkinTorsoCount >= species->SkinTorsoMax)
 						{
 							species->SkinTorsoMax *= 2;
-							species->SkinTorso = (skinName_t*)realloc(
-								species->SkinTorso, species->SkinTorsoMax * sizeof(skinName_t));
+
+							void* newPtr = realloc(
+								species->SkinTorso,
+								species->SkinTorsoMax * sizeof(skinName_t)
+							);
+
+							if (!newPtr)
+							{
+								Com_Error(ERR_FATAL, "Out of memory expanding SkinTorso");
+							}
+
+							species->SkinTorso = newPtr;
 						}
+
 						Q_strncpyz(species->SkinTorso[species->SkinTorsoCount++].name, skinname, SKIN_LENGTH);
 
 						iSkinParts |= 1 << 1;
@@ -10658,8 +10715,18 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 						if (species->SkinLegCount >= species->SkinLegMax)
 						{
 							species->SkinLegMax *= 2;
-							species->SkinLeg = (skinName_t*)realloc(
-								species->SkinLeg, species->SkinLegMax * sizeof(skinName_t));
+
+							void* newPtr = realloc(
+								species->SkinLeg,
+								species->SkinLegMax * sizeof(skinName_t)
+							);
+
+							if (!newPtr)
+							{
+								Com_Error(ERR_FATAL, "Out of memory expanding SkinLeg");
+							}
+
+							species->SkinLeg = newPtr;
 						}
 						Q_strncpyz(species->SkinLeg[species->SkinLegCount++].name, skinname, SKIN_LENGTH);
 						iSkinParts |= 1 << 2;
@@ -10944,7 +11011,7 @@ static void UI_Refresh(int realtime)
 
 		if (!parsedFPMessage[0] /*&& uiMaxRank > ui_rankChange.integer*/)
 		{
-			const char* printMessage = UI_GetStringEdString("MP_INGAME", "SET_NEW_RANK");
+			const char* printMessage = UI_GetStringEdString("MD_MP_INGAME", "SET_NEW_RANK");
 
 			int i = 0;
 			int p = 0;
@@ -11275,7 +11342,7 @@ static void UI_DrawConnectScreen(qboolean overlay)
 
 	if (!Q_stricmp(cstate.servername, "localhost"))
 	{
-		trap->SE_GetStringTextString("MD_MENU_MP_STARTING_UP", sStringEdTemp, sizeof sStringEdTemp);
+		trap->SE_GetStringTextString("MD_MP_MENU_STARTING_UP", sStringEdTemp, sizeof sStringEdTemp);
 		Text_PaintCenter(centerPoint, yStart + 48, scale, colorWhite, sStringEdTemp, ITEM_TEXTSTYLE_SHADOWEDMORE,
 			FONT_SMALL2);
 	}

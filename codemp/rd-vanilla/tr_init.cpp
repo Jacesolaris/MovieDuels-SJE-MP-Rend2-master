@@ -180,8 +180,8 @@ cvar_t* r_aspectCorrectFonts;
 
 // the limits apply to the sum of all scenes in a frame --
 // the main view, all the 3D icons, etc
-#define	DEFAULT_MAX_POLYS		600
-#define	DEFAULT_MAX_POLYVERTS	3000
+constexpr auto DEFAULT_MAX_POLYS = 600;
+constexpr auto DEFAULT_MAX_POLYVERTS = 3000;
 cvar_t* r_maxpolys;
 cvar_t* r_maxpolyverts;
 int		max_polys;
@@ -222,6 +222,8 @@ cvar_t* broadsword_dircap = nullptr;
 cvar_t* r_com_rend2;
 
 cvar_t* com_outcast;
+
+cvar_t* g_DebugSaberCombat;
 
 /*
 Ghoul2 Insert End
@@ -293,7 +295,7 @@ void RE_GetBModelVerts(const int bmodelIndex, vec3_t* verts, vec3_t normal);
 static void R_Splash()
 {
 	image_t* pImage = R_FindImageFile("menu/splash", qfalse, qfalse, qfalse, GL_CLAMP);
-	
+
 	/*const int splash_pick = rand() % 5;
 
 	switch (splash_pick)
@@ -1722,6 +1724,8 @@ static void R_Register()
 	r_com_rend2 = ri->Cvar_Get("com_rend2", "0", CVAR_ARCHIVE, "");
 
 	com_outcast = ri->Cvar_Get("com_outcast", "0", CVAR_ARCHIVE, "");
+
+	g_DebugSaberCombat = ri->Cvar_Get("g_DebugSaberCombat", "0", CVAR_ARCHIVE, "");
 
 	r_modelpoolmegs = ri->Cvar_Get("r_modelpoolmegs", "20", CVAR_ARCHIVE, "");
 	if (ri->Sys_LowPhysicalMemory())

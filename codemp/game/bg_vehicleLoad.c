@@ -1257,7 +1257,7 @@ static void BG_VehWeaponLoadParms(void)
 	*marker = 0;
 
 	//now load in the extra .veh extensions
-	const int fileCnt = trap->FS_GetFileList("ext_data/vehicles/weapons", ".vwp", vehWeaponExtensionListBuf,
+	const int fileCnt = trap->FS_GetFileList("ext_data/MD_MP_VEHICLES/weapons", ".vwp", vehWeaponExtensionListBuf,
 		sizeof vehWeaponExtensionListBuf);
 
 	char* holdChar = vehWeaponExtensionListBuf;
@@ -1272,7 +1272,7 @@ static void BG_VehWeaponLoadParms(void)
 	{
 		vehExtFNLen = strlen(holdChar);
 
-		len = trap->FS_Open(va("ext_data/vehicles/weapons/%s", holdChar), &f, FS_READ);
+		len = trap->FS_Open(va("ext_data/MD_MP_VEHICLES/weapons/%s", holdChar), &f, FS_READ);
 
 		if (len == -1)
 		{
@@ -1321,7 +1321,7 @@ void BG_VehicleLoadParms(void)
 	*marker = 0;
 
 	//now load in the extra .veh extensions
-	const int fileCnt = trap->FS_GetFileList("ext_data/vehicles", ".veh", vehExtensionListBuf,
+	const int fileCnt = trap->FS_GetFileList("ext_data/MD_MP_VEHICLES", ".veh", vehExtensionListBuf,
 		sizeof vehExtensionListBuf);
 
 	char* holdChar = vehExtensionListBuf;
@@ -1336,7 +1336,7 @@ void BG_VehicleLoadParms(void)
 	{
 		vehExtFNLen = strlen(holdChar);
 
-		len = trap->FS_Open(va("ext_data/vehicles/%s", holdChar), &f, FS_READ);
+		len = trap->FS_Open(va("ext_data/MD_MP_VEHICLES/%s", holdChar), &f, FS_READ);
 
 		if (len == -1)
 		{

@@ -2632,6 +2632,9 @@ Returns a freshly allocated shader with all the needed info
 from the current global working shader
 =========================
 */
+
+extern cvar_t* g_DebugSaberCombat;
+
 static shader_t* FinishShader(void)
 {
 	int stage, lm_stage; //rwwRMG - stageIndex for AGEN_BLEND
@@ -2748,7 +2751,10 @@ static shader_t* FinishShader(void)
 		// check for a missing texture
 		if (!pStage->bundle[0].image)
 		{
-			Com_Printf(S_COLOR_YELLOW "Shader %s has a stage with no image\n", shader.name);
+			if (g_DebugSaberCombat->integer != 0)
+			{
+				Com_Printf(S_COLOR_YELLOW "Shader %s has a stage with no image\n", shader.name);
+			}
 			pStage->active = qfalse;
 			stage++;
 			continue;

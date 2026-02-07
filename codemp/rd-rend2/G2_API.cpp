@@ -1863,19 +1863,25 @@ qboolean G2API_DetachG2Model(CGhoul2Info* ghlInfo)
 	return qfalse;
 }
 
-qboolean G2API_AttachEnt(int* boltInfo, CGhoul2Info_v& ghoul2, const int modelIndex, int toBoltIndex, int entNum, int toModelNum)
+qboolean G2API_AttachEnt(int* boltInfo, CGhoul2Info_v& ghoul2, const int modelIndex,
+	int toBoltIndex, int entNum, int toModelNum)
 {
 	CGhoul2Info* ghlInfoTo = &ghoul2[modelIndex];
 
 	if (boltInfo && G2_SetupModelPointers(ghlInfoTo))
 	{
-		// make sure we have a model to attach, a model to attach to, and a
-		// bolt on that model
-		if (ghlInfoTo->mBltlist.size() &&
+		const size_t bltCount = ghlInfoTo->mBltlist.size();
+		if (toBoltIndex < 0 || static_cast<size_t>(toBoltIndex) >= bltCount)
+		{
+			// invalid bolt index -> fail gracefully
+			return qfalse;
+		}
+
+		// now safe to index
+		if (bltCount &&
 			((ghlInfoTo->mBltlist[toBoltIndex].boneNumber != -1) ||
 				(ghlInfoTo->mBltlist[toBoltIndex].surfaceNumber != -1)))
 		{
-			// encode the bolt address into the model bolt link
 			toModelNum &= MODEL_AND;
 			toBoltIndex &= BOLT_AND;
 			entNum &= ENTITY_AND;

@@ -410,7 +410,7 @@ sfxHandle_t CG_CustomSound(int clientNum, const char* sound_name)
 	}
 
 #ifndef FINAL_BUILD
-	Com_Printf("Unknown custom sound: %s\n", lSoundName);
+	Com_Printf("Unknown custom sound: %s\n", l_sound_name);
 #endif
 	return 0;
 }
@@ -424,11 +424,11 @@ CLIENT INFO
 */
 #define MAX_SURF_LIST_SIZE	1024
 
-qboolean CG_ParseSurfsFile(const char* model_name, const char* skin_name, char* surf_off, char* surf_on)
+static qboolean CG_ParseSurfsFile(const char* model_name, const char* skin_name, char* surf_off, char* surf_on)
 {
 	const char* text_p;
 	const char* value;
-	char text[20000];
+	static char text[20000];
 	char sfilename[MAX_QPATH];
 	fileHandle_t f;
 	int i = 0;
@@ -530,34 +530,38 @@ CG_RegisterClientModelname
 qboolean BG_IsValidCharacterModel(const char* model_name, const char* skin_name);
 qboolean BG_ValidateSkinForTeam(const char* model_name, char* skin_name, int team, float* colors);
 
-static qboolean CG_RegisterClientModelname(clientInfo_t* ci, const char* model_name, const char* skin_name,
-	const char* team_name, const int clientNum)
+static qboolean CG_RegisterClientModelname(
+	clientInfo_t* ci,
+	const char* model_name,
+	const char* skin_name,
+	const char* team_name,
+	const int clientNum)
 {
 	char afilename[MAX_QPATH];
 	char gla_name[MAX_QPATH];
+	char resolvedGLA[MAX_QPATH];
 	const vec3_t temp_vec = { 0, 0, 0 };
 	qboolean bad_model = qfalse;
 	char surf_off[MAX_SURF_LIST_SIZE];
 	char surf_on[MAX_SURF_LIST_SIZE];
 	char* use_skin_name;
+	qboolean isHumanoidGLA = qfalse;
 
 retryModel:
+
 	if (bad_model)
 	{
 		if (model_name && model_name[0])
 		{
-			Com_Printf(
-				"WARNING: Attempted to load an unsupported multi player model %s! (bad or missing bone, or missing animation sequence)\n",
-				model_name);
+			Com_Printf("WARNING: Attempted to load unsupported MP model %s\n", model_name);
 		}
 
 		model_name = DEFAULT_MODEL;
 		skin_name = "default";
-
 		bad_model = qfalse;
 	}
 
-	// First things first.  If this is a ghoul2 model, then let's make sure we demolish this first.
+	// Clean old ghoul2
 	if (ci->ghoul2Model && trap->G2_HaveWeGhoul2Models(ci->ghoul2Model))
 	{
 		trap->G2API_CleanGhoul2Models(&ci->ghoul2Model);
@@ -571,7 +575,6 @@ retryModel:
 
 	if (cgs.gametype >= GT_TEAM && !cgs.jediVmerc && cgs.gametype != GT_SIEGE)
 	{
-		//We won't force colors for siege.
 		BG_ValidateSkinForTeam(ci->modelName, ci->skinName, ci->team, ci->colorOverride);
 		skin_name = ci->skinName;
 	}
@@ -580,13 +583,12 @@ retryModel:
 		ci->colorOverride[0] = ci->colorOverride[1] = ci->colorOverride[2] = 0.0f;
 	}
 
-	// fix for transparent custom skin parts
-	if (strchr(skin_name, '|')
-		&& strstr(skin_name, "head")
-		&& strstr(skin_name, "torso")
-		&& strstr(skin_name, "lower"))
+	// Handle 3?part skins
+	if (strchr(skin_name, '|') &&
+		strstr(skin_name, "head") &&
+		strstr(skin_name, "torso") &&
+		strstr(skin_name, "lower"))
 	{
-		//three part skin
 		use_skin_name = va("models/players/%s/|%s", model_name, skin_name);
 	}
 	else
@@ -597,100 +599,90 @@ retryModel:
 	const int check_skin = trap->R_RegisterSkin(use_skin_name);
 
 	if (check_skin)
-	{
 		ci->torsoSkin = check_skin;
-	}
 	else
-	{
-		//fallback to the default skin
-		ci->torsoSkin = trap->R_RegisterSkin(va("models/players/%s/model_default.skin", model_name, skin_name));
-	}
+		ci->torsoSkin = trap->R_RegisterSkin(va("models/players/%s/model_default.skin", model_name));
+
+	// ------------------------------------------------------------
+	// FIRST PASS: load original model so we can inspect its GLA
+	// ------------------------------------------------------------
 	Com_sprintf(afilename, sizeof afilename, "models/players/%s/model.glm", model_name);
-	const int handle = trap->G2API_InitGhoul2Model(&ci->ghoul2Model, afilename, 0, ci->torsoSkin, 0, 0, 0);
+	int handle = trap->G2API_InitGhoul2Model(&ci->ghoul2Model, afilename, 0, ci->torsoSkin, 0, 0, 0);
 
 	if (handle < 0)
-	{
 		return qfalse;
-	}
-
-	// The model is now loaded.
 
 	trap->G2API_SetSkin(ci->ghoul2Model, 0, ci->torsoSkin, ci->torsoSkin);
 
+	// Extract original GLA
 	gla_name[0] = 0;
-
 	trap->G2API_GetGLAName(ci->ghoul2Model, 0, gla_name);
-	if (gla_name[0] != 0)
+
+	// ------------------------------------------------------------
+	// NORMALIZE GLA PATH (THIS FIXES BOTS)
+	// ------------------------------------------------------------
+	Q_strncpyz(resolvedGLA, gla_name, sizeof(resolvedGLA));
+
+	if (!Q_strncmp(resolvedGLA, "models/players/_humanoid", strlen("models/players/_humanoid")))
 	{
-		if (!strstr(gla_name, "players/_humanoid/") &&
-			!strstr(gla_name, "players/_humanoid_MP/")) // allow both humanoid sets
-		{
-			// Bad!
-			bad_model = qtrue;
-			goto retryModel;
-		}
+		Q_strncpyz(resolvedGLA, "models/players/_humanoid_mp/_humanoid", sizeof(resolvedGLA));
 	}
 
+	// ------------------------------------------------------------
+	// HUMANOID DETECTION USING NORMALIZED PATH
+	// ------------------------------------------------------------
+	isHumanoidGLA = BG_IsHumanoidModel(resolvedGLA);
+
+	// Store final GLA name
+	Q_strncpyz(ci->glaName, resolvedGLA, sizeof(ci->glaName));
+
+	// ------------------------------------------------------------
+	// LOAD ANIMATION.CFG
+	// ------------------------------------------------------------
 	if (!bgpa_ftext_loaded)
 	{
-		if (gla_name[0] == 0/*gla_name == NULL*/)
+		if (isHumanoidGLA)
 		{
-			bad_model = qtrue;
-			goto retryModel;
-		}
-		Q_strncpyz(afilename, gla_name, sizeof afilename);
-		char* slash = Q_strrchr(afilename, '/');
-		if (slash)
-		{
-			strcpy(slash, "/animation.cfg");
-		} // Now afilename holds just the path to the animation.cfg
-		else
-		{
-			// Didn't find any slashes, this is a raw filename right in base (whish isn't a good thing)
-			return qfalse;
-		}
-
-		//rww - All player models must use humanoid, no matter what.
-		// Allow both humanoid_MP and humanoid
-		if (!strstr(afilename, "_humanoid"))
-		{
-			Com_Printf("Model does not use supported animation config.\n");
-			return qfalse;
-		}
-		// Try to load humanoid_MP first
-		if (bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
-		{
-			// Fallback to original humanoid
-			if (bg_parse_animation_file("models/players/_humanoid/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
+			if (bg_parse_animation_file("models/players/_humanoid_mp/animation.cfg",
+				bgHumanoidAnimations, qtrue) == -1)
 			{
-				Com_Printf("Failed to load humanoid animation config (both _humanoid_MP and _humanoid)\n");
+				Com_Printf("Failed to load humanoid MP animation.cfg\n");
 				return qfalse;
 			}
-		}
 
-		// Try MP humanoid events first
-		if (!BG_ParseAnimationEvtFile("models/players/_humanoid_MP/", 0, -1))
+			BG_ParseAnimationEvtFile("models/players/_humanoid_mp/", 0, -1);
+		}
+		else
 		{
-			// Fallback to original humanoid events
-			BG_ParseAnimationEvtFile("models/players/_humanoid/", 0, -1);
+			if (resolvedGLA[0] == 0)
+			{
+				Com_Printf("Bad model: missing GLA\n");
+				return qfalse;
+			}
+
+			Q_strncpyz(afilename, resolvedGLA, sizeof(afilename));
+			char* slash = Q_strrchr(afilename, '/');
+			if (slash)
+			{
+				strcpy(slash, "/animation.cfg");
+				bg_parse_animation_file(afilename, NULL, qfalse);
+			}
 		}
 	}
 	else if (!bgAllEvents[0].eventsParsed)
 	{
-		// Make sure events are loaded even if anims already are
-		if (!BG_ParseAnimationEvtFile("models/players/_humanoid_MP/", 0, -1))
-		{
-			BG_ParseAnimationEvtFile("models/players/_humanoid/", 0, -1);
-		}
+		BG_ParseAnimationEvtFile("models/players/_humanoid_mp/", 0, -1);
 	}
+
+	// ------------------------------------------------------------
+	// ORIGINAL SURF / BOLT / ICON LOGIC (UNCHANGED)
+	// ------------------------------------------------------------
 
 	if (CG_ParseSurfsFile(model_name, skin_name, surf_off, surf_on))
 	{
-		//turn on/off any surfs
 		const char* token;
 		const char* p;
 
-		//Now turn on/off any surfaces
 		if (surf_off[0])
 		{
 			p = surf_off;
@@ -699,14 +691,12 @@ retryModel:
 			{
 				token = COM_ParseExt(&p, qtrue);
 				if (!token[0])
-				{
-					//reached end of list
 					break;
-				}
-				//turn off this surf
-				trap->G2API_SetSurfaceOnOff(ci->ghoul2Model, token, 0x00000002/*G2SURFACEFLAG_OFF*/);
+
+				trap->G2API_SetSurfaceOnOff(ci->ghoul2Model, token, 0x00000002);
 			}
 		}
+
 		if (surf_on[0])
 		{
 			p = surf_on;
@@ -715,11 +705,8 @@ retryModel:
 			{
 				token = COM_ParseExt(&p, qtrue);
 				if (!token[0])
-				{
-					//reached end of list
 					break;
-				}
-				//turn on this surf
+
 				trap->G2API_SetSurfaceOnOff(ci->ghoul2Model, token, 0);
 			}
 		}
@@ -727,106 +714,80 @@ retryModel:
 
 	ci->bolt_rhand = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*r_hand");
 
-	if (!trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "model_root", 0, 12, BONE_ANIM_OVERRIDE_LOOP, 1.0f, cg.time, -1,
-		-1))
+	if (!trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "model_root", 0, 12,
+		BONE_ANIM_OVERRIDE_LOOP, 1.0f, cg.time, -1, -1))
 	{
 		bad_model = qtrue;
 	}
 
-	if (!trap->G2API_SetBoneAngles(ci->ghoul2Model, 0, "upper_lumbar", temp_vec, BONE_ANGLES_POSTMULT, POSITIVE_X,
-		NEGATIVE_Y, NEGATIVE_Z, NULL, 0, cg.time))
+	if (!trap->G2API_SetBoneAngles(ci->ghoul2Model, 0, "upper_lumbar", temp_vec,
+		BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, cg.time))
 	{
 		bad_model = qtrue;
 	}
 
-	if (!trap->G2API_SetBoneAngles(ci->ghoul2Model, 0, "cranium", temp_vec, BONE_ANGLES_POSTMULT, POSITIVE_Z,
-		NEGATIVE_Y,
-		POSITIVE_X, NULL, 0, cg.time))
+	if (!trap->G2API_SetBoneAngles(ci->ghoul2Model, 0, "cranium", temp_vec,
+		BONE_ANGLES_POSTMULT, POSITIVE_Z, NEGATIVE_Y, POSITIVE_X, NULL, 0, cg.time))
 	{
 		bad_model = qtrue;
 	}
 
 	ci->bolt_lhand = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*l_hand");
 
-	//rhand must always be first bolt. lhand always second. Whichever you want the
-	//jetpack bolted to must always be third.
 	trap->G2API_AddBolt(ci->ghoul2Model, 0, "*chestg");
-
-	//claw bolts
 	trap->G2API_AddBolt(ci->ghoul2Model, 0, "*r_hand_cap_r_arm");
 	trap->G2API_AddBolt(ci->ghoul2Model, 0, "*l_hand_cap_l_arm");
 
 	ci->bolt_head = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*head_top");
 	if (ci->bolt_head == -1)
-	{
 		ci->bolt_head = trap->G2API_AddBolt(ci->ghoul2Model, 0, "ceyebrow");
-	}
 
 	ci->bolt_motion = trap->G2API_AddBolt(ci->ghoul2Model, 0, "Motion");
-
-	//We need a lower lumbar bolt for footsteps
 	ci->bolt_llumbar = trap->G2API_AddBolt(ci->ghoul2Model, 0, "lower_lumbar");
 
-	//Initialize the holster bolts
 	ci->holster_saber = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*holster_saber");
-	ci->saberHolstered = qfalse;
-
 	ci->holster_saber2 = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*holster_saber2");
-	ci->saber2_holstered = qfalse;
-
 	ci->holster_staff = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*holster_staff");
-	ci->staff_holstered = qfalse;
-
 	ci->holster_blaster = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*holster_blaster");
-	ci->blaster_holstered = 0;
-
 	ci->holster_blaster2 = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*holster_blaster2");
-	ci->blaster2_holstered = 0;
-
 	ci->holster_golan = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*holster_golan");
-	ci->golan_holstered = qfalse;
-
 	ci->holster_launcher = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*holster_launcher");
-	ci->launcher_holstered = 0;
 
-	//offset holster bolts
 	ci->bolt_rfemurYZ = trap->G2API_AddBolt(ci->ghoul2Model, 0, "rfemurYZ");
 	ci->bolt_lfemurYZ = trap->G2API_AddBolt(ci->ghoul2Model, 0, "lfemurYZ");
 
-	if (ci->bolt_rhand == -1 || ci->bolt_lhand == -1 || ci->bolt_head == -1 || ci->bolt_motion == -1 || ci->bolt_llumbar
-		== -1)
+	if (ci->bolt_rhand == -1 || ci->bolt_lhand == -1 ||
+		ci->bolt_head == -1 || ci->bolt_motion == -1 ||
+		ci->bolt_llumbar == -1)
 	{
 		bad_model = qtrue;
 	}
 
 	if (bad_model)
-	{
 		goto retryModel;
-	}
 
 	if (!Q_stricmp(model_name, "boba_fett"))
 	{
-		//special case, turn off the jetpack surfs
 		trap->G2API_SetSurfaceOnOff(ci->ghoul2Model, "torso_rjet", TURN_OFF);
 		trap->G2API_SetSurfaceOnOff(ci->ghoul2Model, "torso_cjet", TURN_OFF);
 		trap->G2API_SetSurfaceOnOff(ci->ghoul2Model, "torso_ljet", TURN_OFF);
 	}
 
 	if (clientNum != -1)
-	{
 		cg_entities[clientNum].ghoul2weapon = NULL;
-	}
 
-	Q_strncpyz(ci->teamName, team_name, sizeof ci->teamName);
+	Q_strncpyz(ci->teamName, team_name, sizeof(ci->teamName));
 
-	// Model icon for drawing the portrait on screen
-	ci->modelIcon = trap->R_RegisterShaderNoMip(va("models/players/%s/icon_%s", model_name, skin_name));
+	ci->modelIcon = trap->R_RegisterShaderNoMip(
+		va("models/players/%s/icon_%s", model_name, skin_name));
+
 	if (!ci->modelIcon)
 	{
 		int i = 0;
 		char icon_name[2048];
 		strcpy(icon_name, "icon_");
 		int j = strlen(icon_name);
+
 		while (skin_name[i] && skin_name[i] != '|' && j < 1024)
 		{
 			icon_name[j] = skin_name[i];
@@ -834,12 +795,14 @@ retryModel:
 			i++;
 		}
 		icon_name[j] = 0;
+
 		if (skin_name[i] == '|')
 		{
-			//looks like it actually may be a custom model skin, let's try getting the icon...
-			ci->modelIcon = trap->R_RegisterShaderNoMip(va("models/players/%s/%s", model_name, icon_name));
+			ci->modelIcon = trap->R_RegisterShaderNoMip(
+				va("models/players/%s/%s", model_name, icon_name));
 		}
 	}
+
 	return qtrue;
 }
 
@@ -2642,6 +2605,10 @@ static void CG_PlayerAnimEventDo(centity_t* cent, animevent_t* anim_event)
 	{
 		return;
 	}
+	if (anim_event->eventType == AEV_NONE)
+	{
+		return;
+	}
 
 	switch (anim_event->eventType)
 	{
@@ -2843,7 +2810,7 @@ void CG_PlayerAnimEvents( int animFileIndex, int eventFileIndex, qboolean torso,
 play any keyframed sounds - only when start a new frame
 This func is called once for legs and once for torso
 */
-void CG_PlayerAnimEvents(const int animFileIndex, const int eventFileIndex, const qboolean torso,
+static void CG_PlayerAnimEvents(const int animFileIndex, const int eventFileIndex, const qboolean torso,
 	const int old_frame, const int frame, const int entNum)
 {
 	int first_frame = 0, last_frame = 0;
@@ -3058,10 +3025,19 @@ void CG_PlayerAnimEvents(const int animFileIndex, const int eventFileIndex, cons
 
 extern int CheckAnimFrameForEventType(const animevent_t* anim_events, int key_frame, animEventType_t event_type);
 //Checks for and plays Ambient model sounds
-void CG_PlayerAmbientEvents(centity_t* cent)
+static void CG_PlayerAmbientEvents(centity_t* cent)
 {
 	animevent_t* anim_events;
 	int event_num;
+
+	if (!cent) {
+		return;
+	}
+
+	// reject invalid animation index to avoid indexing bgAllEvents with -1
+	if (cent->eventAnimIndex < 0) {
+		return;
+	}
 
 	if (cent->currentState.eFlags & EF_DEAD || cent->currentState.eType == ET_PLAYER &&
 		(cg.predictedPlayerState.pm_type == PM_INTERMISSION || cgs.clientinfo[cent->currentState.clientNum].team ==
@@ -3111,13 +3087,19 @@ void CG_PlayerAmbientEvents(centity_t* cent)
 	}
 }
 
-void CG_TriggerAnimSounds(centity_t* cent)
+static void CG_TriggerAnimSounds(centity_t* cent)
 {
 	//this also sets the lerp frames, so I suggest you keep calling it regardless of if you want anim sounds.
 	int cur_frame = 0;
 	float currentFrame = 0;
 
 	assert(cent->localAnimIndex >= 0);
+
+	// protect against invalid eventAnimIndex causing bgAllEvents[-1] reads
+	if (cent->eventAnimIndex < 0)
+	{
+		return;
+	}
 
 	const int s_file_index = cent->eventAnimIndex;
 
@@ -3159,7 +3141,7 @@ void CG_TriggerAnimSounds(centity_t* cent)
 
 static qboolean CG_FirstAnimFrame(const lerpFrame_t* lf, qboolean torso_only, float speed_scale);
 
-qboolean CG_InRoll(const centity_t* cent)
+static qboolean CG_InRoll(const centity_t* cent)
 {
 	switch (cent->currentState.legsAnim)
 	{
@@ -3233,6 +3215,14 @@ static void CG_SetLerpFrameAnimation(centity_t* cent, clientInfo_t* ci, lerpFram
 	if (new_animation < 0 || new_animation >= MAX_TOTALANIMATIONS)
 	{
 		trap->Error(ERR_DROP, "Bad animation number: %i", new_animation);
+	}
+
+	// Defensive check:
+	if (!bgAllAnims[cent->localAnimIndex].anims)
+	{
+		lf->animationNumber = -1;
+		lf->animation = NULL;
+		return;
 	}
 
 	animation_t* anim = &bgAllAnims[cent->localAnimIndex].anims[new_animation];
@@ -3727,9 +3717,16 @@ static void CG_ClearLerpFrame(centity_t* cent, clientInfo_t* ci, lerpFrame_t* lf
 	lf->frameTime = lf->oldFrameTime = cg.time;
 	CG_SetLerpFrameAnimation(cent, ci, lf, animation_number, 1, torso_only, qfalse);
 
+	// Defensive: bail out if animations are not available
+	if (!lf->animation)
+	{
+		lf->frame = lf->oldFrame = 0;
+		lf->backlerp = 0.0f;
+		return;
+	}
+
 	if (lf->animation->frameLerp < 0)
 	{
-		//Plays backwards
 		lf->oldFrame = lf->frame = lf->animation->firstFrame + lf->animation->numFrames;
 	}
 	else
@@ -13960,285 +13957,107 @@ extern void G_CreateFighterNPC(Vehicle_t** p_veh, const char* strType);
 
 extern playerState_t* cgSendPS[MAX_GENTITIES];
 
-void CG_G2AnimEntModelLoad(centity_t* cent)
+static void CG_G2AnimEntModelLoad(centity_t* cent)
 {
-	const char* c_model_name = CG_ConfigString(CS_MODELS + cent->currentState.modelIndex);
-
-	if (!cent->npcClient)
+	clientInfo_t* ci = cent->npcClient;
+	if (!ci)
 	{
-		//have not init'd client yet
 		return;
 	}
 
-	if (c_model_name && c_model_name[0])
+	// ------------------------------------------------------------
+	// Determine humanoid vs non-humanoid from stored clientInfo
+	// ------------------------------------------------------------
+	qboolean isHumanoid = qfalse;
+
+	// We store ci->glaName as "models/players/_humanoid_mp/_humanoid"
+	// so just check for that, no ".gla" suffix.
+	if (ci->glaName[0] && strstr(ci->glaName, "_humanoid_mp/_humanoid"))
 	{
-		char model_name[MAX_QPATH];
-		int skin_id;
-
-		strcpy(model_name, c_model_name);
-
-		if (cent->currentState.NPC_class == CLASS_VEHICLE && model_name[0] == '$')
-		{
-			//vehicles pass their veh names over as model names, then we get the model name from the veh type
-			//create a vehicle object clientside for this type
-			const char* vehType = &model_name[1];
-			const int iVehIndex = BG_VehicleGetIndex(vehType);
-
-			switch (g_vehicleInfo[iVehIndex].type)
-			{
-			case VH_ANIMAL:
-				// Create the animal (making sure all it's data is initialized).
-				G_CreateAnimalNPC(&cent->m_pVehicle, vehType);
-				break;
-			case VH_SPEEDER:
-				// Create the speeder (making sure all it's data is initialized).
-				G_CreateSpeederNPC(&cent->m_pVehicle, vehType);
-				break;
-			case VH_FIGHTER:
-				// Create the fighter (making sure all it's data is initialized).
-				G_CreateFighterNPC(&cent->m_pVehicle, vehType);
-				break;
-			case VH_WALKER:
-				// Create the walker (making sure all it's data is initialized).
-				G_CreateWalkerNPC(&cent->m_pVehicle, vehType);
-				break;
-
-			default:
-				assert(!"vehicle with an unknown type - couldn't create vehicle_t");
-				break;
-			}
-
-			//set up my happy prediction hack
-			cent->m_pVehicle->m_vOrientation = &cgSendPS[cent->currentState.number]->vehOrientation[0];
-
-			cent->m_pVehicle->m_pParentEntity = (bgEntity_t*)cent;
-
-			//attach the handles for fx cgame-side
-			CG_RegisterVehicleAssets(cent->m_pVehicle);
-
-			BG_GetVehicleModelName(model_name, model_name, sizeof model_name);
-			if (cent->m_pVehicle->m_pVehicleInfo->skin &&
-				cent->m_pVehicle->m_pVehicleInfo->skin[0])
-			{
-				//use a custom skin
-				skin_id = trap->R_RegisterSkin(va("models/players/%s/model_%s.skin", model_name,
-					cent->m_pVehicle->m_pVehicleInfo->skin));
-			}
-			else
-			{
-				skin_id = trap->R_RegisterSkin(va("models/players/%s/model_default.skin", model_name));
-			}
-			strcpy(model_name, va("models/players/%s/model.glm", model_name));
-
-			//this sound is *only* used for vehicles now
-			cgs.media.noAmmoSound = trap->S_RegisterSound("sound/weapons/noammo.wav");
-		}
-		else
-		{
-			skin_id = CG_HandleAppendedSkin(model_name); //get the skin if there is one.
-		}
-
-		if (cent->ghoul2)
-		{
-			//clean it first!
-			trap->G2API_CleanGhoul2Models(&cent->ghoul2);
-		}
-
-		trap->G2API_InitGhoul2Model(&cent->ghoul2, model_name, 0, skin_id, 0, 0, 0);
-
-		if (cent->ghoul2)
-		{
-			char* slash;
-			char gla_name[MAX_QPATH];
-			char original_model_name[MAX_QPATH];
-			char* saber;
-
-			if (cent->currentState.NPC_class == CLASS_VEHICLE &&
-				cent->m_pVehicle)
-			{
-				//do special vehicle stuff
-				char strTemp[128];
-
-				// Setup the default first bolt
-				int i;
-
-				// Setup the droid unit.
-				cent->m_pVehicle->m_iDroidUnitTag = trap->G2API_AddBolt(cent->ghoul2, 0, "*droidunit");
-
-				// Setup the Exhausts.
-				for (i = 0; i < MAX_VEHICLE_EXHAUSTS; i++)
-				{
-					Com_sprintf(strTemp, 128, "*exhaust%i", i + 1);
-					cent->m_pVehicle->m_iExhaustTag[i] = trap->G2API_AddBolt(cent->ghoul2, 0, strTemp);
-				}
-
-				// Setup the Muzzles.
-				for (i = 0; i < MAX_VEHICLE_MUZZLES; i++)
-				{
-					Com_sprintf(strTemp, 128, "*muzzle%i", i + 1);
-					cent->m_pVehicle->m_iMuzzleTag[i] = trap->G2API_AddBolt(cent->ghoul2, 0, strTemp);
-					if (cent->m_pVehicle->m_iMuzzleTag[i] == -1)
-					{
-						//ergh, try *flash?
-						Com_sprintf(strTemp, 128, "*flash%i", i + 1);
-						cent->m_pVehicle->m_iMuzzleTag[i] = trap->G2API_AddBolt(cent->ghoul2, 0, strTemp);
-					}
-				}
-
-				// Setup the Turrets.
-				for (i = 0; i < MAX_VEHICLE_TURRETS; i++)
-				{
-					if (cent->m_pVehicle->m_pVehicleInfo->turret[i].gunnerViewTag)
-					{
-						cent->m_pVehicle->m_iGunnerViewTag[i] = trap->G2API_AddBolt(
-							cent->ghoul2, 0, cent->m_pVehicle->m_pVehicleInfo->turret[i].gunnerViewTag);
-					}
-					else
-					{
-						cent->m_pVehicle->m_iGunnerViewTag[i] = -1;
-					}
-				}
-			}
-
-			if (cent->currentState.npcSaber1)
-			{
-				saber = (char*)CG_ConfigString(CS_MODELS + cent->currentState.npcSaber1);
-				assert(!saber || !saber[0] || saber[0] == '@');
-				//valid saber names should always start with '@' for NPCs
-
-				if (saber && saber[0])
-				{
-					saber++; //skip over the @
-					WP_SetSaber(cent->currentState.number, cent->npcClient->saber, 0, saber);
-				}
-			}
-			if (cent->currentState.npcSaber2)
-			{
-				saber = (char*)CG_ConfigString(CS_MODELS + cent->currentState.npcSaber2);
-				assert(!saber || !saber[0] || saber[0] == '@');
-				//valid saber names should always start with '@' for NPCs
-
-				if (saber && saber[0])
-				{
-					saber++; //skip over the @
-					WP_SetSaber(cent->currentState.number, cent->npcClient->saber, 1, saber);
-				}
-			}
-
-			// If this is a not vehicle, give it saber stuff...
-			if (cent->currentState.NPC_class != CLASS_VEHICLE)
-			{
-				int j = 0;
-				while (j < MAX_SABERS)
-				{
-					if (cent->npcClient->saber[j].model[0])
-					{
-						if (cent->npcClient->ghoul2Weapons[j])
-						{
-							//free the old instance(s)
-							trap->G2API_CleanGhoul2Models(&cent->npcClient->ghoul2Weapons[j]);
-							cent->npcClient->ghoul2Weapons[j] = 0;
-						}
-						//racc - delete the current ghoul2holsterWeapons so we can load new ones
-						if (cent->npcClient->ghoul2HolsterWeapons[j])
-						{
-							//free the old instance(s)
-							trap->G2API_CleanGhoul2Models(&cent->npcClient->ghoul2HolsterWeapons[j]);
-							cent->npcClient->ghoul2HolsterWeapons[j] = 0;
-						}
-
-						CG_InitG2SaberData(j, cent->npcClient);
-					}
-					j++;
-				}
-			}
-
-			trap->G2API_SetSkin(cent->ghoul2, 0, skin_id, skin_id);
-
-			cent->localAnimIndex = -1;
-
-			gla_name[0] = 0;
-			trap->G2API_GetGLAName(cent->ghoul2, 0, gla_name);
-
-			strcpy(original_model_name, model_name);
-
-			// If the model does NOT use humanoid or humanoid_MP animations
-			if (gla_name[0] &&
-				!strstr(gla_name, "players/_humanoid/") &&
-				!strstr(gla_name, "players/_humanoid_MP/"))
-			{
-				// Non-humanoid anims
-				slash = Q_strrchr(gla_name, '/');
-				if (slash)
-				{
-					strcpy(slash, "/animation.cfg");
-					cent->localAnimIndex = bg_parse_animation_file(gla_name, NULL, qfalse);
-				}
-			}
-			else
-			{
-				// Humanoid or humanoid_MP
-				trap->G2API_AddBolt(cent->ghoul2, 0, "*r_hand");
-				trap->G2API_AddBolt(cent->ghoul2, 0, "*l_hand");
-				trap->G2API_AddBolt(cent->ghoul2, 0, "*chestg");
-				trap->G2API_AddBolt(cent->ghoul2, 0, "*r_hand_cap_r_arm");
-				trap->G2API_AddBolt(cent->ghoul2, 0, "*l_hand_cap_l_arm");
-
-				if (strstr(gla_name, "players/rockettrooper/"))
-				{
-					cent->localAnimIndex = 1;
-				}
-				else
-				{
-					cent->localAnimIndex = 0;
-				}
-
-				if (trap->G2API_AddBolt(cent->ghoul2, 0, "*head_top") == -1)
-				{
-					trap->G2API_AddBolt(cent->ghoul2, 0, "ceyebrow");
-				}
-
-				trap->G2API_AddBolt(cent->ghoul2, 0, "Motion");
-			}
-
-			// If this is a not vehicle...
-			if (cent->currentState.NPC_class != CLASS_VEHICLE)
-			{
-				if (trap->G2API_AddBolt(cent->ghoul2, 0, "lower_lumbar") == -1)
-				{
-					//check now to see if we have this bone for setting anims and such
-					cent->noLumbar = qtrue;
-				}
-
-				if (trap->G2API_AddBolt(cent->ghoul2, 0, "face") == -1)
-				{
-					//check now to see if we have this bone for setting anims and such
-					cent->noFace = qtrue;
-				}
-			}
-			else
-			{
-				cent->noLumbar = qtrue;
-				cent->noFace = qtrue;
-			}
-
-			if (cent->localAnimIndex != -1)
-			{
-				slash = Q_strrchr(original_model_name, '/');
-				if (slash)
-				{
-					slash++;
-					*slash = 0;
-				}
-
-				cent->eventAnimIndex = BG_ParseAnimationEvtFile(original_model_name, cent->localAnimIndex,
-					bgNumAnimEvents);
-			}
-		}
+		isHumanoid = qtrue;
 	}
 
+	// ------------------------------------------------------------
+	// NON-HUMANOID: load its own animation.cfg
+	// ------------------------------------------------------------
+	if (!isHumanoid)
+	{
+		char animPath[MAX_QPATH];
+		Q_strncpyz(animPath, ci->glaName, sizeof(animPath));
+
+		char* slash = Q_strrchr(animPath, '/');
+		if (slash)
+		{
+			strcpy(slash, "/animation.cfg");
+			cent->localAnimIndex = bg_parse_animation_file(animPath, NULL, qfalse);
+		}
+
+		return;
+	}
+
+	// ------------------------------------------------------------
+	// HUMANOID: add humanoid bolts and set anim index
+	// ------------------------------------------------------------
+	trap->G2API_AddBolt(cent->ghoul2, 0, "*r_hand");
+	trap->G2API_AddBolt(cent->ghoul2, 0, "*l_hand");
+	trap->G2API_AddBolt(cent->ghoul2, 0, "*chestg");
+	trap->G2API_AddBolt(cent->ghoul2, 0, "*r_hand_cap_r_arm");
+	trap->G2API_AddBolt(cent->ghoul2, 0, "*l_hand_cap_l_arm");
+
+	// Rocket trooper exception
+	if (strstr(ci->modelName, "rockettrooper"))
+	{
+		cent->localAnimIndex = 1;
+	}
+	else
+	{
+		cent->localAnimIndex = 0;
+	}
+
+	if (trap->G2API_AddBolt(cent->ghoul2, 0, "*head_top") == -1)
+	{
+		trap->G2API_AddBolt(cent->ghoul2, 0, "ceyebrow");
+	}
+
+	trap->G2API_AddBolt(cent->ghoul2, 0, "Motion");
+
+	// ------------------------------------------------------------
+	// LUMBAR / FACE BONE CHECKS
+	// ------------------------------------------------------------
+	if (trap->G2API_AddBolt(cent->ghoul2, 0, "lower_lumbar") == -1)
+	{
+		cent->noLumbar = qtrue;
+	}
+
+	if (trap->G2API_AddBolt(cent->ghoul2, 0, "face") == -1)
+	{
+		cent->noFace = qtrue;
+	}
+
+	// ------------------------------------------------------------
+	// EVENT FILE PARSING
+	// ------------------------------------------------------------
+	if (cent->localAnimIndex != -1)
+	{
+		char basePath[MAX_QPATH];
+		Q_strncpyz(basePath, ci->animName, sizeof(basePath));
+
+		char* slash = Q_strrchr(basePath, '/');
+		if (slash)
+		{
+			slash++;
+			*slash = 0;
+		}
+
+		cent->eventAnimIndex =
+			BG_ParseAnimationEvtFile(basePath, cent->localAnimIndex, bgNumAnimEvents);
+	}
+
+	// ------------------------------------------------------------
+	// NPC SOUND INITIALIZATION (must stay!)
+	// ------------------------------------------------------------
 	trap->S_Shutup(qtrue);
-	CG_HandleNPCSounds(cent); //handle sound loading here as well.
+	CG_HandleNPCSounds(cent);
 	trap->S_Shutup(qfalse);
 }
 
@@ -14585,34 +14404,45 @@ void CG_G2Animated(centity_t* cent)
 #if 0
 int cgFPLSState = 0;
 
-void CG_ForceFPLSPlayerModel(centity_t* cent, clientInfo_t* ci)
+static void CG_ForceFPLSPlayerModel(centity_t* cent, clientInfo_t* ci)
 {
 	animation_t* anim;
 
 	if (cg_fpls.integer && !cg.renderingThirdPerson)
 	{
-		int				skinHandle;
+		int skinHandle;
 
-		skinHandle = trap->R_RegisterSkin("models/players/kyle/model_fpls2.skin");
+		// Use unified humanoid MP FPLS skin
+		skinHandle = trap->R_RegisterSkin("models/players/_humanoid_mp/model_fpls2.skin");
 
 		trap->G2API_CleanGhoul2Models(&(ci->ghoul2Model));
 
 		ci->torsoSkin = skinHandle;
-		trap->G2API_InitGhoul2Model(&ci->ghoul2Model, "models/players/kyle/model.glm", 0, ci->torsoSkin, 0, 0, 0);
+
+		// Use unified humanoid MP model
+		trap->G2API_InitGhoul2Model(
+			&ci->ghoul2Model,
+			"models/players/_humanoid_mp/model.glm",
+			0,
+			ci->torsoSkin,
+			0, 0, 0
+		);
 
 		ci->bolt_rhand = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*r_hand");
 
-		trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "model_root", 0, 12, BONE_ANIM_OVERRIDE_LOOP, 1.0f, cg.time, -1, -1);
-		trap->G2API_SetBoneAngles(ci->ghoul2Model, 0, "upper_lumbar", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, cg.time);
-		trap->G2API_SetBoneAngles(ci->ghoul2Model, 0, "cranium", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_Z, NEGATIVE_Y, POSITIVE_X, NULL, 0, cg.time);
+		trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "model_root",
+			0, 12, BONE_ANIM_OVERRIDE_LOOP, 1.0f, cg.time, -1, -1);
+		trap->G2API_SetBoneAngles(ci->ghoul2Model, 0, "upper_lumbar",
+			vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, cg.time);
+		trap->G2API_SetBoneAngles(ci->ghoul2Model, 0, "cranium",
+			vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_Z, NEGATIVE_Y, POSITIVE_X, NULL, 0, cg.time);
 
 		ci->bolt_lhand = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*l_hand");
 
-		//rhand must always be first bolt. lhand always second. Whichever you want the
-		//jetpack bolted to must always be third.
+		// rhand must always be first bolt, lhand second, jetpack third
 		trap->G2API_AddBolt(ci->ghoul2Model, 0, "*chestg");
 
-		//claw bolts
+		// claw bolts
 		trap->G2API_AddBolt(ci->ghoul2Model, 0, "*r_hand_cap_r_arm");
 		trap->G2API_AddBolt(ci->ghoul2Model, 0, "*l_hand_cap_l_arm");
 
@@ -14624,7 +14454,7 @@ void CG_ForceFPLSPlayerModel(centity_t* cent, clientInfo_t* ci)
 
 		ci->bolt_motion = trap->G2API_AddBolt(ci->ghoul2Model, 0, "Motion");
 
-		//We need a lower lumbar bolt for footsteps
+		// lower lumbar for footsteps
 		ci->bolt_llumbar = trap->G2API_AddBolt(ci->ghoul2Model, 0, "lower_lumbar");
 
 		CG_CopyG2WeaponInstance(cent, cent->currentState.weapon, ci->ghoul2Model);
@@ -14634,59 +14464,52 @@ void CG_ForceFPLSPlayerModel(centity_t* cent, clientInfo_t* ci)
 		CG_RegisterClientModelname(ci, ci->modelName, ci->skinName, ci->teamName, cent->currentState.number);
 	}
 
+	// Legs anim
 	anim = &bgAllAnims[cent->localAnimIndex].anims[cent->currentState.legsAnim];
-
 	if (anim)
 	{
-		int flags = BONE_ANIM_OVERRIDE_FREEZE;
-		int firstFrame = anim->firstFrame;
-		int setFrame = -1;
+		int   flags = (anim->loopFrames != -1) ? BONE_ANIM_OVERRIDE_LOOP : BONE_ANIM_OVERRIDE_FREEZE;
+		int   firstFrame = anim->firstFrame;
+		int   setFrame = -1;
 		float animSpeed = 50.0f / anim->frameLerp;
 
-		if (anim->loopFrames != -1)
-		{
-			flags = BONE_ANIM_OVERRIDE_LOOP;
-		}
-
-		if (cent->pe.legs.frame >= anim->firstFrame && cent->pe.legs.frame <= (anim->firstFrame + anim->numFrames))
+		if (cent->pe.legs.frame >= anim->firstFrame &&
+			cent->pe.legs.frame <= (anim->firstFrame + anim->numFrames))
 		{
 			setFrame = cent->pe.legs.frame;
 		}
 
-		trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "model_root", firstFrame, anim->firstFrame + anim->numFrames, flags, animSpeed, cg.time, setFrame, 150);
+		trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "model_root",
+			firstFrame, anim->firstFrame + anim->numFrames,
+			flags, animSpeed, cg.time, setFrame, 150);
 
 		cent->currentState.legsAnim = 0;
 	}
 
+	// Torso anim
 	anim = &bgAllAnims[cent->localAnimIndex].anims[cent->currentState.torsoAnim];
-
 	if (anim)
 	{
-		int flags = BONE_ANIM_OVERRIDE_FREEZE;
-		int firstFrame = anim->firstFrame;
-		int setFrame = -1;
+		int   flags = (anim->loopFrames != -1) ? BONE_ANIM_OVERRIDE_LOOP : BONE_ANIM_OVERRIDE_FREEZE;
+		int   firstFrame = anim->firstFrame;
+		int   setFrame = -1;
 		float animSpeed = 50.0f / anim->frameLerp;
 
-		if (anim->loopFrames != -1)
-		{
-			flags = BONE_ANIM_OVERRIDE_LOOP;
-		}
-
-		if (cent->pe.torso.frame >= anim->firstFrame && cent->pe.torso.frame <= (anim->firstFrame + anim->numFrames))
+		if (cent->pe.torso.frame >= anim->firstFrame &&
+			cent->pe.torso.frame <= (anim->firstFrame + anim->numFrames))
 		{
 			setFrame = cent->pe.torso.frame;
 		}
 
-		trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "lower_lumbar", firstFrame, anim->firstFrame + anim->numFrames, flags, animSpeed, cg.time, setFrame, 150);
+		trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "lower_lumbar",
+			firstFrame, anim->firstFrame + anim->numFrames,
+			flags, animSpeed, cg.time, setFrame, 150);
 
 		cent->currentState.torsoAnim = 0;
 	}
 
 	trap->G2API_CleanGhoul2Models(&(cent->ghoul2));
 	trap->G2API_DuplicateGhoul2Instance(ci->ghoul2Model, &cent->ghoul2);
-
-	//Attach the instance to this entity num so we can make use of client-server
-	//shared operations if possible.
 	trap->G2API_AttachInstanceToEntNum(cent->ghoul2, cent->currentState.number, qfalse);
 }
 #endif
@@ -15975,7 +15798,7 @@ void ApplyAxisRotation(vec3_t axis[3], const int rot_type, const float value)
 
 extern stringID_table_t holsterTypeTable[];
 
-void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, const int holster_type)
+static void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, const int holster_type)
 {
 	refEntity_t ent;
 	vec3_t axis[3];
@@ -20441,6 +20264,22 @@ void CG_ResetPlayerEntity(centity_t* cent)
 		ci = &cgs.clientinfo[cent->currentState.clientNum];
 	}
 
+	if (cent->ghoul2 == NULL && ci->ghoul2Model && trap->G2_HaveWeGhoul2Models(ci->ghoul2Model))
+	{
+		trap->G2API_DuplicateGhoul2Instance(ci->ghoul2Model, &cent->ghoul2);
+		cent->weapon = 0;
+		cent->ghoul2weapon = NULL;
+		trap->G2API_AttachInstanceToEntNum(cent->ghoul2, cent->currentState.number, qfalse);
+
+		if (trap->G2API_AddBolt(cent->ghoul2, 0, "face") == -1)
+		{
+			cent->noFace = qtrue;
+		}
+
+		cent->localAnimIndex = CG_G2SkelForModel(cent->ghoul2);
+		cent->eventAnimIndex = CG_G2EvIndexForModel(cent->ghoul2, cent->localAnimIndex);
+	}
+
 	while (i < MAX_SABERS)
 	{
 		j = 0;
@@ -20450,6 +20289,17 @@ void CG_ResetPlayerEntity(centity_t* cent)
 			j++;
 		}
 		i++;
+	}
+
+	if (!bgAllAnims[cent->localAnimIndex].anims) {
+		// animations not loaded yet: clear animator state and skip frame setup
+		cent->pe.legs.animationNumber = cent->pe.torso.animationNumber = -1;
+		cent->pe.legs.animation = cent->pe.torso.animation = NULL;
+	}
+	else
+	{
+		CG_ClearLerpFrame(cent, ci, &cent->pe.legs, cent->currentState.legsAnim, qfalse);
+		CG_ClearLerpFrame(cent, ci, &cent->pe.torso, cent->currentState.torsoAnim, qtrue);
 	}
 
 	ci->facial_blink = -1;

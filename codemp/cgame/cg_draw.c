@@ -3480,13 +3480,13 @@ static void CG_DrawHUD(const centity_t* cent)
 		{
 			//A duel that requires more than one kill to knock the current enemy back to the queue
 			//show current kills out of how many needed
-			score_str = va("%s: %i/%i", CG_GetStringEdString("MP_INGAME", "SCORE"), cg.snap->ps.persistant[PERS_SCORE],
+			score_str = va("%s: %i/%i", CG_GetStringEdString("MD_MP_INGAME", "SCORE"), cg.snap->ps.persistant[PERS_SCORE],
 				cgs.fraglimit);
 		}
 		else
 		{
 			// Don't draw a bias.
-			score_str = va("%s: %i", CG_GetStringEdString("MP_INGAME", "SCORE"), cg.snap->ps.persistant[PERS_SCORE]);
+			score_str = va("%s: %i", CG_GetStringEdString("MD_MP_INGAME", "SCORE"), cg.snap->ps.persistant[PERS_SCORE]);
 		}
 
 		menu_hud = Menus_FindByName("righthud");
@@ -4004,8 +4004,8 @@ void cg_draw_inventory_select(void)
 
 			strcpy(upper_key, bg_itemlist[item_ndex].classname);
 
-			if (trap->SE_GetStringTextString(va("SP_INGAME_%s", Q_strupr(upper_key)), text, sizeof text)
-				|| trap->SE_GetStringTextString(va("MD_MENU_MP_%s", Q_strupr(upper_key)), text, sizeof text))
+			if (trap->SE_GetStringTextString(va("MD_MP_GAME%s", Q_strupr(upper_key)), text, sizeof text)
+				|| trap->SE_GetStringTextString(va("MD_MP_MENU_%s", Q_strupr(upper_key)), text, sizeof text))
 			{
 				CG_DrawProportionalString(320, y + 45, text, UI_CENTER | UI_SMALLFONT, text_color);
 			}
@@ -5019,9 +5019,9 @@ static float CG_DrawMiniScoreboard(float y)
 	{
 		const int x_offset = 0;
 		char temp[MAX_QPATH];
-		Q_strncpyz(temp, va("%s: ", CG_GetStringEdString("MP_INGAME", "RED")), sizeof temp);
+		Q_strncpyz(temp, va("%s: ", CG_GetStringEdString("MD_MP_INGAME", "RED")), sizeof temp);
 		Q_strcat(temp, sizeof temp, cgs.scores1 == SCORE_NOT_PRESENT ? "-" : va("%i", cgs.scores1));
-		Q_strcat(temp, sizeof temp, va(" %s: ", CG_GetStringEdString("MP_INGAME", "BLUE")));
+		Q_strcat(temp, sizeof temp, va(" %s: ", CG_GetStringEdString("MD_MP_INGAME", "BLUE")));
 		Q_strcat(temp, sizeof temp, cgs.scores2 == SCORE_NOT_PRESENT ? "-" : va("%i", cgs.scores2));
 
 		CG_Text_Paint(630 - CG_Text_Width(temp, 0.7f, FONT_MEDIUM) + x_offset, y, 0.7f, colorWhite, temp, 0, 0,
@@ -5072,14 +5072,14 @@ static float CG_DrawEnemyInfo(float y)
 	if (cgs.gametype == GT_JEDIMASTER)
 	{
 		//title = "Jedi Master";
-		title = CG_GetStringEdString("MP_INGAME", "MASTERY7");
+		title = CG_GetStringEdString("MD_MP_INGAME", "MASTERY7");
 		clientNum = cgs.jediMaster;
 
 		if (clientNum < 0)
 		{
 			//return y;
 			//			title = "Get Saber!";
-			title = CG_GetStringEdString("MP_INGAME", "GET_SABER");
+			title = CG_GetStringEdString("MD_MP_INGAME", "GET_SABER");
 
 			size = ICON_SIZE * 1.25;
 			y += 5;
@@ -5097,12 +5097,12 @@ static float CG_DrawEnemyInfo(float y)
 	else if (cg.snap->ps.duelInProgress)
 	{
 		//		title = "Dueling";
-		title = CG_GetStringEdString("MP_INGAME", "DUELING");
+		title = CG_GetStringEdString("MD_MP_INGAME", "DUELING");
 		clientNum = cg.snap->ps.duelIndex;
 	}
 	else if (cgs.gametype == GT_DUEL && cgs.clientinfo[cg.snap->ps.clientNum].team != TEAM_SPECTATOR)
 	{
-		title = CG_GetStringEdString("MP_INGAME", "DUELING");
+		title = CG_GetStringEdString("MD_MP_INGAME", "DUELING");
 		if (cg.snap->ps.clientNum == cgs.duelist1)
 		{
 			clientNum = cgs.duelist2; //if power duel, should actually draw both duelists 2 and 3 I guess
@@ -5128,7 +5128,7 @@ static float CG_DrawEnemyInfo(float y)
 			return y;
 		}
 
-		title = va("%s: %i", CG_GetStringEdString("MP_INGAME", "LEADER"), cgs.scores1);
+		title = va("%s: %i", CG_GetStringEdString("MD_MP_INGAME", "LEADER"), cgs.scores1);
 
 		clientNum = cgs.duelWinner;
 	}
@@ -6463,11 +6463,11 @@ static void CG_DrawDisconnect(void)
 
 	if (cg.mMapChange)
 	{
-		s = CG_GetStringEdString("MP_INGAME", "SERVER_CHANGING_MAPS"); // s = "Server Changing Maps";
+		s = CG_GetStringEdString("MD_MP_INGAME", "SERVER_CHANGING_MAPS"); // s = "Server Changing Maps";
 		w = CG_DrawStrlen(s) * BIGCHAR_WIDTH;
 		CG_DrawBigString(320 - w / 2, 100, s, 1.0f);
 
-		s = CG_GetStringEdString("MP_INGAME", "PLEASE_WAIT"); // s = "Please wait...";
+		s = CG_GetStringEdString("MD_MP_INGAME", "PLEASE_WAIT"); // s = "Please wait...";
 		w = CG_DrawStrlen(s) * BIGCHAR_WIDTH;
 		CG_DrawBigString(320 - w / 2, 200, s, 1.0f);
 		return;
@@ -6484,7 +6484,7 @@ static void CG_DrawDisconnect(void)
 	}
 
 	// also add text in center of screen
-	s = CG_GetStringEdString("MP_INGAME", "CONNECTION_INTERRUPTED");
+	s = CG_GetStringEdString("MD_MP_INGAME", "CONNECTION_INTERRUPTED");
 	// s = "Connection Interrupted"; // bk 010215 - FIXME
 	w = CG_DrawStrlen(s) * BIGCHAR_WIDTH;
 	CG_DrawBigString(320 - w / 2, 100, s, 1.0f);
@@ -8710,6 +8710,11 @@ static void CG_SanitizeString(const char* in, char* out)
 	int i = 0;
 	int r = 0;
 
+	if (!in || !out) {
+		if (out) out[0] = 0;
+		return;
+	}
+
 	while (in[i])
 	{
 		if (i >= 128 - 1)
@@ -8850,27 +8855,50 @@ static void CG_DrawCrosshairNames(void)
 		trap->R_SetColor(NULL);
 		return;
 	}
+	
+	const char* name = NULL;
+	const centity_t* cent = NULL;
 
-	char* name = cgs.clientinfo[cg.crosshairclientNum].cleanname;
-
-	const float w = CG_DrawStrlen(va("Civilian")) * TINYCHAR_WIDTH;
-
-	if (cg.snap->ps.duelInProgress)
+	// safe client name lookup
+	if (cg.crosshairclientNum >= 0 && cg.crosshairclientNum < MAX_CLIENTS)
 	{
-		if (cg.crosshairclientNum != cg.snap->ps.duelIndex)
+		if (cgs.clientinfo[cg.crosshairclientNum].infoValid)
 		{
-			//grey out crosshair for everyone but your foe if you're in a duel
-			//baseColor = CT_BLACK;
+			name = cgs.clientinfo[cg.crosshairclientNum].cleanname;
 		}
 	}
-	else if (cg_entities[cg.crosshairclientNum].currentState.bolt1)
+	else if (cg.crosshairclientNum >= 0 && cg.crosshairclientNum < ENTITYNUM_WORLD)
 	{
-		//this fellow is in a duel. We just checked if we were in a duel above, so
-		//this means we aren't and he is. Which of course means our crosshair greys out over him.
-		//baseColor = CT_BLACK;
+		// entity index refers to a non-client (NPC, vehicle...). try to get a readable name:
+		cent = &cg_entities[cg.crosshairclientNum];
+
+		// If the entity has an npcClient (clientInfo_t*), prefer that
+		if (cent->npcClient && cent->npcClient->infoValid)
+		{
+			name = cent->npcClient->cleanname;
+		}
+		else if (cent->currentState.eType == ET_NPC)
+		{
+			// fallback label for NPCs with no clientinfo
+			name = "(NPC)";
+		}
+		else
+		{
+			// not a client or NPC we can name
+			name = NULL;
+		}
+	}
+	
+	if (!name || !name[0])
+	{
+		trap->R_SetColor(NULL);
+		return; // nothing to draw
 	}
 
 	CG_SanitizeString(name, sanitized);
+
+
+	const float w = CG_DrawStrlen(va("Civilian")) * TINYCHAR_WIDTH;
 
 	if (is_veh)
 	{
@@ -9114,7 +9142,7 @@ CG_DrawSpectator
 */
 //static void CG_DrawSpectator(void)
 //{
-//	const char* s = CG_GetStringEdString("MP_INGAME", "SPECTATOR");
+//	const char* s = CG_GetStringEdString("MD_MP_INGAME", "SPECTATOR");
 //	if ((cgs.gametype == GT_DUEL || cgs.gametype == GT_POWERDUEL) &&
 //		cgs.duelist1 != -1 &&
 //		cgs.duelist2 != -1)
@@ -9125,13 +9153,13 @@ CG_DrawSpectator
 //		if (cgs.gametype == GT_POWERDUEL && cgs.duelist3 != -1)
 //		{
 //			Com_sprintf(text, sizeof text, "%s^7 %s %s^7 %s %s", cgs.clientinfo[cgs.duelist1].name,
-//				CG_GetStringEdString("MP_INGAME", "SPECHUD_VERSUS"), cgs.clientinfo[cgs.duelist2].name,
-//				CG_GetStringEdString("MP_INGAME", "AND"), cgs.clientinfo[cgs.duelist3].name);
+//				CG_GetStringEdString("MD_MP_INGAME", "SPECHUD_VERSUS"), cgs.clientinfo[cgs.duelist2].name,
+//				CG_GetStringEdString("MD_MP_INGAME", "AND"), cgs.clientinfo[cgs.duelist3].name);
 //		}
 //		else
 //		{
 //			Com_sprintf(text, sizeof text, "%s^7 %s %s", cgs.clientinfo[cgs.duelist1].name,
-//				CG_GetStringEdString("MP_INGAME", "SPECHUD_VERSUS"), cgs.clientinfo[cgs.duelist2].name);
+//				CG_GetStringEdString("MD_MP_INGAME", "SPECHUD_VERSUS"), cgs.clientinfo[cgs.duelist2].name);
 //		}
 //		CG_Text_Paint(320 - CG_Text_Width(text, 1.0f, 3) / 2, 420, 1.0f, colorWhite, text, 0, 0, 0, 3);
 //
@@ -9184,13 +9212,13 @@ CG_DrawSpectator
 //
 //	if (cgs.gametype == GT_DUEL || cgs.gametype == GT_POWERDUEL)
 //	{
-//		s = CG_GetStringEdString("MP_INGAME", "WAITING_TO_PLAY"); // "waiting to play";
+//		s = CG_GetStringEdString("MD_MP_INGAME", "WAITING_TO_PLAY"); // "waiting to play";
 //		CG_Text_Paint(320 - CG_Text_Width(s, 1.0f, 3) / 2, 440, 1.0f, colorWhite, s, 0, 0, 0, 3);
 //	}
 //	else //if ( cgs.gametype >= GT_TEAM )
 //	{
 //		//s = "press ESC and use the JOIN menu to play";
-//		s = CG_GetStringEdString("MP_INGAME", "SPEC_CHOOSEJOIN");
+//		s = CG_GetStringEdString("MD_MP_INGAME", "SPEC_CHOOSEJOIN");
 //		CG_Text_Paint(320 - CG_Text_Width(s, 1.0f, 3) / 2, 440, 1.0f, colorWhite, s, 0, 0, 0, 3);
 //	}
 //}
@@ -9244,7 +9272,7 @@ static void CG_DrawVote(void)
 		else if (!Q_stricmp("Capture the Ysalamiri", cgs.voteString + 11))
 			s_parm = CG_GetStringEdString(
 				"MENUS", "CAPTURE_THE_YSALIMARI");
-		else if (!Q_stricmp("Single Player", cgs.voteString + 11)) s_parm = CG_GetStringEdString("MD_MENU_MP", "COOP");
+		else if (!Q_stricmp("Single Player", cgs.voteString + 11)) s_parm = CG_GetStringEdString("MD_MP_MENU", "COOP");
 	}
 	else if (!Q_strncmp(cgs.voteString, "map", 3))
 	{
@@ -9273,7 +9301,7 @@ static void CG_DrawVote(void)
 	CG_DrawSmallString(4, 58, s, 1.0f);
 	if (cgs.clientinfo[cg.clientNum].team != TEAM_SPECTATOR)
 	{
-		s = CG_GetStringEdString("MP_INGAME", "OR_PRESS_ESC_THEN_CLICK_VOTE"); //	s = "or press ESC then click Vote";
+		s = CG_GetStringEdString("MD_MP_INGAME", "OR_PRESS_ESC_THEN_CLICK_VOTE"); //	s = "or press ESC then click Vote";
 		CG_DrawSmallString(4, 58 + SMALLCHAR_HEIGHT + 2, s, 1.0f);
 	}
 }
@@ -9391,20 +9419,20 @@ static qboolean CG_DrawFollow(void)
 
 		if (ci->duelTeam == DUELTEAM_LONE)
 		{
-			s = CG_GetStringEdString("MP_INGAME", "FOLLOWINGLONE");
+			s = CG_GetStringEdString("MD_MP_INGAME", "FOLLOWINGLONE");
 		}
 		else if (ci->duelTeam == DUELTEAM_DOUBLE)
 		{
-			s = CG_GetStringEdString("MP_INGAME", "FOLLOWINGDOUBLE");
+			s = CG_GetStringEdString("MD_MP_INGAME", "FOLLOWINGDOUBLE");
 		}
 		else
 		{
-			s = CG_GetStringEdString("MP_INGAME", "FOLLOWING");
+			s = CG_GetStringEdString("MD_MP_INGAME", "FOLLOWING");
 		}
 	}
 	else
 	{
-		s = CG_GetStringEdString("MP_INGAME", "FOLLOWING");
+		s = CG_GetStringEdString("MD_MP_INGAME", "FOLLOWING");
 	}
 
 	CG_Text_Paint(320 - CG_Text_Width(s, 0.5f, FONT_SMALL) / 2, 30, 0.5f, colorWhite, s, 0, 0, 0, FONT_SMALL);
@@ -9497,7 +9525,7 @@ static void CG_DrawWarmup(void)
 	if (sec < 0)
 	{
 		//		s = "Waiting for players";
-		s = CG_GetStringEdString("MP_INGAME", "WAITING_FOR_PLAYERS");
+		s = CG_GetStringEdString("MD_MP_INGAME", "WAITING_FOR_PLAYERS");
 		w = CG_DrawStrlen(s) * BIGCHAR_WIDTH;
 		CG_DrawBigString(320 - w / 2, 24, s, 1.0f);
 		cg.warmupCount = 0;
@@ -9579,7 +9607,7 @@ static void CG_DrawWarmup(void)
 		sec = 0;
 	}
 	//	s = va( "Starts in: %i", sec + 1 );
-	s = va("%s: %i", CG_GetStringEdString("MP_INGAME", "STARTS_IN"), sec + 1);
+	s = va("%s: %i", CG_GetStringEdString("MD_MP_INGAME", "STARTS_IN"), sec + 1);
 	if (sec != cg.warmupCount)
 	{
 		cg.warmupCount = sec;
@@ -11066,7 +11094,7 @@ static void CG_Draw2D(void)
 		switch (cgSiegeRoundState)
 		{
 		case 1:
-			CG_CenterPrint(CG_GetStringEdString("MP_INGAME", "WAITING_FOR_PLAYERS"), SCREEN_HEIGHT * 0.30,
+			CG_CenterPrint(CG_GetStringEdString("MD_MP_INGAME", "WAITING_FOR_PLAYERS"), SCREEN_HEIGHT * 0.30,
 				BIGCHAR_WIDTH);
 			break;
 		case 2:
@@ -11110,7 +11138,7 @@ static void CG_Draw2D(void)
 				}
 			}
 
-			Q_strncpyz(p_str, va("%s %i...", CG_GetStringEdString("MP_INGAME", "ROUNDBEGINSIN"), r_time), sizeof p_str);
+			Q_strncpyz(p_str, va("%s %i...", CG_GetStringEdString("MD_MP_INGAME", "ROUNDBEGINSIN"), r_time), sizeof p_str);
 			CG_CenterPrint(p_str, SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH);
 			//same
 			break;

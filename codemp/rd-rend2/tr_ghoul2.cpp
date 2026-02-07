@@ -3710,274 +3710,6 @@ int OldToNewRemapTable[72] = {
 52// Bone71:   "face_always_":			Parent: "cranium"  (index 17)
 };
 
-/*
-
-Bone   0:   "model_root":
-			Parent: ""  (index -1)
-			#Kids:  1
-			Child 0: (index 1), name "pelvis"
-
-Bone   1:   "pelvis":
-			Parent: "model_root"  (index 0)
-			#Kids:  4
-			Child 0: (index 2), name "Motion"
-			Child 1: (index 3), name "lfemurYZ"
-			Child 2: (index 7), name "rfemurYZ"
-			Child 3: (index 11), name "lower_lumbar"
-
-Bone   2:   "Motion":
-			Parent: "pelvis"  (index 1)
-			#Kids:  0
-
-Bone   3:   "lfemurYZ":
-			Parent: "pelvis"  (index 1)
-			#Kids:  3
-			Child 0: (index 4), name "lfemurX"
-			Child 1: (index 5), name "ltibia"
-			Child 2: (index 49), name "ltail"
-
-Bone   4:   "lfemurX":
-			Parent: "lfemurYZ"  (index 3)
-			#Kids:  0
-
-Bone   5:   "ltibia":
-			Parent: "lfemurYZ"  (index 3)
-			#Kids:  1
-			Child 0: (index 6), name "ltalus"
-
-Bone   6:   "ltalus":
-			Parent: "ltibia"  (index 5)
-			#Kids:  0
-
-Bone   7:   "rfemurYZ":
-			Parent: "pelvis"  (index 1)
-			#Kids:  3
-			Child 0: (index 8), name "rfemurX"
-			Child 1: (index 9), name "rtibia"
-			Child 2: (index 50), name "rtail"
-
-Bone   8:   "rfemurX":
-			Parent: "rfemurYZ"  (index 7)
-			#Kids:  0
-
-Bone   9:   "rtibia":
-			Parent: "rfemurYZ"  (index 7)
-			#Kids:  1
-			Child 0: (index 10), name "rtalus"
-
-Bone  10:   "rtalus":
-			Parent: "rtibia"  (index 9)
-			#Kids:  0
-
-Bone  11:   "lower_lumbar":
-			Parent: "pelvis"  (index 1)
-			#Kids:  1
-			Child 0: (index 12), name "upper_lumbar"
-
-Bone  12:   "upper_lumbar":
-			Parent: "lower_lumbar"  (index 11)
-			#Kids:  1
-			Child 0: (index 13), name "thoracic"
-
-Bone  13:   "thoracic":
-			Parent: "upper_lumbar"  (index 12)
-			#Kids:  5
-			Child 0: (index 14), name "cervical"
-			Child 1: (index 24), name "rclavical"
-			Child 2: (index 25), name "rhumerus"
-			Child 3: (index 37), name "lclavical"
-			Child 4: (index 38), name "lhumerus"
-
-Bone  14:   "cervical":
-			Parent: "thoracic"  (index 13)
-			#Kids:  1
-			Child 0: (index 15), name "cranium"
-
-Bone  15:   "cranium":
-			Parent: "cervical"  (index 14)
-			#Kids:  1
-			Child 0: (index 52), name "face_always_"
-
-Bone  16:   "ceyebrow":
-			Parent: "face_always_"  (index 52)
-			#Kids:  0
-
-Bone  17:   "jaw":
-			Parent: "face_always_"  (index 52)
-			#Kids:  0
-
-Bone  18:   "lblip2":
-			Parent: "face_always_"  (index 52)
-			#Kids:  0
-
-Bone  19:   "leye":
-			Parent: "face_always_"  (index 52)
-			#Kids:  0
-
-Bone  20:   "rblip2":
-			Parent: "face_always_"  (index 52)
-			#Kids:  0
-
-Bone  21:   "ltlip2":
-			Parent: "face_always_"  (index 52)
-			#Kids:  0
-
-Bone  22:   "rtlip2":
-			Parent: "face_always_"  (index 52)
-			#Kids:  0
-
-Bone  23:   "reye":
-			Parent: "face_always_"  (index 52)
-			#Kids:  0
-
-Bone  24:   "rclavical":
-			Parent: "thoracic"  (index 13)
-			#Kids:  0
-
-Bone  25:   "rhumerus":
-			Parent: "thoracic"  (index 13)
-			#Kids:  2
-			Child 0: (index 26), name "rhumerusX"
-			Child 1: (index 27), name "rradius"
-
-Bone  26:   "rhumerusX":
-			Parent: "rhumerus"  (index 25)
-			#Kids:  0
-
-Bone  27:   "rradius":
-			Parent: "rhumerus"  (index 25)
-			#Kids:  9
-			Child 0: (index 28), name "rradiusX"
-			Child 1: (index 29), name "rhand"
-			Child 2: (index 30), name "r_d1_j1"
-			Child 3: (index 31), name "r_d1_j2"
-			Child 4: (index 32), name "r_d2_j1"
-			Child 5: (index 33), name "r_d2_j2"
-			Child 6: (index 34), name "r_d4_j1"
-			Child 7: (index 35), name "r_d4_j2"
-			Child 8: (index 36), name "rhang_tag_bone"
-
-Bone  28:   "rradiusX":
-			Parent: "rradius"  (index 27)
-			#Kids:  0
-
-Bone  29:   "rhand":
-			Parent: "rradius"  (index 27)
-			#Kids:  0
-
-Bone  30:   "r_d1_j1":
-			Parent: "rradius"  (index 27)
-			#Kids:  0
-
-Bone  31:   "r_d1_j2":
-			Parent: "rradius"  (index 27)
-			#Kids:  0
-
-Bone  32:   "r_d2_j1":
-			Parent: "rradius"  (index 27)
-			#Kids:  0
-
-Bone  33:   "r_d2_j2":
-			Parent: "rradius"  (index 27)
-			#Kids:  0
-
-Bone  34:   "r_d4_j1":
-			Parent: "rradius"  (index 27)
-			#Kids:  0
-
-Bone  35:   "r_d4_j2":
-			Parent: "rradius"  (index 27)
-			#Kids:  0
-
-Bone  36:   "rhang_tag_bone":
-			Parent: "rradius"  (index 27)
-			#Kids:  0
-
-Bone  37:   "lclavical":
-			Parent: "thoracic"  (index 13)
-			#Kids:  0
-
-Bone  38:   "lhumerus":
-			Parent: "thoracic"  (index 13)
-			#Kids:  2
-			Child 0: (index 39), name "lhumerusX"
-			Child 1: (index 40), name "lradius"
-
-Bone  39:   "lhumerusX":
-			Parent: "lhumerus"  (index 38)
-			#Kids:  0
-
-Bone  40:   "lradius":
-			Parent: "lhumerus"  (index 38)
-			#Kids:  9
-			Child 0: (index 41), name "lradiusX"
-			Child 1: (index 42), name "lhand"
-			Child 2: (index 43), name "l_d4_j1"
-			Child 3: (index 44), name "l_d4_j2"
-			Child 4: (index 45), name "l_d2_j1"
-			Child 5: (index 46), name "l_d2_j2"
-			Child 6: (index 47), name "l_d1_j1"
-			Child 7: (index 48), name "l_d1_j2"
-			Child 8: (index 51), name "lhang_tag_bone"
-
-Bone  41:   "lradiusX":
-			Parent: "lradius"  (index 40)
-			#Kids:  0
-
-Bone  42:   "lhand":
-			Parent: "lradius"  (index 40)
-			#Kids:  0
-
-Bone  43:   "l_d4_j1":
-			Parent: "lradius"  (index 40)
-			#Kids:  0
-
-Bone  44:   "l_d4_j2":
-			Parent: "lradius"  (index 40)
-			#Kids:  0
-
-Bone  45:   "l_d2_j1":
-			Parent: "lradius"  (index 40)
-			#Kids:  0
-
-Bone  46:   "l_d2_j2":
-			Parent: "lradius"  (index 40)
-			#Kids:  0
-
-Bone  47:   "l_d1_j1":
-			Parent: "lradius"  (index 40)
-			#Kids:  0
-
-Bone  48:   "l_d1_j2":
-			Parent: "lradius"  (index 40)
-			#Kids:  0
-
-Bone  49:   "ltail":
-			Parent: "lfemurYZ"  (index 3)
-			#Kids:  0
-
-Bone  50:   "rtail":
-			Parent: "rfemurYZ"  (index 7)
-			#Kids:  0
-
-Bone  51:   "lhang_tag_bone":
-			Parent: "lradius"  (index 40)
-			#Kids:  0
-
-Bone  52:   "face_always_":
-			Parent: "cranium"  (index 15)
-			#Kids:  8
-			Child 0: (index 16), name "ceyebrow"
-			Child 1: (index 17), name "jaw"
-			Child 2: (index 18), name "lblip2"
-			Child 3: (index 19), name "leye"
-			Child 4: (index 20), name "rblip2"
-			Child 5: (index 21), name "ltlip2"
-			Child 6: (index 22), name "rtlip2"
-			Child 7: (index 23), name "reye"
-
-*/
-
 qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
 	int					i, l, j;
@@ -4040,9 +3772,37 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		LL(mdxm->ofsEnd);
 	}
 
-	// first up, go load in the animation file we need that has the skeletal
-	// animation info for this model
-	mdxm->animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
+	// Decide which animation GLA to use.
+	// - Non-humanoids: use mdxm->animName as-is.
+	// - Base humanoid: prefer _humanoid_mp if present, otherwise fall back to original _humanoid.
+	const char* animNameToUse = mdxm->animName;
+	qhandle_t animIndex = 0;
+
+	// Detect ANY humanoid or humanoid variant by animName
+	if (strstr(mdxm->animName, "models/players/_humanoid/") ||
+		strstr(mdxm->animName, "models/players/_humanoid_"))
+	{
+		const char* mpHumanoid = "models/players/_humanoid_mp/_humanoid";
+
+		// Try MP humanoid first
+		animIndex = RE_RegisterModel(va("%s.gla", mpHumanoid));
+		if (animIndex)
+		{
+			animNameToUse = mpHumanoid;
+		}
+		else
+		{
+			// Fallback to original humanoid
+			animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
+		}
+	}
+	else
+	{
+		// Non-humanoid or custom skeleton: use the model's own animName
+		animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
+	}
+
+	mdxm->animIndex = animIndex;
 
 	if (!mdxm->animIndex)
 	{
@@ -4059,8 +3819,7 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 
 	bool isAnOldModelFile = false;
 	if (mdxm->numBones == 72 &&
-		(strstr(mdxm->animName, "_humanoid") ||
-			strstr(mdxm->animName, "_humanoid_MP")))
+		(strstr(mdxm->animName, "_humanoid_mp")))
 	{
 		isAnOldModelFile = true;
 	}

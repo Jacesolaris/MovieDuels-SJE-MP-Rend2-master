@@ -481,5 +481,5 @@ char* UI_GetBotNameByNumber(int num) {
 	if (info) {
 		return Info_ValueForKey(info, "name");
 	}
-	return "Kyle";
+	return "_humanoid_mp";
 }

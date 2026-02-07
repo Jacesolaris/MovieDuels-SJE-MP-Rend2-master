@@ -487,14 +487,14 @@ static qboolean R_LoadMDXA_Server(model_t* mod, void* buffer, const char* mod_na
 R_LoadMDXM_Server - load a Ghoul 2 Mesh file
 =================
 */
-static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached) {
+static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
+{
 	int					i, l, j;
 	mdxmHeader_t* pinmodel, * mdxm;
 	mdxmLOD_t* lod;
 	mdxmSurface_t* surf;
 	int					version;
 	int					size;
-	//shader_t			*sh;
 	mdxmSurfHierarchy_t* surfInfo;
 
 	pinmodel = (mdxmHeader_t*)buffer;
@@ -545,19 +545,38 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 		LL(mdxm->ofsEnd);
 	}
 
-	// Force all humanoid models to use the MP humanoid skeleton
-	if (strstr(mdxm->animName, "models/players/_humanoid/") &&
-		!strstr(mdxm->animName, "rockettrooper"))
+	// Decide which animation GLA to use on the server.
+	// - Non-humanoids: use mdxm->animName as-is.
+	// - Base humanoid: prefer _humanoid_mp if present, otherwise fall back to original _humanoid.
+	const char* animNameToUse = mdxm->animName;
+	qhandle_t animIndex = 0;
+
+	// Detect ANY humanoid or humanoid variant by animName
+	if (strstr(mdxm->animName, "models/players/_humanoid/") ||
+		strstr(mdxm->animName, "models/players/_humanoid_"))
 	{
-		Q_strncpyz(
-			mdxm->animName,
-			"models/players/_humanoid_MP/_humanoid",
-			sizeof(mdxm->animName)
-		);
+		const char* mpHumanoid = "models/players/_humanoid_mp/_humanoid";
+
+		// Try MP humanoid first
+		animIndex = RE_RegisterModel(va("%s.gla", mpHumanoid));
+		if (animIndex)
+		{
+			animNameToUse = mpHumanoid;
+		}
+		else
+		{
+			// Fallback to original humanoid
+			animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
+		}
+	}
+	else
+	{
+		// Non-humanoid or custom skeleton: use the model's own animName
+		animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
 	}
 
-	// Now load the GLA for this model
-	mdxm->animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
+	mdxm->animIndex = animIndex;
+
 	if (!mdxm->animIndex)
 	{
 		return qfalse;
@@ -568,6 +587,13 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 	if (bAlreadyFound)
 	{
 		return qtrue;	// All done. Stop, go no further, do not LittleLong(), do not pass Go...
+	}
+
+	bool isAnOldModelFile = false;
+	if (mdxm->numBones == 72 &&
+		(strstr(mdxm->animName, "_humanoid_mp")))
+	{
+		isAnOldModelFile = true;
 	}
 
 	surfInfo = (mdxmSurfHierarchy_t*)((byte*)mdxm + mdxm->ofsSurfHierarchy);

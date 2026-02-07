@@ -561,12 +561,30 @@ void SP_misc_crystal_crate(gentity_t* ent)
 void SP_misc_G2model(gentity_t* ent)
 {
 #if 0
-	char name1[200] = "models/players/kyle/modelmp.glm";
-	trap->G2API_InitGhoul2Model(&ent->s, name1, G_model_index(name1), 0, 0, 0, 0);
-	trap->G2API_SetBoneAnim(ent->s.ghoul2, 0, "model_root", 0, 12, BONE_ANIM_OVERRIDE_LOOP, 1.0f, level.time, -1, -1);
+	char name1[200] = "models/players/_humanoid_mp/model.glm";
+
+	trap->G2API_InitGhoul2Model(
+		&ent->s,
+		name1,
+		G_model_index(name1),
+		0, 0, 0, 0
+	);
+
+	trap->G2API_SetBoneAnim(
+		ent->s.ghoul2,
+		0,
+		"model_root",
+		0,
+		12,
+		BONE_ANIM_OVERRIDE_LOOP,
+		1.0f,
+		level.time,
+		-1,
+		-1
+	);
+
 	ent->s.radius = 150;
-	//	VectorSet (ent->r.mins, -16, -16, -16);
-	//	VectorSet (ent->r.maxs, 16, 16, 16);
+
 	trap->LinkEntity((sharedEntity_t*)ent);
 
 	G_SetOrigin(ent, ent->s.origin);
@@ -578,7 +596,7 @@ void SP_misc_G2model(gentity_t* ent)
 
 //===========================================================
 
-void locateCamera(gentity_t* ent)
+static void locateCamera(gentity_t* ent)
 {
 	vec3_t dir;
 

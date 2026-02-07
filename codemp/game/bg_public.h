@@ -53,14 +53,14 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_SABER_NAME		"lightsaber"
 #define DEFAULT_SABER_STAFF		"dual_1"
 #define DEFAULT_SABER_MODEL		"models/weapons2/saber/saber_w.glm"
-#define	DEFAULT_MODEL			"kyle"
+#define	DEFAULT_MODEL			"_humanoid_mp"
 #define DEFAULT_MODEL_FEMALE	"jan"
 #define DEFAULT_BACKHANDSABER_MODEL		"models/weapons2/saber_B/saber_B.glm"
 
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-31,Month-01,Year-26,BuildNum-03" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-06,Month-02,Year-26,BuildNum-01" // build date
 
 #define	STEPSIZE		18
 
@@ -2026,7 +2026,7 @@ qboolean BG_IsUsingMediumWeap(const playerState_t* ps);
 qboolean BG_IsUsingHeavyWeap(const playerState_t* ps);
 
 qboolean BG_IsItemSelectable(int item);
-qboolean BG_IsLMSGametype(int gametype);
+qboolean BG_IsLMSGametype(const int gametype);
 
 qboolean BG_HasYsalamiri(int gametype, const playerState_t* ps);
 qboolean BG_CanUseFPNow(int gametype, const playerState_t* ps, int time, forcePowers_t power);
@@ -2094,3 +2094,4 @@ extern int force_power_dark_light[NUM_FORCE_POWERS];
 extern const char* gametypeStringShort[GT_MAX_GAME_TYPE];
 const char* BG_GetGametypeString(int gametype);
 int BG_GetGametypeForString(const char* gametype);
+qboolean BG_IsHumanoidModel(const char* glaName);

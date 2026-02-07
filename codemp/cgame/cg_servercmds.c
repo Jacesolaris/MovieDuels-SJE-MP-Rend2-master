@@ -1175,7 +1175,7 @@ static void CG_MapRestart(void)
 	if (cg.warmup == 0 && cgs.gametype != GT_SIEGE && cgs.gametype != GT_POWERDUEL/* && cgs.gametype == GT_DUEL */)
 	{
 		trap->S_StartLocalSound(cgs.media.countFightSound, CHAN_ANNOUNCER);
-		CG_CenterPrint(CG_GetStringEdString("MP_SVGAME", "BEGIN_DUEL"), 120, GIANTCHAR_WIDTH * 2);
+		CG_CenterPrint(CG_GetStringEdString("MD_MP_SVGAME", "BEGIN_DUEL"), 120, GIANTCHAR_WIDTH * 2);
 	}
 }
 
@@ -1250,17 +1250,17 @@ static void CG_CheckSVStringEdRef(char* buf, const char* str)
 					stringRef[r] = 0;
 
 					buf[b] = 0;
-					Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("MP_SVGAME", stringRef));
+					Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("MD_MP_SVGAME", stringRef));
 
 					if (buf[0] && buf[0] == '?' && buf[1] && buf[1] == '?')
 					{
-						//couldn't find the string in MP_SVGAME, try the MD_MENU_MP.str
+						//couldn't find the string in MD_MP_SVGAME, try the MD_MP_MENU.str
 						buf[b] = 0;
-						Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("MD_MENU_MP", stringRef));
+						Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("MD_MP_MENU", stringRef));
 					}
 					if (buf[0] && buf[0] == '?' && buf[1] && buf[1] == '?')
 					{
-						//couldn't find the string in MP_SVGAME or MD_MENU_MP, try the SP_INGAME.str
+						//couldn't find the string in MD_MP_SVGAME or MD_MP_MENU, try the SP_INGAME.str
 						buf[b] = 0;
 						Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("SP_INGAME", stringRef));
 					}

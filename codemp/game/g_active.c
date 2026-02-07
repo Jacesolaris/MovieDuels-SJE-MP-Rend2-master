@@ -1,4 +1,4 @@
-/*
+﻿/*
 ===========================================================================
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
@@ -1230,136 +1230,140 @@ extern char* PickName(void);
 static void ClientTimerActions(gentity_t* ent, const int msec)
 {
 	gclient_t* client = ent->client;
+	playerState_t* ps = &client->ps;
 	client->timeResidual += msec;
-	int clientNum = ent - g_entities;
+
+	const int clientNum = ent - g_entities;
+	const qboolean isBot = (ent->r.svFlags & SVF_BOT);
+	const qboolean isPlayer = (ent->s.number < MAX_CLIENTS || G_ControlledByPlayer(ent));
 
 	while (client->timeResidual >= 1000)
 	{
 		client->timeResidual -= 1000;
 
-		// if out of trip mines or thermals, remove them from weapon selection
-		if (client->ps.ammo[AMMO_THERMAL] == 0)
-		{
-			client->ps.stats[STAT_WEAPONS] &= ~(1 << WP_THERMAL);
-		}
+		// -----------------------------------------------------
+		// WEAPON REMOVAL WHEN OUT OF AMMO
+		// -----------------------------------------------------
+		if (ps->ammo[AMMO_THERMAL] == 0)
+			ps->stats[STAT_WEAPONS] &= ~(1 << WP_THERMAL);
 
-		if (client->ps.ammo[AMMO_TRIPMINE] == 0)
-		{
-			client->ps.stats[STAT_WEAPONS] &= ~(1 << WP_TRIP_MINE);
-		}
+		if (ps->ammo[AMMO_TRIPMINE] == 0)
+			ps->stats[STAT_WEAPONS] &= ~(1 << WP_TRIP_MINE);
 
-		if (!(ent->r.svFlags & SVF_BOT) &&
-			!PM_SaberInAttack(ent->client->ps.saber_move)
-			&& !(ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK)
-			&& !ent->client->poisonTime
-			&& !ent->client->stunTime
-			&& !ent->client->AmputateTime
-			&& ent->client->NPC_class != CLASS_GALAKMECH
-			&& ent->client->ps.fd.forceRageRecoveryTime < level.time
-			&& !(ent->client->ps.fd.forcePowersActive & 1 << FP_RAGE))
+		// -----------------------------------------------------
+		// PASSIVE HEALING + ARMOR REGEN (PLAYERS ONLY)
+		// -----------------------------------------------------
+		if (!isBot &&
+			!PM_SaberInAttack(ps->saber_move) &&
+			!(ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)) &&
+			!client->poisonTime &&
+			!client->stunTime &&
+			!client->AmputateTime &&
+			client->NPC_class != CLASS_GALAKMECH &&
+			ps->fd.forceRageRecoveryTime < level.time &&
+			!(ps->fd.forcePowersActive & (1 << FP_RAGE)))
 		{
-			//you heal 1 hp every 1 second.
-			if (ent->client->ps.fd.forcePowerLevel[FP_HEAL] > FORCE_LEVEL_2)
+			if (ps->fd.forcePowerLevel[FP_HEAL] > FORCE_LEVEL_2 &&
+				ent->health < ps->stats[STAT_MAX_HEALTH])
 			{
-				if (ent->health < client->ps.stats[STAT_MAX_HEALTH])
-				{
-					ent->health++;
-				}
+				ent->health++;
 			}
 
-			if (ent->client->ps.fd.forcePowerLevel[FP_PROTECT] > FORCE_LEVEL_2)
+			if (ps->fd.forcePowerLevel[FP_PROTECT] > FORCE_LEVEL_2 &&
+				ps->stats[STAT_ARMOR] < ps->stats[STAT_MAX_HEALTH])
 			{
-				if (client->ps.stats[STAT_ARMOR] < client->ps.stats[STAT_MAX_HEALTH])
-				{
-					client->ps.stats[STAT_ARMOR]++;
-				}
+				ps->stats[STAT_ARMOR]++;
 			}
 		}
 
-		// count down armor when over max
-		if (client->ps.stats[STAT_ARMOR] > client->ps.stats[STAT_MAX_HEALTH])
-		{
-			client->ps.stats[STAT_ARMOR]--;
-		}
+		// -----------------------------------------------------
+		// ARMOR / HEALTH ABOVE MAX → DECAY
+		// -----------------------------------------------------
+		if (ps->stats[STAT_ARMOR] > ps->stats[STAT_MAX_HEALTH])
+			ps->stats[STAT_ARMOR]--;
 
-		// count down health when over max
-		if (ent->health > client->ps.stats[STAT_MAX_HEALTH])
-		{
+		if (ent->health > ps->stats[STAT_MAX_HEALTH])
 			ent->health--;
+
+		// -----------------------------------------------------
+		// BLASTER FATIGUE REGEN
+		// -----------------------------------------------------
+		if (!(client->buttons & (BUTTON_ATTACK | BUTTON_ALT_ATTACK)) &&
+			ps->BlasterAttackChainCount > BLASTERMISHAPLEVEL_MIN &&
+			ps->weaponTime < 1)
+		{
+			if (ps->BlasterAttackChainCount > BLASTERMISHAPLEVEL_ELEVEN)
+				WP_BlasterFatigueRegenerate(4);
+			else
+				WP_BlasterFatigueRegenerate(1);
 		}
 
-		if (!(ent->client->buttons & BUTTON_ATTACK) && !(ent->client->buttons & BUTTON_ALT_ATTACK))
+		// -----------------------------------------------------
+		// FORCE SEE → REDUCE BLASTER MISHAP
+		// -----------------------------------------------------
+		if (ps->fd.forcePowersActive & (1 << FP_SEE))
+			bg_reduce_blaster_mishap_level_advanced(ps);
+
+		// -----------------------------------------------------
+		// SABER FATIGUE REGEN
+		// -----------------------------------------------------
+		if (ps->saberFatigueChainCount > MISHAPLEVEL_NONE &&
+			!BG_InSlowBounce(ps) &&
+			!PM_SaberInBrokenParry(ps->saber_move) &&
+			!PM_SaberInAttackPure(ps->saber_move) &&
+			!PM_SaberInAttack(ps->saber_move) &&
+			!PM_SaberInTransitionAny(ps->saber_move) &&
+			!PM_InKnockDown(ps) &&
+			ps->saberLockTime < level.time &&
+			ps->saberBlockingTime < level.time &&
+			ps->groundEntityNum != ENTITYNUM_NONE)
 		{
-			if (ent->client->ps.BlasterAttackChainCount > BLASTERMISHAPLEVEL_MIN && ent->client->ps.weaponTime < 1)
+			if (isPlayer)
 			{
-				if (ent->client->ps.BlasterAttackChainCount > BLASTERMISHAPLEVEL_ELEVEN)
-				{
-					WP_BlasterFatigueRegenerate(4);
-				}
-				else
-				{
-					WP_BlasterFatigueRegenerate(1);
-				}
+				if (!(ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)))
+					WP_SaberFatigueRegenerate(1);
 			}
-		}
-
-		if (ent->client->ps.fd.forcePowersActive & 1 << FP_SEE)
-		{
-			bg_reduce_blaster_mishap_level_advanced(&ent->client->ps);
-		}
-
-		if (ent->client->ps.saberFatigueChainCount > MISHAPLEVEL_NONE
-			&& (ent->s.number < MAX_CLIENTS || G_ControlledByPlayer(ent)) // player
-			&& !BG_InSlowBounce(&ent->client->ps)
-			&& !PM_SaberInBrokenParry(ent->client->ps.saber_move)
-			&& !PM_SaberInAttackPure(ent->client->ps.saber_move)
-			&& !PM_SaberInAttack(ent->client->ps.saber_move)
-			&& !PM_SaberInTransitionAny(ent->client->ps.saber_move)
-			&& !PM_InKnockDown(&ent->client->ps)
-			&& ent->client->ps.saberLockTime < level.time
-			&& ent->client->ps.saberBlockingTime < level.time
-			&& ent->client->ps.groundEntityNum != ENTITYNUM_NONE)
-		{
-			if (!(ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK))
+			else if (isBot)
 			{
 				WP_SaberFatigueRegenerate(1);
 			}
 		}
-		else if (ent->client->ps.saberFatigueChainCount > MISHAPLEVEL_NONE
-			&& ent->r.svFlags & SVF_BOT //npc
-			&& !BG_InSlowBounce(&ent->client->ps)
-			&& !PM_SaberInBrokenParry(ent->client->ps.saber_move)
-			&& !PM_SaberInAttackPure(ent->client->ps.saber_move)
-			&& !PM_SaberInAttack(ent->client->ps.saber_move)
-			&& !PM_SaberInTransitionAny(ent->client->ps.saber_move)
-			&& !PM_InKnockDown(&ent->client->ps)
-			&& ent->client->ps.saberLockTime < level.time
-			&& ent->client->ps.saberBlockingTime < level.time
-			&& ent->client->ps.groundEntityNum != ENTITYNUM_NONE)
-		{
-			WP_SaberFatigueRegenerate(1);
-		}
 
-		if (ent->r.svFlags & SVF_BOT
-			&& ent->client->ps.fd.blockPoints < BLOCK_POINTS_MAX)
-		{
-			ent->client->ps.fd.blockPoints++;
-		}
+		// -----------------------------------------------------
+		// BOT BLOCK POINT REGEN
+		// -----------------------------------------------------
+		if (isBot && ps->fd.blockPoints < BLOCK_POINTS_MAX)
+			ps->fd.blockPoints++;
 
+		// -----------------------------------------------------
+		// STATUS EFFECTS
+		// -----------------------------------------------------
 		Player_CheckBurn(ent);
 		Player_CheckFreeze(ent);
 
-		if (client->pers.padawantimer >= 3 && client->pers.isapadawan == 1 && g_noPadawanNames.integer != 0)
+		// -----------------------------------------------------
+		// PADAWAN NAME ENFORCEMENT
+		// -----------------------------------------------------
+		if (client->pers.isapadawan == 1 && g_noPadawanNames.integer != 0)
 		{
-			trap->SendServerCommand(ent - g_entities, va("cp \"The Name ^1padawan ^7is not allowed here!\nPlease change it in ^3%d seconds,\nor your name will be changed.\n\"", client->pers.padawantimer));
-			client->pers.padawantimer--;
-		}
+			if (client->pers.padawantimer >= 3)
+			{
+				trap->SendServerCommand(clientNum,
+					va("cp \"The Name ^1padawan ^7is not allowed here!\n"
+						"Please change it in ^3%d seconds,\n"
+						"or your name will be changed.\n\"",
+						client->pers.padawantimer));
 
-		if ((client->pers.padawantimer == 2 || client->pers.padawantimer == 1) && client->pers.isapadawan == 1 && g_noPadawanNames.integer != 0)
-		{
-			client->pers.isapadawan = 0;
-			G_Rename_Player(&g_entities[clientNum], PickName());
-			trap->SendServerCommand(ent - g_entities, va("cp \"^1Padawan names are not allowed, you have been ^1forcefully renamed.\n\""));
+				client->pers.padawantimer--;
+			}
+			else if (client->pers.padawantimer == 2 || client->pers.padawantimer == 1)
+			{
+				client->pers.isapadawan = 0;
+				G_Rename_Player(&g_entities[clientNum], PickName());
+
+				trap->SendServerCommand(clientNum,
+					"cp \"^1Padawan names are not allowed, you have been ^1forcefully renamed.\n\"");
+			}
 		}
 	}
 }
@@ -5041,7 +5045,7 @@ static void ClientThink_real(gentity_t* ent)
 			if (ent->health > 0 && ent->client->ps.stats[STAT_HEALTH] > 0)
 			{
 				trap->SendServerCommand(-1, va("cp \"%s %s %s!\n\"", ent->client->pers.netname,
-					G_GetStringEdString("MP_SVGAME", "PLDUELWINNER"),
+					G_GetStringEdString("MD_MP_SVGAME", "PLDUELWINNER"),
 					duelAgainst->client->pers.netname));
 				trap->SendServerCommand(-1, va("print \"%s ^7survived with ^5%d ^7health and ^5%d ^7shield\n\"",
 					ent->client->pers.netname, ent->client->ps.stats[STAT_HEALTH],
@@ -5050,7 +5054,7 @@ static void ClientThink_real(gentity_t* ent)
 			else
 			{
 				//it was a draw, because we both managed to die in the same frame
-				trap->SendServerCommand(-1, va("cp \"%s\n\"", G_GetStringEdString("MP_SVGAME", "PLDUELTIE")));
+				trap->SendServerCommand(-1, va("cp \"%s\n\"", G_GetStringEdString("MD_MP_SVGAME", "PLDUELTIE")));
 			}
 
 			//Winner gets full health.. providing he's still alive
@@ -5097,9 +5101,9 @@ static void ClientThink_real(gentity_t* ent)
 					G_AddEvent(ent, EV_PRIVATE_DUEL, 0);
 					G_AddEvent(duelAgainst, EV_PRIVATE_DUEL, 0);
 
-					trap->SendServerCommand(-1, va("print \"%s\n\"", G_GetStringEdString("MP_SVGAME", "PLDUELSTOP")));
+					trap->SendServerCommand(-1, va("print \"%s\n\"", G_GetStringEdString("MD_MP_SVGAME", "PLDUELSTOP")));
 					trap->SendServerCommand(duelAgainst - g_entities,
-						va("print \"%s\n\"", G_GetStringEdString("MP_SVGAME", "PLDUELSTOP")));
+						va("print \"%s\n\"", G_GetStringEdString("MD_MP_SVGAME", "PLDUELSTOP")));
 				}
 			}
 		}

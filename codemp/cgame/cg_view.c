@@ -2706,7 +2706,7 @@ void CG_DrawActiveFrame(const int serverTime, const stereoFrame_t stereoView, co
 		// If we have been waiting too long then just error out
 		if (cg.snapshotTimeoutTime > 0 && (trap->Milliseconds() - cg.snapshotTimeoutTime > cg_snapshotTimeout.integer * 1000))
 		{
-			Com_Error(ERR_DROP, CG_GetStringEdString("MP_SVGAME", "SNAPSHOT_TIMEOUT"));
+			Com_Error(ERR_DROP, CG_GetStringEdString("MD_MP_SVGAME", "SNAPSHOT_TIMEOUT"));
 			return;
 		}
 #endif

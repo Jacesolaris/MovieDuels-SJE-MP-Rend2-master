@@ -1814,21 +1814,24 @@ static void SP_worldspawn(void)
 	//when the first client connnects.
 	if (!bgpa_ftext_loaded)
 	{
-		// Try MP humanoid first
-		if (bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
-		{
-			// Fallback to original humanoid
-			bg_parse_animation_file("models/players/_humanoid/animation.cfg", bgHumanoidAnimations, qtrue);
-		}
+		bg_parse_animation_file("models/players/_humanoid_mp/animation.cfg", bgHumanoidAnimations, qtrue);
 	}
 
 	if (!precachedKyle)
 	{
-		trap->G2API_InitGhoul2Model(&precachedKyle, "models/players/"DEFAULT_MODEL"/model.glm", 0, 0, -20, 0, 0);
+		trap->G2API_InitGhoul2Model(
+			&precachedKyle,
+			"models/players/" DEFAULT_MODEL "/model.glm",
+			0, 0, -20, 0, 0
+		);
 
 		if (precachedKyle)
 		{
-			const int defSkin = trap->R_RegisterSkin("models/players/kyle/model_default.skin");
+			// NEW (matches DEFAULT_MODEL like the GLM above):
+			const int defSkin = trap->R_RegisterSkin(
+				va("models/players/%s/model_default.skin", DEFAULT_MODEL)
+			);
+
 			trap->G2API_SetSkin(precachedKyle, 0, defSkin, defSkin);
 		}
 	}

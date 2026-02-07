@@ -687,13 +687,13 @@ void Con_DrawNotify(void)
 		int skip;
 		if (chat_team)
 		{
-			chattext = SE_GetString("MP_SVGAME", "SAY_TEAM");
+			chattext = SE_GetString("MD_MP_SVGAME", "SAY_TEAM");
 			SCR_DrawBigString(8, v, chattext, 1.0f, qfalse);
 			skip = strlen(chattext) + 1;
 		}
 		else
 		{
-			chattext = SE_GetString("MP_SVGAME", "SAY");
+			chattext = SE_GetString("MD_MP_SVGAME", "SAY");
 			SCR_DrawBigString(8, v, chattext, 1.0f, qfalse);
 			skip = strlen(chattext) + 1;
 		}

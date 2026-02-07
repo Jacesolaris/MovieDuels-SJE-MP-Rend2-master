@@ -746,7 +746,7 @@ qboolean ServerLoadMDXA(model_t* mod, void* buffer, const char* mod_name, qboole
 ServerLoadMDXM - load a Ghoul 2 Mesh file
 =================
 */
-qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
+static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
 	int i;
 	mdxmHeader_t* pinmodel, * mdxm;
@@ -754,7 +754,6 @@ qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboole
 	mdxmSurface_t* surf;
 	int version;
 	int size;
-	//shader_t			*sh;
 	mdxmSurfHierarchy_t* surfInfo;
 
 #if 0 //#ifndef _M_IX86
@@ -792,7 +791,7 @@ qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboole
 	mdxm = mod->mdxm = static_cast<mdxmHeader_t*>(RE_RegisterServerModels_Malloc(
 		size, buffer, mod_name, &bAlreadyFound, TAG_MODEL_GLM));
 
-	assert(bAlreadyCached == bAlreadyFound); // I should probably eliminate 'bAlreadyFound', but wtf?
+	assert(bAlreadyCached == bAlreadyFound);
 
 	if (!bAlreadyFound)
 	{
@@ -808,23 +807,45 @@ qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboole
 		LL(mdxm->ofsEnd);
 	}
 
-	// Force all humanoid models to use the MP humanoid skeleton
-	if (strstr(mdxm->animName, "models/players/_humanoid/") &&
-		!strstr(mdxm->animName, "rockettrooper"))
+	// Decide which animation GLA to use.
+	// - Non-humanoids: use mdxm->animName as-is.
+	// - Base humanoid: prefer _humanoid_mp if present, otherwise fall back to original _humanoid.
+	const char* animNameToUse = mdxm->animName;
+	qhandle_t animIndex = 0;
+
+	// Detect ANY humanoid or humanoid variant by animName
+	if (strstr(mdxm->animName, "models/players/_humanoid/") ||
+		strstr(mdxm->animName, "models/players/_humanoid_"))
 	{
-		Q_strncpyz(
-			mdxm->animName,
-			"models/players/_humanoid_MP/_humanoid",
-			sizeof(mdxm->animName)
-		);
+		const char* mpHumanoid = "models/players/_humanoid_mp/_humanoid";
+
+		// Try MP humanoid first
+		animIndex = RE_RegisterModel(va("%s.gla", mpHumanoid));
+		if (animIndex)
+		{
+			animNameToUse = mpHumanoid;
+		}
+		else
+		{
+			// Fallback to original humanoid
+			animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
+		}
+	}
+	else
+	{
+		// Non-humanoid or custom skeleton: use the model's own animName
+		animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
 	}
 
-	// Now load the GLA for this model
-	mdxm->animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
+	mdxm->animIndex = animIndex;
+
 	if (!mdxm->animIndex)
 	{
 		return qfalse;
 	}
+
+	// Keep animName in sync with what we actually loaded
+	Q_strncpyz(mdxm->animName, animNameToUse, sizeof(mdxm->animName));
 
 	mod->numLods = mdxm->numLODs - 1; //copy this up to the model for ease of use - it wil get inced after this.
 
@@ -846,7 +867,6 @@ qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboole
 		}
 
 		surfInfo->shaderIndex = 0;
-
 		RE_RegisterModels_StoreShaderRequest(mod_name, &surfInfo->shader[0], &surfInfo->shaderIndex);
 
 		// find the next surface
@@ -888,12 +908,7 @@ qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboole
 			// change to surface identifier
 			surf->ident = SF_MDX;
 
-			// register the shaders
 #if 0 //#ifndef _M_IX86
-//
-// optimisation, we don't bother doing this for standard intel case since our data's already in that format...
-//
-			// FIXME - is this correct?
 			// do all the bone reference data
 			boneRef = (int*)((byte*)surf + surf->ofsBoneReferences);
 			for (j = 0; j < surf->numBoneReferences; j++)

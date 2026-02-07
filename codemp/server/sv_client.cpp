@@ -313,7 +313,7 @@ void SV_DirectConnect(netadr_t from)
 		else
 		{
 			const char* SV_GetStringEdString(char* refSection, char* refName);
-			NET_OutOfBandPrint(NS_SERVER, from, va("print\n%s\n", SV_GetStringEdString("MP_SVGAME", "SERVER_IS_FULL")));
+			NET_OutOfBandPrint(NS_SERVER, from, va("print\n%s\n", SV_GetStringEdString("MD_MP_SVGAME", "SERVER_IS_FULL")));
 			Com_DPrintf("Rejected a connection.\n");
 			return;
 		}
@@ -1014,7 +1014,7 @@ const char* SV_GetStringEdString(char* refSection, char* refName);
 static void SV_Disconnect_f(client_t* cl)
 {
 	//	SV_DropClient( cl, "disconnected" );
-	SV_DropClient(cl, SV_GetStringEdString("MP_SVGAME", "DISCONNECTED"));
+	SV_DropClient(cl, SV_GetStringEdString("MD_MP_SVGAME", "DISCONNECTED"));
 }
 
 /*

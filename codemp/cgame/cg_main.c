@@ -1458,8 +1458,6 @@ static void CG_RegisterGraphics(void)
 
 	cgs.media.backTileShader = trap->R_RegisterShader("gfx/2d/backtile");
 
-	//precache the fpls skin
-	//trap->R_RegisterSkin("models/players/kyle/model_fpls2.skin");
 
 	cgs.media.itemRespawningPlaceholder = trap->R_RegisterShader("powerups/placeholder");
 	cgs.media.itemRespawningRezOut = trap->R_RegisterShader("powerups/rezout");

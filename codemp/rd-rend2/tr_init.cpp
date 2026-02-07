@@ -255,8 +255,8 @@ cvar_t* r_AdvancedsurfaceSprites;
 
 // the limits apply to the sum of all scenes in a frame --
 // the main view, all the 3D icons, etc
-#define	DEFAULT_MAX_POLYS		600
-#define	DEFAULT_MAX_POLYVERTS	3000
+constexpr auto DEFAULT_MAX_POLYS = 600;
+constexpr auto DEFAULT_MAX_POLYVERTS = 3000;
 cvar_t* r_maxpolys;
 cvar_t* r_maxpolyverts;
 int		max_polys;
@@ -282,6 +282,8 @@ cvar_t* r_aspectCorrectFonts;
 
 cvar_t* r_patchStitching;
 
+cvar_t* g_DebugSaberCombat;
+
 extern void	RB_SetGL2D(void);
 static void R_Splash()
 {
@@ -296,7 +298,7 @@ static void R_Splash()
 	GL_Cull(CT_TWO_SIDED);
 
 	image_t* pImage = R_FindImageFile("menu/splash", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-	
+
 	/*const int splash_pick = rand() % 5;
 
 	switch (splash_pick)
@@ -1695,6 +1697,8 @@ static void R_Register(void)
 	com_outcast = ri->Cvar_Get("com_outcast", "0", CVAR_ARCHIVE, "");
 
 	r_patchStitching = ri->Cvar_Get("r_patchStitching", "1", CVAR_ARCHIVE, "Enable stitching of neighbouring patch surfaces");
+
+	g_DebugSaberCombat = ri->Cvar_Get("g_DebugSaberCombat", "0", CVAR_ARCHIVE, "");
 	/*
 	Ghoul2 Insert End
 	*/

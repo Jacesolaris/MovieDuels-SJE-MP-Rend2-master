@@ -2006,7 +2006,7 @@ void CG_DrawWeaponSelect(void)
 
 		strcpy(upper_key, cg_weapons[cg.weaponSelect].item->classname);
 
-		if (trap->SE_GetStringTextString(va("SP_INGAME_%s", Q_strupr(upper_key)), text, sizeof text))
+		if (trap->SE_GetStringTextString(va("MD_MP_GAME%s", Q_strupr(upper_key)), text, sizeof text))
 		{
 			CG_DrawProportionalString(320, y + 45 + y_offset, text, UI_CENTER | UI_SMALLFONT, text_color);
 		}

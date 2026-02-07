@@ -776,14 +776,14 @@ static qboolean ServerLoadMDXA(model_t* mod, void* buffer, const char* mod_name,
 ServerLoadMDXM - load a Ghoul 2 Mesh file
 =================
 */
-static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached) {
+static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
+{
 	int					i;
 	mdxmHeader_t* pinmodel, * mdxm;
 	mdxmLOD_t* lod;
 	mdxmSurface_t* surf;
 	int					version;
 	int					size;
-	//shader_t			*sh;
 	mdxmSurfHierarchy_t* surfInfo;
 
 #ifdef Q3_BIG_ENDIAN
@@ -836,23 +836,45 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 		LL(mdxm->ofsEnd);
 	}
 
-	// Force all humanoid models to use the MP humanoid skeleton
-	if (strstr(mdxm->animName, "models/players/_humanoid/") &&
-		!strstr(mdxm->animName, "rockettrooper"))
+	// Decide which animation GLA to use on the server.
+	// - Non-humanoids: use mdxm->animName as-is.
+	// - Base humanoid: prefer _humanoid_mp if present, otherwise fall back to original _humanoid.
+	const char* animNameToUse = mdxm->animName;
+	qhandle_t animIndex = 0;
+
+	// Detect ANY humanoid or humanoid variant by animName
+	if (strstr(mdxm->animName, "models/players/_humanoid/") ||
+		strstr(mdxm->animName, "models/players/_humanoid_"))
 	{
-		Q_strncpyz(
-			mdxm->animName,
-			"models/players/_humanoid_MP/_humanoid",
-			sizeof(mdxm->animName)
-		);
+		const char* mpHumanoid = "models/players/_humanoid_mp/_humanoid";
+
+		// Try MP humanoid first
+		animIndex = RE_RegisterModel(va("%s.gla", mpHumanoid));
+		if (animIndex)
+		{
+			animNameToUse = mpHumanoid;
+		}
+		else
+		{
+			// Fallback to original humanoid
+			animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
+		}
+	}
+	else
+	{
+		// Non-humanoid or custom skeleton: use the model's own animName
+		animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
 	}
 
-	// Now load the GLA for this model
-	mdxm->animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
+	mdxm->animIndex = animIndex;
+
 	if (!mdxm->animIndex)
 	{
 		return qfalse;
 	}
+
+	// Keep animName in sync with what we actually loaded
+	Q_strncpyz(mdxm->animName, animNameToUse, sizeof(mdxm->animName));
 
 	mod->numLods = mdxm->numLODs - 1;	//copy this up to the model for ease of use - it wil get inced after this.
 
@@ -877,9 +899,6 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 		}
 
 		// We will not be using shaders on the server.
-		//sh = 0;
-		// insert it in the surface list
-
 		surfInfo->shaderIndex = 0;
 
 		RE_RegisterModels_StoreShaderRequest(mod_name, &surfInfo->shader[0], &surfInfo->shaderIndex);
@@ -927,7 +946,6 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 			// change to surface identifier
 			surf->ident = SF_MDX;
 
-			// register the shaders
 #ifdef Q3_BIG_ENDIAN
 			// swap the LOD offset
 			indexes = (mdxmLODSurfOffset_t*)((byte*)lod + sizeof(mdxmLOD_t));

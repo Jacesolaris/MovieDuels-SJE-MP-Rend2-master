@@ -1966,27 +1966,25 @@ node_waypoint_t close_list[MAX_WPARRAY_SIZE];
 
 static qboolean open_list_empty(void)
 {
-	//since we're using a binary heap, in theory, if the first slot is empty, the heap
-	//is empty.
-	if (open_list[1].wpNum != -1)
-	{
-		return qfalse;
-	}
-
-	return qtrue;
+	// Binary heap: index 1 is the root. If it's unused, the heap is empty.
+	return (open_list[1].wpNum == -1);
 }
 
 //Scans for the given wp on the Open List and returns it's OpenList position.
 //Returns -1 if not found.
+// Returns the index of wpNum in the open_list heap, or -1 if not found.
 static int find_open_list(const int wpNum)
 {
-	for (int i = 1; i < MAX_WPARRAY_SIZE + 1 && open_list[i].wpNum != -1; i++)
+	// Heap starts at index 1; stop when we hit an unused slot.
+	for (int i = 1; i <= MAX_WPARRAY_SIZE; i++)
 	{
+		if (open_list[i].wpNum == -1)
+			break;
+
 		if (open_list[i].wpNum == wpNum)
-		{
 			return i;
-		}
 	}
+
 	return -1;
 }
 
@@ -1994,48 +1992,53 @@ static int find_open_list(const int wpNum)
 //Returns -1 if not found.
 static int find_close_list(const int wpNum)
 {
-	for (int i = 0; i < MAX_WPARRAY_SIZE && close_list[i].wpNum != -1; i++)
+	// Scan until we hit an unused slot.
+	for (int i = 0; i < MAX_WPARRAY_SIZE; i++)
 	{
+		if (close_list[i].wpNum == -1)
+			break;
+
 		if (close_list[i].wpNum == wpNum)
-		{
 			return i;
-		}
 	}
+
 	return -1;
 }
 
 static qboolean carrying_cap_objective(const bot_state_t* bs)
 {
-	//Carrying the Capture Objective?
+	// Carrying the Capture Objective?
 	if (level.gametype == GT_SIEGE)
 	{
+		// Siege: objective is tied to tacticEntity->genericValue8
 		if (bs->tacticEntity && bs->client == bs->tacticEntity->genericValue8)
 			return qtrue;
 	}
 	else
 	{
-		if (g_entities[bs->client].client->ps.powerups[PW_REDFLAG]
-			|| g_entities[bs->client].client->ps.powerups[PW_BLUEFLAG])
+		// CTF: check for red or blue flag powerups
+		const playerState_t* ps = &g_entities[bs->client].client->ps;
+
+		if (ps->powerups[PW_REDFLAG] || ps->powerups[PW_BLUEFLAG])
 			return qtrue;
 	}
+
 	return qfalse;
 }
 
 static float route_randomize(const bot_state_t* bs, const float dest_dist)
 {
-	//this function randomizes the h value (distance to target location) to make the
-	//bots take a random path instead of always taking the shortest route.
-	//This should vary based on situation to prevent the bots from taking weird routes
-	//for inapproprate situations.
-	if (bs->currentTactic == BOTORDER_OBJECTIVE
-		&& bs->objectiveType == OT_CAPTURE
-		&& !carrying_cap_objective(bs))
+	// Randomize the heuristic distance to encourage varied paths.
+	// Only applies when attempting to capture an objective and not already carrying it.
+	if (bs->currentTactic == BOTORDER_OBJECTIVE &&
+		bs->objectiveType == OT_CAPTURE &&
+		!carrying_cap_objective(bs))
 	{
-		//trying to capture something.  Fairly random paths to mix up the defending team.
-		return dest_dist * Q_flrand(.5, 1.5);
+		// Mix up routes to avoid predictable behavior.
+		return dest_dist * Q_flrand(0.5f, 1.5f);
 	}
 
-	//return shortest distance.
+	// Default: use the true distance.
 	return dest_dist;
 }
 
@@ -2174,23 +2177,22 @@ static void add_open_list(const bot_state_t* bs, const int wp_num, const int par
 	}
 }
 
-//Remove the first element from the OpenList.
+// Remove the first element from the OpenList (binary heap).
 static void remove_first_open_list(void)
 {
 	int i;
+
+	// Find the last used slot in the heap.
 	for (i = 1; i < MAX_WPARRAY_SIZE + 1 && open_list[i].wpNum != -1; i++)
 	{
+		// empty loop body – just scanning
 	}
 
-	i--;
-	if (open_list[i].wpNum == -1)
-	{
-		//
-	}
+	i--; // Step back to last valid entry
 
+	// If the heap only contains one element, clear it and return.
 	if (open_list[1].wpNum == open_list[i].wpNum)
 	{
-		//the first slot is the only thing on the list. blank it.
 		open_list[1].f = -1;
 		open_list[1].g = -1;
 		open_list[1].h = -1;
@@ -2199,90 +2201,66 @@ static void remove_first_open_list(void)
 		return;
 	}
 
-	//shift last entry to start
-	open_list[1].f = open_list[i].f;
-	open_list[1].g = open_list[i].g;
-	open_list[1].h = open_list[i].h;
-	open_list[1].pNum = open_list[i].pNum;
-	open_list[1].wpNum = open_list[i].wpNum;
+	// Move last entry to the root.
+	open_list[1] = open_list[i];
 
+	// Clear the old last entry.
 	open_list[i].f = -1;
 	open_list[i].g = -1;
 	open_list[i].h = -1;
 	open_list[i].pNum = -1;
 	open_list[i].wpNum = -1;
 
-	while (open_list[i].f >= open_list[i * 2].f && open_list[i * 2].wpNum != -1
-		|| open_list[i].f >= open_list[i * 2 + 1].f && open_list[i * 2 + 1].wpNum != -1)
+	// Re?heapify downward.
+	while (1)
 	{
-		if (open_list[i * 2].f < open_list[i * 2 + 1].f || open_list[i * 2 + 1].wpNum == -1)
+		int left = i * 2;
+		int right = i * 2 + 1;
+		int smallest = i;
+
+		// Check left child
+		if (left < MAX_WPARRAY_SIZE + 1 &&
+			open_list[left].wpNum != -1 &&
+			open_list[left].f < open_list[smallest].f)
 		{
-			const float ftemp = open_list[i * 2].f;
-			const float gtemp = open_list[i * 2].g;
-			const float htemp = open_list[i * 2].h;
-			const int p_numtemp = open_list[i * 2].pNum;
-			const int wptemp = open_list[i * 2].wpNum;
-
-			open_list[i * 2].f = open_list[i].f;
-			open_list[i * 2].g = open_list[i].g;
-			open_list[i * 2].h = open_list[i].h;
-			open_list[i * 2].pNum = open_list[i].pNum;
-			open_list[i * 2].wpNum = open_list[i].wpNum;
-
-			open_list[i].f = ftemp;
-			open_list[i].g = gtemp;
-			open_list[i].h = htemp;
-			open_list[i].pNum = p_numtemp;
-			open_list[i].wpNum = wptemp;
-
-			i = i * 2;
+			smallest = left;
 		}
-		else if (open_list[i * 2 + 1].wpNum != -1)
+
+		// Check right child
+		if (right < MAX_WPARRAY_SIZE + 1 &&
+			open_list[right].wpNum != -1 &&
+			open_list[right].f < open_list[smallest].f)
 		{
-			const float ftemp = open_list[i * 2 + 1].f;
-			const float gtemp = open_list[i * 2 + 1].g;
-			const float htemp = open_list[i * 2 + 1].h;
-			const int p_numtemp = open_list[i * 2 + 1].pNum;
-			const int wptemp = open_list[i * 2 + 1].wpNum;
-
-			open_list[i * 2 + 1].f = open_list[i].f;
-			open_list[i * 2 + 1].g = open_list[i].g;
-			open_list[i * 2 + 1].h = open_list[i].h;
-			open_list[i * 2 + 1].pNum = open_list[i].pNum;
-			open_list[i * 2 + 1].wpNum = open_list[i].wpNum;
-
-			open_list[i].f = ftemp;
-			open_list[i].g = gtemp;
-			open_list[i].h = htemp;
-			open_list[i].pNum = p_numtemp;
-			open_list[i].wpNum = wptemp;
-
-			i = i * 2 + 1;
+			smallest = right;
 		}
-		else
-		{
+
+		// If no swap needed, heap is valid.
+		if (smallest == i)
 			return;
-		}
+
+		// Swap with smallest child.
+		node_waypoint_t temp = open_list[i];
+		open_list[i] = open_list[smallest];
+		open_list[smallest] = temp;
+
+		i = smallest; // Continue bubbling down
 	}
 }
 
-//Adds a given OpenList wp to the closed list
+// Add an OpenList entry to the CloseList.
 static void add_close_list(const int openListpos)
 {
-	if (open_list[openListpos].wpNum != -1)
+	// Ignore invalid entries.
+	if (open_list[openListpos].wpNum == -1)
+		return;
+
+	// Find the first free slot in the close list.
+	for (int i = 0; i < MAX_WPARRAY_SIZE; i++)
 	{
-		for (int i = 0; i < MAX_WPARRAY_SIZE; i++)
+		if (close_list[i].wpNum == -1)
 		{
-			if (close_list[i].wpNum == -1)
-			{
-				//open slot, fill it.  heheh.
-				close_list[i].f = open_list[openListpos].f;
-				close_list[i].g = open_list[openListpos].g;
-				close_list[i].h = open_list[openListpos].h;
-				close_list[i].pNum = open_list[openListpos].pNum;
-				close_list[i].wpNum = open_list[openListpos].wpNum;
-				return;
-			}
+			close_list[i] = open_list[openListpos];
+			return;
 		}
 	}
 }
@@ -2291,95 +2269,126 @@ static void add_close_list(const int openListpos)
 static void clear_route(int Route[MAX_WPARRAY_SIZE])
 {
 	for (int i = 0; i < MAX_WPARRAY_SIZE; i++)
-	{
 		Route[i] = -1;
-	}
 }
 
 static void addto_route(const int wp_num, int route[MAX_WPARRAY_SIZE])
 {
-	int i;
-	for (i = 0; i < MAX_WPARRAY_SIZE && route[i] != -1; i++)
+	// Find the first empty slot.
+	int i = 0;
+	while (i < MAX_WPARRAY_SIZE && route[i] != -1)
+		i++;
+
+	// No space left.
+	if (i >= MAX_WPARRAY_SIZE)
+		return;
+
+	// Shift everything up one slot to make room at index 0.
+	while (i > 0)
 	{
+		route[i] = route[i - 1];
+		i--;
 	}
 
-	if (route[i] == -1 && i < MAX_WPARRAY_SIZE)
-	{
-		//found the first empty slot
-		while (i > 0)
-		{
-			route[i] = route[i - 1];
-			i--;
-		}
-	}
-	else
-	{
-		return;
-	}
-	if (i == 0)
-	{
-		route[0] = wp_num;
-	}
+	// Insert new waypoint at the front.
+	route[0] = wp_num;
 }
 
-//find a given wpNum on the given route and return it's address.  return -1 if not on route.
-//use wpNum = -1 to find the last wp on route.
+// Find wp_num on the route and return its index.
+// Special case: wp_num == -1 returns the index of the last valid entry.
 static int find_on_route(const int wp_num, int route[MAX_WPARRAY_SIZE])
 {
-	int i;
-	for (i = 0; i < MAX_WPARRAY_SIZE && route[i] != wp_num; i++)
-	{
-	}
-
-	//Special find end route command stuff
+	// Special case: find last waypoint on route.
 	if (wp_num == -1)
 	{
+		// Find first empty slot.
+		int i = 0;
+		while (i < MAX_WPARRAY_SIZE && route[i] != -1)
+			i++;
+
+		// Step back to last valid entry.
 		i--;
-		if (route[i] != -1)
-		{
-			//found it
-			return i;
-		}
 
-		//otherwise, this is a empty route list
-		return -1;
+		return (i >= 0 && route[i] != -1) ? i : -1;
 	}
 
-	if (wp_num == route[i])
+	// Normal search.
+	for (int i = 0; i < MAX_WPARRAY_SIZE; i++)
 	{
-		//Success!
-		return i;
+		if (route[i] == -1)
+			break; // no more entries
+
+		if (route[i] == wp_num)
+			return i;
 	}
 
-	//Couldn't find it
 	return -1;
-}
-
-//Copy Route
-static void copy_route(bot_route_t routesource, bot_route_t routedest)
+}// Remove unnecessary intermediate nodes by skipping directly visible waypoints.
+static void smooth_route(bot_state_t* bs, bot_route_t route)
 {
 	for (int i = 0; i < MAX_WPARRAY_SIZE; i++)
 	{
-		routedest[i] = routesource[i];
+		if (route[i] == -1)
+			break;
+
+		int a = route[i];
+
+		// Try to skip ahead as far as possible.
+		for (int j = i + 2; j < MAX_WPARRAY_SIZE; j++)
+		{
+			if (route[j] == -1)
+				break;
+
+			int b = route[j];
+
+			// Check line of sight between waypoint a and waypoint b.
+			trace_t tr;
+			vec3_t start, end;
+
+			VectorCopy(gWPArray[a]->origin, start);
+			VectorCopy(gWPArray[b]->origin, end);
+
+			// Slight vertical offset so bots don't clip the floor.
+			start[2] += 24;
+			end[2] += 24;
+
+			trap_Trace(&tr, start, NULL, NULL, end, bs->client, MASK_SOLID);
+
+			if (tr.fraction == 1.0f)
+			{
+				// We can see from a ? b directly.
+				// Remove all nodes between i and j.
+				for (int k = i + 1; k < j; k++)
+					route[k] = -1;
+
+				// Compact the route array.
+				int write = i + 1;
+				for (int k = j; k < MAX_WPARRAY_SIZE && route[k] != -1; k++)
+					route[write++] = route[k];
+
+				// Fill the rest with -1.
+				for (; write < MAX_WPARRAY_SIZE; write++)
+					route[write] = -1;
+			}
+		}
 	}
 }
 
-//Find the ideal (shortest) route between the start wp and the end wp
-//badwp is for situations where you need to recalc a path when you dynamically discover
-//that a wp is bad (door locked, blocked, etc).
-//doRoute = actually set botRoute
-static float find_ideal_pathto_wp(bot_state_t* bs,
-	const int start,
-	const int end,
-	const int badwp,
-	bot_route_t route)
+// Copy an entire route array.
+static void copy_route(bot_route_t routesource, bot_route_t routedest)
 {
-	int i;
+	for (int i = 0; i < MAX_WPARRAY_SIZE; i++)
+		routedest[i] = routesource[i];
+}
 
+// Find the ideal (shortest) route between the start wp and the end wp.
+// badwp is for situations where you need to recalc a path when you dynamically
+// discover that a wp is bad (door locked, blocked, etc).
+static float find_ideal_pathto_wp(bot_state_t* bs, const int start, const int end,
+	const int badwp, bot_route_t route)
+{
 	if (bs->PathFindDebounce > level.time)
-	{
 		return -1;
-	}
 
 	if (start == end)
 	{
@@ -2388,8 +2397,7 @@ static float find_ideal_pathto_wp(bot_state_t* bs,
 		return 0;
 	}
 
-	// reset node lists
-	for (i = 0; i < MAX_WPARRAY_SIZE; i++)
+	for (int i = 0; i < MAX_WPARRAY_SIZE; i++)
 	{
 		open_list[i].wpNum = -1;
 		open_list[i].f = -1;
@@ -2408,82 +2416,73 @@ static float find_ideal_pathto_wp(bot_state_t* bs,
 
 	while (!open_list_empty() && find_open_list(end) == -1)
 	{
-		// take best node from open list
 		add_close_list(1);
-		i = open_list[1].wpNum;
+
+		int current = open_list[1].wpNum;
 		remove_first_open_list();
 
-		// sanity check on i before using it
-		if (i < 0 || i >= gWPNum)
-		{
-			continue;
-		}
+		int neighbors[32];
+		int ncount = 0;
 
-		if (!gWPArray[i] || !gWPArray[i]->inuse)
+		if (gWPArray[current + 1] && gWPArray[current + 1]->inuse)
 		{
-			continue;
-		}
-
-		// Add next sequential node (i + 1)
-		if (i + 1 < gWPNum &&
-			gWPArray[i + 1] &&
-			gWPArray[i + 1]->inuse &&
-			gWPArray[i]->disttonext < 1000 &&
-			find_close_list(i + 1) == -1 &&
-			(i + 1) != badwp)
-		{
-			add_open_list(bs, i + 1, i, end);
-		}
-
-		// Add previous sequential node (i - 1)
-		if (i - 1 >= 0 &&
-			gWPArray[i - 1] &&
-			gWPArray[i - 1]->inuse &&
-			gWPArray[i - 1]->disttonext < 1000 &&
-			find_close_list(i - 1) == -1 &&
-			(i - 1) != badwp)
-		{
-			add_open_list(bs, i - 1, i, end);
-		}
-
-		// Add neighbor nodes
-		if (gWPArray[i]->neighbornum > 0)
-		{
-			for (int x = 0; x < gWPArray[i]->neighbornum; x++)
+			if (gWPArray[current]->disttonext < 1000 &&
+				find_close_list(current + 1) == -1 &&
+				current + 1 != badwp)
 			{
-				int n = gWPArray[i]->neighbors[x].num;
+				neighbors[ncount++] = current + 1;
+			}
+		}
 
-				// basic safety on neighbor index
-				if (n < 0 || n >= gWPNum)
-				{
-					continue;
-				}
+		if (current > 0 && gWPArray[current - 1] && gWPArray[current - 1]->inuse)
+		{
+			if (gWPArray[current - 1]->disttonext < 1000 &&
+				find_close_list(current - 1) == -1 &&
+				current - 1 != badwp)
+			{
+				neighbors[ncount++] = current - 1;
+			}
+		}
+
+		if (gWPArray[current]->neighbornum)
+		{
+			for (int x = 0; x < gWPArray[current]->neighbornum; x++)
+			{
+				int n = gWPArray[current]->neighbors[x].num;
 
 				if (n != badwp &&
-					find_close_list(n) == -1)
+					find_close_list(n) == -1 &&
+					gWPArray[n] && gWPArray[n]->inuse)
 				{
-					add_open_list(bs, n, i, end);
+					neighbors[ncount++] = n;
 				}
 			}
 		}
+
+		for (int k = 0; k < ncount; k++)
+		{
+			add_open_list(bs, neighbors[k], current, end);
+		}
 	}
 
-	i = find_open_list(end);
-
-	if (i != -1)
+	int idx = find_open_list(end);
+	if (idx != -1)
 	{
 		clear_route(route);
 		addto_route(end, route);
 
-		const float dist = open_list[i].g;
-		int parent = open_list[i].pNum;
+		float dist = open_list[idx].g;
 
-		i = find_close_list(parent);
-		while (i != -1)
+		int parent = open_list[idx].pNum;
+		idx = find_close_list(parent);
+
+		while (idx != -1)
 		{
-			addto_route(close_list[i].wpNum, route);
-			i = find_close_list(close_list[i].pNum);
+			addto_route(close_list[idx].wpNum, route);
+			idx = find_close_list(close_list[idx].pNum);
 		}
+
+		smooth_route(bs, route);
 
 		bs->PathFindDebounce = level.time;
 		return dist;
@@ -2491,7 +2490,6 @@ static float find_ideal_pathto_wp(bot_state_t* bs,
 
 	if (bot_wp_edit.integer)
 	{
-		// optional: print debug info here
 	}
 
 	bs->PathFindDebounce = level.time + 3000;
@@ -2504,48 +2502,34 @@ END A* Pathfinding Code
 =========================
 */
 
-//get the index to the nearest visible waypoint in the global trail
 int get_nearest_visible_wp(vec3_t org, const int ignore)
 {
-	float bestdist;
-	vec3_t mins, maxs;
-
-	int i = 0;
-	if (RMG.integer)
-	{
-		bestdist = 300;
-	}
-	else
-	{
-		bestdist = 800; //99999;
-		//don't trace over 800 units away to avoid GIANT HORRIBLE SPEED HITS ^_^
-	}
+	float bestdist = (RMG.integer ? 300.0f : 800.0f);
 	int bestindex = -1;
 
-	mins[0] = -15;
-	mins[1] = -15;
-	mins[2] = -1;
-	maxs[0] = 15;
-	maxs[1] = 15;
-	maxs[2] = 1;
+	vec3_t mins = { -15, -15, -1 };
+	vec3_t maxs = { 15,  15,  1 };
 
-	while (i < gWPNum)
+	for (int i = 0; i < gWPNum; i++)
 	{
-		if (gWPArray[i] && gWPArray[i]->inuse)
-		{
-			vec3_t a;
-			VectorSubtract(org, gWPArray[i]->origin, a);
-			const float flLen = VectorLength(a);
+		if (!gWPArray[i] || !gWPArray[i]->inuse)
+			continue;
 
-			if (flLen < bestdist && (RMG.integer || bot_pvs_check(org, gWPArray[i]->origin)) && org_visible_box(
-				org, mins, maxs, gWPArray[i]->origin, ignore))
-			{
-				bestdist = flLen;
-				bestindex = i;
-			}
-		}
+		vec3_t diff;
+		VectorSubtract(org, gWPArray[i]->origin, diff);
+		float dist = VectorLength(diff);
 
-		i++;
+		if (dist >= bestdist)
+			continue;
+
+		if (!RMG.integer && !bot_pvs_check(org, gWPArray[i]->origin))
+			continue;
+
+		if (!org_visible_box(org, mins, maxs, gWPArray[i]->origin, ignore))
+			continue;
+
+		bestdist = dist;
+		bestindex = i;
 	}
 
 	return bestindex;
@@ -2568,77 +2552,156 @@ static void bot_be_still(bot_state_t* bs)
 	bs->wpCurrent = NULL;
 }
 
-//just like GetNearestVisibleWP except with a bad waypoint input
-static int get_nearest_visible_wpsje(const bot_state_t* bs, vec3_t org, const int ignore, const int badwp)
+static int get_nearest_visible_wpsje(const bot_state_t* bs, vec3_t org,
+	const int ignore, const int badwp)
 {
-	float bestdist;
-	vec3_t mins, maxs;
+	float bestScore = 999999.0f;
+	int bestIndex = -1;
 
-	if (RMG.integer)
-	{
-		bestdist = 300;
-	}
-	else
-	{
-		bestdist = 800; //99999;
-		//don't trace over 800 units away to avoid GIANT HORRIBLE SPEED HITS ^_^
-	}
-	int bestindex = -1;
+	vec3_t mins = { -15, -15, -1 };
+	vec3_t maxs = { 15,  15,  1 };
 
-	mins[0] = -15;
-	mins[1] = -15;
-	mins[2] = -1;
-	maxs[0] = 15;
-	maxs[1] = 15;
-	maxs[2] = 1;
+	// Base search radius (same as before)
+	float maxDist = (RMG.integer ? 300.0f : 800.0f);
+
+	// Bot team (if applicable)
+	int team = -1;
+	if (bs)
+		team = g_entities[bs->client].client->sess.sessionTeam;
+
+	// Bot forward vector for momentum bias
+	vec3_t botForward = { 0 };
+	if (bs)
+		AngleVectors(bs->viewangles, botForward, NULL, NULL);
 
 	for (int i = 0; i < gWPNum; i++)
 	{
-		if (gWPArray[i] && gWPArray[i]->inuse && i != badwp)
+		wpobject_t* wp = gWPArray[i];
+		if (!wp || !wp->inuse || i == badwp)
+			continue;
+
+		// Team restrictions
+		if (team != -1)
 		{
-			vec3_t a;
-			if (bs)
+			if ((wp->flags & WPFLAG_REDONLY) && team != TEAM_RED)
+				continue;
+
+			if ((wp->flags & WPFLAG_BLUEONLY) && team != TEAM_BLUE)
+				continue;
+		}
+
+		// Distance
+		vec3_t diff;
+		VectorSubtract(org, wp->origin, diff);
+		float dist = VectorLength(diff);
+
+		if (dist > maxDist)
+			continue;
+
+		// Base score starts with distance
+		float score = dist;
+
+		// Penalize special-function waypoints (original behaviour)
+		if (wp->flags & (WPFLAG_WAITFORFUNC |
+			WPFLAG_NOMOVEFUNC |
+			WPFLAG_DESTROY_FUNCBREAK |
+			WPFLAG_FORCEPUSH |
+			WPFLAG_FORCEPULL))
+		{
+			score += 500.0f;
+		}
+
+		// Momentum bias (prefer forward movement)
+		if (bs)
+		{
+			vec3_t dirToWp;
+			VectorNormalize2(diff, dirToWp);
+
+			float dot = DotProduct(botForward, dirToWp);
+
+			if (dot < 0.0f)
+				score += 200.0f;   // behind bot
+			else
+				score -= 50.0f;    // ahead of bot
+		}
+
+		// Height penalty (avoid big climbs/drops)
+		float dz = fabs(org[2] - wp->origin[2]);
+		score += dz * 2.0f;
+
+		// Combat-aware height scaling
+		if (bs && bs->cur_ps.fd.forcePowerLevel[FP_HEAL] < 20)
+			score += dz * 2.0f; // low health ? avoid verticality
+
+		// Danger awareness
+		if (bs)
+		{
+			float danger = 0.0f;
+
+			// Enemy proximity
+			for (int e = 0; e < level.maxclients; e++)
 			{
-				//check to make sure that this bot's team can use this waypoint
-				if (gWPArray[i]->flags & WPFLAG_REDONLY
-					&& g_entities[bs->client].client->sess.sessionTeam != TEAM_RED)
-				{
-					//red only wp, can't use
+				gentity_t* ent = &g_entities[e];
+				if (!ent->inuse || !ent->client)
 					continue;
-				}
 
-				if (gWPArray[i]->flags & WPFLAG_BLUEONLY
-					&& g_entities[bs->client].client->sess.sessionTeam != TEAM_BLUE)
-				{
-					//blue only wp, can't use
+				if (OnSameTeam(ent, &g_entities[bs->client]))
 					continue;
-				}
+
+				vec3_t ediff;
+				VectorSubtract(wp->origin, ent->r.currentOrigin, ediff);
+				float ed = VectorLength(ediff);
+
+				if (ed < 256.0f)
+					danger += 200.0f;
+
+				// Enemy has LOS to this waypoint
+				trace_t tr;
+				trap_Trace(&tr, ent->r.currentOrigin, NULL, NULL, wp->origin, e, MASK_SHOT);
+				if (tr.fraction == 1.0f)
+					danger += 150.0f;
 			}
 
-			VectorSubtract(org, gWPArray[i]->origin, a);
-			float fl_len = VectorLength(a);
+			score += danger;
+		}
 
-			if (gWPArray[i]->flags & WPFLAG_WAITFORFUNC
-				|| gWPArray[i]->flags & WPFLAG_NOMOVEFUNC
-				|| gWPArray[i]->flags & WPFLAG_DESTROY_FUNCBREAK
-				|| gWPArray[i]->flags & WPFLAG_FORCEPUSH
-				|| gWPArray[i]->flags & WPFLAG_FORCEPULL)
-			{
-				//boost the distance for these waypoints so that we will try to avoid using them
-				//if at all possible
-				fl_len = +500;
-			}
+		// Smoothing awareness: prefer waypoints with good visibility
+		int visibleCount = 0;
+		for (int j = 0; j < wp->neighbornum; j++)
+		{
+			int n = wp->neighbors[j].num;
+			if (!gWPArray[n] || !gWPArray[n]->inuse)
+				continue;
 
-			if (fl_len < bestdist && (RMG.integer || bot_pvs_check(org, gWPArray[i]->origin)) && org_visible_box(
-				org, mins, maxs, gWPArray[i]->origin, ignore))
-			{
-				bestdist = fl_len;
-				bestindex = i;
-			}
+			trace_t tr;
+			trap_Trace(&tr, wp->origin, NULL, NULL, gWPArray[n]->origin, ignore, MASK_SOLID);
+			if (tr.fraction == 1.0f)
+				visibleCount++;
+		}
+
+		score -= visibleCount * 10.0f;
+
+		// Failure memory (avoid recently failed nodes)
+		if (bs)
+			score += bs->wpFailPenalty[i];
+
+		// PVS check (skip if RMG)
+		if (!RMG.integer && !bot_pvs_check(org, wp->origin))
+			continue;
+
+		// Visibility trace
+		if (!org_visible_box(org, mins, maxs, wp->origin, ignore))
+			continue;
+
+		// Final selection
+		if (score < bestScore)
+		{
+			bestScore = score;
+			bestIndex = i;
 		}
 	}
 
-	return bestindex;
+	return bestIndex;
 }
 
 //just like GetNearestVisibleWP except without visiblity checks

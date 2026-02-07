@@ -5535,25 +5535,32 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 
 	bgpa_ftext[0] = '\0';
 
+	// Normalize ANY humanoid anim path to MP version
+	if ((strstr(filename, "players/_humanoid/") ||
+		strstr(filename, "players/_humanoid_"))
+		&& !strstr(filename, "_humanoid_mp"))
+	{
+		filename = "models/players/_humanoid_mp/animation.cfg";
+	}
 	if (!is_humanoid)
 	{
 		i = 0;
 		while (i < bgNumAllAnims)
 		{
-			//see if it's been loaded already
+			// see if it's been loaded already
 			if (!Q_stricmp(bgAllAnims[i].filename, filename))
 			{
 				bgAllAnims[i].anims;
-				return i; //alright, we already have it.
+				return i; // alright, we already have it.
 			}
 			i++;
 		}
 
-		//Looks like it has not yet been loaded. Allocate space for the anim set if we need to, and continue along.
+		// Looks like it has not yet been loaded. Allocate space for the anim set if we need to, and continue along.
 		if (!anim_set)
 		{
-			if (strstr(filename, "players/_humanoid/") ||
-				strstr(filename, "players/_humanoid_MP/"))
+			// Any players/_humanoid* path counts as humanoid
+			if (strstr(filename, "players/_humanoid_mp"))
 			{
 				// then use the static humanoid set.
 				anim_set = bgHumanoidAnimations;
@@ -5595,18 +5602,25 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 	// load the file
 	if (!bgpa_ftext_loaded || !is_humanoid)
 	{
-		//rww - We are always using the same animation config now. So only load it once.
+		// rww - We are always using the same animation config now. So only load it once.
 		const int len = trap->FS_Open(filename, &f, FS_READ);
-		if (len <= 0 || len >= sizeof bgpa_ftext - 1)
+		if (len <= 0 || len >= (int)sizeof bgpa_ftext - 1)
 		{
-			trap->FS_Close(f);
-			if (dyn_alloc)
-			{
-				BG_AnimsetFree();
-			}
 			if (len > 0)
 			{
+				trap->FS_Close(f);
+				if (dyn_alloc)
+				{
+					BG_AnimsetFree();
+				}
 				Com_Error(ERR_DROP, "%s exceeds the allowed game-side animation buffer!", filename);
+			}
+			else
+			{
+				if (dyn_alloc)
+				{
+					BG_AnimsetFree();
+				}
 			}
 			return -1;
 		}
@@ -5623,13 +5637,13 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 			assert(!"Should not have allocated dynamically for humanoid");
 			BG_AnimsetFree();
 		}
-		return 0; //humanoid index
+		return 0; // humanoid index
 	}
 
 	// parse the text
 	text_p = bgpa_ftext;
 
-	//initialize anim array so that from 0 to MAX_ANIMATIONS, set default values of 0 1 0 100
+	// initialize anim array so that from 0 to MAX_ANIMATIONS, set default values of 0 1 0 100
 	for (i = 0; i < MAX_ANIMATIONS; i++)
 	{
 		anim_set[i].firstFrame = 0;
@@ -5654,11 +5668,11 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 #ifdef _DEBUG
 			if (strcmp(token, "ROOT"))
 			{
-				Com_Printf(S_COLOR_RED"WARNING: Unknown token %s in %s\n", token, filename);
+				///Com_Printf(S_COLOR_RED "WARNING: Unknown token %s in %s\n", token, filename);
 			}
 			while (token[0])
 			{
-				token = COM_ParseExt(&text_p, qfalse); //returns empty string when next token is EOL
+				token = COM_ParseExt(&text_p, qfalse); // returns empty string when next token is EOL
 			}
 #endif
 			continue;
@@ -5690,56 +5704,56 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		{
 			break;
 		}
-		float fps = atof(token);
-		if (fps == 0)
+		float fps = (float)atof(token);
+		if (fps == 0.0f)
 		{
-			fps = 1; //Don't allow divide by zero error
+			fps = 1.0f; // Don't allow divide by zero error
 		}
-		if (fps < 0)
+		if (fps < 0.0f)
 		{
-			//backwards
-			anim_set[anim_num].frameLerp = floor(1000.0f / fps);
+			// backwards
+			anim_set[anim_num].frameLerp = (int)floor(1000.0f / fps);
 
-			//Slow down saber moves...
+			// Slow down saber moves...
 			for (int x = 4; x < LS_MOVE_MAX; x++)
 			{
 				if (saber_moveData[x].animToUse + 77 * 4 == anim_num) // SS_TAVION
 				{
-					anim_set[anim_num].frameLerp *= 1.2;
+					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.2f);
 					break;
 				}
 				if (saber_moveData[x].animToUse + 77 * 5 == anim_num) // SS_DUAL
 				{
-					anim_set[anim_num].frameLerp *= 1.1;
+					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.1f);
 					break;
 				}
 				if (saber_moveData[x].animToUse + 77 * 6 == anim_num) // SS_STAFF
 				{
-					anim_set[anim_num].frameLerp *= 1.1;
+					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.1f);
 					break;
 				}
 			}
 		}
 		else
 		{
-			anim_set[anim_num].frameLerp = ceil(1000.0f / fps);
+			anim_set[anim_num].frameLerp = (int)ceil(1000.0f / fps);
 
-			//Slow down saber moves...
+			// Slow down saber moves...
 			for (int x = 4; x < LS_MOVE_MAX; x++)
 			{
 				if (saber_moveData[x].animToUse + 77 * 4 == anim_num) // SS_TAVION
 				{
-					anim_set[anim_num].frameLerp *= 1.2;
+					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.2f);
 					break;
 				}
 				if (saber_moveData[x].animToUse + 77 * 5 == anim_num) // SS_DUAL
 				{
-					anim_set[anim_num].frameLerp *= 1.1;
+					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.1f);
 					break;
 				}
 				if (saber_moveData[x].animToUse + 77 * 6 == anim_num) // SS_STAFF
 				{
-					anim_set[anim_num].frameLerp *= 1.1;
+					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.1f);
 					break;
 				}
 			}
@@ -5753,7 +5767,7 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 	if (is_humanoid)
 	{
 		bgAllAnims[0].anims = anim_set;
-		strcpy(bgAllAnims[0].filename, filename);
+		Q_strncpyz(bgAllAnims[0].filename, filename, sizeof bgAllAnims[0].filename);
 		bgpa_ftext_loaded = qtrue;
 
 		used_index = 0;
@@ -5761,13 +5775,13 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 	else
 	{
 		bgAllAnims[next_index].anims = anim_set;
-		strcpy(bgAllAnims[next_index].filename, filename);
+		Q_strncpyz(bgAllAnims[next_index].filename, filename, sizeof bgAllAnims[next_index].filename);
 
 		used_index = bgNumAllAnims;
 
 		if (next_index > 1)
 		{
-			//don't bother increasing the number if this ended up as a humanoid/rockettrooper load.
+			// don't bother increasing the number if this ended up as a humanoid/rockettrooper load.
 			bgNumAllAnims++;
 		}
 		else

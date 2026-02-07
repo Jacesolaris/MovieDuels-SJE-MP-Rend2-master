@@ -884,7 +884,7 @@ static void G_AddBot(const char* name, const float skill, const char* team, cons
 	const int clientNum = trap->BotAllocateClient();
 	if (clientNum == -1)
 	{
-		trap->SendServerCommand(-1, va("print \"%s\n\"", G_GetStringEdString("MP_SVGAME", "UNABLE_TO_ADD_BOT")));
+		trap->SendServerCommand(-1, va("print \"%s\n\"", G_GetStringEdString("MD_MP_SVGAME", "UNABLE_TO_ADD_BOT")));
 		return;
 	}
 

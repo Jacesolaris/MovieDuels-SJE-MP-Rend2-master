@@ -474,6 +474,23 @@ static qboolean BG_FileExists(const char* fileName)
 	return qfalse;
 }
 
+qboolean BG_IsHumanoidModel(const char* glaName)
+{
+	if (!glaName || !glaName[0])
+	{
+		return qfalse;
+	}
+
+	// Detect ANY humanoid or humanoid variant
+	if (strstr(glaName, "players/_humanoid/") ||
+		strstr(glaName, "players/_humanoid_"))
+	{
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
 // given a boltmatrix, return in vec a normalised vector for the axis requested in flags
 void BG_GiveMeVectorFromMatrix(mdxaBone_t* boltMatrix, int flags, vec3_t vec)
 {
@@ -987,7 +1004,7 @@ Bacta canister pickup, heals 25 on use
 	HI_MEDPAC,
 	/* precache */ "",
 	/* sounds */ "",
-	"@SP_INGAME_BACTA_DESC" // description
+	"@MD_MP_GAMEBACTA_DESC" // description
 },
 
 /*QUAKED item_medpac_big (.3 .3 1) (-8 -8 -0) (8 8 16) suspended
@@ -1008,7 +1025,7 @@ Big bacta canister pickup, heals 50 on use
 	HI_MEDPAC_BIG,
 	/* precache */ "",
 	/* sounds */ "",
-	"@SP_INGAME_BACTA_DESC" // description
+	"@MD_MP_GAMEBACTA_DESC" // description
 },
 
 /*QUAKED item_binoculars (.3 .3 1) (-8 -8 -0) (8 8 16) suspended
@@ -1029,7 +1046,7 @@ These will be standard equipment on the player - DO NOT PLACE
 	HI_BINOCULARS,
 	/* precache */ "",
 	/* sounds */ "",
-	"@SP_INGAME_LA_GOGGLES_DESC" // description
+	"@MD_MP_GAMELA_GOGGLES_DESC" // description
 },
 
 /*QUAKED item_sentry_gun (.3 .3 1) (-8 -8 -0) (8 8 16) suspended
@@ -1466,7 +1483,7 @@ Don't place this
 	WP_BRYAR_OLD, //for superbattledroid now
 	/* precache */ "",
 	/* sounds */ "",
-	"@SP_INGAME_SBD" //for superbattledroid now	// description
+	"@MD_MP_GAMESBD" //for superbattledroid now	// description
 },
 
 /*QUAKED weapon_blaster (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
@@ -3152,25 +3169,18 @@ int BG_EmplacedView(vec3_t base_angles, vec3_t angles, float* new_yaw, const flo
 //I don't much care for hardcoded strings, but this seems the best way to go.
 qboolean BG_IsValidCharacterModel(const char* model_name, const char* skin_name)
 {
+	/*if (!Q_stricmp(model_name, "_humanoid_mp"))
+	{
+		if (!Q_stricmp(skin_name, "fpls")) return qfalse;
+		if (!Q_stricmp(skin_name, "fpls2")) return qfalse;
+		if (!Q_stricmp(skin_name, "fpls3")) return qfalse;
+	}*/
+
 	if (!Q_stricmp(skin_name, "menu"))
 	{
 		return qfalse;
 	}
-	if (!Q_stricmp(model_name, "kyle"))
-	{
-		if (!Q_stricmp(skin_name, "fpls"))
-		{
-			return qfalse;
-		}
-		if (!Q_stricmp(skin_name, "fpls2"))
-		{
-			return qfalse;
-		}
-		if (!Q_stricmp(skin_name, "fpls3"))
-		{
-			return qfalse;
-		}
-	}
+	return qtrue;
 	return qtrue;
 }
 
@@ -3943,4 +3953,24 @@ qboolean BG_IsLMSGametype(const int gametype)
 	}
 
 	return qfalse;
+}
+
+void AngleClamp(vec3_t ang)
+{
+	// Normalize yaw
+	while (ang[YAW] > 180.0f)  ang[YAW] -= 360.0f;
+	while (ang[YAW] < -180.0f) ang[YAW] += 360.0f;
+
+	// Normalize pitch
+	if (ang[PITCH] > 89.0f)  ang[PITCH] = 89.0f;
+	if (ang[PITCH] < -89.0f) ang[PITCH] = -89.0f;
+
+	// Roll is usually unused for bots, but clamp anyway
+	while (ang[ROLL] > 180.0f)  ang[ROLL] -= 360.0f;
+	while (ang[ROLL] < -180.0f) ang[ROLL] += 360.0f;
+
+	// NaN safety
+	if (Q_isnan(ang[YAW]))   ang[YAW] = 0;
+	if (Q_isnan(ang[PITCH])) ang[PITCH] = 0;
+	if (Q_isnan(ang[ROLL]))  ang[ROLL] = 0;
 }

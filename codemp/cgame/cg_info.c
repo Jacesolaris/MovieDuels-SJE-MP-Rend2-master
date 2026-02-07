@@ -101,8 +101,7 @@ overlays UI_DrawConnectScreen
 */
 #define UI_INFOFONT (UI_SMALLFONT)
 
-int SCREENSHOT_TOTAL = -1;
-
+int SCREENSHOT_TOTAL = 8;
 int SCREENSHOT_CHOICE = 0;
 int SCREENSHOT_NEXT_UPDATE_TIME = 0;
 char SCREENSHOT_CURRENT[64] = { 0 };
@@ -112,44 +111,23 @@ static char* cg_GetCurrentLevelshot1(const char* s)
 	const qhandle_t levelshot1 = trap->R_RegisterShaderNoMip(va("levelshots/%s", s));
 	const int time = trap->Milliseconds();
 
+	// First time and levelshot exists
 	if (levelshot1 && SCREENSHOT_NEXT_UPDATE_TIME == 0)
 	{
-		SCREENSHOT_NEXT_UPDATE_TIME = time + 2500;
+		SCREENSHOT_NEXT_UPDATE_TIME = time + 10000;
 		memset(SCREENSHOT_CURRENT, 0, sizeof SCREENSHOT_CURRENT);
 		strcpy(SCREENSHOT_CURRENT, va("levelshots/%s", s));
 		return SCREENSHOT_CURRENT;
 	}
 
+	// Timer expired or first run
 	if (SCREENSHOT_NEXT_UPDATE_TIME < time || SCREENSHOT_NEXT_UPDATE_TIME == 0)
 	{
-		if (SCREENSHOT_TOTAL < 0)
-		{
-			// Count and register them...
-			SCREENSHOT_TOTAL = 0;
+		SCREENSHOT_NEXT_UPDATE_TIME = time + 10000;
 
-			while (1)
-			{
-				char screenShot[128] = { 0 };
-
-				strcpy(screenShot, va("menu/art/unknownmap_mp%i", SCREENSHOT_TOTAL));
-
-				if (!trap->R_RegisterShaderNoMip(screenShot))
-				{
-					// Found the last one...
-					break;
-				}
-
-				SCREENSHOT_TOTAL++;
-			}
-
-			SCREENSHOT_TOTAL--;
-		}
-
-		SCREENSHOT_NEXT_UPDATE_TIME = time + 2500;
-
-		SCREENSHOT_CHOICE = Q_flrand(0, SCREENSHOT_TOTAL);
+		SCREENSHOT_CHOICE = Q_irand(0, SCREENSHOT_TOTAL);
 		memset(SCREENSHOT_CURRENT, 0, sizeof SCREENSHOT_CURRENT);
-		strcpy(SCREENSHOT_CURRENT, va("menu/art/unknownmap_mp%i", SCREENSHOT_CHOICE));
+		strcpy(SCREENSHOT_CURRENT, va("menu/art/unknownmap%i", SCREENSHOT_CHOICE));
 	}
 
 	return SCREENSHOT_CURRENT;
@@ -160,85 +138,70 @@ static char* cg_GetCurrentLevelshot2(const char* s)
 	const qhandle_t levelshot2 = trap->R_RegisterShaderNoMip(va("levelshots/%s2", s));
 	const int time = trap->Milliseconds();
 
+	// First time and levelshot2 exists
 	if (levelshot2 && SCREENSHOT_NEXT_UPDATE_TIME == 0)
 	{
 		SCREENSHOT_NEXT_UPDATE_TIME = time + 2500;
 		memset(SCREENSHOT_CURRENT, 0, sizeof SCREENSHOT_CURRENT);
-		strcpy(SCREENSHOT_CURRENT, va("levelshots/%s", s));
+		strcpy(SCREENSHOT_CURRENT, va("levelshots/%s2", s));
 		return SCREENSHOT_CURRENT;
 	}
 
+	// Timer expired or first run
 	if (SCREENSHOT_NEXT_UPDATE_TIME < time || SCREENSHOT_NEXT_UPDATE_TIME == 0)
 	{
-		if (SCREENSHOT_TOTAL < 0)
-		{
-			// Count and register them...
-			SCREENSHOT_TOTAL = 0;
-
-			while (1)
-			{
-				char screenShot[128] = { 0 };
-
-				strcpy(screenShot, va("menu/art/unknownmap_mp%i", SCREENSHOT_TOTAL));
-
-				if (!trap->R_RegisterShaderNoMip(screenShot))
-				{
-					// Found the last one...
-					break;
-				}
-
-				SCREENSHOT_TOTAL++;
-			}
-
-			SCREENSHOT_TOTAL--;
-		}
-
 		SCREENSHOT_NEXT_UPDATE_TIME = time + 2500;
 
-		SCREENSHOT_CHOICE = Q_flrand(0, SCREENSHOT_TOTAL);
+		SCREENSHOT_CHOICE = Q_irand(0, SCREENSHOT_TOTAL);
 		memset(SCREENSHOT_CURRENT, 0, sizeof SCREENSHOT_CURRENT);
-		strcpy(SCREENSHOT_CURRENT, va("menu/art/unknownmap_mp%i", SCREENSHOT_CHOICE));
+		strcpy(SCREENSHOT_CURRENT, va("menu/art/unknownmap%i", SCREENSHOT_CHOICE));
 	}
 
 	return SCREENSHOT_CURRENT;
 }
 
 int SCREENTIP_NEXT_UPDATE_TIME = 0;
+int SCREENTIP_CURRENT_INDEX = -1;
 
 static void LoadTips(void)
 {
 	const int time = trap->Milliseconds();
 
+	static const char* tipKeys[20] = {
+		"TIP1",  "TIP2",  "TIP3",  "TIP4",  "TIP5",
+		"TIP6",  "TIP7",  "TIP8",  "TIP9",  "TIP10",
+		"TIP11", "TIP12", "TIP13", "TIP14", "TIP15",
+		"TIP16", "TIP17", "TIP18", "TIP19", "TIP20"
+	};
+
+	// Pick a new tip every 3.5 seconds
 	if (SCREENTIP_NEXT_UPDATE_TIME == 0 || SCREENTIP_NEXT_UPDATE_TIME < time)
 	{
-		// TIP1..TIP20
-		static const char* tipKeys[20] = {
-			"TIP1",  "TIP2",  "TIP3",  "TIP4",  "TIP5",
-			"TIP6",  "TIP7",  "TIP8",  "TIP9",  "TIP10",
-			"TIP11", "TIP12", "TIP13", "TIP14", "TIP15",
-			"TIP16", "TIP17", "TIP18", "TIP19", "TIP20"
-		};
+		int newIndex;
 
-		static int lastIndex = -1;
-		int index;
-
-		// Prevent repeating the same tip twice
+		// Prevent repeating the same tip
 		do {
-			index = rand() % 20;
-		} while (index == lastIndex);
+			newIndex = rand() % 20;
+		} while (newIndex == SCREENTIP_CURRENT_INDEX);
 
-		lastIndex = index;
+		SCREENTIP_CURRENT_INDEX = newIndex;
 
-		CG_DrawProportionalString(
-			300, 390,
-			CG_GetStringEdString("LOADTIPS", (char*)tipKeys[index]),
-			UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW,
+		// 3500 ms = 3.5 seconds
+		SCREENTIP_NEXT_UPDATE_TIME = time + 3500;
+	}
+
+	// Draw the current tip EVERY frame
+	if (SCREENTIP_CURRENT_INDEX >= 0)
+	{
+		CG_DrawSmallProportionalString(
+			560, 400,
+			CG_GetStringEdString("LOADTIPS", (char*)tipKeys[SCREENTIP_CURRENT_INDEX]),
+			UI_RIGHT | UI_SMALLFONT | UI_DROPSHADOW,
 			colorWhite
 		);
-
-		SCREENTIP_NEXT_UPDATE_TIME = time + 5000;
 	}
 }
+
 
 void CG_DrawInformation(void)
 {
@@ -294,7 +257,7 @@ void CG_DrawInformation(void)
 		s = Info_ValueForKey(sys_info, "sv_pure");
 		if (s[0] == '1')
 		{
-			const char* psPure = CG_GetStringEdString("MP_INGAME", "PURE_SERVER");
+			const char* psPure = CG_GetStringEdString("MD_MP_INGAME", "PURE_SERVER");
 			CG_DrawProportionalString(320, y, psPure, UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 			y += i_prop_height;
 		}
@@ -334,7 +297,7 @@ void CG_DrawInformation(void)
 	s = Info_ValueForKey(sys_info, "sv_cheats");
 	if (s[0] == '1')
 	{
-		CG_DrawProportionalString(320, y, CG_GetStringEdString("MP_INGAME", "CHEATSAREENABLED"),
+		CG_DrawProportionalString(320, y, CG_GetStringEdString("MD_MP_INGAME", "CHEATSAREENABLED"),
 			UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 		y += i_prop_height;
 	}
@@ -351,7 +314,7 @@ void CG_DrawInformation(void)
 			value = atoi(Info_ValueForKey(info, "timelimit"));
 			if (value)
 			{
-				CG_DrawProportionalString(320, y, va("%s %i", CG_GetStringEdString("MP_INGAME", "TIMELIMIT"), value),
+				CG_DrawProportionalString(320, y, va("%s %i", CG_GetStringEdString("MD_MP_INGAME", "TIMELIMIT"), value),
 					UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 				y += i_prop_height;
 			}
@@ -362,7 +325,7 @@ void CG_DrawInformation(void)
 			value = atoi(Info_ValueForKey(info, "fraglimit"));
 			if (value)
 			{
-				CG_DrawProportionalString(320, y, va("%s %i", CG_GetStringEdString("MP_INGAME", "FRAGLIMIT"), value),
+				CG_DrawProportionalString(320, y, va("%s %i", CG_GetStringEdString("MD_MP_INGAME", "FRAGLIMIT"), value),
 					UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 				y += i_prop_height;
 			}
@@ -372,7 +335,7 @@ void CG_DrawInformation(void)
 				value = atoi(Info_ValueForKey(info, "duel_fraglimit"));
 				if (value)
 				{
-					CG_DrawProportionalString(320, y, va("%s %i", CG_GetStringEdString("MP_INGAME", "WINLIMIT"), value),
+					CG_DrawProportionalString(320, y, va("%s %i", CG_GetStringEdString("MD_MP_INGAME", "WINLIMIT"), value),
 						UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 					y += i_prop_height;
 				}
@@ -385,7 +348,7 @@ void CG_DrawInformation(void)
 		value = atoi(Info_ValueForKey(info, "capturelimit"));
 		if (value)
 		{
-			CG_DrawProportionalString(320, y, va("%s %i", CG_GetStringEdString("MP_INGAME", "CAPTURELIMIT"), value),
+			CG_DrawProportionalString(320, y, va("%s %i", CG_GetStringEdString("MD_MP_INGAME", "CAPTURELIMIT"), value),
 				UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 			y += i_prop_height;
 		}
@@ -396,7 +359,7 @@ void CG_DrawInformation(void)
 		value = atoi(Info_ValueForKey(info, "g_forceBasedTeams"));
 		if (value)
 		{
-			CG_DrawProportionalString(320, y, CG_GetStringEdString("MP_INGAME", "FORCEBASEDTEAMS"),
+			CG_DrawProportionalString(320, y, CG_GetStringEdString("MD_MP_INGAME", "FORCEBASEDTEAMS"),
 				UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 			y += i_prop_height;
 		}
@@ -411,33 +374,33 @@ void CG_DrawInformation(void)
 		{
 			char fm_str[1024];
 
-			trap->SE_GetStringTextString("MP_INGAME_MAXFORCERANK", fm_str, sizeof fm_str);
+			trap->SE_GetStringTextString("MD_MP_INGAME_MAXFORCERANK", fm_str, sizeof fm_str);
 
 			CG_DrawProportionalString(
-				320, y, va("%s %s", fm_str, CG_GetStringEdString("MP_INGAME", forceMasteryLevels[value])),
+				320, y, va("%s %s", fm_str, CG_GetStringEdString("MD_MP_INGAME", forceMasteryLevels[value])),
 				UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 			y += i_prop_height;
 		}
 		else if (value_nofp != FORCE_ALLOFF)
 		{
 			char fm_str[1024];
-			trap->SE_GetStringTextString("MP_INGAME_MAXFORCERANK", fm_str, sizeof fm_str);
+			trap->SE_GetStringTextString("MD_MP_INGAME_MAXFORCERANK", fm_str, sizeof fm_str);
 
 			CG_DrawProportionalString(
-				320, y, va("%s %s", fm_str, (char*)CG_GetStringEdString("MP_INGAME", forceMasteryLevels[7])),
+				320, y, va("%s %s", fm_str, (char*)CG_GetStringEdString("MD_MP_INGAME", forceMasteryLevels[7])),
 				UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 			y += i_prop_height;
 		}
 
 		if (value_nofp == FORCE_ALLOFF)
 		{
-			CG_DrawProportionalString(320, y, va("%s", (char*)CG_GetStringEdString("MP_INGAME", "NOFPSET")),
+			CG_DrawProportionalString(320, y, va("%s", (char*)CG_GetStringEdString("MD_MP_INGAME", "NOFPSET")),
 				UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 			y += i_prop_height;
 		}
 		else if (value_nofp == FORCE_JUMPONLY)
 		{
-			CG_DrawProportionalString(320, y, va("%s", (char*)CG_GetStringEdString("MP_INGAME", "NOFPSET")),
+			CG_DrawProportionalString(320, y, va("%s", (char*)CG_GetStringEdString("MD_MP_INGAME", "NOFPSET")),
 				UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 			y += i_prop_height;
 		}
@@ -464,7 +427,7 @@ void CG_DrawInformation(void)
 		}
 		if (cgs.gametype != GT_JEDIMASTER && value == WP_SABERSONLY)
 		{
-			CG_DrawProportionalString(320, y, va("%s", (char*)CG_GetStringEdString("MP_INGAME", "SABERONLYSET")),
+			CG_DrawProportionalString(320, y, va("%s", (char*)CG_GetStringEdString("MD_MP_INGAME", "SABERONLYSET")),
 				UI_CENTER | UI_INFOFONT | UI_DROPSHADOW, colorWhite);
 			y += i_prop_height;
 		}
@@ -530,7 +493,7 @@ void CG_LoadBar(void)
 		{
 			if (com_rend2.integer == 1) //rend2 is on
 			{
-				CG_DrawSmallProportionalString(400, 2, CG_GetStringEdString("MD_MENU_MP", "REND2TIP"), UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
+				CG_DrawSmallProportionalString(400, 2, CG_GetStringEdString("MD_MP_MENU", "REND2TIP"), UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			}
 		}
 		/*const int x = (640 - LOADBAR_CLIP_WIDTH) / 2;

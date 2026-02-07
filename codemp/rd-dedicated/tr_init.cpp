@@ -166,10 +166,12 @@ cvar_t* r_debugLight;
 cvar_t* r_debugSort;
 cvar_t* r_debugStyle;
 
+cvar_t* g_DebugSaberCombat;
+
 // the limits apply to the sum of all scenes in a frame --
 // the main view, all the 3D icons, etc
-#define	DEFAULT_MAX_POLYS		600
-#define	DEFAULT_MAX_POLYVERTS	3000
+constexpr auto DEFAULT_MAX_POLYS = 600;
+constexpr auto DEFAULT_MAX_POLYVERTS = 3000;
 cvar_t* r_maxpolys;
 cvar_t* r_maxpolyverts;
 int max_polys;
@@ -473,6 +475,8 @@ void R_Register()
 	broadsword_dircap = ri->Cvar_Get("broadsword_dircap", "64", CVAR_NONE, "");
 
 	r_weather = ri->Cvar_Get("r_weather", "0", CVAR_ARCHIVE, "");
+
+	g_DebugSaberCombat = ri->Cvar_Get("g_DebugSaberCombat", "0", CVAR_ARCHIVE, "");
 	/*
 	Ghoul2 Insert End
 	*/

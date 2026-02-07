@@ -3355,7 +3355,7 @@ void CheckExitRules(void)
 			if (level.time - level.startTime >= timelimit.value * 60000)
 			{
 				//				trap->SendServerCommand( -1, "print \"Timelimit hit.\n\"");
-				trap->SendServerCommand(-1, va("print \"%s.\n\"", G_GetStringEdString("MP_SVGAME", "TIMELIMIT_HIT")));
+				trap->SendServerCommand(-1, va("print \"%s.\n\"", G_GetStringEdString("MD_MP_SVGAME", "TIMELIMIT_HIT")));
 				if (d_powerDuelPrint.integer)
 				{
 					Com_Printf("POWERDUEL WIN CONDITION: Timelimit hit (1)\n");
@@ -3408,7 +3408,7 @@ void CheckExitRules(void)
 		if (level.teamScores[TEAM_RED] >= fraglimit.integer)
 		{
 			trap->SendServerCommand(
-				-1, va("print \"Red %s\n\"", G_GetStringEdString("MP_SVGAME", "HIT_THE_KILL_LIMIT")));
+				-1, va("print \"Red %s\n\"", G_GetStringEdString("MD_MP_SVGAME", "HIT_THE_KILL_LIMIT")));
 			if (d_powerDuelPrint.integer)
 			{
 				Com_Printf("POWERDUEL WIN CONDITION: Kill limit (1)\n");
@@ -3420,7 +3420,7 @@ void CheckExitRules(void)
 		if (level.teamScores[TEAM_BLUE] >= fraglimit.integer)
 		{
 			trap->SendServerCommand(-1, va("print \"Blue %s\n\"",
-				G_GetStringEdString("MP_SVGAME", "HIT_THE_KILL_LIMIT")));
+				G_GetStringEdString("MD_MP_SVGAME", "HIT_THE_KILL_LIMIT")));
 			if (d_powerDuelPrint.integer)
 			{
 				Com_Printf("POWERDUEL WIN CONDITION: Kill limit (2)\n");
@@ -3467,7 +3467,7 @@ void CheckExitRules(void)
 				{
 					trap->SendServerCommand(-1, va("print \"%s" S_COLOR_WHITE " %s.\n\"",
 						cl->pers.netname,
-						G_GetStringEdString("MP_SVGAME", "HIT_THE_KILL_LIMIT")
+						G_GetStringEdString("MD_MP_SVGAME", "HIT_THE_KILL_LIMIT")
 					)
 					);
 				}
@@ -3480,16 +3480,16 @@ void CheckExitRules(void)
 	{
 		if (level.teamScores[TEAM_RED] >= capturelimit.integer)
 		{
-			trap->SendServerCommand(-1, va("print \"%s \"", G_GetStringEdString("MP_SVGAME", "PRINTREDTEAM")));
-			trap->SendServerCommand(-1, va("print \"%s.\n\"", G_GetStringEdString("MP_SVGAME", "HIT_CAPTURE_LIMIT")));
+			trap->SendServerCommand(-1, va("print \"%s \"", G_GetStringEdString("MD_MP_SVGAME", "PRINTREDTEAM")));
+			trap->SendServerCommand(-1, va("print \"%s.\n\"", G_GetStringEdString("MD_MP_SVGAME", "HIT_CAPTURE_LIMIT")));
 			LogExit("Capturelimit hit.");
 			return;
 		}
 
 		if (level.teamScores[TEAM_BLUE] >= capturelimit.integer)
 		{
-			trap->SendServerCommand(-1, va("print \"%s \"", G_GetStringEdString("MP_SVGAME", "PRINTBLUETEAM")));
-			trap->SendServerCommand(-1, va("print \"%s.\n\"", G_GetStringEdString("MP_SVGAME", "HIT_CAPTURE_LIMIT")));
+			trap->SendServerCommand(-1, va("print \"%s \"", G_GetStringEdString("MD_MP_SVGAME", "PRINTBLUETEAM")));
+			trap->SendServerCommand(-1, va("print \"%s.\n\"", G_GetStringEdString("MD_MP_SVGAME", "HIT_CAPTURE_LIMIT")));
 			LogExit("Capturelimit hit.");
 		}
 	}
@@ -3702,12 +3702,12 @@ static void CheckTournament(void)
 					if (lone < 1)
 					{
 						trap->SendServerCommand(-1, va("cp \"%s\n\"",
-							G_GetStringEdString("MP_SVGAME", "DUELMORESINGLE")));
+							G_GetStringEdString("MD_MP_SVGAME", "DUELMORESINGLE")));
 					}
 					else
 					{
 						trap->SendServerCommand(-1, va("cp \"%s\n\"",
-							G_GetStringEdString("MP_SVGAME", "DUELMOREPAIRED")));
+							G_GetStringEdString("MD_MP_SVGAME", "DUELMOREPAIRED")));
 					}
 					g_duelPrintTimer = level.time + 10000;
 				}
@@ -3916,7 +3916,7 @@ static void CheckVote(void)
 	}
 	if (level.time - level.voteTime >= VOTE_TIME || level.voteYes + level.voteNo == 0)
 	{
-		trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MP_SVGAME", "VOTEFAILED"),
+		trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MD_MP_SVGAME", "VOTEFAILED"),
 			level.voteStringClean));
 	}
 	else
@@ -3924,14 +3924,14 @@ static void CheckVote(void)
 		if (level.voteYes > level.numVotingClients / 2)
 		{
 			// execute the command, then remove the vote
-			trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MP_SVGAME", "VOTEPASSED"),
+			trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MD_MP_SVGAME", "VOTEPASSED"),
 				level.voteStringClean));
 			level.voteExecuteTime = level.time + level.voteExecuteDelay;
 		}
 
 		// same behavior as a timeout
 		else if (level.voteNo >= (level.numVotingClients + 1) / 2)
-			trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MP_SVGAME", "VOTEFAILED"),
+			trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MD_MP_SVGAME", "VOTEFAILED"),
 				level.voteStringClean));
 
 		else // still waiting for a majority
@@ -3986,7 +3986,7 @@ void SetLeader(const int team, const int client)
 	level.clients[client].sess.teamLeader = qtrue;
 	client_userinfo_changed(client);
 	PrintTeam(team, va("print \"%s %s\n\"", level.clients[client].pers.netname,
-		G_GetStringEdString("MP_SVGAME", "NEWTEAMLEADER")));
+		G_GetStringEdString("MD_MP_SVGAME", "NEWTEAMLEADER")));
 }
 
 /*
@@ -4068,7 +4068,7 @@ static void CheckTeamVote(const int team)
 	if (level.time - level.teamVoteTime[cs_offset] >= VOTE_TIME || level.teamVoteYes[cs_offset] + level.teamVoteNo[
 		cs_offset] == 0)
 	{
-		trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MP_SVGAME", "TEAMVOTEFAILED"),
+		trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MD_MP_SVGAME", "TEAMVOTEFAILED"),
 			level.teamVoteStringClean[cs_offset]));
 	}
 	else
@@ -4076,14 +4076,14 @@ static void CheckTeamVote(const int team)
 		if (level.teamVoteYes[cs_offset] > level.numteamVotingClients[cs_offset] / 2)
 		{
 			// execute the command, then remove the vote
-			trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MP_SVGAME", "TEAMVOTEPASSED"),
+			trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MD_MP_SVGAME", "TEAMVOTEPASSED"),
 				level.teamVoteStringClean[cs_offset]));
 			level.voteExecuteTime = level.time + 3000;
 		}
 
 		// same behavior as a timeout
 		else if (level.teamVoteNo[cs_offset] >= (level.numteamVotingClients[cs_offset] + 1) / 2)
-			trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MP_SVGAME", "TEAMVOTEFAILED"),
+			trap->SendServerCommand(-1, va("print \"%s (%s)\n\"", G_GetStringEdString("MD_MP_SVGAME", "TEAMVOTEFAILED"),
 				level.teamVoteStringClean[cs_offset]));
 
 		else // still waiting for a majority

@@ -616,7 +616,7 @@ saber_moveName_t transitionMove[Q_NUM_QUADS][Q_NUM_QUADS] =
 	}
 };
 
-saber_moveName_t PM_NPCSaberAttackFromQuad(const int quad)
+static saber_moveName_t PM_NPCSaberAttackFromQuad(const int quad)
 {
 	//pick another one
 	saber_moveName_t newmove = LS_NONE;
@@ -877,7 +877,7 @@ saber_moveName_t PM_NPCSaberAttackFromQuad(const int quad)
 							}
 							break;
 						default:
-							newmove = PM_SaberFlipOverAttackMove();
+							newmove = PM_SaberLungeAttackMove(qtrue);
 
 							if (d_attackinfo.integer)
 							{

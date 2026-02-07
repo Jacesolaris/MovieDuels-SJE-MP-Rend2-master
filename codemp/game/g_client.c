@@ -1,4 +1,4 @@
-/*
+﻿/*
 ===========================================================================
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
@@ -508,7 +508,7 @@ static void JMSaberTouch(gentity_t* self, gentity_t* other, trace_t* trace)
 	}
 
 	trap->SendServerCommand(-1, va("cp \"%s %s\n\"", other->client->pers.netname,
-		G_GetStringEdString("MP_SVGAME", "BECOMEJM")));
+		G_GetStringEdString("MD_MP_SVGAME", "BECOMEJM")));
 
 	other->client->ps.isJediMaster = qtrue;
 	other->client->ps.saberIndex = self->s.number;
@@ -614,16 +614,23 @@ qboolean SpotWouldTelefrag(const gentity_t* spot)
 
 	VectorAdd(spot->s.origin, player_mins, mins);
 	VectorAdd(spot->s.origin, player_maxs, maxs);
+
 	const int num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
 
 	for (int i = 0; i < num; i++)
 	{
 		const gentity_t* hit = &g_entities[touch[i]];
-		//if ( hit->client && hit->client->ps.stats[STAT_HEALTH] > 0 ) {
-		if (hit->client)
-		{
-			return qtrue;
-		}
+
+		if (!hit->r.linked)
+			continue;
+
+		if (!hit->client)
+			continue;
+
+		if (hit->client->ps.stats[STAT_HEALTH] <= 0)
+			continue;
+
+		return qtrue;
 	}
 
 	return qfalse;
@@ -636,20 +643,35 @@ qboolean spot_would_telefrag2(const gentity_t* mover, vec3_t dest)
 
 	VectorAdd(dest, mover->r.mins, mins);
 	VectorAdd(dest, mover->r.maxs, maxs);
+
 	const int num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
 
 	for (int i = 0; i < num; i++)
 	{
 		const gentity_t* hit = &g_entities[touch[i]];
-		if (hit == mover)
-		{
-			continue;
-		}
 
-		if (hit->r.contents & mover->r.contents)
+		if (hit == mover)
+			continue;
+
+		if (!hit->r.linked)
+			continue;
+
+		if (hit->r.contents == 0)
+			continue;
+
+		if (hit->client)
 		{
+			if (hit->client->ps.stats[STAT_HEALTH] <= 0)
+				continue;
+
 			return qtrue;
 		}
+
+		if (hit->r.contents & CONTENTS_SOLID)
+			return qtrue;
+
+		if (hit->r.contents & CONTENTS_PLAYERCLIP)
+			return qtrue;
 	}
 
 	return qfalse;
@@ -666,7 +688,7 @@ Find the spot that we DON'T want to use
 
 static gentity_t* SelectNearestDeathmatchSpawnPoint(vec3_t from)
 {
-	float nearestDist = 999999;
+	float nearestDist = 999999.0f;
 	gentity_t* nearestSpot = NULL;
 	gentity_t* spot = NULL;
 
@@ -675,6 +697,7 @@ static gentity_t* SelectNearestDeathmatchSpawnPoint(vec3_t from)
 		vec3_t delta;
 		VectorSubtract(spot->s.origin, from, delta);
 		const float dist = VectorLength(delta);
+
 		if (dist < nearestDist)
 		{
 			nearestDist = dist;
@@ -682,6 +705,33 @@ static gentity_t* SelectNearestDeathmatchSpawnPoint(vec3_t from)
 		}
 	}
 
+	if (!nearestSpot)
+		return NULL;
+
+	// Base origin
+	vec3_t baseOrigin;
+	VectorCopy(nearestSpot->s.origin, baseOrigin);
+	baseOrigin[2] += 9;
+
+	// 1. Check if nearest spawn is occupied
+	if (SafeSpawn_IsOccupied(baseOrigin))
+	{
+		vec3_t offsetOrigin;
+
+		// 2. Try to find a safe offset around the nearest spawn
+		if (SafeSpawn_FindOffset(baseOrigin, offsetOrigin))
+		{
+			// We do NOT write origin/angles here because this function
+			// only returns the spot entity, not the final spawn origin.
+			// ClientSpawn() will call SelectSpawnPoint() afterwards.
+			return nearestSpot;
+		}
+
+		// 3. No safe offset → return NULL so ClientSpawn() delays spawn
+		return NULL;
+	}
+
+	// Spawn is safe
 	return nearestSpot;
 }
 
@@ -697,13 +747,19 @@ go to a random point that doesn't telefrag
 gentity_t* SelectRandomDeathmatchSpawnPoint(qboolean isbot)
 {
 	gentity_t* spots[MAX_SPAWN_POINTS];
-
 	int count = 0;
 	gentity_t* spot = NULL;
 
-	while ((spot = G_Find(spot, FOFS(classname), "info_player_deathmatch")) != NULL && count < MAX_SPAWN_POINTS)
+	while ((spot = G_Find(spot, FOFS(classname), "info_player_deathmatch")) != NULL &&
+		count < MAX_SPAWN_POINTS)
 	{
 		if (SpotWouldTelefrag(spot))
+		{
+			continue;
+		}
+
+		if ((spot->flags & FL_NO_BOTS && isbot) ||
+			(spot->flags & FL_NO_HUMANS && !isbot))
 		{
 			continue;
 		}
@@ -714,12 +770,38 @@ gentity_t* SelectRandomDeathmatchSpawnPoint(qboolean isbot)
 
 	if (!count)
 	{
-		// no spots that won't telefrag
+		// No safe spots found — fallback to ANY DM spawn
 		return G_Find(NULL, FOFS(classname), "info_player_deathmatch");
 	}
 
+	// Pick a random spot
 	const int selection = rand() % count;
-	return spots[selection];
+	gentity_t* chosen = spots[selection];
+
+	// Base origin for safe-spawn check
+	vec3_t baseOrigin;
+	VectorCopy(chosen->s.origin, baseOrigin);
+	baseOrigin[2] += 9;
+
+	// 1. Check if chosen spawn is occupied
+	if (SafeSpawn_IsOccupied(baseOrigin))
+	{
+		vec3_t offsetOrigin;
+
+		// 2. Try to find a safe offset around the chosen spawn
+		if (SafeSpawn_FindOffset(baseOrigin, offsetOrigin))
+		{
+			// We only return the spot entity here.
+			// ClientSpawn() will compute final origin/angles.
+			return chosen;
+		}
+
+		// 3. No safe offset → return NULL so ClientSpawn() delays spawn
+		return NULL;
+	}
+
+	// Spawn is safe
+	return chosen;
 }
 
 /*
@@ -729,7 +811,58 @@ SelectRandomFurthestSpawnPoint
 Chooses a player start, deathmatch start, etc
 ============
 */
-gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origin, vec3_t angles, const team_t team,
+/* ============================================================
+   SAFE SPAWN SYSTEM HELPERS
+   ============================================================ */
+
+static qboolean SafeSpawn_IsOccupied(const vec3_t origin)
+{
+	trace_t tr;
+	vec3_t mins = { -15, -15, -24 };
+	vec3_t maxs = { 15,  15,  32 };
+
+	trap->Trace(&tr, origin, mins, maxs, origin, ENTITYNUM_NONE,
+		MASK_PLAYERSOLID, qfalse, 0, 0);
+
+	return (tr.startsolid || tr.allsolid);
+}
+
+static qboolean SafeSpawn_FindOffset(const vec3_t baseOrigin, vec3_t outOrigin)
+{
+	static const float radii[] = { 32, 48, 64, 80 };
+	static const float angles[] = { 0, 45, 90, 135, 180, 225, 270, 315 };
+
+	vec3_t test;
+	int r, a;
+
+	for (r = 0; r < 4; r++)
+	{
+		for (a = 0; a < 8; a++)
+		{
+			float rad = angles[a] * (M_PI / 180.0f);
+
+			test[0] = baseOrigin[0] + cosf(rad) * radii[r];
+			test[1] = baseOrigin[1] + sinf(rad) * radii[r];
+			test[2] = baseOrigin[2];
+
+			if (!SafeSpawn_IsOccupied(test))
+			{
+				VectorCopy(test, outOrigin);
+				return qtrue;
+			}
+		}
+	}
+
+	return qfalse;
+}
+
+/* ============================================================
+   FULL FUNCTION: SelectRandomFurthestSpawnPoint()
+   WITH SAFE SPAWN LOGIC
+   ============================================================ */
+
+static gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origin,
+	vec3_t angles, const team_t team,
 	const qboolean isbot)
 {
 	vec3_t delta;
@@ -740,54 +873,49 @@ gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origin, vec3
 
 	int numSpots = 0;
 	gentity_t* spot = NULL;
+	const char* classname = NULL;
 
-	//in Team DM, look for a team start spot first, if any
-	if (level.gametype == GT_TEAM
-		&& team != TEAM_FREE
-		&& team != TEAM_SPECTATOR)
+	if (level.gametype == GT_TEAM &&
+		team != TEAM_FREE &&
+		team != TEAM_SPECTATOR)
 	{
-		const char* classname;
 		if (team == TEAM_RED)
-		{
 			classname = "info_player_start_red";
-		}
 		else
-		{
 			classname = "info_player_start_blue";
-		}
+
 		while ((spot = G_Find(spot, FOFS(classname), classname)) != NULL)
 		{
 			if (SpotWouldTelefrag(spot))
-			{
 				continue;
-			}
 
-			if (spot->flags & FL_NO_BOTS && isbot ||
-				spot->flags & FL_NO_HUMANS && !isbot)
-			{
-				// spot is not for this human/bot player
+			if ((spot->flags & FL_NO_BOTS && isbot) ||
+				(spot->flags & FL_NO_HUMANS && !isbot))
 				continue;
-			}
 
 			VectorSubtract(spot->s.origin, avoidPoint, delta);
 			dist = VectorLength(delta);
+
 			for (i = 0; i < numSpots; i++)
 			{
 				if (dist > list_dist[i])
 				{
 					if (numSpots >= MAX_SPAWN_POINTS)
 						numSpots = MAX_SPAWN_POINTS - 1;
+
 					for (j = numSpots; j > i; j--)
 					{
 						list_dist[j] = list_dist[j - 1];
 						list_spot[j] = list_spot[j - 1];
 					}
+
 					list_dist[i] = dist;
 					list_spot[i] = spot;
 					numSpots++;
 					break;
 				}
 			}
+
 			if (i >= numSpots && numSpots < MAX_SPAWN_POINTS)
 			{
 				list_dist[numSpots] = dist;
@@ -799,40 +927,41 @@ gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origin, vec3
 
 	if (!numSpots)
 	{
-		//couldn't find any of the above
-		while ((spot = G_Find(spot, FOFS(classname), "info_player_deathmatch")) != NULL)
+		classname = "info_player_deathmatch";
+		spot = NULL;
+
+		while ((spot = G_Find(spot, FOFS(classname), classname)) != NULL)
 		{
 			if (SpotWouldTelefrag(spot))
-			{
 				continue;
-			}
 
-			if (spot->flags & FL_NO_BOTS && isbot ||
-				spot->flags & FL_NO_HUMANS && !isbot)
-			{
-				// spot is not for this human/bot player
+			if ((spot->flags & FL_NO_BOTS && isbot) ||
+				(spot->flags & FL_NO_HUMANS && !isbot))
 				continue;
-			}
 
 			VectorSubtract(spot->s.origin, avoidPoint, delta);
 			dist = VectorLength(delta);
+
 			for (i = 0; i < numSpots; i++)
 			{
 				if (dist > list_dist[i])
 				{
 					if (numSpots >= MAX_SPAWN_POINTS)
 						numSpots = MAX_SPAWN_POINTS - 1;
+
 					for (j = numSpots; j > i; j--)
 					{
 						list_dist[j] = list_dist[j - 1];
 						list_spot[j] = list_spot[j - 1];
 					}
+
 					list_dist[i] = dist;
 					list_spot[i] = spot;
 					numSpots++;
 					break;
 				}
 			}
+
 			if (i >= numSpots && numSpots < MAX_SPAWN_POINTS)
 			{
 				list_dist[numSpots] = dist;
@@ -840,11 +969,13 @@ gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origin, vec3
 				numSpots++;
 			}
 		}
+
 		if (!numSpots)
 		{
 			spot = G_Find(NULL, FOFS(classname), "info_player_deathmatch");
 			if (!spot)
 				trap->Error(ERR_DROP, "Couldn't find a spawn point");
+
 			VectorCopy(spot->s.origin, origin);
 			origin[2] += 9;
 			VectorCopy(spot->s.angles, angles);
@@ -852,17 +983,34 @@ gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origin, vec3
 		}
 	}
 
-	// select a random spot from the spawn points furthest away
 	const int rnd = Q_flrand(0.0f, 1.0f) * (numSpots / 2);
 
-	VectorCopy(list_spot[rnd]->s.origin, origin);
-	origin[2] += 9;
-	VectorCopy(list_spot[rnd]->s.angles, angles);
+	vec3_t baseOrigin;
+	VectorCopy(list_spot[rnd]->s.origin, baseOrigin);
+	baseOrigin[2] += 9;
 
+	if (SafeSpawn_IsOccupied(baseOrigin))
+	{
+		vec3_t offsetOrigin;
+
+		if (SafeSpawn_FindOffset(baseOrigin, offsetOrigin))
+		{
+			VectorCopy(offsetOrigin, origin);
+			VectorCopy(list_spot[rnd]->s.angles, angles);
+			return list_spot[rnd];
+		}
+
+		return NULL;
+	}
+
+	VectorCopy(baseOrigin, origin);
+	VectorCopy(list_spot[rnd]->s.angles, angles);
 	return list_spot[rnd];
 }
 
-gentity_t* SelectDuelSpawnPoint(const int team, vec3_t avoidPoint, vec3_t origin, vec3_t angles, const qboolean isbot)
+static gentity_t* SelectDuelSpawnPoint(const int team, vec3_t avoidPoint,
+	vec3_t origin, vec3_t angles,
+	const qboolean isbot)
 {
 	float list_dist[MAX_SPAWN_POINTS];
 	gentity_t* list_spot[MAX_SPAWN_POINTS];
@@ -888,42 +1036,47 @@ gentity_t* SelectDuelSpawnPoint(const int team, vec3_t avoidPoint, vec3_t origin
 	{
 		spotName = "info_player_deathmatch";
 	}
+
 tryAgain:
 
 	while ((spot = G_Find(spot, FOFS(classname), spotName)) != NULL)
 	{
 		vec3_t delta;
+
 		if (SpotWouldTelefrag(spot))
 		{
 			continue;
 		}
 
-		if (spot->flags & FL_NO_BOTS && isbot ||
-			spot->flags & FL_NO_HUMANS && !isbot)
+		if ((spot->flags & FL_NO_BOTS && isbot) ||
+			(spot->flags & FL_NO_HUMANS && !isbot))
 		{
-			// spot is not for this human/bot player
 			continue;
 		}
 
 		VectorSubtract(spot->s.origin, avoidPoint, delta);
 		const float dist = VectorLength(delta);
+
 		for (i = 0; i < numSpots; i++)
 		{
 			if (dist > list_dist[i])
 			{
 				if (numSpots >= MAX_SPAWN_POINTS)
 					numSpots = MAX_SPAWN_POINTS - 1;
+
 				for (int j = numSpots; j > i; j--)
 				{
 					list_dist[j] = list_dist[j - 1];
 					list_spot[j] = list_spot[j - 1];
 				}
+
 				list_dist[i] = dist;
 				list_spot[i] = spot;
 				numSpots++;
 				break;
 			}
 		}
+
 		if (i >= numSpots && numSpots < MAX_SPAWN_POINTS)
 		{
 			list_dist[numSpots] = dist;
@@ -931,32 +1084,47 @@ tryAgain:
 			numSpots++;
 		}
 	}
+
 	if (!numSpots)
 	{
 		if (Q_stricmp(spotName, "info_player_deathmatch"))
 		{
-			//try the loop again with info_player_deathmatch as the target if we couldn't find a duel spot
 			spotName = "info_player_deathmatch";
 			goto tryAgain;
 		}
 
-		//If we got here we found no free duel or DM spots, just try the first DM spot
 		spot = G_Find(NULL, FOFS(classname), "info_player_deathmatch");
 		if (!spot)
 			trap->Error(ERR_DROP, "Couldn't find a spawn point");
+
 		VectorCopy(spot->s.origin, origin);
 		origin[2] += 9;
 		VectorCopy(spot->s.angles, angles);
 		return spot;
 	}
 
-	// select a random spot from the spawn points furthest away
 	const int rnd = Q_flrand(0.0f, 1.0f) * (numSpots / 2);
 
-	VectorCopy(list_spot[rnd]->s.origin, origin);
-	origin[2] += 9;
-	VectorCopy(list_spot[rnd]->s.angles, angles);
+	vec3_t baseOrigin;
+	VectorCopy(list_spot[rnd]->s.origin, baseOrigin);
+	baseOrigin[2] += 9;
 
+	if (SafeSpawn_IsOccupied(baseOrigin))
+	{
+		vec3_t offsetOrigin;
+
+		if (SafeSpawn_FindOffset(baseOrigin, offsetOrigin))
+		{
+			VectorCopy(offsetOrigin, origin);
+			VectorCopy(list_spot[rnd]->s.angles, angles);
+			return list_spot[rnd];
+		}
+
+		return NULL;
+	}
+
+	VectorCopy(baseOrigin, origin);
+	VectorCopy(list_spot[rnd]->s.angles, angles);
 	return list_spot[rnd];
 }
 
@@ -980,13 +1148,17 @@ Try to find a spawn point marked 'initial', otherwise
 use normal spawn selection.
 ============
 */
-gentity_t* SelectInitialSpawnPoint(vec3_t origin, vec3_t angles, const team_t team, const qboolean isbot)
+static gentity_t* SelectInitialSpawnPoint(vec3_t origin, vec3_t angles,
+	const team_t team, const qboolean isbot)
 {
 	gentity_t* spot = NULL;
-	while ((spot = G_Find(spot, FOFS(classname), "info_player_deathmatch")) != NULL)
+	const char* classname = "info_player_deathmatch";
+
+	// Find a spawn point with spawnflag 1 (preferred initial spawn)
+	while ((spot = G_Find(spot, FOFS(classname), classname)) != NULL)
 	{
-		if (spot->flags & FL_NO_BOTS && isbot ||
-			spot->flags & FL_NO_HUMANS && !isbot)
+		if ((spot->flags & FL_NO_BOTS && isbot) ||
+			(spot->flags & FL_NO_HUMANS && !isbot))
 		{
 			continue;
 		}
@@ -997,15 +1169,37 @@ gentity_t* SelectInitialSpawnPoint(vec3_t origin, vec3_t angles, const team_t te
 		}
 	}
 
+	// If no preferred spot OR it would telefrag, fallback to normal spawn logic
 	if (!spot || SpotWouldTelefrag(spot))
 	{
 		return SelectSpawnPoint(vec3_origin, origin, angles, team, isbot);
 	}
 
-	VectorCopy(spot->s.origin, origin);
-	origin[2] += 9;
-	VectorCopy(spot->s.angles, angles);
+	// Base spawn origin
+	vec3_t baseOrigin;
+	VectorCopy(spot->s.origin, baseOrigin);
+	baseOrigin[2] += 9;
 
+	// 1. Check if initial spawn is occupied
+	if (SafeSpawn_IsOccupied(baseOrigin))
+	{
+		vec3_t offsetOrigin;
+
+		// 2. Try to find a safe offset around the initial spawn
+		if (SafeSpawn_FindOffset(baseOrigin, offsetOrigin))
+		{
+			VectorCopy(offsetOrigin, origin);
+			VectorCopy(spot->s.angles, angles);
+			return spot;
+		}
+
+		// 3. No safe offset → return NULL so ClientSpawn() delays spawn
+		return NULL;
+	}
+
+	// Spawn is safe
+	VectorCopy(baseOrigin, origin);
+	VectorCopy(spot->s.angles, angles);
 	return spot;
 }
 
@@ -1015,7 +1209,7 @@ SelectSpectatorSpawnPoint
 
 ============
 */
-gentity_t* SelectSpectatorSpawnPoint(vec3_t origin, vec3_t angles)
+static gentity_t* SelectSpectatorSpawnPoint(vec3_t origin, vec3_t angles)
 {
 	FindIntermissionPoint();
 
@@ -2028,9 +2222,9 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 				gla_name[0] = 0;
 				trap->G2API_GetGLAName(ent->ghoul2, 0, gla_name);
 
-				if (!gla_name[0] ||
-					(!strstr(gla_name, "players/_humanoid/") &&
-						!strstr(gla_name, "players/_humanoid_MP/")) &&
+				// If this is a normal player (no custom skeleton) and the model is not using any _humanoid* GLA, fall back.
+				if ((!gla_name[0] ||
+					!strstr(gla_name, "players/_humanoid_mp")) &&
 					ent->s.number < MAX_CLIENTS &&
 					!G_PlayerHasCustomSkeleton(ent))
 				{
@@ -2073,56 +2267,63 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 	}
 
 	//Attach the instance to this entity num so we can make use of client-server
-	//shared operations if possible.
 	trap->G2API_AttachInstanceToEntNum(ent->ghoul2, ent->s.number, qtrue);
 
-	// The model is now loaded.
-
 	gla_name[0] = 0;
+	trap->G2API_GetGLAName(ent->ghoul2, 0, gla_name);
 
+	// ------------------------------------------------------------
+	// NORMALIZE GLA PATH (critical for rend2 bots)
+	// ------------------------------------------------------------
+	char resolvedGLA[MAX_QPATH];
+
+	Q_strncpyz(resolvedGLA, gla_name, sizeof(resolvedGLA));
+
+	// Normalize ANY humanoid GLA path to the MP humanoid GLA
+	if (!Q_strncmp(resolvedGLA, "models/players/_humanoid", strlen("models/players/_humanoid")))
+	{
+		Q_strncpyz(resolvedGLA, "models/players/_humanoid_mp/_humanoid", sizeof(resolvedGLA));
+	}
+
+	// ------------------------------------------------------------
+	// LOAD HUMANOID ANIMS ONCE
+	// ------------------------------------------------------------
 	if (!bgpa_ftext_loaded)
 	{
-		// Try to load humanoid_MP first
-		if (bg_parse_animation_file("models/players/_humanoid_MP/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
+		if (bg_parse_animation_file("models/players/_humanoid_mp/animation.cfg",
+			bgHumanoidAnimations, qtrue) == -1)
 		{
-			// Fallback to original humanoid
-			if (bg_parse_animation_file("models/players/_humanoid/animation.cfg", bgHumanoidAnimations, qtrue) == -1)
-			{
-				Com_Printf("Failed to load humanoid animation file (both _humanoid_MP and _humanoid)\n");
-				return;
-			}
+			Com_Printf("Failed to load humanoid animation file\n");
+			return;
 		}
 	}
 
+	// ------------------------------------------------------------
+	// NPC / BOT ANIMATION SETUP
+	// ------------------------------------------------------------
 	if (ent->s.number >= MAX_CLIENTS || G_PlayerHasCustomSkeleton(ent))
 	{
 		ent->localAnimIndex = -1;
 
-		gla_name[0] = 0;
-		trap->G2API_GetGLAName(ent->ghoul2, 0, gla_name);
-
-		if (gla_name[0] &&
-			!strstr(gla_name, "players/_humanoid/") &&
-			!strstr(gla_name, "players/_humanoid_MP/"))
+		// HUMANOID?
+		if (strstr(resolvedGLA, "_humanoid_mp"))
 		{
-			// non-humanoid anims
-			char* slash = Q_strrchr(gla_name, '/');
-			if (slash)
-			{
-				strcpy(slash, "/animation.cfg");
-				ent->localAnimIndex = bg_parse_animation_file(gla_name, NULL, qfalse);
-			}
+			if (strstr(resolvedGLA, "players/rockettrooper/"))
+				ent->localAnimIndex = 1;
+			else
+				ent->localAnimIndex = 0;
 		}
 		else
 		{
-			// humanoid or humanoid_MP
-			if (strstr(gla_name, "players/rockettrooper/"))
+			// NON-HUMANOID
+			char animPath[MAX_QPATH];
+			Q_strncpyz(animPath, resolvedGLA, sizeof(animPath));
+
+			char* slash = Q_strrchr(animPath, '/');
+			if (slash)
 			{
-				ent->localAnimIndex = 1;
-			}
-			else
-			{
-				ent->localAnimIndex = 0;
+				strcpy(slash, "/animation.cfg");
+				ent->localAnimIndex = bg_parse_animation_file(animPath, NULL, qfalse);
 			}
 		}
 
@@ -2133,18 +2334,11 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 	}
 	else
 	{
-		gla_name[0] = 0;
-		trap->G2API_GetGLAName(ent->ghoul2, 0, gla_name);
-
-		if (strstr(gla_name, "players/rockettrooper/"))
-		{
-			//assert(!"Should not have gotten in here with rockettrooper skel");
+		// PLAYER (server-side)
+		if (strstr(resolvedGLA, "players/rockettrooper/"))
 			ent->localAnimIndex = 1;
-		}
 		else
-		{
 			ent->localAnimIndex = 0;
-		}
 	}
 
 	if (ent->s.NPC_class == CLASS_VEHICLE &&
@@ -2592,7 +2786,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			if (client->pers.netnameTime > level.time)
 			{
-				trap->SendServerCommand(clientNum, va("print \"%s\n\"", G_GetStringEdString("MP_SVGAME", "NONAMECHANGE")));
+				trap->SendServerCommand(clientNum, va("print \"%s\n\"", G_GetStringEdString("MD_MP_SVGAME", "NONAMECHANGE")));
 
 				Info_SetValueForKey(userinfo, "name", oldname);
 				trap->SetUserinfo(clientNum, userinfo);
@@ -2602,7 +2796,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			}
 			else
 			{
-				trap->SendServerCommand(-1, va("print \"%s" S_COLOR_WHITE " %s %s\n\"", oldname, G_GetStringEdString("MP_SVGAME", "PLRENAME"), client->pers.netname));
+				trap->SendServerCommand(-1, va("print \"%s" S_COLOR_WHITE " %s %s\n\"", oldname, G_GetStringEdString("MD_MP_SVGAME", "PLRENAME"), client->pers.netname));
 				G_LogPrintf("ClientRename: %i [%s] (%s) \"%s^7\" -> \"%s^7\"\n", clientNum, ent->client->sess.IP, ent->client->pers.guid, oldname, ent->client->pers.netname);
 				client->pers.netnameTime = level.time + 5000;
 			}
@@ -2625,6 +2819,7 @@ qboolean client_userinfo_changed(const int clientNum)
 	// set model
 	Q_strncpyz(model, Info_ValueForKey(userinfo, "model"), sizeof model);
 
+	//start of part 1
 	// load class system
 	if (ent->s.eType != ET_NPC // no npcs,handled in npc.cfg
 		&& level.gametype != GT_SIEGE)
@@ -2657,6 +2852,9 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "darthkrayt_mp")
 			|| Class_Model(model, "darthkrayt_r_mp")
 			|| Class_Model(model, "darthphobos_mp")
+			|| Class_Model(model, "darthkrayt")
+			|| Class_Model(model, "darthkrayt_r")
+			|| Class_Model(model, "darthphobos")
 			|| Class_Model(model, "darthdesolous")
 			|| Class_Model(model, "md_gua_am")
 			|| Class_Model(model, "md_gua2_am")
@@ -2669,6 +2867,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jerec_mp/classic")
 			|| Class_Model(model, "jerec_mp/robed")
 			|| Class_Model(model, "jerec_lowpoly_mp")
+			|| Class_Model(model, "jerec_lowpoly")
 			|| Class_Model(model, "darth_talon")
 			|| Class_Model(model, "darth_talon/")
 			|| Class_Model(model, "darth_talon/head_aa|torso_aa|lower_aa")
@@ -2684,6 +2883,10 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "cyber_maul_mp")
 			|| Class_Model(model, "cyber_maul_mp/robed")
 			|| Class_Model(model, "cyber_maul_mp/hood")
+			|| Class_Model(model, "darthmaul")
+			|| Class_Model(model, "cyber_maul")
+			|| Class_Model(model, "cyber_maul/robed")
+			|| Class_Model(model, "cyber_maul/hood")
 			|| Class_Model(model, "Maula/main")
 			|| Class_Model(model, "maul_rebels_mp")
 			|| Class_Model(model, "maul_rebels_mp/shirtless_hooded")
@@ -2691,6 +2894,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "maul_rebels_mp/shirtless")
 			|| Class_Model(model, "maul_rebels_mp/desert")
 			|| Class_Model(model, "maul_rebels_mp/twinsuns")
+			|| Class_Model(model, "maul_rebels")
+			|| Class_Model(model, "maul_rebels/shirtless_hooded")
+			|| Class_Model(model, "maul_rebels/shirtless_cowelbase")
+			|| Class_Model(model, "maul_rebels/shirtless")
+			|| Class_Model(model, "maul_rebels/desert")
+			|| Class_Model(model, "maul_rebels/twinsuns")
 			|| Class_Model(model, "md_maul")
 			|| Class_Model(model, "md_maul_robed")
 			|| Class_Model(model, "md_maul_hooded")
@@ -2705,6 +2914,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "grandinquisitor")
 			|| Class_Model(model, "maulsp/main")
 			|| Class_Model(model, "sithstalker_mp")
+			|| Class_Model(model, "sithstalker")
 			|| Class_Model(model, "Sith_Stalker2")
 			|| Class_Model(model, "Sith_Stalker2/default")
 			|| Class_Model(model, "Sith_Stalker")
@@ -2729,6 +2939,22 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "starkiller_tfu2_mp/hero_armor")
 			|| Class_Model(model, "dooku_mp")
 			|| Class_Model(model, "dooku_tcw_mp")
+			|| Class_Model(model, "stk_adventure_robes")
+			|| Class_Model(model, "stk_arena_cg")
+			|| Class_Model(model, "stk_ceremonial_robes")
+			|| Class_Model(model, "stk_corellian_fs")
+			|| Class_Model(model, "stk_hero_armor")
+			|| Class_Model(model, "stk_jedi_hunter")
+			|| Class_Model(model, "stk_kamino_tsg")
+			|| Class_Model(model, "stk_temple_eg")
+			|| Class_Model(model, "stk_tie_fs")
+			|| Class_Model(model, "stk_training_gearp")
+			|| Class_Model(model, "starkiller_tfu2/kamino_tsg")
+			|| Class_Model(model, "starkiller_tfu2/tie_fs")
+			|| Class_Model(model, "starkiller_tfu2")
+			|| Class_Model(model, "starkiller_tfu2/hero_armor")
+			|| Class_Model(model, "dooku")
+			|| Class_Model(model, "dooku_tcw")
 			|| Class_Model(model, "md_dooku")
 			|| Class_Model(model, "dooku_tcw_mp/unrobed")
 			|| Class_Model(model, "dooku_totj_mp")
@@ -2738,8 +2964,17 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "maul_wots_mp")
 			|| Class_Model(model, "lord_stk_mp")
 			|| Class_Model(model, "lord_stk_tat_mp")
+			|| Class_Model(model, "dooku_tcw/unrobed")
+			|| Class_Model(model, "dooku_totj")
+			|| Class_Model(model, "maul_cyber_tcw")
+			|| Class_Model(model, "maul_rebels")
+			|| Class_Model(model, "maul_tcwp")
+			|| Class_Model(model, "maul_wots")
+			|| Class_Model(model, "lord_stk")
+			|| Class_Model(model, "lord_stk_tat")
 			|| Class_Model(model, "md_stk_jhunter")
 			|| Class_Model(model, "maw_intro")
+			|| Class_Model(model, "maw")
 			|| Class_Model(model, "maw_mp"))
 		{
 			client->pers.nextbotclass = BCLASS_SITHWORRIOR1;
@@ -2891,6 +3126,8 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "Bountyhunter3/default")
 			|| Class_Model(model, "boba_fett_mp")
 			|| Class_Model(model, "bobafett_mp/esb")
+			|| Class_Model(model, "boba_fett")
+			|| Class_Model(model, "bobafett/esb")
 			|| Class_Model(model, "bobafett")
 			|| Class_Model(model, "boba_fett")
 			|| Class_Model(model, "bobafett/esb")
@@ -2930,6 +3167,8 @@ qboolean client_userinfo_changed(const int clientNum)
 				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
 			}
 		}
+		//end of part 1
+		//start of part 2
 		else if (Class_Model(model, "durge/jetpack"))
 		{
 			client->pers.nextbotclass = BCLASS_BOBAFETT;
@@ -2946,7 +3185,8 @@ qboolean client_userinfo_changed(const int clientNum)
 				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
 			}
 		}
-		else if (Class_Model(model, "jangofett_mp"))
+		else if (Class_Model(model, "jangofett_mp")
+			|| Class_Model(model, "jangofett"))
 		{
 			client->pers.nextbotclass = BCLASS_JANGO_NOJP;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
@@ -3144,9 +3384,19 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "kylo_ren_mp/ros_nomask")
 			|| Class_Model(model, "kylo_ren_mp/ros")
 			|| Class_Model(model, "kylo_ren_mp/ros_hood")
+
+			|| Class_Model(model, "kylo_ren/nomask")
+			|| Class_Model(model, "kylo_ren/nohood")
+			|| Class_Model(model, "kylo_ren/tlj_nomaskb")
+			|| Class_Model(model, "kylo_ren/tlj")
+			|| Class_Model(model, "kylo_ren/ros_nomask")
+			|| Class_Model(model, "kylo_ren/ros")
+			|| Class_Model(model, "kylo_ren/ros_hood")
+
 			|| Class_Model(model, "kylo")
 			|| Class_Model(model, "kylomp")
 			|| Class_Model(model, "kylo_ren_mp")
+			|| Class_Model(model, "kylo_ren")
 			|| Class_Model(model, "KyloRen")
 			|| Class_Model(model, "KyloRenK")
 			|| Class_Model(model, "kylo_ren/")
@@ -3363,6 +3613,8 @@ qboolean client_userinfo_changed(const int clientNum)
 				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
 			}
 		}
+		//end of part 2
+		//start of part 3
 		else if (Class_Model(model, "jan")
 			|| Class_Model(model, "jan/df2")
 			|| Class_Model(model, "jan/red")
@@ -3473,15 +3725,40 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "boc_mp")
 			|| Class_Model(model, "asharad_hett_mp")
 			|| Class_Model(model, "asharad_hett_mp/tusken")
+			|| Class_Model(model, "asharad_hett")
+			|| Class_Model(model, "asharad_hett/tusken")
 			|| Class_Model(model, "chirrut")
 			|| Class_Model(model, "taron_malicos")
 			|| Class_Model(model, "taron_malicos_mp")
+
+			|| Class_Model(model, "tarados_gon")
+			|| Class_Model(model, "zabrak_rots")
+
 			|| Class_Model(model, "tarados_gon_mp")
 			|| Class_Model(model, "zabrak_rots_mp")
+
 			|| Class_Model(model, "sariss_mp")
 			|| Class_Model(model, "sariss_mp/cape")
+			|| Class_Model(model, "sariss")
+			|| Class_Model(model, "sariss/cape")
 			|| Class_Model(model, "saesee_tiin_mp")
 			|| Class_Model(model, "saesee_tiin_mp/robed")
+			|| Class_Model(model, "saesee_tiin")
+			|| Class_Model(model, "saesee_tiin/robed")
+
+			|| Class_Model(model, "sora_bulq")
+			|| Class_Model(model, "redathgom")
+			|| Class_Model(model, "revan_jedi")
+			|| Class_Model(model, "micah_giiett")
+			|| Class_Model(model, "ben_solo")
+			|| Class_Model(model, "jedi_female1")
+			|| Class_Model(model, "jedi_female1a")
+			|| Class_Model(model, "jedi_female2")
+			|| Class_Model(model, "jedi_female2a")
+			|| Class_Model(model, "jedi_female3")
+			|| Class_Model(model, "jedi_female3a")
+			|| Class_Model(model, "jedi_nikto")
+
 			|| Class_Model(model, "sora_bulq_mp")
 			|| Class_Model(model, "redathgom_mp")
 			|| Class_Model(model, "revan_jedi_mp")
@@ -3494,25 +3771,48 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_female3_mp")
 			|| Class_Model(model, "jedi_female3a_mp")
 			|| Class_Model(model, "jedi_nikto_mp")
+
+			|| Class_Model(model, "sariss")
+			|| Class_Model(model, "sariss/cape")
+			|| Class_Model(model, "saesee_tiin")
+			|| Class_Model(model, "saesee_tiin/robed")
+			|| Class_Model(model, "sora_bulq")
+			|| Class_Model(model, "redathgom")
+			|| Class_Model(model, "revan_jedi")
+			|| Class_Model(model, "micah_giiett")
+			|| Class_Model(model, "ben_solo")
+			|| Class_Model(model, "jedi_female1")
+			|| Class_Model(model, "jedi_female1a")
+			|| Class_Model(model, "jedi_female2")
+			|| Class_Model(model, "jedi_female2a")
+			|| Class_Model(model, "jedi_female3")
+			|| Class_Model(model, "jedi_female3a")
+			|| Class_Model(model, "jedi_nikto")
+
 			|| Class_Model(model, "quinlan_vos")
 			|| Class_Model(model, "md_quinlan")
 			|| Class_Model(model, "quinlan_vos2")
 			|| Class_Model(model, "jedi_st_tiplee_mp")
+			|| Class_Model(model, "jedi_st_tiplee")
 			|| Class_Model(model, "jedi_st_tiplee/")
 			|| Class_Model(model, "Eeth_Koth/main")
 			|| Class_Model(model, "Eeth_Koth_mp")
 			|| Class_Model(model, "eeth_koth_mp/cw")
+			|| Class_Model(model, "Eeth_Koth")
+			|| Class_Model(model, "eeth_koth/cw")
 			|| Class_Model(model, "md_eeth_koth")
 			|| Class_Model(model, "st_tiplee/default")
 			|| Class_Model(model, "st_tiplee")
 			|| Class_Model(model, "tiplee")
 			|| Class_Model(model, "tiplee/tiplar")
 			|| Class_Model(model, "even_piell_mp")
+			|| Class_Model(model, "even_piell")
 			|| Class_Model(model, "md_even_piell")
 			|| Class_Model(model, "mja/")
 			|| Class_Model(model, "mja/main")
 			|| Class_Model(model, "mj/")
 			|| Class_Model(model, "ima_gundi_mp")
+			|| Class_Model(model, "ima_gundi")
 			|| Class_Model(model, "mj/main")
 			|| Class_Model(model, "jedi/red")
 			|| Class_Model(model, "jedi/blue")
@@ -3521,10 +3821,15 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "bar/main")
 			|| Class_Model(model, "shaak_ti/main")
 			|| Class_Model(model, "shaakti_tfu_mp")
+			|| Class_Model(model, "shaakti_tfu")
 			|| Class_Model(model, "lu/main")
 			|| Class_Model(model, "cin_drallig_mp/cw")
 			|| Class_Model(model, "cin_drallig_mp")
 			|| Class_Model(model, "cin_drallig_mp/old")
+
+			|| Class_Model(model, "cin_drallig/cw")
+			|| Class_Model(model, "cin_drallig")
+			|| Class_Model(model, "cin_drallig/old")
 			|| Class_Model(model, "cin_drallig_tm")
 			|| Class_Model(model, "cin_drallig_tm/")
 			|| Class_Model(model, "cin_drallig_tm/default")
@@ -3543,9 +3848,11 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "kit_fisto")
 			|| Class_Model(model, "kitfisto_cw_mp")
 			|| Class_Model(model, "ki_adi_mundi_mp")
-			|| Class_Model(model, "Coleman/main")
+			|| Class_Model(model, "kitfisto_cw")
+			|| Class_Model(model, "ki_adi_mundi")
 			|| Class_Model(model, "Coleman/main")
 			|| Class_Model(model, "coleman_mp")
+			|| Class_Model(model, "coleman")
 			|| Class_Model(model, "coleman_trebor_vm/")
 			|| Class_Model(model, "coleman_trebor_vm/default")
 			|| Class_Model(model, "saesee_tiin/main")
@@ -3597,25 +3904,8 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_spanki6a_jka")
 			|| Class_Model(model, "jedi_spanki6b_jka")
 			|| Class_Model(model, "jedi_spanki_jka")
-			|| Class_Model(model, "jedi_spanki1a_mp")
-			|| Class_Model(model, "jedi_spanki1b_mp")
-			|| Class_Model(model, "jedi_spanki2_mp")
-			|| Class_Model(model, "jedi_spanki2a_mp")
-			|| Class_Model(model, "jedi_spanki2b_mp")
-			|| Class_Model(model, "jedi_spanki3_mp")
-			|| Class_Model(model, "jedi_spanki3a_mp")
-			|| Class_Model(model, "jedi_spanki3b_mp")
-			|| Class_Model(model, "jedi_spanki4_mp")
-			|| Class_Model(model, "jedi_spanki4a_mp")
-			|| Class_Model(model, "jedi_spanki4b_mp")
-			|| Class_Model(model, "jedi_spanki5_mp")
-			|| Class_Model(model, "jedi_spanki5a_mp")
-			|| Class_Model(model, "jedi_spanki5b_mp")
-			|| Class_Model(model, "jedi_spanki6_mp")
-			|| Class_Model(model, "jedi_spanki6a_mp")
-			|| Class_Model(model, "jedi_spanki6b_mp")
-			|| Class_Model(model, "jedi_spanki_mp")
 			|| Class_Model(model, "jaro_tapal_mp")
+				|| Class_Model(model, "jaro_tapal")
 			|| Class_Model(model, "spiderman")
 			|| Class_Model(model, "Wolverine")
 			|| Class_Model(model, "SD_tmnt")
@@ -3636,14 +3926,20 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "Kavar")
 			|| Class_Model(model, "kentomarek_mp")
 			|| Class_Model(model, "kentomarek_mp/wii")
+			|| Class_Model(model, "kentomarek")
+			|| Class_Model(model, "kentomarek/wii")
 			|| Class_Model(model, "joopi_she_mp")
 			|| Class_Model(model, "jtguard_boss_mp")
 			|| Class_Model(model, "jtguard_mp")
+			|| Class_Model(model, "joopi_she")
+			|| Class_Model(model, "jtguard_boss")
+			|| Class_Model(model, "jtguard")
 			|| Class_Model(model, "kreia")
 			|| Class_Model(model, "Vandar")
 			|| Class_Model(model, "Vandar_ghost")
 			|| Class_Model(model, "Visas")
 			|| Class_Model(model, "jocasta_mp")
+				|| Class_Model(model, "jocasta")
 			|| Class_Model(model, "VrookLamar")
 			|| Class_Model(model, "bultar_mp")
 			|| Class_Model(model, "cal_inquisitor_mp")
@@ -3653,6 +3949,9 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "cal_kestis_mp/default2")
 			|| Class_Model(model, "cal_kestis_jedi_mp")
 			|| Class_Model(model, "cal_survivor_mp")
+
+			|| Class_Model(model, "cal_inquisitor")
+			|| Class_Model(model, "cal_kestis_jedi")
 			|| Class_Model(model, "cal_kestis")
 			|| Class_Model(model, "cal_kestis/cape")
 			|| Class_Model(model, "cal_kestis/cape2")
@@ -3673,6 +3972,10 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "foul_moudama_mp")
 			|| Class_Model(model, "koffi_arana_mp")
 			|| Class_Model(model, "koffi_arana_mp")
+			|| Class_Model(model, "foul_moudama")
+			|| Class_Model(model, "koffi_arana")
+			|| Class_Model(model, "koffi_arana")
+				|| Class_Model(model, "boc")
 			|| Class_Model(model, "boc_mp"))
 		{
 			client->pers.nextbotclass = BCLASS_JEDI;
@@ -3701,12 +4004,16 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "md_bultar")
 			|| Class_Model(model, "md_bultar_robed")
 			|| Class_Model(model, "barriss_mp")
+			|| Class_Model(model, "barriss")
 			|| Class_Model(model, "md_barriss")
 			|| Class_Model(model, "barriss_offee_mp")
+			|| Class_Model(model, "barriss_offee")
 			|| Class_Model(model, "lxjade/main")
 			|| Class_Model(model, "ahsoka_mp")
+			|| Class_Model(model, "ahsoka")
 			|| Class_Model(model, "ahsoka_tm")
 			|| Class_Model(model, "ahsoka_rebels_mp")
+			|| Class_Model(model, "ahsoka_rebels")
 			|| Class_Model(model, "anakin_ep2_mp")
 			|| Class_Model(model, "anakin_ep2_mp/hood")
 			|| Class_Model(model, "md_stass_allie")
@@ -3727,8 +4034,17 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "depabillaba_tcw_mp")
 			|| Class_Model(model, "depabillaba_tcw_mp/robed")
 			|| Class_Model(model, "depabillaba_tcw_mp/hooded")
+			|| Class_Model(model, "stass_allie")
+			|| Class_Model(model, "serraketo")
+			|| Class_Model(model, "sarissa_jeng")
+			|| Class_Model(model, "depabillaba")
+			|| Class_Model(model, "depabillaba_tcw")
+			|| Class_Model(model, "depabillaba_tcw/robed")
+			|| Class_Model(model, "depabillaba_tcw/hooded")
 			|| Class_Model(model, "ExileFemaleLightSide")
 			|| Class_Model(model, "ExileFemaleLightSideUR")
+			|| Class_Model(model, "adi_gallia/robed")
+			|| Class_Model(model, "adi_gallia")
 			|| Class_Model(model, "adi_gallia_mp/robed")
 			|| Class_Model(model, "adi_gallia_mp"))
 		{
@@ -3805,6 +4121,29 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "obi3/main2")
 			|| Class_Model(model, "obi3/main4")
 			|| Class_Model(model, "obi3/main3")
+
+			|| Class_Model(model, "obiwan_jabiim")
+			|| Class_Model(model, "obiwan_jabiim/robed")
+			|| Class_Model(model, "obiwan_jabiim/defaultb")
+			|| Class_Model(model, "obiwan_jabiim/robedc")
+			|| Class_Model(model, "obiwan_ot")
+			|| Class_Model(model, "obiwan_ot/ghost")
+			|| Class_Model(model, "obiwan_ot/default_hooded")
+			|| Class_Model(model, "obiwan_ot/default_robed")
+			|| Class_Model(model, "obiwan_ep3")
+			|| Class_Model(model, "obiwan_ep3/exile")
+			|| Class_Model(model, "obiwan_cw")
+			|| Class_Model(model, "obiwan_cw/helmet")
+			|| Class_Model(model, "obiwan_ep1")
+			|| Class_Model(model, "obiwan_ep1/hooded")
+			|| Class_Model(model, "obiwan_ep2")
+			|| Class_Model(model, "obiwan_ep2/robed")
+			|| Class_Model(model, "obiwan_ep2/hooded")
+			|| Class_Model(model, "obiwan_ep3/robed")
+			|| Class_Model(model, "obiwan_ep3/hood")
+			|| Class_Model(model, "obiwan_ep3/bw")
+			|| Class_Model(model, "obiwan_tcw")
+
 			|| Class_Model(model, "obiwan_jabiim_mp")
 			|| Class_Model(model, "obiwan_jabiim_mp/robed")
 			|| Class_Model(model, "obiwan_jabiim_mp/defaultb")
@@ -3842,7 +4181,20 @@ qboolean client_userinfo_changed(const int clientNum)
 				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
 			}
 		}
+		//end of part 3
+		//start of part 4
 		else if (Class_Model(model, "jedi/master")
+
+			|| Class_Model(model, "agen_kolar")
+			|| Class_Model(model, "ahsoka_s7")
+			|| Class_Model(model, "anakin")
+			|| Class_Model(model, "anakin/robed")
+			|| Class_Model(model, "anakin/hood")
+			|| Class_Model(model, "anakin_tcw")
+			|| Class_Model(model, "anakin_tcw/cw")
+			|| Class_Model(model, "anakin_swolo")
+			|| Class_Model(model, "bastila")
+
 			|| Class_Model(model, "agen_kolar_mp")
 			|| Class_Model(model, "ahsoka_s7_mp")
 			|| Class_Model(model, "anakin_mp")
@@ -3908,6 +4260,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "mace_winduvm/default_robed")
 			|| Class_Model(model, "jedi_quigon")
 			|| Class_Model(model, "Quigon")
+
 			|| Class_Model(model, "fisto_mp")
 			|| Class_Model(model, "fisto_mp/robed")
 			|| Class_Model(model, "fisto_mp/cw")
@@ -3922,8 +4275,25 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "saesee_tiin_mp")
 			|| Class_Model(model, "ki_adi_mundi_mp")
 			|| Class_Model(model, "kota_mp")
+
+			|| Class_Model(model, "fisto")
+			|| Class_Model(model, "fisto/robed")
+			|| Class_Model(model, "fisto/cw")
+			|| Class_Model(model, "quigon")
+			|| Class_Model(model, "quigon/robed")
+			|| Class_Model(model, "quigon/poncho")
+			|| Class_Model(model, "quigon/ghost")
+			|| Class_Model(model, "plo_koon")
+			|| Class_Model(model, "plo_koon/jpb")
+			|| Class_Model(model, "plo_tcw")
+			|| Class_Model(model, "quinlan_vos")
+			|| Class_Model(model, "saesee_tiin")
+			|| Class_Model(model, "ki_adi_mundi")
+			|| Class_Model(model, "kota")
 			|| Class_Model(model, "qu_rahn")
+			|| Class_Model(model, "kota_drunk")
 			|| Class_Model(model, "kota_drunk_mp")
+			|| Class_Model(model, "kota_drunk")
 			|| Class_Model(model, "kota_mp/blind")
 			|| Class_Model(model, "jedi_kk")
 			|| Class_Model(model, "hs_kenobi_rots")
@@ -3932,6 +4302,16 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "noQuiGonVM3/main2")
 			|| Class_Model(model, "moMace_Windu/main")
 			|| Class_Model(model, "muwindu/main")
+
+			|| Class_Model(model, "macewindu")
+			|| Class_Model(model, "macewindu/ghost")
+			|| Class_Model(model, "macewindu/hooded")
+			|| Class_Model(model, "macewindu/robed")
+			|| Class_Model(model, "macewindu/cw")
+			|| Class_Model(model, "macewindu_mp")
+			|| Class_Model(model, "macewindu/totj")
+			|| Class_Model(model, "oppo_rancisis")
+
 			|| Class_Model(model, "macewindu_mp")
 			|| Class_Model(model, "macewindu_mp/ghost")
 			|| Class_Model(model, "macewindu_mp/hooded")
@@ -3957,6 +4337,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		}
 		else if (Class_Model(model, "Shaaktivm")
 			|| Class_Model(model, "jedi_shaakti")
+			|| Class_Model(model, "shaak_ti")
+			|| Class_Model(model, "shaakti_tfu")
 			|| Class_Model(model, "shaak_ti_mp")
 			|| Class_Model(model, "shaakti_tfu_mp")
 			|| Class_Model(model, "bastila")
@@ -4030,6 +4412,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		}
 		else if (Class_Model(model, "luke")
 			|| Class_Model(model, "ben_swolo_mp")
+			|| Class_Model(model, "ben_swolo")
 			|| Class_Model(model, "luke/")
 			|| Class_Model(model, "lukejka")
 			|| Class_Model(model, "lukejka/")
@@ -4037,10 +4420,14 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "rey/head_a1|torso_a1|lower_a1")
 			|| Class_Model(model, "rey")
 			|| Class_Model(model, "rey_mp")
+			|| Class_Model(model, "rey/resistance")
 			|| Class_Model(model, "rey_mp/resistance")
 			|| Class_Model(model, "rey_skywalker_mp")
 			|| Class_Model(model, "rey_skywalker_mp/hood")
 			|| Class_Model(model, "rey_mp/jedi")
+			|| Class_Model(model, "rey_skywalker")
+			|| Class_Model(model, "rey_skywalker/hood")
+			|| Class_Model(model, "rey/jedi")
 			|| Class_Model(model, "st_rey")
 			|| Class_Model(model, "jedi_st_rey")
 			|| Class_Model(model, "lb/")
@@ -4076,6 +4463,39 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_anakin")
 			|| Class_Model(model, "ajunta")
 			|| Class_Model(model, "Atris")
+
+			|| Class_Model(model, "luminara")
+			|| Class_Model(model, "luke_crait")
+			|| Class_Model(model, "luke_tbobf")
+			|| Class_Model(model, "luke_tbobf/robe")
+			|| Class_Model(model, "luke_tbobf/hood")
+			|| Class_Model(model, "luke_tfa")
+			|| Class_Model(model, "luke_crait")
+			|| Class_Model(model, "luke_anh")
+			|| Class_Model(model, "luke_anh")
+			|| Class_Model(model, "luke_esb_dago")
+			|| Class_Model(model, "luke_esb_dago/backpack")
+			|| Class_Model(model, "luke_esb")
+			|| Class_Model(model, "luke_hoth")
+			|| Class_Model(model, "luke_pilot")
+			|| Class_Model(model, "luke_yavin")
+			|| Class_Model(model, "luke_rotj/tunic_hood")
+			|| Class_Model(model, "luke_rotj/tunic_robe")
+			|| Class_Model(model, "luke_rotj/tunic")
+			|| Class_Model(model, "luke_rotj/endor")
+			|| Class_Model(model, "luke_rotj/endor_nohelmet")
+			|| Class_Model(model, "luke_rotj")
+			|| Class_Model(model, "luke_rotj/master")
+			|| Class_Model(model, "luke_rotj/tm_tunic")
+			|| Class_Model(model, "luke_rotj/default_fd")
+			|| Class_Model(model, "luke_tfa/cloak_glove")
+			|| Class_Model(model, "luke_tfa/hood_glove")
+			|| Class_Model(model, "galen_arena_cg")
+			|| Class_Model(model, "galen_hero_armor")
+			|| Class_Model(model, "galen_kamino_tsg")
+			|| Class_Model(model, "galen_tie_fs")
+			|| Class_Model(model, "cade")
+
 			|| Class_Model(model, "luminara_mp")
 			|| Class_Model(model, "luke_crait_mp")
 			|| Class_Model(model, "luke_tbobf_mp")
@@ -4450,6 +4870,8 @@ qboolean client_userinfo_changed(const int clientNum)
 				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
 			}
 		}
+		//end of part 4
+		//start of part 5
 		else if (Class_Model(model, "snowtrooper")
 			|| Class_Model(model, "snowtrooper/blue")
 			|| Class_Model(model, "snowtrooper/red")
@@ -4625,8 +5047,13 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "tavion_new/main")
 			|| Class_Model(model, "asajj_ns_mp")
 			|| Class_Model(model, "asajj_bh_mp/disguise")
+			|| Class_Model(model, "asajj_ns")
+			|| Class_Model(model, "asajj_bh/disguise")
 			|| Class_Model(model, "asajj")
 			|| Class_Model(model, "assajv")
+			|| Class_Model(model, "asajj")
+			|| Class_Model(model, "asajj_bh")
+			|| Class_Model(model, "AssajjCW")
 			|| Class_Model(model, "asajj_mp")
 			|| Class_Model(model, "asajj_bh_mp")
 			|| Class_Model(model, "AssajjCW"))
@@ -4808,6 +5235,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "SBD")
 			|| Class_Model(model, "SBD2")
 			|| Class_Model(model, "sbd_mp")
+			|| Class_Model(model, "sbd")
 			|| Class_Model(model, "md_sbd_am")
 			|| Class_Model(model, "Super_Battle_Droid")
 			|| Class_Model(model, "Super Battle Droid")
@@ -4879,6 +5307,8 @@ qboolean client_userinfo_changed(const int clientNum)
 				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
 			}
 		}
+		//end of part 5
+		//start of part 6
 		else if (Class_Model(model, "jango_fett/blue")
 			|| Class_Model(model, "boba_fett/blue"))
 		{
@@ -4897,6 +5327,8 @@ qboolean client_userinfo_changed(const int clientNum)
 			}
 		}
 		else if (Class_Model(model, "T_yoda_MP")
+			|| Class_Model(model, "T_yoda")
+			|| Class_Model(model, "T_yoda/default")
 			|| Class_Model(model, "T_yoda_MP/default")
 			|| Class_Model(model, "nayodaghost/main")
 			|| Class_Model(model, "yoda/main")
@@ -4908,6 +5340,11 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "yoda_mp/hr")
 			|| Class_Model(model, "yoda_mp/cw")
 			|| Class_Model(model, "yoda_mp/ep2")
+			|| Class_Model(model, "yaddle")
+			|| Class_Model(model, "yoda/ghost")
+			|| Class_Model(model, "yoda/hr")
+			|| Class_Model(model, "yodap/cw")
+			|| Class_Model(model, "yoda/ep2")
 			|| Class_Model(model, "yodavm")
 			|| Class_Model(model, "pic_mp")
 			|| Class_Model(model, "grogu"))
@@ -4936,6 +5373,15 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "youngling/default")
 			|| Class_Model(model, "halsey_mp")
 			|| Class_Model(model, "halsey_mp/cw")
+			|| Class_Model(model, "halsey")
+			|| Class_Model(model, "halsey/cw")
+
+			|| Class_Model(model, "knox")
+			|| Class_Model(model, "nahdar")
+			|| Class_Model(model, "nahdar/robed")
+			|| Class_Model(model, "tsuichoi")
+			|| Class_Model(model, "zett_jukassa")
+
 			|| Class_Model(model, "knox_mp")
 			|| Class_Model(model, "nahdar_mp")
 			|| Class_Model(model, "nahdar_mp/robed")
@@ -4993,11 +5439,16 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "md_gungan_warrior")
 			|| Class_Model(model, "gungan")
 			|| Class_Model(model, "md_gunray")
+
+			|| Class_Model(model, "gunray")
+			|| Class_Model(model, "rune")
+
 			|| Class_Model(model, "gunray_mp")
 			|| Class_Model(model, "rune_mp")
 			|| Class_Model(model, "md_wat_tambor")
 			|| Class_Model(model, "md_shu_mai")
-			|| Class_Model(model, "gunray_ep3_mp"))
+			|| Class_Model(model, "gunray_ep3_mp")
+			|| Class_Model(model, "gunray_ep3"))
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGER;
 			client->pers.nextbotclass = BCLASS_SOILDER;
@@ -5014,7 +5465,10 @@ qboolean client_userinfo_changed(const int clientNum)
 			}
 		}
 		else if (Class_Model(model, "tera_sinube_mp")
+			|| Class_Model(model, "tera_sinube")
+			|| Class_Model(model, "thongla_jur")
 			|| Class_Model(model, "thongla_jur_mp")
+			|| Class_Model(model, "yarael")
 			|| Class_Model(model, "yarael_mp"))
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGER;
@@ -5078,11 +5532,22 @@ qboolean client_userinfo_changed(const int clientNum)
 			}
 		}
 		else if (Class_Model(model, "vader")
+
+			|| Class_Model(model, "darthvader")
+			|| Class_Model(model, "darthvader/ep3")
+			|| Class_Model(model, "darthvader/tv")
+			|| Class_Model(model, "darthvader/anh")
+			|| Class_Model(model, "darthvader/battle")
+
 			|| Class_Model(model, "darthvader_mp")
 			|| Class_Model(model, "darthvader_mp/ep3")
 			|| Class_Model(model, "darthvader_mp/tv")
 			|| Class_Model(model, "darthvader_mp/anh")
 			|| Class_Model(model, "darthvader_mp/battle")
+			|| Class_Model(model, "darthvader/ep3")
+			|| Class_Model(model, "darthvader/tv")
+			|| Class_Model(model, "darthvader/anh")
+			|| Class_Model(model, "darthvader/battle")
 			|| Class_Model(model, "vaderVM")
 			|| Class_Model(model, "vader/")
 			|| Class_Model(model, "vader/main")
@@ -5092,7 +5557,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "vader/default")
 			|| Class_Model(model, "jedi_vader")
 			|| Class_Model(model, "am_vader")
-			|| Class_Model(model, "darthvader")
 			|| Class_Model(model, "vadervmm")
 			|| Class_Model(model, "t_vader")
 			|| Class_Model(model, "darthplagueis")
@@ -5141,6 +5605,15 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "darkjedi")
 			|| Class_Model(model, "darthrevan")
 			|| Class_Model(model, "darthsion")
+
+			|| Class_Model(model, "palpatine")
+			|| Class_Model(model, "palpatine/robed_tcw")
+			|| Class_Model(model, "palpatine_boc")
+			|| Class_Model(model, "palpatine_fa")
+			|| Class_Model(model, "palpatine_holo")
+			|| Class_Model(model, "palpatine_ros")
+			|| Class_Model(model, "palpatine_ros/blind")
+
 			|| Class_Model(model, "palpatine_mp")
 			|| Class_Model(model, "palpatine_mp/robed_tcw")
 			|| Class_Model(model, "palpatine_boc_mp")
@@ -5213,6 +5686,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "md_grievous4")
 			|| Class_Model(model, "md_grievous_robed")
 			|| Class_Model(model, "grievous_mp")
+			|| Class_Model(model, "grievous")
 			|| Class_Model(model, "sabertraining_droid")
 			|| Class_Model(model, "jedi_gri"))
 		{
@@ -5239,6 +5713,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "ma/main4")
 			|| Class_Model(model, "ma")
 			|| Class_Model(model, "gorc_mp")
+			|| Class_Model(model, "gorc")
 			|| Class_Model(model, "md_magnaguard")
 			|| Class_Model(model, "magnaguard")
 			|| Class_Model(model, "magnaguard_mp"))
@@ -5301,6 +5776,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			}
 		}
 	}
+	//end of part 6 final part
 
 	client->pers.botclass = client->pers.nextbotclass;
 
@@ -5673,7 +6149,7 @@ char* ClientConnect(int clientNum, const qboolean firstTime, const qboolean isBo
 			strcmp(g_password.string, value) != 0)
 		{
 			static char sTemp[1024];
-			Q_strncpyz(sTemp, G_GetStringEdString("MP_SVGAME", "INVALID_ESCAPE_TO_MAIN"), sizeof sTemp);
+			Q_strncpyz(sTemp, G_GetStringEdString("MD_MP_SVGAME", "INVALID_ESCAPE_TO_MAIN"), sizeof sTemp);
 			return sTemp; // return "Invalid password";
 		}
 	}
@@ -5795,7 +6271,7 @@ char* ClientConnect(int clientNum, const qboolean firstTime, const qboolean isBo
 	if (firstTime)
 	{
 		trap->SendServerCommand(-1, va("print \"%s" S_COLOR_WHITE " %s\n\"", client->pers.netname,
-			G_GetStringEdString("MP_SVGAME", "PLCONNECT")));
+			G_GetStringEdString("MD_MP_SVGAME", "PLCONNECT")));
 	}
 
 	if (level.gametype >= GT_TEAM &&
@@ -5998,7 +6474,7 @@ void ClientBegin(const int clientNum, const qboolean allowTeamReset)
 		if (level.gametype != GT_DUEL || level.gametype == GT_POWERDUEL)
 		{
 			trap->SendServerCommand(-1, va("print \"%s" S_COLOR_WHITE " %s\n\"", client->pers.netname,
-				G_GetStringEdString("MP_SVGAME", "PLENTER")));
+				G_GetStringEdString("MD_MP_SVGAME", "PLENTER")));
 		}
 	}
 	G_LogPrintf("ClientBegin: %i\n", clientNum);
@@ -6594,13 +7070,14 @@ void ClientSpawn(gentity_t* ent)
 	}
 	else if (level.gametype == GT_CTF || level.gametype == GT_CTY)
 	{
-		// all base oriented team games use the CTF spawn points
-		spawnPoint = SelectCTFSpawnPoint(client->sess.sessionTeam, client->pers.teamState.state, spawn_origin,
-			spawn_angles, !!(ent->r.svFlags & SVF_BOT));
+		spawnPoint = SelectCTFSpawnPoint(client->sess.sessionTeam,
+			client->pers.teamState.state, spawn_origin, spawn_angles,
+			!!(ent->r.svFlags & SVF_BOT));
 	}
 	else if (level.gametype == GT_SIEGE)
 	{
-		spawnPoint = SelectSiegeSpawnPoint(client->siegeClass, client->sess.sessionTeam, client->pers.teamState.state,
+		spawnPoint = SelectSiegeSpawnPoint(client->siegeClass,
+			client->sess.sessionTeam, client->pers.teamState.state,
 			spawn_origin, spawn_angles, !!(ent->r.svFlags & SVF_BOT));
 	}
 	else if (level.gametype == GT_SINGLE_PLAYER)
@@ -6611,33 +7088,49 @@ void ClientSpawn(gentity_t* ent)
 	{
 		if (level.gametype == GT_POWERDUEL)
 		{
-			spawnPoint = SelectDuelSpawnPoint(client->sess.duelTeam, client->ps.origin, spawn_origin, spawn_angles,
+			spawnPoint = SelectDuelSpawnPoint(client->sess.duelTeam,
+				client->ps.origin, spawn_origin, spawn_angles,
 				!!(ent->r.svFlags & SVF_BOT));
 		}
 		else if (level.gametype == GT_DUEL)
 		{
-			// duel
-			spawnPoint = SelectDuelSpawnPoint(DUELTEAM_SINGLE, client->ps.origin, spawn_origin, spawn_angles,
+			spawnPoint = SelectDuelSpawnPoint(DUELTEAM_SINGLE,
+				client->ps.origin, spawn_origin, spawn_angles,
 				!!(ent->r.svFlags & SVF_BOT));
 		}
 		else
 		{
-			// the first spawn should be at a good looking spot
 			if (!client->pers.initialSpawn && client->pers.localClient)
 			{
 				client->pers.initialSpawn = qtrue;
-				spawnPoint = SelectInitialSpawnPoint(spawn_origin, spawn_angles, client->sess.sessionTeam,
+				spawnPoint = SelectInitialSpawnPoint(spawn_origin,
+					spawn_angles, client->sess.sessionTeam,
 					!!(ent->r.svFlags & SVF_BOT));
 			}
 			else
 			{
-				// don't spawn near existing origin if possible
-				spawnPoint = SelectSpawnPoint(
-					client->ps.origin,
-					spawn_origin, spawn_angles, client->sess.sessionTeam, !!(ent->r.svFlags & SVF_BOT));
+				spawnPoint = SelectSpawnPoint(client->ps.origin,
+					spawn_origin, spawn_angles,
+					client->sess.sessionTeam,
+					!!(ent->r.svFlags & SVF_BOT));
 			}
 		}
 	}
+
+	/*
+	==========================
+	Safe-spawn retry delay
+	==========================
+	*/
+	if (!spawnPoint)
+	{
+		// Randomized delay: 2–4 seconds
+		int jitter = 2000 + (rand() % 2000);   // 2000–4000 ms
+
+		ent->client->respawnPending = level.time + jitter;
+		return;
+	}
+
 	client->pers.teamState.state = TEAM_ACTIVE;
 
 	// toggle the teleport bit so the client knows to not lerp
@@ -9129,6 +9622,7 @@ void ClientDisconnect(const int clientNum)
 qboolean g_standard_humanoid(gentity_t* self)
 {
 	char gla_name[MAX_QPATH];
+	char resolvedGLA[MAX_QPATH];
 
 	if (!self || !self->ghoul2)
 	{
@@ -9137,66 +9631,26 @@ qboolean g_standard_humanoid(gentity_t* self)
 
 	trap->G2API_GetGLAName(&self->ghoul2, 0, gla_name);
 
-	assert(gla_name);
-
-	if (gla_name)
+	if (!gla_name[0])
 	{
-		if (!Q_stricmpn("models/players/_humanoid", gla_name, 24))
-		{
-			//only _humanoid skeleton is expected to have these
-			return qtrue;
-		}
-		if (!Q_stricmpn("models/players/_humanoid_MP", gla_name, 24))
-		{
-			//only _humanoid skeleton is expected to have these
-			return qtrue;
-		}
-		if (!Q_stricmpn("models/players/JK2anims/", gla_name, 24))
-		{
-			//only _humanoid skeleton is expected to have these
-			return qtrue;
-		}
-		if (!Q_stricmpn("models/players/_humanoid_sbd", gla_name, 24)) ///_humanoid", gla_name, 36) )
-		{
-			//only _humanoid skeleton is expected to have these
-			return qtrue;
-		}
-		if (!Q_stricmpn("models/players/_humanoid_yoda", gla_name, 24)) ///_humanoid", gla_name, 36) )
-		{
-			//only _humanoid skeleton is expected to have these
-			return qtrue;
-		}
-		if (!Q_stricmp("models/players/protocol/protocol", gla_name))
-		{
-			//protocol droid duplicates many of these
-			return qtrue;
-		}
-		if (!Q_stricmp("models/players/assassin_droid/model", gla_name))
-		{
-			//assassin_droid duplicates many of these
-			return qtrue;
-		}
-		if (!Q_stricmp("models/players/saber_droid/model", gla_name))
-		{
-			//saber_droid duplicates many of these
-			return qtrue;
-		}
-		if (!Q_stricmp("models/players/hazardtrooper/hazardtrooper", gla_name))
-		{
-			//hazardtrooper duplicates many of these
-			return qtrue;
-		}
-		if (!Q_stricmp("models/players/rockettrooper/rockettrooper", gla_name))
-		{
-			//rockettrooper duplicates many of these
-			return qtrue;
-		}
-		if (!Q_stricmp("models/players/wampa/wampa", gla_name))
-		{
-			//rockettrooper duplicates many of these
-			return qtrue;
-		}
+		return qfalse;
 	}
+
+	// Normalize GLA path (critical for rend2)
+	Q_strncpyz(resolvedGLA, gla_name, sizeof(resolvedGLA));
+
+	// Normalize ANY humanoid GLA path to the MP humanoid GLA
+	if (!Q_strncmp(resolvedGLA, "models/players/_humanoid", strlen("models/players/_humanoid")))
+	{
+		Q_strncpyz(resolvedGLA, "models/players/_humanoid_mp/_humanoid", sizeof(resolvedGLA));
+	}
+
+	// Any players/_humanoid* folder counts as humanoid
+	if (strstr(resolvedGLA, "models/players/_humanoid_mp"))
+	{
+		return qtrue;
+	}
+
 	return qfalse;
 }
 

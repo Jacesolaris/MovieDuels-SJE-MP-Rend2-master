@@ -1,4 +1,5 @@
 #include "cg_local.h"
+#include <qcommon/q_shared.h>
 
 extern int BG_SiegeGetPairedValue(const char* buf, char* key, char* outbuf);
 extern int BG_SiegeGetValueGroup(const char* buf, char* group, char* outbuf);
@@ -22,7 +23,11 @@ stringID_table_t holsterTypeTable[] =
 	ENUM2STRING(HLR_REPEATER), //repeater
 	ENUM2STRING(HLR_FLECHETTE), //flechette
 	ENUM2STRING(HLR_DISRUPTOR), //disruptor
-	ENUM2STRING(MAX_HOLSTER)
+	ENUM2STRING(MAX_HOLSTER),
+
+	{ NULL, 0 }   // <-- REQUIRED TERMINATOR
+
+
 };
 
 stringID_table_t holsterBoneTable[] =
@@ -62,28 +67,28 @@ void CG_LoadHolsterData(clientInfo_t* ci)
 	if (!ci->skinName || !Q_stricmp("default", ci->skinName))
 	{
 		//try default holster.cfg first
-		f_len = trap->FS_Open(va("models/players/%s/holster.cfg", ci->modelName), &f, FS_READ);
+		f_len = trap->FS_Open(va("models/players/%s/holster_mp.cfg", ci->modelName), &f, FS_READ);
 
 		if (!f)
 		{
 			//no file, use kyle's then.
-			f_len = trap->FS_Open("models/players/kyle/holster.cfg", &f, FS_READ);
+			f_len = trap->FS_Open("models/players/kyle/holster_mp.cfg", &f, FS_READ);
 		}
 	}
 	else
 	{
 		//use the holster.cfg associated with this skin
-		f_len = trap->FS_Open(va("models/players/%s/holster_%s.cfg", ci->modelName, ci->skinName), &f, FS_READ);
+		f_len = trap->FS_Open(va("models/players/%s/holster_mp%s.cfg", ci->modelName, ci->skinName), &f, FS_READ);
 		if (!f)
 		{
 			//fall back to default holster.cfg
-			f_len = trap->FS_Open(va("models/players/%s/holster.cfg", ci->modelName), &f, FS_READ);
+			f_len = trap->FS_Open(va("models/players/%s/holster_mp.cfg", ci->modelName), &f, FS_READ);
 		}
 
 		if (!f)
 		{
 			//still no dice, use kyle's then.
-			f_len = trap->FS_Open("models/players/kyle/holster.cfg", &f, FS_READ);
+			f_len = trap->FS_Open("models/players/kyle/holster_mp.cfg", &f, FS_READ);
 		}
 	}
 

@@ -361,14 +361,16 @@ typedef struct clientInfo_s {
 	qhandle_t	bolt_lfemurYZ;	//left hip used for the holster offsetting method
 
 	holster_t	holsterData[MAX_HOLSTER];
-
-	int			saberAttackChainCount;
 	int         saberFatigueChainCount;
-	int			BlasterAttackChainCount;
-	int			blockPoints;
-	int			saberAnimLevel;
+	int         BlasterAttackChainCount;
+	int         blockPoints;
+	int         saberAnimLevel;
 
-	forcedata_t	fd;
+	forcedata_t fd;
+
+	// NEW: unified humanoid animation paths
+	char        glaName[MAX_QPATH];
+	char        animName[MAX_QPATH];
 } clientInfo_t;
 
 //rww - cheap looping sound struct
@@ -2003,9 +2005,9 @@ void CG_TileClear(void);
 void CG_ColorForHealth(vec4_t hcolor);
 void CG_GetColorForHealth(int health, int armor, vec4_t hcolor);
 
-void UI_DrawProportionalString( int x, const int y, const char* str, const int style, vec4_t color, int font);
-void CG_DrawProportionalString( int x, const int y, const char* str, const int style, vec4_t color);
-void CG_DrawSmallProportionalString( int x, const int y, const char* str, const int style, vec4_t color);
+void UI_DrawProportionalString(int x, const int y, const char* str, const int style, vec4_t color, int font);
+void CG_DrawProportionalString(int x, const int y, const char* str, const int style, vec4_t color);
+void CG_DrawSmallProportionalString(int x, const int y, const char* str, const int style, vec4_t color);
 void CG_DrawScaledProportionalString(int x, int y, const char* str, int style, vec4_t color, float scale);
 void CG_DrawRect(float x, float y, float width, float height, float size, const float* color);
 void CG_DrawSides(float x, float y, float w, float h, float size);
