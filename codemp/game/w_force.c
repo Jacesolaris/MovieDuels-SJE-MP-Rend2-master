@@ -4722,9 +4722,8 @@ void ForceTelepathy(gentity_t* self)
 				ent->client->ps.userInt1 |= LOCK_LEFT;
 				ent->client->viewLockTime = level.time + STASIS_TIME;
 				ent->client->ps.legsTimer = ent->client->ps.torsoTimer = level.time + STASIS_TIME;
-				G_SetAnim(ent, NULL, SETANIM_BOTH, WeaponReadyAnim[ent->client->ps.weapon],
-					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 500);
-				G_AddEvent(ent, EV_STASIS, DirToByte(dir));
+				G_SetAnim(ent, NULL, SETANIM_BOTH, WeaponReadyAnim[ent->client->ps.weapon], SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 500);
+				//G_AddEvent(ent, EV_STASIS, DirToByte(dir));
 				G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/stasis.wav"));
 				ent->client->ps.saber_move = ent->client->ps.saberBounceMove = LS_READY;
 				//don't finish whatever saber anim you may have been in
@@ -4742,8 +4741,7 @@ void ForceTelepathy(gentity_t* self)
 				ent->client->ps.userInt1 |= LOCK_LEFT;
 				ent->client->viewLockTime = level.time + STASISJEDI_TIME;
 				ent->client->ps.legsTimer = ent->client->ps.torsoTimer = level.time + STASISJEDI_TIME;
-				G_SetAnim(ent, NULL, SETANIM_BOTH, WeaponReadyAnim[ent->client->ps.weapon],
-					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 300);
+				G_SetAnim(ent, NULL, SETANIM_BOTH, WeaponReadyAnim[ent->client->ps.weapon], SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 300);
 				G_AddEvent(ent, EV_STASIS, DirToByte(dir));
 				G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/stasis.wav"));
 				ent->client->ps.saber_move = ent->client->ps.saberBounceMove = LS_READY;
@@ -4758,8 +4756,7 @@ void ForceTelepathy(gentity_t* self)
 					ent->client->ps.userInt3 &= ~(1 << FLAG_FROZEN);
 				}
 				Player_CheckFreeze(ent);
-				G_SetAnim(ent, &ent->client->pers.cmd, SETANIM_TORSO, BOTH_SONICPAIN_HOLD,
-					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLD, 0);
+				G_SetAnim(ent, &ent->client->pers.cmd, SETANIM_TORSO, BOTH_SONICPAIN_HOLD, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLD, 0);
 			}
 		}
 		e++;
@@ -4773,15 +4770,15 @@ void ForceTelepathy(gentity_t* self)
 		{
 			WP_ForcePowerStart(self, FP_TELEPATHY, 0);
 		}
-
-		G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/distract.wav"));
-
-		self->client->ps.forceHandExtend = HANDEXTEND_FORCEPUSH;
-		self->client->ps.forceHandExtendTime = level.time + 1000;
 	}
+
+	G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/distract.wav"));
+
+	self->client->ps.forceHandExtend = HANDEXTEND_FORCEPUSH;
+	self->client->ps.forceHandExtendTime = level.time + 1000;
 }
 
-void GEntity_UseFunc(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void GEntity_UseFunc(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	GlobalUse(self, other, activator);
 }

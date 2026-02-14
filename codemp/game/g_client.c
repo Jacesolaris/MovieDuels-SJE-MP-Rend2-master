@@ -36,6 +36,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_local.h"
 #include "ghoul2/G2.h"
 #include "bg_saga.h"
+#include <qcommon/q_string.h>
 
 // g_client.c -- client functions that don't happen every frame
 
@@ -685,6 +686,7 @@ Find the spot that we DON'T want to use
 ================
 */
 #define	MAX_SPAWN_POINTS	128
+static qboolean SafeSpawn_FindOffset(const vec3_t baseOrigin, vec3_t outOrigin);
 
 static gentity_t* SelectNearestDeathmatchSpawnPoint(vec3_t from)
 {
@@ -713,21 +715,27 @@ static gentity_t* SelectNearestDeathmatchSpawnPoint(vec3_t from)
 	VectorCopy(nearestSpot->s.origin, baseOrigin);
 	baseOrigin[2] += 9;
 
-	// 1. Check if nearest spawn is occupied
-	if (SafeSpawn_IsOccupied(baseOrigin))
+	// ---------------------------------------------------------
+	// ⭐ ALWAYS run SafeSpawn for bots or single-spawn maps
+	// ---------------------------------------------------------
+	if (SafeSpawn_IsOccupied(baseOrigin) ||
+		level.numDeathmatchSpawns <= 1 ||   // tiny maps
+		(nearestSpot->flags & FL_NO_BOTS))  // safety
 	{
 		vec3_t offsetOrigin;
 
-		// 2. Try to find a safe offset around the nearest spawn
 		if (SafeSpawn_FindOffset(baseOrigin, offsetOrigin))
 		{
-			// We do NOT write origin/angles here because this function
-			// only returns the spot entity, not the final spawn origin.
-			// ClientSpawn() will call SelectSpawnPoint() afterwards.
 			return nearestSpot;
 		}
 
-		// 3. No safe offset → return NULL so ClientSpawn() delays spawn
+		// Fallback nudge to avoid same-frame overlap
+		baseOrigin[0] += Q_irand(-24, 24);
+		baseOrigin[1] += Q_irand(-24, 24);
+
+		if (!SafeSpawn_IsOccupied(baseOrigin))
+			return nearestSpot;
+
 		return NULL;
 	}
 
@@ -989,7 +997,8 @@ static gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origi
 	VectorCopy(list_spot[rnd]->s.origin, baseOrigin);
 	baseOrigin[2] += 9;
 
-	if (SafeSpawn_IsOccupied(baseOrigin))
+	// Force SafeSpawn for bots OR if only one spawnpoint exists
+	if (isbot || numSpots == 1 || SafeSpawn_IsOccupied(baseOrigin))
 	{
 		vec3_t offsetOrigin;
 
@@ -1000,7 +1009,15 @@ static gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origi
 			return list_spot[rnd];
 		}
 
-		return NULL;
+		// As a fallback, nudge bots slightly
+		if (isbot)
+		{
+			origin[0] = baseOrigin[0] + Q_irand(-24, 24);
+			origin[1] = baseOrigin[1] + Q_irand(-24, 24);
+			origin[2] = baseOrigin[2];
+			VectorCopy(list_spot[rnd]->s.angles, angles);
+			return list_spot[rnd];
+		}
 	}
 
 	VectorCopy(baseOrigin, origin);
@@ -1109,7 +1126,8 @@ tryAgain:
 	VectorCopy(list_spot[rnd]->s.origin, baseOrigin);
 	baseOrigin[2] += 9;
 
-	if (SafeSpawn_IsOccupied(baseOrigin))
+	// Force SafeSpawn for bots OR if only one spawnpoint exists
+	if (isbot || numSpots == 1 || SafeSpawn_IsOccupied(baseOrigin))
 	{
 		vec3_t offsetOrigin;
 
@@ -1120,7 +1138,15 @@ tryAgain:
 			return list_spot[rnd];
 		}
 
-		return NULL;
+		// As a fallback, nudge bots slightly
+		if (isbot)
+		{
+			origin[0] = baseOrigin[0] + Q_irand(-24, 24);
+			origin[1] = baseOrigin[1] + Q_irand(-24, 24);
+			origin[2] = baseOrigin[2];
+			VectorCopy(list_spot[rnd]->s.angles, angles);
+			return list_spot[rnd];
+		}
 	}
 
 	VectorCopy(baseOrigin, origin);
@@ -3905,7 +3931,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_spanki6b_jka")
 			|| Class_Model(model, "jedi_spanki_jka")
 			|| Class_Model(model, "jaro_tapal_mp")
-				|| Class_Model(model, "jaro_tapal")
+			|| Class_Model(model, "jaro_tapal")
 			|| Class_Model(model, "spiderman")
 			|| Class_Model(model, "Wolverine")
 			|| Class_Model(model, "SD_tmnt")
@@ -3939,7 +3965,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "Vandar_ghost")
 			|| Class_Model(model, "Visas")
 			|| Class_Model(model, "jocasta_mp")
-				|| Class_Model(model, "jocasta")
+			|| Class_Model(model, "jocasta")
 			|| Class_Model(model, "VrookLamar")
 			|| Class_Model(model, "bultar_mp")
 			|| Class_Model(model, "cal_inquisitor_mp")
@@ -3975,7 +4001,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "foul_moudama")
 			|| Class_Model(model, "koffi_arana")
 			|| Class_Model(model, "koffi_arana")
-				|| Class_Model(model, "boc")
+			|| Class_Model(model, "boc")
 			|| Class_Model(model, "boc_mp"))
 		{
 			client->pers.nextbotclass = BCLASS_JEDI;
@@ -7070,14 +7096,13 @@ void ClientSpawn(gentity_t* ent)
 	}
 	else if (level.gametype == GT_CTF || level.gametype == GT_CTY)
 	{
-		spawnPoint = SelectCTFSpawnPoint(client->sess.sessionTeam,
-			client->pers.teamState.state, spawn_origin, spawn_angles,
-			!!(ent->r.svFlags & SVF_BOT));
+		// all base oriented team games use the CTF spawn points
+		spawnPoint = SelectCTFSpawnPoint(client->sess.sessionTeam, client->pers.teamState.state, spawn_origin,
+			spawn_angles, !!(ent->r.svFlags & SVF_BOT));
 	}
 	else if (level.gametype == GT_SIEGE)
 	{
-		spawnPoint = SelectSiegeSpawnPoint(client->siegeClass,
-			client->sess.sessionTeam, client->pers.teamState.state,
+		spawnPoint = SelectSiegeSpawnPoint(client->siegeClass, client->sess.sessionTeam, client->pers.teamState.state,
 			spawn_origin, spawn_angles, !!(ent->r.svFlags & SVF_BOT));
 	}
 	else if (level.gametype == GT_SINGLE_PLAYER)
@@ -7088,49 +7113,33 @@ void ClientSpawn(gentity_t* ent)
 	{
 		if (level.gametype == GT_POWERDUEL)
 		{
-			spawnPoint = SelectDuelSpawnPoint(client->sess.duelTeam,
-				client->ps.origin, spawn_origin, spawn_angles,
+			spawnPoint = SelectDuelSpawnPoint(client->sess.duelTeam, client->ps.origin, spawn_origin, spawn_angles,
 				!!(ent->r.svFlags & SVF_BOT));
 		}
 		else if (level.gametype == GT_DUEL)
 		{
-			spawnPoint = SelectDuelSpawnPoint(DUELTEAM_SINGLE,
-				client->ps.origin, spawn_origin, spawn_angles,
+			// duel
+			spawnPoint = SelectDuelSpawnPoint(DUELTEAM_SINGLE, client->ps.origin, spawn_origin, spawn_angles,
 				!!(ent->r.svFlags & SVF_BOT));
 		}
 		else
 		{
+			// the first spawn should be at a good looking spot
 			if (!client->pers.initialSpawn && client->pers.localClient)
 			{
 				client->pers.initialSpawn = qtrue;
-				spawnPoint = SelectInitialSpawnPoint(spawn_origin,
-					spawn_angles, client->sess.sessionTeam,
+				spawnPoint = SelectInitialSpawnPoint(spawn_origin, spawn_angles, client->sess.sessionTeam,
 					!!(ent->r.svFlags & SVF_BOT));
 			}
 			else
 			{
-				spawnPoint = SelectSpawnPoint(client->ps.origin,
-					spawn_origin, spawn_angles,
-					client->sess.sessionTeam,
-					!!(ent->r.svFlags & SVF_BOT));
+				// don't spawn near existing origin if possible
+				spawnPoint = SelectSpawnPoint(
+					client->ps.origin,
+					spawn_origin, spawn_angles, client->sess.sessionTeam, !!(ent->r.svFlags & SVF_BOT));
 			}
 		}
 	}
-
-	/*
-	==========================
-	Safe-spawn retry delay
-	==========================
-	*/
-	if (!spawnPoint)
-	{
-		// Randomized delay: 2–4 seconds
-		int jitter = 2000 + (rand() % 2000);   // 2000–4000 ms
-
-		ent->client->respawnPending = level.time + jitter;
-		return;
-	}
-
 	client->pers.teamState.state = TEAM_ACTIVE;
 
 	// toggle the teleport bit so the client knows to not lerp

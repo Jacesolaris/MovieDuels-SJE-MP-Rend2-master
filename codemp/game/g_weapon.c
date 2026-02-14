@@ -2128,6 +2128,43 @@ void wp_flechette_alt_blow(gentity_t* ent)
 	laserTrapExplode(ent);
 }
 
+static void StasismissileExplode(gentity_t* self)
+{
+	vec3_t v;
+	self->takedamage = qfalse;
+
+	if (self->activator)
+	{
+		g_radius_damage(self->r.currentOrigin, self->activator, self->splashDamage, self->splashRadius, self, self, MOD_BRYAR_PISTOL);
+	}
+
+	VectorCopy(self->s.pos.trDelta, v);
+	//Explode outward from the surface
+
+	if (self->s.time == -2)
+	{
+		v[0] = 0;
+		v[1] = 0;
+		v[2] = 0;
+	}
+
+	G_PlayEffect(EFFECT_SPARK_EXPLOSION, self->r.currentOrigin, v);
+
+	self->think = G_FreeEntity;
+	self->nextthink = level.time;
+}
+
+//----------------------------------------------
+void wp_stasis_missile_blow(gentity_t* ent)
+//----------------------------------------------
+{
+	ent->s.pos.trDelta[0] = 1;
+	ent->s.pos.trDelta[1] = 0;
+	ent->s.pos.trDelta[2] = 0;
+
+	StasismissileExplode(ent);
+}
+
 //------------------------------------------------------------------------------
 static void WP_CreateFlechetteBouncyThing(vec3_t start, vec3_t fwd, gentity_t* self)
 //------------------------------------------------------------------------------
@@ -2596,10 +2633,6 @@ static void WP_GrenadeBlow(gentity_t* self)
 
 			if (Q_stricmp(self->classname, "cryoban_grenade") == 0)
 			{
-				G_AddEvent(ent, EV_CRYOBAN, DirToByte(dir));
-			}
-			if (Q_stricmp(self->classname, "cryoban_grenade") == 0)
-			{
 				ent->client->frozenTime = level.time + FROZEN_TIME;
 				ent->client->ps.userInt3 |= 1 << FLAG_FROZEN;
 				ent->client->ps.userInt1 |= LOCK_UP;
@@ -2608,8 +2641,9 @@ static void WP_GrenadeBlow(gentity_t* self)
 				ent->client->ps.userInt1 |= LOCK_LEFT;
 				ent->client->viewLockTime = level.time + FROZEN_TIME;
 				ent->client->ps.legsTimer = ent->client->ps.torsoTimer = level.time + FROZEN_TIME;
-				G_SetAnim(ent, NULL, SETANIM_BOTH, WeaponReadyAnim[ent->client->ps.weapon],
-					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 300);
+				G_SetAnim(ent, NULL, SETANIM_BOTH, WeaponReadyAnim[ent->client->ps.weapon], SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 300);
+				ent->client->ps.weaponTime = level.time + FROZEN_TIME;
+				G_AddEvent(ent, EV_CRYOBAN, DirToByte(dir));
 			}
 			else if (Q_stricmp(self->classname, "flash_grenade") == 0)
 			{
@@ -2670,7 +2704,7 @@ static void WP_GrenadeThink(gentity_t* ent)
 }
 
 //---------------------------------------------------------
-gentity_t* WP_FireThermalDetonator(gentity_t* ent, const qboolean alt_fire)
+static gentity_t* WP_FireThermalDetonator(gentity_t* ent, const qboolean alt_fire)
 //---------------------------------------------------------
 {
 	vec3_t dir, start;
@@ -3015,7 +3049,7 @@ static void laserTrapDelayedExplode(gentity_t* self, gentity_t* inflictor, genti
 	}
 }
 
-void touchLaserTrap(gentity_t* ent, const gentity_t* other, trace_t* trace)
+static void touchLaserTrap(gentity_t* ent, const gentity_t* other, trace_t* trace)
 {
 	if (other && other->s.number < ENTITYNUM_WORLD)
 	{
@@ -3089,7 +3123,7 @@ static void proxMineThink(gentity_t* ent)
 	}
 }
 
-void laserTrapThink(gentity_t* ent)
+static void laserTrapThink(gentity_t* ent)
 {
 	vec3_t end;
 	trace_t tr;
@@ -5419,6 +5453,11 @@ void FireWeapon(gentity_t* ent, const qboolean alt_fire)
 	float alert = 256;
 
 	if (PM_InKnockDown(&ent->client->ps))
+	{
+		return;
+	}
+
+	if (ent->client->ps.userInt3 & (1 << FLAG_FROZEN))
 	{
 		return;
 	}

@@ -67,9 +67,9 @@ const char* forcepowerDesc[NUM_FORCE_POWERS] =
 	"@MENUS_EFFECT_JEDI_ALLIES_NEFFECT",
 	"@MENUS_VARIABLE_NAREA_OF_EFFECT",
 	"@MENUS_EFFECT_NAREA_OF_EFFECT",
-	"@MD_MP_GAMEFORCE_SABER_OFFENSE_DESC",
-	"@MD_MP_GAMEFORCE_SABER_DEFENSE_DESC",
-	"@MD_MP_GAMEFORCE_SABER_THROW_DESC"
+	"@MD_MP_GAME_FORCE_SABER_OFFENSE_DESC",
+	"@MD_MP_GAME_FORCE_SABER_DEFENSE_DESC",
+	"@MD_MP_GAME_FORCE_SABER_THROW_DESC"
 };
 
 // Movedata Sounds
@@ -1751,9 +1751,9 @@ static const char* UI_GetGameTypeName(int gtEnum)
 	case GT_HOLOCRON:
 		return UI_GetStringEdString("MENUS", "HOLOCRON_FFA"); //"Holocron FFA";
 	case GT_JEDIMASTER:
-		return UI_GetStringEdString("MD_MP_MENU", "JEDIMASTER"); //"Jedi Master";??
+		return UI_GetStringEdString("MD_MENU_MP", "JEDIMASTER"); //"Jedi Master";??
 	case GT_SINGLE_PLAYER:
-		return UI_GetStringEdString("MD_MP_MENU", "COOP"); //"Team FFA";
+		return UI_GetStringEdString("MD_MENU_MP", "COOP"); //"Team FFA";
 	case GT_DUEL:
 		return UI_GetStringEdString("MENUS", "DUEL"); //"Team FFA";
 	case GT_POWERDUEL:
@@ -2257,7 +2257,7 @@ static void UI_DrawTeamMember(rectDef_t* rect, float scale, vec4_t color, qboole
 	Text_Paint(rect->x, rect->y, scale, finalColor, text, 0, 0, textStyle, i_menu_font);
 }
 
-int SCREENSHOT_TOTAL = 8;
+int SCREENSHOT_TOTAL = -1;
 int SCREENSHOT_CHOICE = 0;
 int SCREENSHOT_NEXT_UPDATE_TIME = 0;
 
@@ -2267,8 +2267,33 @@ static char* UI_GetCurrentLevelshot(void)
 
 	if (SCREENSHOT_NEXT_UPDATE_TIME < time)
 	{
-		SCREENSHOT_NEXT_UPDATE_TIME = time + 5000;
-		SCREENSHOT_CHOICE = Q_irand(0, SCREENSHOT_TOTAL);
+		if (SCREENSHOT_TOTAL < 0)
+		{
+			// Count and register them...
+			SCREENSHOT_TOTAL = 0;
+
+			while (1)
+			{
+				char screenShot[128] = { 0 };
+
+				strcpy(screenShot, va("menu/art/unknownmap%i", SCREENSHOT_TOTAL));
+
+				if (!trap->R_RegisterShaderNoMip(screenShot))
+				{
+					// Found the last one...
+					break;
+				}
+
+				SCREENSHOT_TOTAL++;
+			}
+
+			SCREENSHOT_TOTAL--;
+		}
+
+		SCREENSHOT_NEXT_UPDATE_TIME = time + 2500;
+		SCREENSHOT_CHOICE++;
+
+		if (SCREENSHOT_CHOICE > SCREENSHOT_TOTAL) SCREENSHOT_CHOICE = 0;
 	}
 
 	return va("menu/art/unknownmap%i", SCREENSHOT_CHOICE);
@@ -2682,35 +2707,6 @@ static const char* UI_AIFromName(const char* name)
 	return "_humanoid_mp";
 }
 
-/*
-static qboolean updateOpponentModel = qtrue;
-static void UI_DrawOpponent(rectDef_t *rect) {
-  static playerInfo_t info2;
-  char model[MAX_QPATH];
-  char headmodel[MAX_QPATH];
-  char team[256];
-	vec3_t	viewangles;
-	vec3_t	moveangles;
-
-	if (updateOpponentModel) {
-		strcpy(model, UI_Cvar_VariableString("ui_opponentModel"));
-	  strcpy(headmodel, UI_Cvar_VariableString("ui_opponentModel"));
-		team[0] = '\0';
-
-	memset( &info2, 0, sizeof(playerInfo_t) );
-	viewangles[YAW]   = 180 - 10;
-	viewangles[PITCH] = 0;
-	viewangles[ROLL]  = 0;
-	VectorClear( moveangles );
-	UI_PlayerInfo_SetModel( &info2, model, headmodel, "");
-	UI_PlayerInfo_SetInfo( &info2, TORSO_WEAPONREADY3, TORSO_WEAPONREADY3, viewangles, vec3_origin, WP_BRYAR_PISTOL, qfalse );
-		UI_RegisterClientModelname( &info2, model, headmodel, team);
-	updateOpponentModel = qfalse;
-  }
-
-  UI_DrawPlayer( rect->x, rect->y, rect->w, rect->h, &info2, uiInfo.uiDC.realTime / 2);
-}
-*/
 static void UI_NextOpponent()
 {
 	int i = UI_TeamIndexFromName(UI_Cvar_VariableString("ui_opponentName"));
@@ -3133,8 +3129,8 @@ static void UI_DrawRedBlue(rectDef_t* rect, float scale, vec4_t color, int textS
 		//print different team names for CoOp
 		Text_Paint(rect->x, rect->y, scale, color,
 			uiInfo.redBlue == 0
-			? UI_GetStringEdString("MD_MP_MENU", "ENEMYTEAM")
-			: UI_GetStringEdString("MD_MP_MENU", "PLAYERTEAM"), 0, 0, textStyle, i_menu_font);
+			? UI_GetStringEdString("MD_MENU_MP", "ENEMYTEAM")
+			: UI_GetStringEdString("MD_MENU_MP", "PLAYERTEAM"), 0, 0, textStyle, i_menu_font);
 	}
 	else
 	{
@@ -10549,6 +10545,7 @@ UI_BuildPlayerModel_List
 static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 {
 	static const size_t DIR_LIST_SIZE = 16384;
+
 	size_t dirListSize = DIR_LIST_SIZE;
 	char stackDirList[8192];
 	int dirlen;
@@ -10617,16 +10614,8 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 			if (uiInfo.playerSpeciesCount >= uiInfo.playerSpeciesMax)
 			{
 				uiInfo.playerSpeciesMax *= 2;
-
-				void* newPtr = realloc(uiInfo.playerSpecies,
-					uiInfo.playerSpeciesMax * sizeof(playerSpeciesInfo_t));
-
-				if (!newPtr)
-				{
-					Com_Error(ERR_FATAL, "Out of memory expanding player species list");
-				}
-
-				uiInfo.playerSpecies = newPtr;
+				uiInfo.playerSpecies = (playerSpeciesInfo_t*)realloc(
+					uiInfo.playerSpecies, uiInfo.playerSpeciesMax * sizeof(playerSpeciesInfo_t));
 			}
 			playerSpeciesInfo_t* species = &uiInfo.playerSpecies[uiInfo.playerSpeciesCount];
 			memset(species, 0, sizeof(playerSpeciesInfo_t));
@@ -10671,18 +10660,8 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 						if (species->SkinHeadCount >= species->SkinHeadMax)
 						{
 							species->SkinHeadMax *= 2;
-
-							void* newPtr = realloc(
-								species->SkinHead,
-								species->SkinHeadMax * sizeof(skinName_t)
-							);
-
-							if (!newPtr)
-							{
-								Com_Error(ERR_FATAL, "Out of memory expanding SkinHead");
-							}
-
-							species->SkinHead = newPtr;
+							species->SkinHead = (skinName_t*)realloc(
+								species->SkinHead, species->SkinHeadMax * sizeof(skinName_t));
 						}
 						Q_strncpyz(species->SkinHead[species->SkinHeadCount++].name, skinname, SKIN_LENGTH);
 						iSkinParts |= 1 << 0;
@@ -10692,20 +10671,9 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 						if (species->SkinTorsoCount >= species->SkinTorsoMax)
 						{
 							species->SkinTorsoMax *= 2;
-
-							void* newPtr = realloc(
-								species->SkinTorso,
-								species->SkinTorsoMax * sizeof(skinName_t)
-							);
-
-							if (!newPtr)
-							{
-								Com_Error(ERR_FATAL, "Out of memory expanding SkinTorso");
-							}
-
-							species->SkinTorso = newPtr;
+							species->SkinTorso = (skinName_t*)realloc(
+								species->SkinTorso, species->SkinTorsoMax * sizeof(skinName_t));
 						}
-
 						Q_strncpyz(species->SkinTorso[species->SkinTorsoCount++].name, skinname, SKIN_LENGTH);
 
 						iSkinParts |= 1 << 1;
@@ -10715,18 +10683,8 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 						if (species->SkinLegCount >= species->SkinLegMax)
 						{
 							species->SkinLegMax *= 2;
-
-							void* newPtr = realloc(
-								species->SkinLeg,
-								species->SkinLegMax * sizeof(skinName_t)
-							);
-
-							if (!newPtr)
-							{
-								Com_Error(ERR_FATAL, "Out of memory expanding SkinLeg");
-							}
-
-							species->SkinLeg = newPtr;
+							species->SkinLeg = (skinName_t*)realloc(
+								species->SkinLeg, species->SkinLegMax * sizeof(skinName_t));
 						}
 						Q_strncpyz(species->SkinLeg[species->SkinLegCount++].name, skinname, SKIN_LENGTH);
 						iSkinParts |= 1 << 2;
@@ -11342,7 +11300,7 @@ static void UI_DrawConnectScreen(qboolean overlay)
 
 	if (!Q_stricmp(cstate.servername, "localhost"))
 	{
-		trap->SE_GetStringTextString("MD_MP_MENU_STARTING_UP", sStringEdTemp, sizeof sStringEdTemp);
+		trap->SE_GetStringTextString("MD_MENU_MP_STARTING_UP", sStringEdTemp, sizeof sStringEdTemp);
 		Text_PaintCenter(centerPoint, yStart + 48, scale, colorWhite, sStringEdTemp, ITEM_TEXTSTYLE_SHADOWEDMORE,
 			FONT_SMALL2);
 	}

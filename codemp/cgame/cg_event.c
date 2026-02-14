@@ -962,7 +962,7 @@ static void CG_ItemPickup(const int itemNum)
 
 	//	strcpy(upperKey, bg_itemlist[itemNum].classname);
 
-	//	if (trap->SE_GetStringTextString(va("MD_MP_GAME%s", Q_strupr(upperKey)), text, sizeof(text)))
+	//	if (trap->SE_GetStringTextString(va("MD_MP_GAME_%s", Q_strupr(upperKey)), text, sizeof(text)))
 	//	{
 	//		Com_Printf("%s %s\n", CG_GetStringEdString("MD_MP_INGAME", "PICKUPLINE"), text);
 	//	}
@@ -1961,8 +1961,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 		DEBUGNAME("EV_STASIS");
 		{
 			vec3_t up = { 0, 0, 1 };
-			trap->FX_PlayEffectID(trap->FX_RegisterEffect("cryoban/stasis"), cent->playerState->origin, up, -1, -1,
-				qfalse);
+			trap->FX_PlayEffectID(trap->FX_RegisterEffect("cryoban/stasis"), cent->playerState->origin, up, -1, -1, qfalse);
 		}
 		break;
 
@@ -2583,7 +2582,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					const char* str_text = CG_GetStringEdString("MD_MP_INGAME", "PICKUPLINE");
 
 					//Com_Printf("%s %s\n", strText, showPowersName[index]);
-					CG_CenterPrint(va("%s %s\n", str_text, CG_GetStringEdString("SP_INGAME", showPowersName[index])),
+					CG_CenterPrint(va("%s %s\n", str_text, CG_GetStringEdString("MD_MP_GAME", showPowersName[index])),
 						SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH);
 				}
 

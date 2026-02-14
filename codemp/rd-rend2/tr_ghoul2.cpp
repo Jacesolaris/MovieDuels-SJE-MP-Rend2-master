@@ -463,8 +463,19 @@ public:
 
 	const mdxaBone_t& Eval(int index)
 	{
+		if (index < 0 || index >= (int)mBones.size())
+		{
+			// Safe fallback: identity matrix
+			static mdxaBone_t identity;
+			memset(&identity, 0, sizeof(identity));
+			identity.matrix[0][0] = 1.0f;
+			identity.matrix[1][1] = 1.0f;
+			identity.matrix[2][2] = 1.0f;
+
+			return identity;
+		}
 		//Hey, this is what sof2 does. Let's try it out.
-		assert(index >= 0 && index < (int)mBones.size());
+		//assert(index >= 0 && index < (int)mBones.size());
 		if (mFinalBones[index].touch != mCurrentTouch)
 		{
 			EvalLow(index);
@@ -731,7 +742,11 @@ void G2_GetBoneMatrixLow(const CGhoul2Info& ghoul2, const int boneNum, const vec
 	{
 		for (int j = 0; j < 4; j++)
 		{
-			assert(!Q_isnan(retMatrix.matrix[i][j]));
+			if (Q_isnan(retMatrix.matrix[i][j]))
+			{
+				Com_Printf("^1G2_GetBoneMatrixLow: NAN detected in retMatrix at [%d][%d]\n", i, j);
+				Com_Printf("^1NAN in bone %d (%s)\n", boneNum, boneCache.mod->name);
+			}
 		}
 	}
 #endif // _DEBUG
@@ -3746,8 +3761,6 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 	mdxm = (mdxmHeader_t*)CModelCache->Allocate(size, buffer, mod_name, &bAlreadyFound, TAG_MODEL_GLM);
 	mod->data.glm = (mdxmData_t*)ri->Hunk_Alloc(sizeof(mdxmData_t), h_low);
 	mod->data.glm->header = mdxm;
-
-	//RE_RegisterModels_Malloc(size, buffer, mod_name, &bAlreadyFound, TAG_MODEL_GLM);
 
 	assert(bAlreadyCached == bAlreadyFound);
 

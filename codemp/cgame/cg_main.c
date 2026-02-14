@@ -1424,6 +1424,7 @@ static void CG_RegisterGraphics(void)
 	cgs.effects.mForceConfustionOld = trap->FX_RegisterEffect("force/confusion_old.efx");
 	cgs.effects.mSaberFriction = trap->FX_RegisterEffect("saber/saber_friction.efx");
 	cgs.effects.mSaberLock = trap->FX_RegisterEffect("saber/saber_lock2.efx");
+	cgs.effects.ForceConfustionNew = trap->FX_RegisterEffect("force/confusion.efx");
 
 	cgs.effects.forceLightning = trap->FX_RegisterEffect("effects/force/lightning.efx");
 	cgs.effects.forceLightningWide = trap->FX_RegisterEffect("effects/force/lightningwide.efx");
@@ -1458,6 +1459,8 @@ static void CG_RegisterGraphics(void)
 
 	cgs.media.backTileShader = trap->R_RegisterShader("gfx/2d/backtile");
 
+	//precache the fpls skin
+	//trap->R_RegisterSkin("models/players/kyle/model_fpls2.skin");
 
 	cgs.media.itemRespawningPlaceholder = trap->R_RegisterShader("powerups/placeholder");
 	cgs.media.itemRespawningRezOut = trap->R_RegisterShader("powerups/rezout");

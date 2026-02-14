@@ -630,13 +630,13 @@ void NPC_Touch(gentity_t* self, gentity_t* other, trace_t* trace)
 				//a goodie key
 				if ((keyTaken = INV_GoodieKeyGive(other)) == qtrue)
 				{
-					//text = va("cp \"%s\n\"", G_GetStringEdString("SP_INGAME", "TOOK_IMPERIAL_GOODIE_KEY"));
+					//text = va("cp \"%s\n\"", G_GetStringEdString("MD_MP_GAME", "TOOK_IMPERIAL_GOODIE_KEY"));
 					trap->SendServerCommand(-1, "cp \"You took the goodie key.\n\"");
 				}
 				else
 				{
 					//sendnum = other->s.number;
-					//text = va("cp \"%s\n\"", G_GetStringEdString("SP_INGAME", "CANT_CARRY_GOODIE_KEY"));
+					//text = va("cp \"%s\n\"", G_GetStringEdString("MD_MP_GAME", "CANT_CARRY_GOODIE_KEY"));
 					trap->SendServerCommand(-1, "cp \"You cant carry the goodie key.\n\"");
 				}
 			}
@@ -645,13 +645,13 @@ void NPC_Touch(gentity_t* self, gentity_t* other, trace_t* trace)
 				//a named security key
 				if ((keyTaken = INV_SecurityKeyGive(other, self->message)) == qtrue)
 				{
-					//text = va("cp \"%s\n\"", G_GetStringEdString("SP_INGAME", "TOOK_IMPERIAL_SECURITY_KEY"));
+					//text = va("cp \"%s\n\"", G_GetStringEdString("MD_MP_GAME", "TOOK_IMPERIAL_SECURITY_KEY"));
 					trap->SendServerCommand(-1, "cp \"You took the securitye key.\n\"");
 				}
 				else
 				{
 					//sendnum = other->s.number;
-					//text = va("cp \"%s\n\"", G_GetStringEdString("SP_INGAME", "CANT_CARRY_SECURITY_KEY"));
+					//text = va("cp \"%s\n\"", G_GetStringEdString("MD_MP_GAME", "CANT_CARRY_SECURITY_KEY"));
 					trap->SendServerCommand(-1, "cp \"You cant carry the security key.\n\"");
 				}
 			}

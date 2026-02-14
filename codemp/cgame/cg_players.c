@@ -410,7 +410,7 @@ sfxHandle_t CG_CustomSound(int clientNum, const char* sound_name)
 	}
 
 #ifndef FINAL_BUILD
-	Com_Printf("Unknown custom sound: %s\n", l_sound_name);
+	Com_Printf("Unknown custom sound: %s\n", lSoundName);
 #endif
 	return 0;
 }
@@ -1140,7 +1140,7 @@ This will usually be deferred to a safe time
 */
 void CG_LoadHolsterData(clientInfo_t* ci);
 
-void CG_LoadClientInfo(clientInfo_t* ci)
+static void CG_LoadClientInfo(clientInfo_t* ci)
 {
 	char teamname[MAX_QPATH];
 	char* fallback_model = DEFAULT_MODEL;
@@ -3087,19 +3087,13 @@ static void CG_PlayerAmbientEvents(centity_t* cent)
 	}
 }
 
-static void CG_TriggerAnimSounds(centity_t* cent)
+void CG_TriggerAnimSounds(centity_t* cent)
 {
 	//this also sets the lerp frames, so I suggest you keep calling it regardless of if you want anim sounds.
 	int cur_frame = 0;
 	float currentFrame = 0;
 
 	assert(cent->localAnimIndex >= 0);
-
-	// protect against invalid eventAnimIndex causing bgAllEvents[-1] reads
-	if (cent->eventAnimIndex < 0)
-	{
-		return;
-	}
 
 	const int s_file_index = cent->eventAnimIndex;
 
@@ -3141,7 +3135,7 @@ static void CG_TriggerAnimSounds(centity_t* cent)
 
 static qboolean CG_FirstAnimFrame(const lerpFrame_t* lf, qboolean torso_only, float speed_scale);
 
-static qboolean CG_InRoll(const centity_t* cent)
+qboolean CG_InRoll(const centity_t* cent)
 {
 	switch (cent->currentState.legsAnim)
 	{
@@ -3215,14 +3209,6 @@ static void CG_SetLerpFrameAnimation(centity_t* cent, clientInfo_t* ci, lerpFram
 	if (new_animation < 0 || new_animation >= MAX_TOTALANIMATIONS)
 	{
 		trap->Error(ERR_DROP, "Bad animation number: %i", new_animation);
-	}
-
-	// Defensive check:
-	if (!bgAllAnims[cent->localAnimIndex].anims)
-	{
-		lf->animationNumber = -1;
-		lf->animation = NULL;
-		return;
 	}
 
 	animation_t* anim = &bgAllAnims[cent->localAnimIndex].anims[new_animation];
@@ -3717,16 +3703,9 @@ static void CG_ClearLerpFrame(centity_t* cent, clientInfo_t* ci, lerpFrame_t* lf
 	lf->frameTime = lf->oldFrameTime = cg.time;
 	CG_SetLerpFrameAnimation(cent, ci, lf, animation_number, 1, torso_only, qfalse);
 
-	// Defensive: bail out if animations are not available
-	if (!lf->animation)
-	{
-		lf->frame = lf->oldFrame = 0;
-		lf->backlerp = 0.0f;
-		return;
-	}
-
 	if (lf->animation->frameLerp < 0)
 	{
+		//Plays backwards
 		lf->oldFrame = lf->frame = lf->animation->firstFrame + lf->animation->numFrames;
 	}
 	else
@@ -5233,8 +5212,6 @@ Float sprites over the player's head
 */
 static void CG_PlayerSprites(const centity_t* cent)
 {
-	//	int		team;
-
 	if (cg.snap &&
 		CG_IsMindTricked(cent->currentState.trickedentindex,
 			cent->currentState.trickedentindex2,
@@ -13417,8 +13394,7 @@ JustDoIt:
 	}
 }
 
-int CG_IsMindTricked(const int trick_index1, const int trick_index2, const int trick_index3, const int trick_index4,
-	const int client)
+int CG_IsMindTricked(const int trick_index1, const int trick_index2, const int trick_index3, const int trick_index4, const int client)
 {
 	int check_in;
 	int sub = 0;
@@ -13458,7 +13434,7 @@ int CG_IsMindTricked(const int trick_index1, const int trick_index2, const int t
 
 #define SPEED_TRAIL_DISTANCE 6
 
-void CG_DrawPlayerSphere(const centity_t* cent, vec3_t origin, const float scale, const int shader)
+static void CG_DrawPlayerSphere(const centity_t* cent, vec3_t origin, const float scale, const int shader)
 {
 	refEntity_t ent;
 	vec3_t ang;
@@ -15798,7 +15774,7 @@ void ApplyAxisRotation(vec3_t axis[3], const int rot_type, const float value)
 
 extern stringID_table_t holsterTypeTable[];
 
-static void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, const int holster_type)
+void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, const int holster_type)
 {
 	refEntity_t ent;
 	vec3_t axis[3];
@@ -18453,12 +18429,13 @@ SkipTrueView:
 		}
 	}
 
-	//If you've tricked this client.
-	if (CG_IsMindTricked(cg.snap->ps.fd.forceMindtrickTargetIndex,
-		cg.snap->ps.fd.forceMindtrickTargetIndex2,
-		cg.snap->ps.fd.forceMindtrickTargetIndex3,
-		cg.snap->ps.fd.forceMindtrickTargetIndex4,
-		cent->currentState.number))
+	if (cg.snap &&
+		CG_IsMindTricked(
+			cg.snap->ps.fd.forceMindtrickTargetIndex,
+			cg.snap->ps.fd.forceMindtrickTargetIndex2,
+			cg.snap->ps.fd.forceMindtrickTargetIndex3,
+			cg.snap->ps.fd.forceMindtrickTargetIndex4,
+			cent->currentState.number))
 	{
 		if (cent->ghoul2)
 		{
@@ -18466,11 +18443,19 @@ SkipTrueView:
 			vec3_t t_ang, fx_ang;
 			matrix3_t axis;
 
-			//VectorSet( tAng, 0, cent->pe.torso.yawAngle, 0 );
-			VectorSet(t_ang, cent->turAngles[PITCH], cent->turAngles[YAW], cent->turAngles[ROLL]);
+			// Check if THIS entity is frozen
+			qboolean frozen = (cent->currentState.PlayerEffectFlags & (1 << PEF_FREEZING));
 
-			trap->G2API_GetBoltMatrix(cent->ghoul2, 0, ci->bolt_head, &boltMatrix, t_ang, cent->lerpOrigin, cg.time,
-				cgs.game_models, cent->modelScale);
+			// Build bolt matrix
+			VectorSet(t_ang,
+				cent->turAngles[PITCH],
+				cent->turAngles[YAW],
+				cent->turAngles[ROLL]);
+
+			trap->G2API_GetBoltMatrix(
+				cent->ghoul2, 0, ci->bolt_head,
+				&boltMatrix, t_ang, cent->lerpOrigin,
+				cg.time, cgs.game_models, cent->modelScale);
 
 			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, ef_org);
 			BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Y, fx_ang);
@@ -18487,7 +18472,23 @@ SkipTrueView:
 			axis[2][1] = boltMatrix.matrix[1][2];
 			axis[2][2] = boltMatrix.matrix[2][2];
 
-			trap->FX_PlayEntityEffectID(cgs.effects.mForceConfustionOld, ef_org, axis, -1, -1, -1, -1);
+			//
+			// ⭐ Choose FX based on frozen state
+			//
+			if (frozen)
+			{
+				// Frozen mindtrick → NEW effect
+				trap->FX_PlayEntityEffectID(
+					cgs.effects.ForceConfustionNew,
+					ef_org, axis, -1, -1, -1, -1);
+			}
+			else
+			{
+				// Normal mindtrick → OLD effect
+				trap->FX_PlayEntityEffectID(
+					cgs.effects.mForceConfustionOld,
+					ef_org, axis, -1, -1, -1, -1);
+			}
 		}
 	}
 
@@ -20264,22 +20265,6 @@ void CG_ResetPlayerEntity(centity_t* cent)
 		ci = &cgs.clientinfo[cent->currentState.clientNum];
 	}
 
-	if (cent->ghoul2 == NULL && ci->ghoul2Model && trap->G2_HaveWeGhoul2Models(ci->ghoul2Model))
-	{
-		trap->G2API_DuplicateGhoul2Instance(ci->ghoul2Model, &cent->ghoul2);
-		cent->weapon = 0;
-		cent->ghoul2weapon = NULL;
-		trap->G2API_AttachInstanceToEntNum(cent->ghoul2, cent->currentState.number, qfalse);
-
-		if (trap->G2API_AddBolt(cent->ghoul2, 0, "face") == -1)
-		{
-			cent->noFace = qtrue;
-		}
-
-		cent->localAnimIndex = CG_G2SkelForModel(cent->ghoul2);
-		cent->eventAnimIndex = CG_G2EvIndexForModel(cent->ghoul2, cent->localAnimIndex);
-	}
-
 	while (i < MAX_SABERS)
 	{
 		j = 0;
@@ -20289,17 +20274,6 @@ void CG_ResetPlayerEntity(centity_t* cent)
 			j++;
 		}
 		i++;
-	}
-
-	if (!bgAllAnims[cent->localAnimIndex].anims) {
-		// animations not loaded yet: clear animator state and skip frame setup
-		cent->pe.legs.animationNumber = cent->pe.torso.animationNumber = -1;
-		cent->pe.legs.animation = cent->pe.torso.animation = NULL;
-	}
-	else
-	{
-		CG_ClearLerpFrame(cent, ci, &cent->pe.legs, cent->currentState.legsAnim, qfalse);
-		CG_ClearLerpFrame(cent, ci, &cent->pe.torso, cent->currentState.torsoAnim, qtrue);
 	}
 
 	ci->facial_blink = -1;

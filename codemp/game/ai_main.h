@@ -24,8 +24,11 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include "bg_saga.h"
-#include <qcommon/q_shared.h>
+#include "bg_weapons.h"
+#include <qcommon\q_platform.h>
 #include "g_local.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_shared.h>
 
 #define MAX_CHAT_BUFFER_SIZE 8192
 #define MAX_CHAT_LINE_SIZE 128
@@ -153,6 +156,15 @@ typedef int bot_route_t[MAX_WPARRAY_SIZE];
 //we assume that the dependancy stuff is only for the attacking team since the defenders
 //never seem to have attackable objectives.
 int ObjectiveDependancy[MAX_OBJECTIVES][MAX_OBJECTIVEDEPENDANCY];
+
+//Defines the top list of weapons that we care about getting or having ammo for
+//while not immediately caring about it.
+//IE, the point at which we'll abandon going after our kill target, the flag, etc.
+//IE the top 5, the top 10, etc...
+#define FAVWEAPCARELEVEL_INTERRUPT 1
+
+//The debounce time for most of the higher level thinking (like the desire to get weapons/ammo).
+#define HIGHTHINKDEBOUNCE	5000
 
 int next_point[MAX_CLIENTS];
 
@@ -540,6 +552,8 @@ typedef struct bot_state_s
 	float fallbackTurnYaw;
 	float saberStyleDebounce;
 	int spacingState; // 0 = HOLD, 1 = BACKUP, 2 = CLOSE
+	// ...
+	bot_route_t tempRoute; // reusable route buffer
 
 	//end rww
 } bot_state_t;
@@ -558,7 +572,7 @@ int BotDoChat(bot_state_t* bs, const char* section, int always);
 void Enhanced_bot_ai(bot_state_t* bs);
 void standard_bot_ai(bot_state_t* bs);
 void BotWaypointRender(void);
-int org_visible_box(vec3_t org1, vec3_t mins, vec3_t maxs, vec3_t org2, int ignore);
+int org_visible_box(vec3_t org1, vec3_t mins, vec3_t maxs, vec3_t org2, const int ignore);
 int bot_is_a_chicken_wuss(bot_state_t* bs);
 int get_nearest_visible_wp(vec3_t org, int ignore);
 int get_best_idle_goal(bot_state_t* bs);

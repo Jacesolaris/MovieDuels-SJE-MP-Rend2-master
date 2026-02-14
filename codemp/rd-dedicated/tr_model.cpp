@@ -1157,15 +1157,6 @@ static qhandle_t RE_RegisterModel_Actual(const char* name)
 		ri->Printf(PRINT_DEVELOPER, S_COLOR_RED "Model name exceeds MAX_QPATH\n");
 		return 0;
 	}
-
-	/*
-	Ghoul2 Insert Start
-	*/
-	//	if (!tr.registered) {
-	//		Com_Printf (S_COLOR_YELLOW  "RE_RegisterModel (%s) called before ready!\n",name );
-	//		return 0;
-	//	}
-	//
 	// search the currently loaded models
 	//
 	int hash = generateHashValue(name, FILE_HASH_SIZE);
@@ -1312,7 +1303,7 @@ static qhandle_t RE_RegisterModel_Actual(const char* name)
 		// if we have a valid model and are biased
 		// so that we won't see any higher detail ones,
 		// stop loading them
-		if (lod <= r_lodbias->integer)
+		if (r_lodbias && lod <= r_lodbias->integer)
 		{
 			break;
 		}

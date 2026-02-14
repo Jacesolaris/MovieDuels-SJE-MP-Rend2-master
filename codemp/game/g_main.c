@@ -4584,7 +4584,7 @@ void G_RunFrame(const int levelTime)
 
 		if (ent->s.eType == ET_MISSILE)
 		{
-			g_run_missile(ent);
+			G_RunMissile(ent);
 			continue;
 		}
 

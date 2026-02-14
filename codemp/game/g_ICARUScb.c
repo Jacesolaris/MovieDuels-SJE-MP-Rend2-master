@@ -1202,15 +1202,15 @@ stringID_table_t SubtitleTimeTable[] =
 	{"YAVIN2_02LUK002", 7475},
 	{"YAVIN2_02KYK025", 975},
 	{"YAVIN2_02KYK026", 7865},
-	{"MD_MP_COOP_MIS_01L01", 3055},
-	{"MD_MP_COOP_MIS_01L02", 3640},
-	{"MD_MP_COOP_MIS_01L03", 2600},
-	{"MD_MP_COOP_MIS_01L04", 3965},
-	{"MD_MP_COOP_MME_01L01", 5070},
-	{"MD_MP_COOP_MME_01L02", 1495},
-	{"MD_MP_COOP_MME_01L03", 5330},
-	{"MD_MP_COOP_MME_01L04", 4745},
-	{"MD_MP_COOP_MME_01L05", 845},
+	{ "MD_MP_COOP_MIS_01L01", 3055 },
+	{ "MD_MP_COOP_MIS_01L02", 3640 },
+	{ "MD_MP_COOP_MIS_01L03", 2600 },
+	{ "MD_MP_COOP_MIS_01L04", 3965 },
+	{ "MD_MP_COOP_MME_01L01", 5070 },
+	{ "MD_MP_COOP_MME_01L02", 1495 },
+	{ "MD_MP_COOP_MME_01L03", 5330 },
+	{ "MD_MP_COOP_MME_01L04", 4745 },
+	{ "MD_MP_COOP_MME_01L05", 845 },
 
 	//must be terminated
 	{NULL, -1}
@@ -1345,7 +1345,7 @@ static int Icarus_SoundTime(char soundName[MAX_QPATH])
 	if (time < 0)
 	{
 		//couldn't find it in the original file.  Try looking into OJP's supplimental file.
-		time = GetIDForString(SubtitleTimeTable, va("MD_CooP_%s", sound));
+		time = GetIDForString(SubtitleTimeTable, va("MD_MP_COOP_%s", sound));
 	}
 	if (time < 0)
 	{

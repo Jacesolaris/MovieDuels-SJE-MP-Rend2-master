@@ -1004,7 +1004,7 @@ Bacta canister pickup, heals 25 on use
 	HI_MEDPAC,
 	/* precache */ "",
 	/* sounds */ "",
-	"@MD_MP_GAMEBACTA_DESC" // description
+	"@MD_MP_GAME_BACTA_DESC" // description
 },
 
 /*QUAKED item_medpac_big (.3 .3 1) (-8 -8 -0) (8 8 16) suspended
@@ -1025,7 +1025,7 @@ Big bacta canister pickup, heals 50 on use
 	HI_MEDPAC_BIG,
 	/* precache */ "",
 	/* sounds */ "",
-	"@MD_MP_GAMEBACTA_DESC" // description
+	"@MD_MP_GAME_BACTA_DESC" // description
 },
 
 /*QUAKED item_binoculars (.3 .3 1) (-8 -8 -0) (8 8 16) suspended
@@ -1046,7 +1046,7 @@ These will be standard equipment on the player - DO NOT PLACE
 	HI_BINOCULARS,
 	/* precache */ "",
 	/* sounds */ "",
-	"@MD_MP_GAMELA_GOGGLES_DESC" // description
+	"@MD_MP_GAME_LA_GOGGLES_DESC" // description
 },
 
 /*QUAKED item_sentry_gun (.3 .3 1) (-8 -8 -0) (8 8 16) suspended
@@ -1483,7 +1483,7 @@ Don't place this
 	WP_BRYAR_OLD, //for superbattledroid now
 	/* precache */ "",
 	/* sounds */ "",
-	"@MD_MP_GAMESBD" //for superbattledroid now	// description
+	"@MD_MP_GAME_SBD" //for superbattledroid now	// description
 },
 
 /*QUAKED weapon_blaster (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
@@ -3169,18 +3169,10 @@ int BG_EmplacedView(vec3_t base_angles, vec3_t angles, float* new_yaw, const flo
 //I don't much care for hardcoded strings, but this seems the best way to go.
 qboolean BG_IsValidCharacterModel(const char* model_name, const char* skin_name)
 {
-	/*if (!Q_stricmp(model_name, "_humanoid_mp"))
-	{
-		if (!Q_stricmp(skin_name, "fpls")) return qfalse;
-		if (!Q_stricmp(skin_name, "fpls2")) return qfalse;
-		if (!Q_stricmp(skin_name, "fpls3")) return qfalse;
-	}*/
-
 	if (!Q_stricmp(skin_name, "menu"))
 	{
 		return qfalse;
 	}
-	return qtrue;
 	return qtrue;
 }
 

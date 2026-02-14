@@ -34,11 +34,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <gl\GL.h>
 #include "tr_postprocess.h"
 #include <rd-common\tr_common.h>
+#include <Windows.h>
 
 static size_t STATIC_UNIFORM_BUFFER_SIZE = 1 * 1024 * 1024;
 static size_t FRAME_UNIFORM_BUFFER_SIZE = 8 * 1024 * 1024;
-static size_t FRAME_VERTEX_BUFFER_SIZE = 12 * 1024 * 1024;
-static size_t FRAME_INDEX_BUFFER_SIZE = 4 * 1024 * 1024;
+
+static size_t FRAME_VERTEX_BUFFER_SIZE = 32 * 1024 * 1024;  // or 64 * 1024 * 1024  WARNING: Dynamic VBO overflow — skipping draw this frame
+static size_t FRAME_INDEX_BUFFER_SIZE = 16 * 1024 * 1024;  // or 32 * 1024 * 1024
 
 #if defined(_WIN32)
 extern "C" {
@@ -255,8 +257,8 @@ cvar_t* r_AdvancedsurfaceSprites;
 
 // the limits apply to the sum of all scenes in a frame --
 // the main view, all the 3D icons, etc
-constexpr auto DEFAULT_MAX_POLYS = 600;
-constexpr auto DEFAULT_MAX_POLYVERTS = 3000;
+#define	DEFAULT_MAX_POLYS		600
+#define	DEFAULT_MAX_POLYVERTS	3000
 cvar_t* r_maxpolys;
 cvar_t* r_maxpolyverts;
 int		max_polys;

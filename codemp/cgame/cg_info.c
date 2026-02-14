@@ -72,7 +72,7 @@ void CG_LoadingItem(const int itemNum)
 	}
 
 	strcpy(upper_key, item->classname);
-	CG_LoadingString(CG_GetStringEdString("SP_INGAME", Q_strupr(upper_key)));
+	CG_LoadingString(CG_GetStringEdString("MD_MP_GAME", Q_strupr(upper_key)));
 }
 
 /*
@@ -101,7 +101,8 @@ overlays UI_DrawConnectScreen
 */
 #define UI_INFOFONT (UI_SMALLFONT)
 
-int SCREENSHOT_TOTAL = 8;
+int SCREENSHOT_TOTAL = -1;
+
 int SCREENSHOT_CHOICE = 0;
 int SCREENSHOT_NEXT_UPDATE_TIME = 0;
 char SCREENSHOT_CURRENT[64] = { 0 };
@@ -111,23 +112,44 @@ static char* cg_GetCurrentLevelshot1(const char* s)
 	const qhandle_t levelshot1 = trap->R_RegisterShaderNoMip(va("levelshots/%s", s));
 	const int time = trap->Milliseconds();
 
-	// First time and levelshot exists
 	if (levelshot1 && SCREENSHOT_NEXT_UPDATE_TIME == 0)
 	{
-		SCREENSHOT_NEXT_UPDATE_TIME = time + 10000;
+		SCREENSHOT_NEXT_UPDATE_TIME = time + 2500;
 		memset(SCREENSHOT_CURRENT, 0, sizeof SCREENSHOT_CURRENT);
 		strcpy(SCREENSHOT_CURRENT, va("levelshots/%s", s));
 		return SCREENSHOT_CURRENT;
 	}
 
-	// Timer expired or first run
 	if (SCREENSHOT_NEXT_UPDATE_TIME < time || SCREENSHOT_NEXT_UPDATE_TIME == 0)
 	{
-		SCREENSHOT_NEXT_UPDATE_TIME = time + 10000;
+		if (SCREENSHOT_TOTAL < 0)
+		{
+			// Count and register them...
+			SCREENSHOT_TOTAL = 0;
 
-		SCREENSHOT_CHOICE = Q_irand(0, SCREENSHOT_TOTAL);
+			while (1)
+			{
+				char screenShot[128] = { 0 };
+
+				strcpy(screenShot, va("menu/art/unknownmap_mp%i", SCREENSHOT_TOTAL));
+
+				if (!trap->R_RegisterShaderNoMip(screenShot))
+				{
+					// Found the last one...
+					break;
+				}
+
+				SCREENSHOT_TOTAL++;
+			}
+
+			SCREENSHOT_TOTAL--;
+		}
+
+		SCREENSHOT_NEXT_UPDATE_TIME = time + 2500;
+
+		SCREENSHOT_CHOICE = Q_flrand(0, SCREENSHOT_TOTAL);
 		memset(SCREENSHOT_CURRENT, 0, sizeof SCREENSHOT_CURRENT);
-		strcpy(SCREENSHOT_CURRENT, va("menu/art/unknownmap%i", SCREENSHOT_CHOICE));
+		strcpy(SCREENSHOT_CURRENT, va("menu/art/unknownmap_mp%i", SCREENSHOT_CHOICE));
 	}
 
 	return SCREENSHOT_CURRENT;
@@ -138,23 +160,44 @@ static char* cg_GetCurrentLevelshot2(const char* s)
 	const qhandle_t levelshot2 = trap->R_RegisterShaderNoMip(va("levelshots/%s2", s));
 	const int time = trap->Milliseconds();
 
-	// First time and levelshot2 exists
 	if (levelshot2 && SCREENSHOT_NEXT_UPDATE_TIME == 0)
 	{
 		SCREENSHOT_NEXT_UPDATE_TIME = time + 2500;
 		memset(SCREENSHOT_CURRENT, 0, sizeof SCREENSHOT_CURRENT);
-		strcpy(SCREENSHOT_CURRENT, va("levelshots/%s2", s));
+		strcpy(SCREENSHOT_CURRENT, va("levelshots/%s", s));
 		return SCREENSHOT_CURRENT;
 	}
 
-	// Timer expired or first run
 	if (SCREENSHOT_NEXT_UPDATE_TIME < time || SCREENSHOT_NEXT_UPDATE_TIME == 0)
 	{
+		if (SCREENSHOT_TOTAL < 0)
+		{
+			// Count and register them...
+			SCREENSHOT_TOTAL = 0;
+
+			while (1)
+			{
+				char screenShot[128] = { 0 };
+
+				strcpy(screenShot, va("menu/art/unknownmap_mp%i", SCREENSHOT_TOTAL));
+
+				if (!trap->R_RegisterShaderNoMip(screenShot))
+				{
+					// Found the last one...
+					break;
+				}
+
+				SCREENSHOT_TOTAL++;
+			}
+
+			SCREENSHOT_TOTAL--;
+		}
+
 		SCREENSHOT_NEXT_UPDATE_TIME = time + 2500;
 
-		SCREENSHOT_CHOICE = Q_irand(0, SCREENSHOT_TOTAL);
+		SCREENSHOT_CHOICE = Q_flrand(0, SCREENSHOT_TOTAL);
 		memset(SCREENSHOT_CURRENT, 0, sizeof SCREENSHOT_CURRENT);
-		strcpy(SCREENSHOT_CURRENT, va("menu/art/unknownmap%i", SCREENSHOT_CHOICE));
+		strcpy(SCREENSHOT_CURRENT, va("menu/art/unknownmap_mp%i", SCREENSHOT_CHOICE));
 	}
 
 	return SCREENSHOT_CURRENT;
@@ -201,7 +244,6 @@ static void LoadTips(void)
 		);
 	}
 }
-
 
 void CG_DrawInformation(void)
 {
@@ -493,7 +535,7 @@ void CG_LoadBar(void)
 		{
 			if (com_rend2.integer == 1) //rend2 is on
 			{
-				CG_DrawSmallProportionalString(400, 2, CG_GetStringEdString("MD_MP_MENU", "REND2TIP"), UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
+				CG_DrawSmallProportionalString(400, 2, CG_GetStringEdString("MD_MENU_MP", "REND2TIP"), UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite);
 			}
 		}
 		/*const int x = (640 - LOADBAR_CLIP_WIDTH) / 2;

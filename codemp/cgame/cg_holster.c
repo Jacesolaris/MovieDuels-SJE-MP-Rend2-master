@@ -1,4 +1,5 @@
 #include "cg_local.h"
+#include <qcommon/qfiles.h>
 #include <qcommon/q_shared.h>
 
 extern int BG_SiegeGetPairedValue(const char* buf, char* key, char* outbuf);
@@ -39,7 +40,7 @@ stringID_table_t holsterBoneTable[] =
 	ENUM2STRING(HOLSTER_RIGHTHIP)
 };
 
-void InitHolsterData(clientInfo_t* ci)
+static void InitHolsterData(clientInfo_t* ci)
 {
 	//initialize holster data with the premade defaults.
 	for (int i = 0; i < MAX_HOLSTER; i++)

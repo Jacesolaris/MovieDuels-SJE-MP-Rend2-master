@@ -2854,7 +2854,7 @@ static void CG_Missile(centity_t* cent)
 					}
 					m++;
 				}
-			}
+			}    
 			return;
 		}
 		if (s1->eFlags & EF_NODRAW)

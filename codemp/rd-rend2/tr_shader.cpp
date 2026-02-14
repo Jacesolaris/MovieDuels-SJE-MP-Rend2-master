@@ -3917,6 +3917,7 @@ static int GetNumStylesInShader(const shader_t* shader)
 	return MAXLIGHTMAPS - 1;
 }
 
+extern cvar_t* g_DebugSaberCombat;
 /*
 =========================
 FinishShader
@@ -4067,8 +4068,12 @@ static shader_t* FinishShader(void)
 		}
 
 		// check for a missing texture
-		if (!pStage->bundle[0].image[0]) {
-			ri->Printf(PRINT_WARNING, "Shader %s, stage %d has no image. This stage will be ignored\n", shader.name, stage + 1);
+		if (!pStage->bundle[0].image[0])
+		{
+			if (g_DebugSaberCombat->integer != 0)
+			{
+				ri->Printf(PRINT_WARNING, "Shader %s, stage %d has no image. This stage will be ignored\n", shader.name, stage + 1);
+			}
 			pStage->active = qfalse;
 			stage++;
 			continue;

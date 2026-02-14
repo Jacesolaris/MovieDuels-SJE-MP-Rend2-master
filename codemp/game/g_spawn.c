@@ -490,7 +490,7 @@ void SP_item_botroam(gentity_t* ent)
 {
 }
 
-void SP_gametype_item(gentity_t* ent)
+static void SP_gametype_item(gentity_t* ent)
 {
 	gitem_t* item = NULL;
 	char* value;
@@ -800,7 +800,7 @@ static int spawncmp(const void* a, const void* b)
 	return Q_stricmp(a, ((spawn_t*)b)->name);
 }
 
-qboolean G_CallSpawn(gentity_t* ent)
+static qboolean G_CallSpawn(gentity_t* ent)
 {
 	if (!ent->classname)
 	{
@@ -883,7 +883,7 @@ char* G_NewString(const char* string)
 	return newb;
 }
 
-char* G_NewString_Safe(const char* string)
+static char* G_NewString_Safe(const char* string)
 {
 	char* newb;
 
@@ -929,7 +929,7 @@ static int fieldcmp(const void* a, const void* b)
 
 void Q3_SetParm(int entID, int parmNum, const char* parmValue);
 
-void G_ParseField(const char* key, const char* value, gentity_t* ent)
+static void G_ParseField(const char* key, const char* value, gentity_t* ent)
 {
 	const field_t* f = (field_t*)Q_LinearSearch(key, fields, ARRAY_LEN(fields), sizeof(field_t), fieldcmp);
 	if (f)
@@ -1940,7 +1940,7 @@ static void SP_worldspawn(void)
 }
 
 //rww - Planning on having something here?
-qboolean SP_bsp_worldspawn(void)
+static qboolean SP_bsp_worldspawn(void)
 {
 	return qtrue;
 }

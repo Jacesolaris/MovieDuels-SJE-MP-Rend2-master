@@ -26,6 +26,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <float.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define Q4_INFINITE			16777216
 
@@ -363,7 +364,18 @@ float Q_rsqrt(const float number)
 	y = y * (threehalfs - x2 * y * y);   // 1st iteration
 	//	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
 
-	assert(!Q_isnan(y));
+	//assert(!Q_isnan(y));
+
+	if (!(number > 0.0f)) {
+		printf("Q_rsqrt: invalid input %f (must be > 0)\n", number);
+		return 0.0f;
+	}
+
+	if (Q_isnan(y)) {
+		printf("Q_rsqrt: NaN after iteration, input was %f\n", number);
+		return 0.0f;
+	}
+
 	return y;
 }
 

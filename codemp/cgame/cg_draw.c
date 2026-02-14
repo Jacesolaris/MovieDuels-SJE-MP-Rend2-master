@@ -3861,7 +3861,7 @@ void CG_DrawForceSelect(void)
 	if (showPowersName[cg.forceSelect])
 	{
 		CG_DrawProportionalString(320, y + 30 + y_offset,
-			CG_GetStringEdString("SP_INGAME", showPowersName[cg.forceSelect]),
+			CG_GetStringEdString("MD_MP_GAME", showPowersName[cg.forceSelect]),
 			UI_CENTER | UI_SMALLFONT, colorTable[CT_ICON_BLUE]);
 	}
 }
@@ -4004,8 +4004,8 @@ void cg_draw_inventory_select(void)
 
 			strcpy(upper_key, bg_itemlist[item_ndex].classname);
 
-			if (trap->SE_GetStringTextString(va("MD_MP_GAME%s", Q_strupr(upper_key)), text, sizeof text)
-				|| trap->SE_GetStringTextString(va("MD_MP_MENU_%s", Q_strupr(upper_key)), text, sizeof text))
+			if (trap->SE_GetStringTextString(va("MD_MP_GAME_%s", Q_strupr(upper_key)), text, sizeof text)
+				|| trap->SE_GetStringTextString(va("MD_MENU_MP_%s", Q_strupr(upper_key)), text, sizeof text))
 			{
 				CG_DrawProportionalString(320, y + 45, text, UI_CENTER | UI_SMALLFONT, text_color);
 			}
@@ -8710,11 +8710,6 @@ static void CG_SanitizeString(const char* in, char* out)
 	int i = 0;
 	int r = 0;
 
-	if (!in || !out) {
-		if (out) out[0] = 0;
-		return;
-	}
-
 	while (in[i])
 	{
 		if (i >= 128 - 1)
@@ -8855,50 +8850,27 @@ static void CG_DrawCrosshairNames(void)
 		trap->R_SetColor(NULL);
 		return;
 	}
-	
-	const char* name = NULL;
-	const centity_t* cent = NULL;
 
-	// safe client name lookup
-	if (cg.crosshairclientNum >= 0 && cg.crosshairclientNum < MAX_CLIENTS)
+	char* name = cgs.clientinfo[cg.crosshairclientNum].cleanname;
+
+	const float w = CG_DrawStrlen(va("Civilian")) * TINYCHAR_WIDTH;
+
+	if (cg.snap->ps.duelInProgress)
 	{
-		if (cgs.clientinfo[cg.crosshairclientNum].infoValid)
+		if (cg.crosshairclientNum != cg.snap->ps.duelIndex)
 		{
-			name = cgs.clientinfo[cg.crosshairclientNum].cleanname;
+			//grey out crosshair for everyone but your foe if you're in a duel
+			//baseColor = CT_BLACK;
 		}
 	}
-	else if (cg.crosshairclientNum >= 0 && cg.crosshairclientNum < ENTITYNUM_WORLD)
+	else if (cg_entities[cg.crosshairclientNum].currentState.bolt1)
 	{
-		// entity index refers to a non-client (NPC, vehicle...). try to get a readable name:
-		cent = &cg_entities[cg.crosshairclientNum];
-
-		// If the entity has an npcClient (clientInfo_t*), prefer that
-		if (cent->npcClient && cent->npcClient->infoValid)
-		{
-			name = cent->npcClient->cleanname;
-		}
-		else if (cent->currentState.eType == ET_NPC)
-		{
-			// fallback label for NPCs with no clientinfo
-			name = "(NPC)";
-		}
-		else
-		{
-			// not a client or NPC we can name
-			name = NULL;
-		}
-	}
-	
-	if (!name || !name[0])
-	{
-		trap->R_SetColor(NULL);
-		return; // nothing to draw
+		//this fellow is in a duel. We just checked if we were in a duel above, so
+		//this means we aren't and he is. Which of course means our crosshair greys out over him.
+		//baseColor = CT_BLACK;
 	}
 
 	CG_SanitizeString(name, sanitized);
-
-
-	const float w = CG_DrawStrlen(va("Civilian")) * TINYCHAR_WIDTH;
 
 	if (is_veh)
 	{
@@ -9272,7 +9244,7 @@ static void CG_DrawVote(void)
 		else if (!Q_stricmp("Capture the Ysalamiri", cgs.voteString + 11))
 			s_parm = CG_GetStringEdString(
 				"MENUS", "CAPTURE_THE_YSALIMARI");
-		else if (!Q_stricmp("Single Player", cgs.voteString + 11)) s_parm = CG_GetStringEdString("MD_MP_MENU", "COOP");
+		else if (!Q_stricmp("Single Player", cgs.voteString + 11)) s_parm = CG_GetStringEdString("MD_MENU_MP", "COOP");
 	}
 	else if (!Q_strncmp(cgs.voteString, "map", 3))
 	{

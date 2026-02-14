@@ -1254,15 +1254,15 @@ static void CG_CheckSVStringEdRef(char* buf, const char* str)
 
 					if (buf[0] && buf[0] == '?' && buf[1] && buf[1] == '?')
 					{
-						//couldn't find the string in MD_MP_SVGAME, try the MD_MP_MENU.str
+						//couldn't find the string in MD_MP_SVGAME, try the MD_MENU_MP.str
 						buf[b] = 0;
-						Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("MD_MP_MENU", stringRef));
+						Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("MD_MENU_MP", stringRef));
 					}
 					if (buf[0] && buf[0] == '?' && buf[1] && buf[1] == '?')
 					{
-						//couldn't find the string in MD_MP_SVGAME or MD_MP_MENU, try the SP_INGAME.str
+						//couldn't find the string in MD_MP_SVGAME or MD_MENU_MP, try the MD_MP_GAME.str
 						buf[b] = 0;
-						Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("SP_INGAME", stringRef));
+						Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("MD_MP_GAME", stringRef));
 					}
 					b = strlen(buf);
 				}

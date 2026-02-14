@@ -347,7 +347,8 @@ void UI_LoadSPArenas(void)
 UI_LoadBotsFromFile
 ===============
 */
-static void UI_LoadBotsFromFile(char* filename) {
+static void UI_LoadBotsFromFile(char* filename)
+{
 	fileHandle_t	f;
 	char			buf[MAX_BOTS_TEXT];
 
@@ -397,32 +398,67 @@ UI_LoadBots
 */
 void UI_LoadBots(void)
 {
-	vmCvar_t	ui_md_bots_ot;
-	vmCvar_t	ui_md_bots_Legends;
-	vmCvar_t	ui_md_bots_pt;
+	vmCvar_t	ui_md_bots_rebels;
+	vmCvar_t	ui_md_bots_Empire;
+	vmCvar_t	ui_md_bots_sith_empire;
+	vmCvar_t	ui_md_bots_resistance;
+	vmCvar_t	ui_md_bots_first_order;
+	vmCvar_t	ui_md_bots_separatists;
+	vmCvar_t	ui_md_bots_republic;
+	vmCvar_t	ui_md_bots_old_republic;
 
-	char		dirlist[1024];
+	char		dirlist[2048];
 	int			dirlen = 0;
 
 	ui_numBots = 0;
 
-	trap->Cvar_Register(&ui_md_bots_ot, "g_botsFile1", "", CVAR_INIT | CVAR_ROM);
+	trap->Cvar_Register(&ui_md_bots_rebels, "g_botsFile1", "", CVAR_INIT | CVAR_ROM);
 
-	trap->Cvar_Register(&ui_md_bots_Legends, "g_botsFile2", "", CVAR_INIT | CVAR_ROM);
+	trap->Cvar_Register(&ui_md_bots_Empire, "g_botsFile2", "", CVAR_INIT | CVAR_ROM);
 
-	trap->Cvar_Register(&ui_md_bots_pt, "g_botsFile3", "", CVAR_INIT | CVAR_ROM);
+	trap->Cvar_Register(&ui_md_bots_sith_empire, "g_botsFile3", "", CVAR_INIT | CVAR_ROM);
 
-	if (*ui_md_bots_ot.string)
+	trap->Cvar_Register(&ui_md_bots_resistance, "g_botsFile4", "", CVAR_INIT | CVAR_ROM);
+
+	trap->Cvar_Register(&ui_md_bots_first_order, "g_botsFile5", "", CVAR_INIT | CVAR_ROM);
+
+	trap->Cvar_Register(&ui_md_bots_separatists, "g_botsFile6", "", CVAR_INIT | CVAR_ROM);
+
+	trap->Cvar_Register(&ui_md_bots_republic, "g_botsFile7", "", CVAR_INIT | CVAR_ROM);
+
+	trap->Cvar_Register(&ui_md_bots_old_republic, "g_botsFile8", "", CVAR_INIT | CVAR_ROM);
+
+	if (*ui_md_bots_rebels.string)
 	{
-		UI_LoadBotsFromFile(ui_md_bots_ot.string);
+		UI_LoadBotsFromFile(ui_md_bots_rebels.string);
 	}
-	else if (*ui_md_bots_Legends.string)
+	else if (*ui_md_bots_Empire.string)
 	{
-		UI_LoadBotsFromFile(ui_md_bots_Legends.string);
+		UI_LoadBotsFromFile(ui_md_bots_Empire.string);
 	}
-	else if (*ui_md_bots_pt.string)
+	else if (*ui_md_bots_sith_empire.string)
 	{
-		UI_LoadBotsFromFile(ui_md_bots_pt.string);
+		UI_LoadBotsFromFile(ui_md_bots_sith_empire.string);
+	}
+	else if (*ui_md_bots_resistance.string)
+	{
+		UI_LoadBotsFromFile(ui_md_bots_resistance.string);
+	}
+	else if (*ui_md_bots_first_order.string)
+	{
+		UI_LoadBotsFromFile(ui_md_bots_first_order.string);
+	}
+	else if (*ui_md_bots_separatists.string)
+	{
+		UI_LoadBotsFromFile(ui_md_bots_separatists.string);
+	}
+	else if (*ui_md_bots_republic.string)
+	{
+		UI_LoadBotsFromFile(ui_md_bots_republic.string);
+	}
+	else if (*ui_md_bots_old_republic.string)
+	{
+		UI_LoadBotsFromFile(ui_md_bots_old_republic.string);
 	}
 	else
 	{
@@ -435,7 +471,7 @@ void UI_LoadBots(void)
 	char* dirptr = dirlist;
 	for (int i = 0; i < numdirs; i++, dirptr += dirlen + 1)
 	{
-		char filename[128];
+		char filename[256];
 		dirlen = strlen(dirptr);
 		strcpy(filename, "botfiles/");
 		strcat(filename, dirptr);

@@ -2634,7 +2634,6 @@ from the current global working shader
 */
 
 extern cvar_t* g_DebugSaberCombat;
-
 static shader_t* FinishShader(void)
 {
 	int stage, lm_stage; //rwwRMG - stageIndex for AGEN_BLEND

@@ -25,6 +25,11 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
 #include "server/server.h"
+#include <cassert>
+#include <iterator>
+#include <cstddef>
+#include <ctime>
+#include <game/bg_public.h>
 
 //#define _NEWHUFFTABLE_		// Build "c:\\netchan.bin"
 //#define _USINGNEWHUFFTABLE_		// Build a new frequency table to cut and paste.
@@ -1169,12 +1174,12 @@ netField_t entityStateFields[] =
 	{NETF(grappletimeplayer), 32},
 	{NETF(grapplestartTime), 32},
 	{NETF(grapplelaststartTime), 32},
-	{NETF(modelindex), 32 }
+	{ NETF(modelindex), 32 }
 };
 
 // if (int)f == f and (int)f + ( 1<<(FLOAT_INT_BITS-1) ) < ( 1 << FLOAT_INT_BITS )
 // the float will be sent with FLOAT_INT_BITS, otherwise all 32 bits will be sent
-#define	FLOAT_INT_BITS	13
+constexpr auto FLOAT_INT_BITS = 13;
 #define	FLOAT_INT_BIAS	(1<<(FLOAT_INT_BITS-1))
 
 /*
@@ -2357,7 +2362,7 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 		}
 	}
 
-	const int len = FS_FOpenFileRead(va("ext_data/MD_MP/%s", fileName), &f, qfalse);
+	const int len = FS_FOpenFileRead(va("ext_data/MP/%s", fileName), &f, qfalse);
 
 	if (!f || len < 0)
 	{

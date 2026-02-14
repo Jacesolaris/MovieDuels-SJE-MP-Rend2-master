@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
@@ -4556,6 +4556,30 @@ static void ClientThink_real(gentity_t* ent)
 	{
 		client->pushEffectTime = 0;
 		client->ps.eFlags &= ~EF_BODYPUSH;
+	}
+
+	// Unfreeze after stasis timer expires
+	if ((client->ps.userInt3 & (1 << FLAG_FROZEN)) &&
+		client->frozenTime < level.time)
+	{
+		// Remove frozen flag
+		client->ps.userInt3 &= ~(1 << FLAG_FROZEN);
+
+		// Unlock weapon logic
+		client->ps.weaponTime = 0;
+
+		// Restore movement locks
+		client->ps.userInt1 &= ~LOCK_UP;
+		client->ps.userInt1 &= ~LOCK_DOWN;
+		client->ps.userInt1 &= ~LOCK_LEFT;
+		client->ps.userInt1 &= ~LOCK_RIGHT;
+
+		// Clear view lock
+		client->viewLockTime = 0;
+
+		// Reset animations
+		client->ps.legsTimer = 0;
+		client->ps.torsoTimer = 0;
 	}
 
 	if (client->ps.stats[STAT_HOLDABLE_ITEMS] & 1 << HI_JETPACK)

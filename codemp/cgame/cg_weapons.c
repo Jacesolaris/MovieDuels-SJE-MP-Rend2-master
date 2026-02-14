@@ -2006,7 +2006,7 @@ void CG_DrawWeaponSelect(void)
 
 		strcpy(upper_key, cg_weapons[cg.weaponSelect].item->classname);
 
-		if (trap->SE_GetStringTextString(va("MD_MP_GAME%s", Q_strupr(upper_key)), text, sizeof text))
+		if (trap->SE_GetStringTextString(va("MD_MP_GAME_%s", Q_strupr(upper_key)), text, sizeof text))
 		{
 			CG_DrawProportionalString(320, y + 45 + y_offset, text, UI_CENTER | UI_SMALLFONT, text_color);
 		}
@@ -2610,6 +2610,11 @@ void CG_FireWeapon(centity_t* cent, const qboolean alt_fire)
 	if (cg.predictedPlayerState.frozenTime > cg.time)
 	{
 		return; //this entity is mind-tricking the current client, so don't render it
+	}
+
+	if (ent->userInt3 & (1 << FLAG_FROZEN))
+	{
+		return;
 	}
 
 	const weaponInfo_t* weap = &cg_weapons[ent->weapon];

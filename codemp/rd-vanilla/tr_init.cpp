@@ -180,8 +180,8 @@ cvar_t* r_aspectCorrectFonts;
 
 // the limits apply to the sum of all scenes in a frame --
 // the main view, all the 3D icons, etc
-constexpr auto DEFAULT_MAX_POLYS = 600;
-constexpr auto DEFAULT_MAX_POLYVERTS = 3000;
+#define	DEFAULT_MAX_POLYS		600
+#define	DEFAULT_MAX_POLYVERTS	3000
 cvar_t* r_maxpolys;
 cvar_t* r_maxpolyverts;
 int		max_polys;

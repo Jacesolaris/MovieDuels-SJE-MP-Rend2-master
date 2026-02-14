@@ -1230,7 +1230,7 @@ void NPC_BSWander(void)
 //check to see if this type of NPC can surrender
 extern qboolean g_standard_humanoid(gentity_t* self);
 
-qboolean NPC_CanSurrender(void)
+static qboolean NPC_CanSurrender(void)
 {
 	if (NPCS.NPC->client)
 	{

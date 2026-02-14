@@ -361,12 +361,14 @@ typedef struct clientInfo_s {
 	qhandle_t	bolt_lfemurYZ;	//left hip used for the holster offsetting method
 
 	holster_t	holsterData[MAX_HOLSTER];
-	int         saberFatigueChainCount;
-	int         BlasterAttackChainCount;
-	int         blockPoints;
-	int         saberAnimLevel;
 
-	forcedata_t fd;
+	int			saberAttackChainCount;
+	int         saberFatigueChainCount;
+	int			BlasterAttackChainCount;
+	int			blockPoints;
+	int			saberAnimLevel;
+
+	forcedata_t	fd;
 
 	// NEW: unified humanoid animation paths
 	char        glaName[MAX_QPATH];
@@ -1774,6 +1776,7 @@ typedef struct cgEffects_s {
 
 	fxHandle_t strikeProjectile;
 	fxHandle_t strikeHit;
+	fxHandle_t ForceConfustionNew;
 } cgEffects_t;
 
 #define MAX_STATIC_MODELS 4000
@@ -2245,7 +2248,7 @@ void CG_ShaderStateChanged(void);
 //
 // cg_playerstate.c
 //
-int CG_IsMindTricked(int trick_index1, int trick_index2, int trick_index3, int trick_index4, int client);
+int CG_IsMindTricked(const int trick_index1, const int trick_index2, const int trick_index3, const int trick_index4, const int client);
 void CG_Respawn(void);
 void CG_TransitionPlayerState(const playerState_t* ps, playerState_t* ops);
 void CG_CheckChangedPredictableEvents(const playerState_t* ps);
