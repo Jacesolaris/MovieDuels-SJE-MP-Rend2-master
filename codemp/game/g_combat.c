@@ -8318,7 +8318,7 @@ void AddFatigueHurtBonusMax(const gentity_t* attacker, const gentity_t* victim, 
 	}
 }
 
-void add_npc_block_point_bonus(const gentity_t* self)
+static void add_npc_block_point_bonus(const gentity_t* self)
 {
 	//get a small bonus
 	//add bonus

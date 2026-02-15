@@ -13289,7 +13289,7 @@ static void PM_Weapon(void)
 				desiredAnim = BOTH_STAND1TO2;
 				break;
 			case SS_DUAL:
-				desiredAnim = BOTH_SABERTHROW2STOP;
+				desiredAnim = BOTH_SABERTHROW1STOP;
 				break;
 			case SS_STAFF:
 				desiredAnim = BOTH_SABERTHROW1STOP;

@@ -34,6 +34,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "b_local.h"
 #include "w_saber.h"
 #include "ai_main.h"
+#include "teams.h"
 
 #define METROID_JUMP 1
 
@@ -969,43 +970,38 @@ extern qboolean BG_InKnockDown(int anim); //bg_pmove.c
 
 int ForcePowerUsableOn(const gentity_t* attacker, const gentity_t* other, const forcePowers_t forcePower)
 {
-	if (other->client && (other->client->ps.inAirAnim || other->client->ps.groundEntityNum == ENTITYNUM_NONE))
+	if (!other)                     // ⭐ FIX 1: prevent NULL dereference
+		return 0;
+
+	if (other->client &&            // ⭐ FIX 2: safe to dereference now
+		(other->client->ps.inAirAnim ||
+			other->client->ps.groundEntityNum == ENTITYNUM_NONE))
 	{
 		return 1;
 	}
 
-	if (other && other->client && BG_HasYsalamiri(level.gametype, &other->client->ps))
-	{
+	if (other->client && BG_HasYsalamiri(level.gametype, &other->client->ps))
 		return 0;
-	}
 
-	if (attacker && attacker->client && !BG_CanUseFPNow(level.gametype, &attacker->client->ps, level.time, forcePower))
-	{
+	if (attacker && attacker->client &&
+		!BG_CanUseFPNow(level.gametype, &attacker->client->ps, level.time, forcePower))
 		return 0;
-	}
 
-	if (is_merc(other) && other->client->ps.fd.forcePowerLevel[FP_SEE] >= FORCE_LEVEL_1)
-	{
+	if (other->client &&
+		is_merc(other) &&
+		other->client->ps.fd.forcePowerLevel[FP_SEE] >= FORCE_LEVEL_1)
 		return 1;
-	}
 
-	//Dueling fighters cannot use force powers on others, with the exception of force push when locked with each other
 	if (attacker && attacker->client && attacker->client->ps.duelInProgress)
-	{
 		return 0;
-	}
 
-	if (other && other->client && other->client->ps.duelInProgress)
-	{
+	if (other->client && other->client->ps.duelInProgress)
 		return 0;
-	}
 
-	if (other && other->client && (other->client->ps.fd.saberAnimLevel == SS_DESANN && other->client->ps.
-		saberFatigueChainCount >=
-		MISHAPLEVEL_HEAVY))
-	{
+	if (other->client &&
+		other->client->ps.fd.saberAnimLevel == SS_DESANN &&
+		other->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
 		return 0;
-	}
 
 	if (forcePower == FP_TELEPATHY && other->client)
 	{
@@ -1015,6 +1011,7 @@ int ForcePowerUsableOn(const gentity_t* attacker, const gentity_t* other, const 
 		case FORCE_LEVEL_4:
 		case FORCE_LEVEL_3:
 			return 0;
+
 		case FORCE_LEVEL_2:
 			if (!walk_check(other) && PM_RunningAnim(other->client->ps.legsAnim))
 				return 0;
@@ -1024,25 +1021,29 @@ int ForcePowerUsableOn(const gentity_t* attacker, const gentity_t* other, const 
 			if (!walk_check(other))
 				return 0;
 			break;
-		default:;
+
+		default:
+			break;
 		}
 	}
 	else if (forcePower == FP_GRIP && other->client)
 	{
 		switch (other->client->ps.fd.forcePowerLevel[FP_ABSORB])
 		{
-		case FORCE_LEVEL_1: //Can only block if walking
+		case FORCE_LEVEL_1:
 			if (!walk_check(other))
 				return 1;
 			break;
-		case FORCE_LEVEL_2: //Can block if walking or running
-			if (other->client->ps.inAirAnim || other->client->ps.groundEntityNum == ENTITYNUM_NONE)
+
+		case FORCE_LEVEL_2:
+			if (other->client->ps.inAirAnim ||
+				other->client->ps.groundEntityNum == ENTITYNUM_NONE)
 				return 1;
 			break;
 
 		case FORCE_LEVEL_3:
-		case FORCE_LEVEL_5:
 		case FORCE_LEVEL_4:
+		case FORCE_LEVEL_5:
 			return 0;
 
 		default:
@@ -1050,43 +1051,36 @@ int ForcePowerUsableOn(const gentity_t* attacker, const gentity_t* other, const 
 		}
 	}
 
-	if (other && other->client && forcePower == FP_PUSH)
+	if (other->client && forcePower == FP_PUSH)
 	{
-		if (other->client->ps.stats[STAT_HEALTH] <= 0 || other->client->ps.eFlags & EF_DEAD)
-		{
+		if (other->client->ps.stats[STAT_HEALTH] <= 0 ||
+			other->client->ps.eFlags & EF_DEAD)
 			return 0;
-		}
 	}
-	else if (other && other->client && forcePower == FP_PULL)
+	else if (other->client && forcePower == FP_PULL)
 	{
-		if (g_AllowKnockDownPull.integer == 0)
-		{
-			if (BG_InKnockDown(other->client->ps.legsAnim))
-			{
-				return 0;
-			}
-		}
-		if (other->client->ps.stats[STAT_HEALTH] <= 0 || other->client->ps.eFlags & EF_DEAD)
-		{
+		if (g_AllowKnockDownPull.integer == 0 &&
+			BG_InKnockDown(other->client->ps.legsAnim))
 			return 0;
-		}
+
+		if (other->client->ps.stats[STAT_HEALTH] <= 0 ||
+			other->client->ps.eFlags & EF_DEAD)
+			return 0;
 	}
 
-	if (other && other->client && other->s.eType == ET_NPC &&
+	if (other->client &&
+		other->s.eType == ET_NPC &&
 		other->s.NPC_class == CLASS_VEHICLE)
 	{
-		//can't use the force on vehicles.. except lightning
 		if (forcePower == FP_LIGHTNING)
-		{
 			return 1;
-		}
 		return 0;
 	}
 
-	if (other && other->client && other->s.eType == ET_NPC &&
+	if (other->client &&
+		other->s.eType == ET_NPC &&
 		level.gametype == GT_SIEGE)
 	{
-		//can't use powers at all on npc's normally in siege...
 		return 0;
 	}
 
@@ -3430,8 +3424,8 @@ static void force_shoot_lightning(gentity_t* self)
 		vec3_t v;
 		const float radius = FORCE_LIGHTNING_RADIUS;
 		float dot;
-		gentity_t* entity_list[MAX_GENTITIES];
-		int iEntityList[MAX_GENTITIES];
+		static gentity_t* entity_list[MAX_GENTITIES];
+		static int iEntityList[MAX_GENTITIES];
 		int i;
 
 		VectorCopy(self->client->ps.origin, center);
@@ -3806,8 +3800,8 @@ int ForceShootDrain(gentity_t* self)
 			vec3_t maxs;
 			vec3_t v;
 			const float radius = MAX_DRAIN_DISTANCE;
-			gentity_t* entity_list[MAX_GENTITIES];
-			int iEntityList[MAX_GENTITIES];
+			static gentity_t* entity_list[MAX_GENTITIES];
+			static int iEntityList[MAX_GENTITIES];
 			int i;
 
 			VectorCopy(self->client->ps.origin, center);
@@ -3966,8 +3960,8 @@ static int ForceShootDestruction(gentity_t* self)
 		vec3_t maxs;
 		vec3_t v;
 		const float radius = MAX_DRAIN_DISTANCE;
-		gentity_t* entity_list[MAX_GENTITIES];
-		int iEntityList[MAX_GENTITIES];
+		static gentity_t* entity_list[MAX_GENTITIES];
+		static int iEntityList[MAX_GENTITIES];
 		int i;
 
 		VectorCopy(self->client->ps.origin, center);
@@ -4647,7 +4641,7 @@ void ForceTelepathy(gentity_t* self)
 		}
 		return;
 	}
-	int entity_list[MAX_GENTITIES];
+	static int entity_list[MAX_GENTITIES];
 	int e = 0;
 	qboolean gotatleastone = qfalse;
 	vec3_t dir = { 0, 0, 1 };
@@ -5224,23 +5218,25 @@ void ForceThrow(gentity_t* self, qboolean pull)
 	//shove things in front of you away
 	float dist;
 	gentity_t* ent;
-	int entity_list[MAX_GENTITIES];
-	gentity_t* push_target[MAX_GENTITIES];
+	static int entity_list[MAX_GENTITIES];
+	static gentity_t* push_target[MAX_GENTITIES];
 	int num_listed_entities;
-	vec3_t mins, maxs;
-	vec3_t v;
+	static vec3_t mins, maxs;
+	static vec3_t v;
 	int i, e;
 	int ent_count = 0;
 	int radius = 1024; //since it's view-based now. //350;
 	int power_level;
 	int vision_arc;
 	int push_power;
-	vec3_t center, ent_org, size, forward, right, dir, fwdangles = { 0 };
+	static vec3_t center, ent_org, size;
+	static vec3_t forward, right, dir;
+	static vec3_t fwdangles = { 0 };
 	float dot1;
 	float cone;
-	trace_t tr;
-	vec3_t thispush_org;
-	vec3_t tfrom, tto, fwd;
+	static trace_t tr;
+	static vec3_t thispush_org;
+	static vec3_t tfrom, tto, fwd;
 	int power_use = 0;
 	qboolean i_grip = qfalse;
 	int damage_level = FORCE_LEVEL_0;
@@ -8858,14 +8854,16 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 	}
 	if (self->client->ps.saberInFlight)
 	{
-		//don't regen force power while throwing saber
-		if (self->client->ps.saberEntityNum < ENTITYNUM_NONE && self->client->ps.saberEntityNum > 0) //player is 0
+		const int saberEntNum = self->client->ps.saberEntityNum;
+
+		// Valid entity index? (0 = player, ignore)
+		if (saberEntNum > 0 && saberEntNum < ENTITYNUM_NONE)
 		{
-			//
-			if (&g_entities[self->client->ps.saberEntityNum] != NULL && g_entities[self->client->ps.saberEntityNum].s.
-				pos.trType == TR_LINEAR)
+			gentity_t* saberEnt = &g_entities[saberEntNum];
+
+			// Saber is still flying (linear trajectory)
+			if (saberEnt->s.pos.trType == TR_LINEAR)
 			{
-				//fell to the ground and we're trying to pull it back
 				using_force = qtrue;
 			}
 		}
@@ -8885,41 +8883,55 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 		&& self->client->ps.weaponTime <= 0
 		&& self->client->ps.groundEntityNum != ENTITYNUM_NONE)
 	{
-		//when not using the force, regenerate at 1 point per half second
+		// regen loop: 1 point per half-second baseline
 		while (self->client->ps.fd.forcePowerRegenDebounceTime < level.time)
 		{
-			if (level.gametype != GT_HOLOCRON || g_maxHolocronCarry.value)
+			int regenAmount = 0;
+			int regenDelay = 0;
+
+			// --- Special gametype: Holocron ---
+			if (level.gametype == GT_HOLOCRON && !g_maxHolocronCarry.value)
 			{
+				int holoregen = 0;
+				for (int i = 0; i < NUM_FORCE_POWERS; i++)
+				{
+					if (self->client->ps.holocronsCarried[i])
+						holoregen++;
+				}
+				regenAmount = holoregen;
+			}
+			else
+			{
+				// --- Normal regen rules ---
 				if (self->client->ps.powerups[PW_FORCE_BOON])
 				{
-					wp_force_power_regenerate(self, 6);
+					regenAmount = 6;
 				}
 				else if (self->client->ps.isJediMaster && level.gametype == GT_JEDIMASTER)
 				{
-					wp_force_power_regenerate(self, 4); //jedi master regenerates 4 times as fast
+					regenAmount = 4;
 				}
 				else if (PM_RestAnim(self->client->ps.legsAnim))
 				{
-					wp_force_power_regenerate(self, 10);
+					regenAmount = 10;
 					BG_ReduceSaberMishapLevel(&self->client->ps);
-					self->client->ps.powerups[PW_MEDITATE] = level.time + self->client->ps.torsoTimer + 3000;
+					self->client->ps.powerups[PW_MEDITATE] =
+						level.time + self->client->ps.torsoTimer + 3000;
 				}
 				else if (PM_CrouchAnim(self->client->ps.legsAnim))
 				{
-					wp_force_power_regenerate(self, 8);
+					regenAmount = 8;
 					BG_ReduceSaberMishapLevel(&self->client->ps);
 				}
 				else if (is_holding_block_button || is_holding_block_button_and_attack)
 				{
-					//regen half as fast
-					self->client->ps.fd.forcePowerRegenDebounceTime += 2000; //1 point per 1 seconds.. super slow
-					wp_force_power_regenerate(self, 1);
+					regenAmount = 1;
+					regenDelay = 2000;
 				}
 				else if (self->client->ps.saberInFlight)
 				{
-					//regen half as fast
-					self->client->ps.fd.forcePowerRegenDebounceTime += 2000; //1 point per 1 seconds.. super slow
-					wp_force_power_regenerate(self, 1);
+					regenAmount = 1;
+					regenDelay = 2000;
 				}
 				else if (PM_SaberInAttack(self->client->ps.saber_move)
 					|| pm_saber_in_special_attack(self->client->ps.torsoAnim)
@@ -8927,65 +8939,73 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 					|| PM_SaberInParry(self->client->ps.saber_move)
 					|| PM_SaberInReturn(self->client->ps.saber_move))
 				{
-					//regen half as fast
-					self->client->ps.fd.forcePowerRegenDebounceTime += 4000; //1 point per 1 seconds.. super slow
-					wp_force_power_regenerate(self, 1);
+					regenAmount = 1;
+					regenDelay = 4000;
 				}
 				else
 				{
-					wp_force_power_regenerate(self, 0);
+					regenAmount = 0;
 				}
 			}
-			else
+
+			// Apply the regen
+			wp_force_power_regenerate(self, regenAmount);
+
+			// --- Apply regen delay (gametype‑dependent) ---
+			if (regenDelay == 0)
 			{
-				//regenerate based on the number of holocrons carried
-				int holoregen = 0;
-				int holo = 0;
-				while (holo < NUM_FORCE_POWERS)
+				// default regen delay rules
+				if (level.gametype == GT_SIEGE)
 				{
-					if (self->client->ps.holocronsCarried[holo])
-						holoregen++;
-					holo++;
+					if (self->client->holdingObjectiveItem &&
+						g_entities[self->client->holdingObjectiveItem].inuse &&
+						g_entities[self->client->holdingObjectiveItem].genericValue15)
+					{
+						regenDelay = 7000;
+					}
+					else if (self->client->siegeClass != -1 &&
+						(bgSiegeClasses[self->client->siegeClass].classflags & (1 << CFL_FASTFORCEREGEN)))
+					{
+						regenDelay = Q_max(g_forceRegenTime.integer * 0.2f, 1);
+					}
+					else
+					{
+						regenDelay = Q_max(g_forceRegenTime.integer, 1);
+					}
 				}
-
-				wp_force_power_regenerate(self, holoregen);
-			}
-
-			if (level.gametype == GT_SIEGE)
-			{
-				if (self->client->holdingObjectiveItem && g_entities[self->client->holdingObjectiveItem].inuse &&
-					g_entities[self->client->holdingObjectiveItem].genericValue15)
-					self->client->ps.fd.forcePowerRegenDebounceTime += 7000; //1 point per 7 seconds.. super slow
-				else if (self->client->siegeClass != -1 && bgSiegeClasses[self->client->siegeClass].classflags & 1 <<
-					CFL_FASTFORCEREGEN)
-					self->client->ps.fd.forcePowerRegenDebounceTime += Q_max(g_forceRegenTime.integer * 0.2, 1);
-				//if this is siege and our player class has the fast force regen ability, then recharge with 1/5th the usual delay
-				else
-					self->client->ps.fd.forcePowerRegenDebounceTime += Q_max(g_forceRegenTime.integer, 1);
-			}
-			else
-			{
-				if (level.gametype == GT_POWERDUEL && self->client->sess.duelTeam == DUELTEAM_LONE)
+				else if (level.gametype == GT_POWERDUEL &&
+					self->client->sess.duelTeam == DUELTEAM_LONE)
 				{
 					if (duel_fraglimit.integer)
-						self->client->ps.fd.forcePowerRegenDebounceTime += Q_max(
-							g_forceRegenTime.integer * (0.6 + (.3 * (float)self->client->sess.wins / (float)
-								duel_fraglimit.integer)), 1);
+					{
+						float scale = 0.6f + (0.3f * (float)self->client->sess.wins /
+							(float)duel_fraglimit.integer);
+						regenDelay = Q_max(g_forceRegenTime.integer * scale, 1);
+					}
 					else
-						self->client->ps.fd.forcePowerRegenDebounceTime += Q_max(g_forceRegenTime.integer * 0.7, 1);
+					{
+						regenDelay = Q_max(g_forceRegenTime.integer * 0.7f, 1);
+					}
 				}
 				else
-					self->client->ps.fd.forcePowerRegenDebounceTime += Q_max(g_forceRegenTime.integer, 1);
+				{
+					regenDelay = Q_max(g_forceRegenTime.integer, 1);
+				}
 			}
+
+			self->client->ps.fd.forcePowerRegenDebounceTime += regenDelay;
 		}
-		if (self->client->ps.fd.forcePower > self->client->ps.fd.forcePowerMax * FATIGUEDTHRESHHOLD)
+
+		// Cancel fatigue if FP is high enough
+		if (self->client->ps.fd.forcePower >
+			self->client->ps.fd.forcePowerMax * FATIGUEDTHRESHHOLD)
 		{
-			//You gained some FP back.  Cancel the Fatigue status.
 			self->client->ps.userInt3 &= ~(1 << FLAG_FATIGUED);
 		}
 	}
 	else
 	{
+		// Reset regen timer when using force or unable to regen
 		self->client->ps.fd.forcePowerRegenDebounceTime = level.time;
 	}
 
@@ -9510,6 +9530,9 @@ extern int G_GetHitLocation(const gentity_t* target, vec3_t ppoint);
 
 qboolean jedi_disruptor_dodge_evasion(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int hit_loc)
 {
+	if (!self || !self->client)
+		return qfalse;
+
 	int dodge_anim = -1;
 
 	/*===========================================================================

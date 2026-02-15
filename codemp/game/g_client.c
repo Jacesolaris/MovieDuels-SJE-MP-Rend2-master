@@ -6711,7 +6711,7 @@ tryTorso:
 
 		f = torsoAnim;
 
-		pm_saber_start_trans_anim(self->s.number, self->client->ps.fd.saberAnimLevel, self->client->ps.weapon, f,
+		PM_SaberStartTransAnim(self->s.number, self->client->ps.fd.saberAnimLevel, self->client->ps.weapon, f,
 			&animSpeedScale, self->client->ps.userInt3);
 
 		animSpeed = 50.0f / bgAllAnims[self->localAnimIndex].anims[f].frameLerp;
@@ -6900,6 +6900,52 @@ after the first ClientBegin, and after each respawn
 Initializes all non-persistant parts of playerState
 ============
 */
+static void AI_SetBotSaberStyle(gentity_t* ent)
+{
+	if (!ent || !ent->client)
+		return;
+
+	// Server-only bot check
+	if (!(ent->r.svFlags & SVF_BOT))
+		return;
+
+	saberInfo_t* saber1 = &ent->client->saber[0];
+	saberInfo_t* saber2 = &ent->client->saber[1];
+
+	// -------------------------------
+	// STAFF SABER (two-handed)
+	// -------------------------------
+	if (saber1->model[0] && (saber1->saberFlags & SFL_TWO_HANDED))
+	{
+		ent->client->ps.fd.saberAnimLevel = SS_STAFF;
+		ent->client->ps.fd.saber_anim_levelBase = SS_STAFF;
+		ent->client->saberCycleQueue = SS_STAFF;
+		return;
+	}
+
+	// -------------------------------
+	// DUAL SABERS
+	// -------------------------------
+	if (saber1->model[0] && saber2->model[0])
+	{
+		ent->client->ps.fd.saberAnimLevel = SS_DUAL;
+		ent->client->ps.fd.saber_anim_levelBase = SS_DUAL;
+		ent->client->saberCycleQueue = SS_DUAL;
+		return;
+	}
+
+	// -------------------------------
+	// SINGLE SABER
+	// -------------------------------
+	if (saber1->model[0] && saber1->numBlades == 1)
+	{
+		ent->client->ps.fd.saberAnimLevel = SS_MEDIUM;
+		ent->client->ps.fd.saber_anim_levelBase = SS_MEDIUM;
+		ent->client->saberCycleQueue = SS_MEDIUM;
+		return;
+	}
+}
+
 extern void UpdatePlayerScriptTarget(void);
 extern qboolean UseSpawnWeapons;
 extern int SpawnWeapons;
@@ -6993,6 +7039,7 @@ void ClientSpawn(gentity_t* ent)
 				ent->client->ps.fd.saber_anim_levelBase = ent->client->saberCycleQueue = ent->client->ps.fd.saberAnimLevel;
 			}
 		}
+		AI_SetBotSaberStyle(ent);
 	}
 
 	if (client->ps.fd.forceDoInit || ent->r.svFlags & SVF_BOT)

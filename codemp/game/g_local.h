@@ -202,8 +202,6 @@ typedef enum
 {
 	BOTORDER_NONE,
 	//no order
-	BOTORDER_KNEELBEFOREZOD,
-	//Kneel before the ordered person
 	BOTORDER_SEARCHANDDESTROY,
 	//Attack mode.  If given an entity the bot will search for
 	//and then attack that entity.  If NULL, the bot will just
@@ -215,8 +213,6 @@ typedef enum
 	//Basic defend order.  Used for CoOp Bots automatically for CoOp.
 	BOTORDER_JEDIMASTER,
 	//jedimaster tactics.
-	BOTORDER_SABERDUELCHALLENGE,
-	//enter into a saber challenge with the objective entity
 	BOTORDER_RESUPPLY,
 	//Go grab/use the tactic entity (used for making the bots pick up ammo).
 	BOTORDER_MAX

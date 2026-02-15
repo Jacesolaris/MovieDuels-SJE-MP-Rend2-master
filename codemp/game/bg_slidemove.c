@@ -35,6 +35,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #elif UI_BUILD
 #include "ui/ui_local.h"
 #endif
+#include "bg_weapons.h"
+#include "anims.h"
 
 /*
 
@@ -67,6 +69,8 @@ extern void G_DamageFromKiller(gentity_t* pEnt, gentity_t* pVehEnt, gentity_t* a
 
 static void PM_VehicleImpact(bgEntity_t* pEnt, trace_t* trace)
 {
+	if (!pEnt || !pEnt->m_pVehicle)
+		return;
 	// See if the vehicle has crashed into the ground.
 	Vehicle_t* p_self_veh = pEnt->m_pVehicle;
 	float magnitude = VectorLength(pm->ps->velocity) * p_self_veh->m_pVehicleInfo->mass / 50.0f;
@@ -544,16 +548,21 @@ static void PM_VehicleImpact(bgEntity_t* pEnt, trace_t* trace)
 						hit_ent->s.NPC_class == CLASS_VEHICLE ? MOD_COLLISION : MOD_FALLING);
 				}
 			}
-#else	//this is gonna result in "double effects" for the client doing the prediction.
-			//it doesn't look bad though. could just use predicted events, but I'm too lazy.
+#else   // this is gonna result in "double effects" for the client doing the prediction.
+			// it doesn't look bad though. could just use predicted events, but I'm too lazy.
+
+			if (!trace)   // ⭐ FIX: prevent NULL dereference
+				return;
+
 			hit_ent = PM_BGEntForNum(trace->entityNum);
 
 			if (!hit_ent || hit_ent->s.owner != pEnt->s.number)
 			{
-				//don't hit your own missiles!
+				// don't hit your own missiles!
 				AngleVectors(p_self_veh->m_vOrientation, NULL, NULL, vehUp);
 				pEnt->m_pVehicle->m_iHitDebounce = pm->cmd.serverTime + 200;
-				trap->FX_PlayEffectID(p_self_veh->m_pVehicleInfo->iImpactFX, pm->ps->origin, vehUp, -1, -1, qfalse);
+				trap->FX_PlayEffectID(p_self_veh->m_pVehicleInfo->iImpactFX,
+					pm->ps->origin, vehUp, -1, -1, qfalse);
 
 				p_self_veh->m_ulFlags |= VEH_CRASHING;
 			}
@@ -597,7 +606,7 @@ qboolean PM_ClientImpact( trace_t *trace, qboolean damageSelf )
 extern void Client_CheckImpactBBrush(gentity_t* self, gentity_t* other);
 extern qboolean PM_CheckGrabWall(trace_t* trace);
 
-qboolean PM_ClientImpact(const trace_t* trace, qboolean damageSelf)
+static qboolean PM_ClientImpact(const trace_t* trace, qboolean damageSelf)
 {
 	const int otherentity_num = trace->entityNum;
 

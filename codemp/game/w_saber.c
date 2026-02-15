@@ -759,71 +759,40 @@ void bg_reduce_blaster_mishap_level_advanced(playerState_t* ps)
 
 void BG_ReduceSaberMishapLevel(playerState_t* ps)
 {
-	//reduces a player's mishap meter by one level
-	if (ps->saberFatigueChainCount >= MISHAPLEVEL_MAX)
+	static const int order[] =
 	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_FULL;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_FULL)
+		MISHAPLEVEL_MAX,
+		MISHAPLEVEL_FULL,
+		MISHAPLEVEL_THIRTEEN,
+		MISHAPLEVEL_HUDFLASH,
+		MISHAPLEVEL_ELEVEN,
+		MISHAPLEVEL_TEN,
+		MISHAPLEVEL_NINE,
+		MISHAPLEVEL_HEAVY,
+		MISHAPLEVEL_SEVEN,
+		MISHAPLEVEL_SIX,
+		MISHAPLEVEL_LIGHT,
+		MISHAPLEVEL_FOUR,
+		MISHAPLEVEL_THREE,
+		MISHAPLEVEL_TWO,
+		MISHAPLEVEL_MIN,
+		MISHAPLEVEL_NONE
+	};
+
+	int level = ps->saberFatigueChainCount;
+
+	// Find current level in the table
+	for (int i = 0; i < ARRAY_LEN(order) - 1; i++)
 	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_THIRTEEN;
+		if (level >= order[i])
+		{
+			ps->saberFatigueChainCount = order[i + 1];
+			return;
+		}
 	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_THIRTEEN)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_HUDFLASH;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_HUDFLASH)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_ELEVEN;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_ELEVEN)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_TEN;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_TEN)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_NINE;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_NINE)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_HEAVY;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_SEVEN;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_SEVEN)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_SIX;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_SIX)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_LIGHT;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_LIGHT)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_FOUR;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_FOUR)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_THREE;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_THREE)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_TWO;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_TWO)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_MIN;
-	}
-	else if (ps->saberFatigueChainCount >= MISHAPLEVEL_MIN)
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_NONE;
-	}
-	else
-	{
-		ps->saberFatigueChainCount = MISHAPLEVEL_NONE;
-	}
+
+	// If somehow below NONE, clamp
+	ps->saberFatigueChainCount = MISHAPLEVEL_NONE;
 }
 
 //#ifdef DEBUG_SABER_BOX
@@ -1566,6 +1535,10 @@ void NPC_SetBoneAngles(gentity_t* ent, const char* bone, vec3_t angles);
 
 static QINLINE void G_G2NPCAngles(gentity_t* ent, matrix3_t legs, vec3_t angles)
 {
+	if (!ent || !ent->client)
+	{
+		return;
+	}
 	if (ent->client)
 	{
 		if (ent->client->NPC_class == CLASS_PROBE
@@ -7606,143 +7579,153 @@ int invert_quad(int quad);
 
 void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 {
-	qboolean swing_block;
-	qboolean closest_swing_block = qfalse; //default setting makes the compiler happy.
-	int swing_block_quad = Q_T;
-	int closest_swing_quad = Q_T;
-	float dist;
-	gentity_t* ent, * incoming = NULL;
-	int entity_list[MAX_GENTITIES];
-	int num_listed_entities;
-	int i, e;
-	vec3_t mins, maxs;
-	float closest_dist, radius = 256;
-	vec3_t forward, fwdangles = { 0 };
-	trace_t trace;
-	vec3_t trace_to, ent_dir;
-	float look_t_dist = -1;
+	qboolean    swing_block;
+	qboolean    closest_swing_block = qfalse; // default setting makes the compiler happy.
+	int         swing_block_quad = Q_T;
+	int         closest_swing_quad = Q_T;
+	float       dist;
+	gentity_t* ent;
+	gentity_t* incoming = NULL;
+	static int  entity_list[MAX_GENTITIES];
+	int         num_listed_entities;
+	int         i, e;
+	static vec3_t mins, maxs;
+	float       closest_dist;
+	float       radius = 256.0f;
+	static vec3_t forward, fwdangles = { 0 };
+	static trace_t trace;
+	static vec3_t trace_to, ent_dir;
+	float       look_t_dist = -1.0f;
 	gentity_t* look_t = NULL;
-	qboolean do_full_routine = qtrue;
+	qboolean    do_full_routine = qtrue;
 
-	//keep this updated even if we don't get below
-	if (!(self->client->ps.eFlags2 & EF2_HELD_BY_MONSTER))
-	{
-		//lookTarget is set by and to the monster that's holding you, no other operations can change that
-		self->client->ps.hasLookTarget = qfalse;
-	}
-
-	if (self->client->ps.weapon != WP_SABER) //saber not here
+	if (!self || !self->client)
 	{
 		return;
 	}
-	else if (self->client->ps.weapon == WP_SABER && BG_SabersOff(&self->client->ps))
+
+	// keep this updated even if we don't get below
+	if (!(self->client->ps.eFlags2 & EF2_HELD_BY_MONSTER))
 	{
-		//saber not currently in use or available, attempt to use our hands instead.
+		// lookTarget is set by and to the monster that's holding you, no other operations can change that
+		self->client->ps.hasLookTarget = qfalse;
+	}
+
+	if (self->client->ps.weapon != WP_SABER) // saber not here
+	{
+		return;
+	}
+	else if (BG_SabersOff(&self->client->ps))
+	{
+		// saber not currently in use or available, attempt to use our hands instead.
 		do_full_routine = qfalse;
 	}
-	else if (self->client->ps.weapon == WP_SABER && self->client->ps.saberInFlight)
+	else if (self->client->ps.saberInFlight)
 	{
-		//saber not currently in use or available, attempt to use our hands instead.
+		// saber not currently in use or available, attempt to use our hands instead.
 		do_full_routine = qfalse;
 	}
 
 	if (self->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] < FORCE_LEVEL_1)
 	{
-		//you have not the SKILLZ
+		// you have not the SKILLZ
 		do_full_routine = qfalse;
 	}
 
-	if (!(self->r.svFlags & SVF_BOT) && !(self->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK))
+	if (!(self->r.svFlags & SVF_BOT) &&
+		!(self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)))
 	{
 		return;
 	}
 
-	if (!walk_check(self)
-		&& (PM_SaberInAttack(self->client->ps.saber_move)
-			|| PM_SaberInStart(self->client->ps.saber_move)))
+	if (!walk_check(self) &&
+		(PM_SaberInAttack(self->client->ps.saber_move) ||
+			PM_SaberInStart(self->client->ps.saber_move)))
 	{
-		//this was put in to help bolts stop swings a bit. I dont know why it helps but it does :p
+		// this was put in to help bolts stop swings a bit.
+		do_full_routine = qfalse;
+	}
+	else if (self->client->ps.fd.forcePowersActive & (1 << FP_LIGHTNING))
+	{
+		// can't block while zapping
+		do_full_routine = qfalse;
+	}
+	else if (self->client->ps.fd.forcePowersActive & (1 << FP_DRAIN))
+	{
+		// can't block while draining
+		do_full_routine = qfalse;
+	}
+	else if (self->client->ps.fd.forcePowersActive & (1 << FP_PUSH))
+	{
+		// can't block while shoving
+		do_full_routine = qfalse;
+	}
+	else if (self->client->ps.fd.forcePowersActive & (1 << FP_GRIP))
+	{
+		// can't block while gripping
 		do_full_routine = qfalse;
 	}
 
-	else if (self->client->ps.fd.forcePowersActive & 1 << FP_LIGHTNING)
+	// you should be able to update block positioning if you're already in a block.
+	if (self->client->ps.weaponTime > 0 &&
+		!PM_SaberInParry(self->client->ps.saber_move))
 	{
-		//can't block while zapping
-		do_full_routine = qfalse;
-	}
-	else if (self->client->ps.fd.forcePowersActive & 1 << FP_DRAIN)
-	{
-		//can't block while draining
-		do_full_routine = qfalse;
-	}
-	else if (self->client->ps.fd.forcePowersActive & 1 << FP_PUSH)
-	{
-		//can't block while shoving
-		do_full_routine = qfalse;
-	}
-	else if (self->client->ps.fd.forcePowersActive & 1 << FP_GRIP)
-	{
-		//can't block while gripping (FIXME: or should it break the grip?  Pain should break the grip, I think...)
-		do_full_routine = qfalse;
-	}
-
-	//you should be able to update block positioning if you're already in a block.
-	if (self->client->ps.weaponTime > 0 && !PM_SaberInParry(self->client->ps.saber_move))
-	{
-		//don't autoblock while busy with stuff
+		// don't autoblock while busy with stuff
 		return;
 	}
 
 	if (self->client->saber[0].saberFlags & SFL_NOT_ACTIVE_BLOCKING)
 	{
-		//can't actively block with this saber type
+		// can't actively block with this saber type
 		return;
 	}
 
 	if (self->health <= 0)
 	{
-		//dead don't try to block (NOTE: actual deflection happens in missile code)
+		// dead don't try to block (NOTE: actual deflection happens in missile code)
 		return;
 	}
 
 	if (PM_InKnockDown(&self->client->ps))
 	{
-		//can't block when knocked down
+		// can't block when knocked down
 		return;
 	}
 
-	if (BG_SabersOff(&self->client->ps) && self->client->NPC_class != CLASS_BOBAFETT
-		|| self->client->pers.botclass != BCLASS_BOBAFETT
-		|| self->client->pers.botclass != BCLASS_MANDOLORIAN1
-		|| self->client->pers.botclass != BCLASS_MANDOLORIAN2)
+	if (BG_SabersOff(&self->client->ps) &&
+		self->client->NPC_class != CLASS_BOBAFETT &&
+		self->client->pers.botclass != BCLASS_BOBAFETT &&
+		self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
+		self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 	{
 		if (self->s.eType != ET_NPC)
 		{
-			//player doesn't auto-activate
+			// player doesn't auto-activate
 			do_full_routine = qfalse;
 		}
 	}
 
-	if (self->s.eType == ET_PLAYER)
+	if (self->s.eType == ET_PLAYER && ucmd)
 	{
-		//don't do this if already attacking!
-		if (ucmd->buttons & BUTTON_ATTACK
-			|| PM_SaberInAttack(self->client->ps.saber_move)
-			|| pm_saber_in_special_attack(self->client->ps.torsoAnim)
-			|| PM_SaberInTransitionAny(self->client->ps.saber_move))
+		// don't do this if already attacking!
+		if ((ucmd->buttons & BUTTON_ATTACK) ||
+			PM_SaberInAttack(self->client->ps.saber_move) ||
+			pm_saber_in_special_attack(self->client->ps.torsoAnim) ||
+			PM_SaberInTransitionAny(self->client->ps.saber_move))
 		{
 			do_full_routine = qfalse;
 		}
 	}
 
-	//leaving it now.
+	// leaving it now.
 	if (self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] > level.time)
 	{
-		//can't block while gripping (FIXME: or should it break the grip?  Pain should break the grip, I think...)
 		do_full_routine = qfalse;
 	}
 
+	fwdangles[0] = 0.0f;
 	fwdangles[1] = self->client->ps.viewangles[1];
+	fwdangles[2] = 0.0f;
 	AngleVectors(fwdangles, forward, NULL, NULL);
 
 	for (i = 0; i < 3; i++)
@@ -7752,50 +7735,51 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 	}
 
 	num_listed_entities = trap->EntitiesInBox(mins, maxs, entity_list, MAX_GENTITIES);
-
 	closest_dist = radius;
 
 	for (e = 0; e < num_listed_entities; e++)
 	{
-		float dot1;
+		float  dot1;
 		vec3_t dir;
+
 		ent = &g_entities[entity_list[e]];
 		swing_block = qfalse;
 
 		if (ent == self)
+		{
 			continue;
+		}
 
-		//as long as we're here I'm going to get a look target too, I guess. -rww
+		// as long as we're here I'm going to get a look target too, I guess. -rww
 		if (self->s.eType == ET_PLAYER &&
 			ent->client &&
 			(ent->s.eType == ET_NPC || ent->s.eType == ET_PLAYER) &&
 			!OnSameTeam(ent, self) &&
 			ent->client->sess.sessionTeam != TEAM_SPECTATOR &&
 			!(ent->client->ps.pm_flags & PMF_FOLLOW) &&
-			(ent->s.eType != ET_NPC || ent->s.NPC_class != CLASS_VEHICLE) && //don't look at vehicle NPCs
+			(ent->s.eType != ET_NPC || ent->s.NPC_class != CLASS_VEHICLE) && // don't look at vehicle NPCs
 			ent->health > 0)
 		{
-			//seems like a valid enemy to look at.
 			vec3_t vec_sub;
-			float vec_len;
+			float  vec_len;
 
 			VectorSubtract(self->client->ps.origin, ent->client->ps.origin, vec_sub);
 			vec_len = VectorLength(vec_sub);
 
-			if (look_t_dist == -1 || vec_len < look_t_dist)
+			if (look_t_dist == -1.0f || vec_len < look_t_dist)
 			{
-				trace_t tr;
-				vec3_t my_eyes;
+				trace_t ltr;
+				vec3_t  my_eyes;
 
 				VectorCopy(self->client->ps.origin, my_eyes);
 				my_eyes[2] += self->client->ps.viewheight;
 
-				trap->Trace(&tr, my_eyes, NULL, NULL, ent->client->ps.origin, self->s.number, MASK_PLAYERSOLID, qfalse,
-					0, 0);
+				trap->Trace(&ltr, my_eyes, NULL, NULL, ent->client->ps.origin,
+					self->s.number, MASK_PLAYERSOLID, qfalse, 0, 0);
 
-				if (tr.fraction == 1.0f || tr.entityNum == ent->s.number)
+				if (ltr.fraction == 1.0f || ltr.entityNum == ent->s.number)
 				{
-					//we have a clear line of sight to him, so it's all good.
+					// we have a clear line of sight to him, so it's all good.
 					look_t = ent;
 					look_t_dist = vec_len;
 				}
@@ -7803,17 +7787,21 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 		}
 
 		if (ent->r.ownerNum == self->s.number)
+		{
 			continue;
+		}
 		if (!ent->inuse)
+		{
 			continue;
+		}
+
 		if (ent->s.eType != ET_MISSILE && !(ent->s.eFlags & EF_MISSILE_STICK))
 		{
-			//not a normal projectile
+			// not a normal projectile
 			gentity_t* p_owner;
 
 			if (ent->r.ownerNum < 0 || ent->r.ownerNum >= ENTITYNUM_WORLD)
 			{
-				//not going to be a client then.
 				continue;
 			}
 
@@ -7821,63 +7809,64 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 
 			if (!p_owner->inuse || !p_owner->client)
 			{
-				continue; //not valid cl owner
+				continue; // not valid cl owner
 			}
 
 			if (!p_owner->client->ps.saberEntityNum ||
 				p_owner->client->ps.saberEntityNum != ent->s.number)
 			{
-				//the saber is knocked away and/or not flying actively, or this ent is not the cl's saber ent at all
+				// the saber is knocked away and/or not flying actively, or this ent is not the cl's saber ent at all
 				continue;
 			}
-			//allow the blocking of normal saber swings
+
+			// allow the blocking of normal saber swings
 			if (!p_owner->client->ps.saberInFlight)
 			{
-				//active saber blade, treat differently.
+				// active saber blade, treat differently.
 				swing_block = qtrue;
+
 				if (BG_SaberInNonIdleDamageMove(&p_owner->client->ps, p_owner->localAnimIndex))
 				{
-					//attacking
+					// attacking
 					swing_block_quad = invert_quad(saber_moveData[p_owner->client->ps.saber_move].startQuad);
 				}
-				else if (PM_SaberInStart(p_owner->client->ps.saber_move)
-					|| PM_SaberInTransition(p_owner->client->ps.saber_move))
+				else if (PM_SaberInStart(p_owner->client->ps.saber_move) ||
+					PM_SaberInTransition(p_owner->client->ps.saber_move))
 				{
-					//preparing to attack
+					// preparing to attack
 					swing_block_quad = invert_quad(saber_moveData[p_owner->client->ps.saber_move].endQuad);
 				}
 				else
 				{
-					//not attacking
+					// not attacking
 					continue;
 				}
 			}
-
-			//If we get here then it's ok to be treated as a thrown saber, I guess.
+			// If we get here then it's ok to be treated as a thrown saber, I guess.
 		}
 		else
 		{
 			if (ent->s.pos.trType == TR_STATIONARY && self->s.eType == ET_PLAYER)
 			{
-				//nothing you can do with a stationary missile if you're the player
+				// nothing you can do with a stationary missile if you're the player
 				continue;
 			}
 		}
 
-		//see if they're in front of me
+		// see if they're in front of me
 		VectorSubtract(ent->r.currentOrigin, self->r.currentOrigin, dir);
 		dist = VectorNormalize(dir);
 
-		if (dist > 150 && swing_block)
+		if (dist > 150.0f && swing_block)
 		{
-			//don't block swings that are too far away.
+			// don't block swings that are too far away.
 			continue;
 		}
 
-		//handle detpacks, proximity mines and tripmines
+		// handle detpacks, proximity mines and tripmines
 		if (ent->s.weapon == WP_THERMAL)
 		{
-			//thermal detonator!
+			// thermal detonator!
 			if (dist < ent->splashRadius && !OnSameTeam(&g_entities[ent->r.ownerNum], self))
 			{
 				if (dist < ent->splashRadius &&
@@ -7888,25 +7877,26 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 						ent->s.pos.trType == TR_INTERPOLATE ||
 						(dot1 = DotProduct(dir, forward)) < SABER_REFLECT_MISSILE_CONE))
 				{
-					//TD is close enough to hurt me, I'm on the ground and the thing is at rest or behind me and about to blow up, or I don't have force-push so force-jump!
-					if (self->client->pers.botclass == BCLASS_BOBAFETT
-						|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
-						|| self->client->pers.botclass == BCLASS_MANDOLORIAN2)
+					// TD is close enough to hurt me, I'm on the ground and the thing is at rest or behind me and about to blow up, or I don't have force-push so force-jump!
+					if (self->client->pers.botclass == BCLASS_BOBAFETT ||
+						self->client->pers.botclass == BCLASS_MANDOLORIAN1 ||
+						self->client->pers.botclass == BCLASS_MANDOLORIAN2)
 					{
-						//jump out of the way
+						// jump out of the way
 						self->client->ps.fd.forceJumpCharge = 480;
 						PM_AddFatigue(&self->client->ps, FORCE_LONGJUMP_POWER);
 					}
 				}
-				else if (self->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK
-					&& self->client->pers.botclass != BCLASS_BOBAFETT
-					&& self->client->pers.botclass != BCLASS_MANDOLORIAN1
-					&& self->client->pers.botclass != BCLASS_MANDOLORIAN2)
+				else if ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) &&
+					self->client->pers.botclass != BCLASS_BOBAFETT &&
+					self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
+					self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 				{
 					ForceThrow(self, qfalse);
 					PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
 				}
-				else if (self->r.svFlags & SVF_BOT && self->client->ps.fd.forcePowerLevel[FP_PUSH] > 1)
+				else if ((self->r.svFlags & SVF_BOT) &&
+					self->client->ps.fd.forcePowerLevel[FP_PUSH] > 1)
 				{
 					ForceThrow(self, qfalse);
 					PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
@@ -7914,43 +7904,53 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 			}
 			continue;
 		}
-		if (ent->splashDamage && ent->splashRadius && !(ent->s.powerups & 1 << PW_FORCE_PROJECTILE))
+
+		if (ent->splashDamage &&
+			ent->splashRadius &&
+			!(ent->s.powerups & (1 << PW_FORCE_PROJECTILE)))
 		{
-			//exploding missile
-			if (ent->s.pos.trType == TR_STATIONARY && ent->s.eFlags & EF_MISSILE_STICK)
+			// exploding missile
+			if (ent->s.pos.trType == TR_STATIONARY &&
+				(ent->s.eFlags & EF_MISSILE_STICK))
 			{
-				//a placed explosive like a tripmine or detpack
-				if (InFOV3(ent->r.currentOrigin, self->client->renderInfo.eyePoint, self->client->ps.viewangles, 90,
-					90))
+				// a placed explosive like a tripmine or detpack
+				if (InFOV3(ent->r.currentOrigin, self->client->renderInfo.eyePoint,
+					self->client->ps.viewangles, 90, 90))
 				{
-					//in front of me
+					// in front of me
 					if (G_ClearLOS4(self, ent))
 					{
-						//can see it
 						vec3_t throw_dir;
-						//make the gesture
-						if (self->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK
-							&& self->client->pers.botclass != BCLASS_BOBAFETT
-							&& self->client->pers.botclass != BCLASS_MANDOLORIAN1
-							&& self->client->pers.botclass != BCLASS_MANDOLORIAN2)
+
+						// make the gesture
+						if ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) &&
+							self->client->pers.botclass != BCLASS_BOBAFETT &&
+							self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
+							self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 						{
 							ForceThrow(self, qfalse);
 							PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
 						}
-						//take it off the wall and toss it
+
+						// take it off the wall and toss it
 						ent->s.pos.trType = TR_GRAVITY;
 						ent->s.eType = ET_MISSILE;
 						ent->s.eFlags &= ~EF_MISSILE_STICK;
 						ent->flags |= FL_BOUNCE_HALF;
+
 						AngleVectors(ent->r.currentAngles, throw_dir, NULL, NULL);
-						VectorMA(ent->r.currentOrigin, ent->r.maxs[0] + 4, throw_dir, ent->r.currentOrigin);
+						VectorMA(ent->r.currentOrigin, ent->r.maxs[0] + 4.0f, throw_dir, ent->r.currentOrigin);
 						VectorCopy(ent->r.currentOrigin, ent->s.pos.trBase);
-						VectorScale(throw_dir, 300, ent->s.pos.trDelta);
-						ent->s.pos.trDelta[2] += 150;
-						VectorMA(ent->s.pos.trDelta, 800, dir, ent->s.pos.trDelta);
+
+						VectorScale(throw_dir, 300.0f, ent->s.pos.trDelta);
+						ent->s.pos.trDelta[2] += 150.0f;
+						VectorMA(ent->s.pos.trDelta, 800.0f, dir, ent->s.pos.trDelta);
+
 						ent->s.pos.trTime = level.time; // move a bit on the very first frame
 						VectorCopy(ent->r.currentOrigin, ent->s.pos.trBase);
+
 						ent->r.ownerNum = self->s.number;
+
 						// make it explode, but with less damage
 						ent->splashDamage /= 3;
 						ent->splashRadius /= 3;
@@ -7958,28 +7958,30 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 					}
 				}
 			}
-			else if (dist < ent->splashRadius
-				&& self->client->ps.groundEntityNum != ENTITYNUM_NONE
-				&& DotProduct(dir, forward) < SABER_REFLECT_MISSILE_CONE)
+			else if (dist < ent->splashRadius &&
+				self->client->ps.groundEntityNum != ENTITYNUM_NONE &&
+				DotProduct(dir, forward) < SABER_REFLECT_MISSILE_CONE)
 			{
-				//try to evade it
-				if (self->client->pers.botclass == BCLASS_BOBAFETT
-					|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
-					|| self->client->pers.botclass == BCLASS_MANDOLORIAN2)
+				// try to evade it
+				if (self->client->pers.botclass == BCLASS_BOBAFETT ||
+					self->client->pers.botclass == BCLASS_MANDOLORIAN1 ||
+					self->client->pers.botclass == BCLASS_MANDOLORIAN2)
 				{
-					//jump out of the way
+					// jump out of the way
 					self->client->ps.fd.forceJumpCharge = 480;
 					PM_AddFatigue(&self->client->ps, FORCE_LONGJUMP_POWER);
 				}
 			}
-			else if (self->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK
-				&& self->client->pers.botclass != BCLASS_BOBAFETT
-				&& self->client->pers.botclass != BCLASS_MANDOLORIAN1
-				&& self->client->pers.botclass != BCLASS_MANDOLORIAN2)
+			else if ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) &&
+				self->client->pers.botclass != BCLASS_BOBAFETT &&
+				self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
+				self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 			{
-				if (!self->s.number && self->client->ps.fd.forcePowerLevel[FP_PUSH] == 1 && dist >= 192)
+				if (!self->s.number &&
+					self->client->ps.fd.forcePowerLevel[FP_PUSH] == 1 &&
+					dist >= 192.0f)
 				{
-					//player with push 1 has to wait until it's closer otherwise the push misses
+					// player with push 1 has to wait until it's closer otherwise the push misses
 				}
 				else
 				{
@@ -7987,73 +7989,96 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 					PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
 				}
 			}
-			else if (self->r.svFlags & SVF_BOT && self->client->ps.fd.forcePowerLevel[FP_PUSH] > 1)
+			else if ((self->r.svFlags & SVF_BOT) &&
+				self->client->ps.fd.forcePowerLevel[FP_PUSH] > 1)
 			{
 				ForceThrow(self, qfalse);
 				PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
 			}
-			//otherwise, can't block it, so we're screwed
+
+			// otherwise, can't block it, so we're screwed
 			continue;
 		}
 
 		if (!do_full_routine)
 		{
-			//don't care about the rest then
+			// don't care about the rest then
 			continue;
 		}
 
 		if (ent->s.weapon != WP_SABER)
 		{
-			//only block shots coming from behind
+			// only block shots coming from behind
 			if ((dot1 = DotProduct(dir, forward)) < SABER_REFLECT_MISSILE_CONE)
+			{
 				continue;
+			}
 		}
 
-		//see if they're heading towards me
+		// see if they're heading towards me
 		if (!swing_block)
 		{
-			float dot2;
+			float  dot2;
 			vec3_t missile_dir;
+
 			VectorCopy(ent->s.pos.trDelta, missile_dir);
 			VectorNormalize(missile_dir);
-			if ((dot2 = DotProduct(dir, missile_dir)) > 0)
+
+			if ((dot2 = DotProduct(dir, missile_dir)) > 0.0f)
+			{
 				continue;
+			}
 		}
 
 		if (dist < closest_dist)
 		{
 			VectorCopy(self->r.currentOrigin, trace_to);
-			trace_to[2] = self->r.absmax[2] - 4;
-			trap->Trace(&trace, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, trace_to, ent->s.number, ent->clipmask,
-				qfalse, 0, 0);
-			if (trace.allsolid || trace.startsolid || trace.fraction < 1.0f && trace.entityNum != self->s.number &&
-				trace.entityNum != self->client->ps.saberEntityNum)
+			trace_to[2] = self->r.absmax[2] - 4.0f;
+
+			trap->Trace(&trace, ent->r.currentOrigin, ent->r.mins, ent->r.maxs,
+				trace_to, ent->s.number, ent->clipmask, qfalse, 0, 0);
+
+			if (trace.allsolid ||
+				trace.startsolid ||
+				(trace.fraction < 1.0f &&
+					trace.entityNum != self->s.number &&
+					trace.entityNum != self->client->ps.saberEntityNum))
 			{
-				//okay, try one more check
+				// okay, try one more check
 				VectorNormalize2(ent->s.pos.trDelta, ent_dir);
 				VectorMA(ent->r.currentOrigin, radius, ent_dir, trace_to);
-				trap->Trace(&trace, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, trace_to, ent->s.number,
-					ent->clipmask, qfalse, 0, 0);
-				if (trace.allsolid || trace.startsolid || trace.fraction < 1.0f && trace.entityNum != self->s.number &&
-					trace.entityNum != self->client->ps.saberEntityNum)
+
+				trap->Trace(&trace, ent->r.currentOrigin, ent->r.mins, ent->r.maxs,
+					trace_to, ent->s.number, ent->clipmask, qfalse, 0, 0);
+
+				if (trace.allsolid ||
+					trace.startsolid ||
+					(trace.fraction < 1.0f &&
+						trace.entityNum != self->s.number &&
+						trace.entityNum != self->client->ps.saberEntityNum))
 				{
-					//can't hit me, ignore it
+					// can't hit me, ignore it
 					continue;
 				}
 			}
+
 			if (self->s.eType == ET_NPC)
 			{
-				//An NPC
+				// An NPC
 				if (self->NPC && !self->enemy && ent->r.ownerNum != ENTITYNUM_NONE)
 				{
 					gentity_t* owner = &g_entities[ent->r.ownerNum];
-					if (owner->health >= 0 && (!owner->client || owner->client->playerTeam != self->client->playerTeam))
+
+					if (owner->health >= 0 &&
+						(!owner->client || owner->client->playerTeam != self->client->playerTeam))
 					{
 						G_SetEnemy(self, owner);
 					}
 				}
 			}
-			//FIXME: if NPC, predict the intersection between my current velocity/path and the missile's, see if it intersects my bounding box (+/-saberLength?), don't try to deflect unless it does?
+
+			// FIXME: if NPC, predict the intersection between my current velocity/path and the missile's...
+
 			closest_dist = dist;
 			incoming = ent;
 			closest_swing_block = swing_block;
@@ -8063,8 +8088,8 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 
 	if (self->s.eType == ET_NPC && self->localAnimIndex <= 1)
 	{
-		//humanoid NPCs don't set angles based on server angles for looking, unlike other NPCs
-		if (self->client && self->client->renderInfo.lookTarget < ENTITYNUM_WORLD)
+		// humanoid NPCs don't set angles based on server angles for looking, unlike other NPCs
+		if (self->client->renderInfo.lookTarget < ENTITYNUM_WORLD)
 		{
 			look_t = &g_entities[self->client->renderInfo.lookTarget];
 		}
@@ -8072,10 +8097,10 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 
 	if (look_t)
 	{
-		//we got a look target at some point so we'll assign it then.
+		// we got a look target at some point so we'll assign it then.
 		if (!(self->client->ps.eFlags2 & EF2_HELD_BY_MONSTER))
 		{
-			//lookTarget is set by and to the monster that's holding you, no other operations can change that
+			// lookTarget is set by and to the monster that's holding you, no other operations can change that
 			self->client->ps.hasLookTarget = qtrue;
 			self->client->ps.lookTarget = look_t->s.number;
 		}
@@ -8083,7 +8108,7 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 
 	if (!do_full_routine)
 	{
-		//then we're done now
+		// then we're done now
 		return;
 	}
 
@@ -8095,36 +8120,39 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 			{
 				Jedi_Ambush(self);
 			}
-			if (self->client->NPC_class == CLASS_BOBAFETT
-				|| self->client->pers.botclass == BCLASS_BOBAFETT
-				|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
-				|| self->client->pers.botclass == BCLASS_MANDOLORIAN2
-				&& self->client->ps.eFlags2 & EF2_FLYING //moveType == MT_FLYSWIM
-				&& incoming->methodOfDeath != MOD_ROCKET_HOMING)
+
+			if ((self->client->NPC_class == CLASS_BOBAFETT ||
+				self->client->pers.botclass == BCLASS_BOBAFETT ||
+				self->client->pers.botclass == BCLASS_MANDOLORIAN1 ||
+				self->client->pers.botclass == BCLASS_MANDOLORIAN2) &&
+				(self->client->ps.eFlags2 & EF2_FLYING) &&
+				incoming->methodOfDeath != MOD_ROCKET_HOMING)
 			{
-				//a hovering Boba Fett, not a tracking rocket
+				// a hovering Boba Fett, not a tracking rocket
 				if (!Q_irand(0, 1))
 				{
-					//strafe
+					// strafe
 					self->NPC->standTime = 0;
-					self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] = level.time + Q_irand(1000, 2000);
+					self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] =
+						level.time + Q_irand(1000, 2000);
 				}
 				if (!Q_irand(0, 1))
 				{
-					//go up/down
+					// go up/down
 					TIMER_Set(self, "heightChange", Q_irand(1000, 3000));
-					self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] = level.time + Q_irand(1000, 2000);
+					self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] =
+						level.time + Q_irand(1000, 2000);
 				}
 			}
 			else if (jedi_saber_block_go(self, &self->NPC->last_ucmd, NULL, NULL, incoming, 0.0f) != EVASION_NONE)
 			{
-				//make sure to turn on your saber if it's not on
-				if (self->client->NPC_class != CLASS_BOBAFETT
-					&& self->client->NPC_class != CLASS_ROCKETTROOPER
-					&& self->client->NPC_class != CLASS_REBORN
-					&& self->client->pers.botclass != BCLASS_BOBAFETT
-					&& self->client->pers.botclass != BCLASS_MANDOLORIAN1
-					&& self->client->pers.botclass != BCLASS_MANDOLORIAN2)
+				// make sure to turn on your saber if it's not on
+				if (self->client->NPC_class != CLASS_BOBAFETT &&
+					self->client->NPC_class != CLASS_ROCKETTROOPER &&
+					self->client->NPC_class != CLASS_REBORN &&
+					self->client->pers.botclass != BCLASS_BOBAFETT &&
+					self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
+					self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 				{
 					if (self->s.weapon == WP_SABER)
 					{
@@ -8133,37 +8161,53 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 				}
 			}
 		}
-		else //player
+		else // player
 		{
-			gentity_t* blocker = &g_entities[incoming->r.ownerNum];
+			gentity_t* blocker = NULL;
 
-			if (self->client && self->client->ps.saberHolstered == 2)
+			if (incoming->r.ownerNum >= 0 && incoming->r.ownerNum < ENTITYNUM_WORLD)
+			{
+				blocker = &g_entities[incoming->r.ownerNum];
+			}
+
+			if (self->client->ps.saberHolstered == 2)
 			{
 				WP_ActivateSaber(self);
 			}
-			if (closest_swing_block && blocker->health > 0)
+
+			if (blocker && blocker->client && closest_swing_block && blocker->health > 0)
 			{
 				blocker->client->ps.saberBlocked = blockedfor_quad(closest_swing_quad);
-				blocker->client->ps.userInt3 |= 1 << FLAG_PREBLOCK;
+				blocker->client->ps.userInt3 |= (1 << FLAG_PREBLOCK);
 			}
-			else if (blocker->health > 0 && (blocker->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK || blocker->client->ps.ManualBlockingFlags & 1 << MBF_NPCBLOCKING))
+			else if (blocker && blocker->client && blocker->health > 0 &&
+				((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) ||
+					(blocker->client->ps.ManualBlockingFlags & (1 << MBF_NPCBLOCKING))))
 			{
 				wp_saber_block_non_random_missile(blocker, incoming->r.currentOrigin, qtrue);
 			}
 			else
 			{
 				vec3_t diff, start, end;
+				float  scale;
+
 				VectorSubtract(incoming->r.currentOrigin, self->r.currentOrigin, diff);
-				float scale = VectorLength(diff);
+				scale = VectorLength(diff);
+
 				VectorNormalize2(incoming->s.pos.trDelta, ent_dir);
 				VectorMA(incoming->r.currentOrigin, scale, ent_dir, start);
+
 				VectorCopy(self->r.currentOrigin, end);
 				end[2] += self->maxs[2] * 0.75f;
-				trap->Trace(&trace, start, incoming->mins, incoming->maxs, end, incoming->s.number, MASK_SHOT, qfalse, 0, 0);
+
+				trap->Trace(&trace, start, incoming->mins, incoming->maxs,
+					end, incoming->s.number, MASK_SHOT, qfalse, 0, 0);
 
 				jedi_dodge_evasion(self, incoming->owner, &trace, HL_NONE);
 			}
-			if (incoming->owner && incoming->owner->client && (!self->enemy || self->enemy->s.weapon != WP_SABER))
+
+			if (incoming->owner && incoming->owner->client &&
+				(!self->enemy || self->enemy->s.weapon != WP_SABER))
 			{
 				self->enemy = incoming->owner;
 				NPC_SetLookTarget(self, incoming->owner->s.number, level.time + 1000);

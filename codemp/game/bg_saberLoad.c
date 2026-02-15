@@ -746,18 +746,12 @@ qboolean WP_UseFirstValidSaberStyle(
 	}
 	else if (styleInvalid)
 	{
-		// -----------------------------------------------------
-		// BOT vs PLAYER DEFAULT STYLE
-		// -----------------------------------------------------
+	
+		// If you want players to default to FAST:
+		int preferredStyle = SS_FAST;
 
-		qboolean isPlayer = qfalse;
-
-		// MP-safe check: clientNum 0 is the real player
-		if (pm && pm->ps && pm->ps->clientNum == 0)
-			isPlayer = qtrue;
-
-		// Player default = FAST, Bots default = MEDIUM
-		int preferredStyle = isPlayer ? SS_FAST : SS_MEDIUM;
+		// If you prefer MEDIUM as the fallback, use:
+		// int preferredStyle = SS_MEDIUM;
 
 		// If preferred style is valid, use it
 		if (validStyles & (1 << preferredStyle))
@@ -884,8 +878,11 @@ qboolean WP_SaberStyleValidForSaber(
 				return qfalse;
 
 			// Check both sabers allow Tavion
-			if (!(saber1Active && (saber1->stylesLearned & (1 << SS_TAVION))) ||
-				!(saber2->stylesLearned & (1 << SS_TAVION)))
+			if (!(saber1Active &&
+				saber1 &&
+				(saber1->stylesLearned & (1 << SS_TAVION))) ||
+				!(saber2 &&
+					(saber2->stylesLearned & (1 << SS_TAVION))))
 			{
 				return qfalse;
 			}

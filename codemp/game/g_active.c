@@ -35,6 +35,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "g_local.h"
 #include "bg_saga.h"
+#include <qcommon\q_shared.h>
+#include "bg_public.h"
 
 extern void player_Cloak(gentity_t* self);
 extern void Jedi_Cloak(gentity_t* self);
@@ -44,7 +46,6 @@ qboolean PM_SaberInTransition(int move);
 qboolean PM_SaberInStart(int move);
 qboolean PM_SaberInReturn(int move);
 qboolean saberCheckKnockdown_DuelLoss(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other);
-extern void BG_ReduceSaberMishapLevel(playerState_t* ps);
 extern qboolean G_ValidSaberStyle(const gentity_t* ent, int saber_style);
 extern qboolean BG_SprintAnim(int anim);
 extern void Weapon_GrapplingHook_Fire(gentity_t* ent);

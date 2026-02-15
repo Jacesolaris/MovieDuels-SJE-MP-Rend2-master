@@ -37,6 +37,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_saga.h"
 
 #include "ui/menudef.h"			// for the voice chats
+#include <stdint.h>
 
 extern qboolean in_camera;
 //rww - for getting bot commands...

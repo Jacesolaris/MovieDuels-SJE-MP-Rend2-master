@@ -653,7 +653,9 @@ void sab_beh_animate_slow_bounce_blocker(gentity_t* blocker)
 	}
 
 	return qtrue;
-}static void sab_beh_add_balance(const gentity_t* self, int amount)
+}
+
+static void sab_beh_add_balance(const gentity_t* self, int amount)
 {
 	// Running or moving fast reduces balance control
 	if (!walk_check(self))

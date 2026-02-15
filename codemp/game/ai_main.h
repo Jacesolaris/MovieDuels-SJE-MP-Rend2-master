@@ -117,11 +117,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 typedef int bot_route_t[MAX_WPARRAY_SIZE];
 
-#define BOTFLAG_SABERCHALLENGED			0x00000004
-//flag to indicate we're issued a saber challenge as part of the BOTORDER_SABERDUELCHALLENGE tactic.
-
-//The Distance at which you can challenge someone to a saber duel.
-#define SABERDUELCHALLENGEDIST 256
 //Maximum distance allowed between nodes for them to count as seqencial wp.
 #define MAX_NODE_DIS 1000
 
@@ -145,7 +140,7 @@ typedef int bot_route_t[MAX_WPARRAY_SIZE];
 
 //Defines the top list of weapons that we care about getting or having ammo for.
 //IE the top 5, the top 10, etc...
-#define TAB_FAVWEAPCARELEVEL_MAX 5
+#define FAVWEAPCARELEVEL_MAX 5
 
 //RAFIXME - this should probably be handled by a new bot attribute.
 #define DESIREDAMMOLEVEL .5
@@ -554,6 +549,9 @@ typedef struct bot_state_s
 	int spacingState; // 0 = HOLD, 1 = BACKUP, 2 = CLOSE
 	// ...
 	bot_route_t tempRoute; // reusable route buffer
+	int blockPoints;
+	int in_saber_combat;
+	qboolean inSaberFallback;
 
 	//end rww
 } bot_state_t;

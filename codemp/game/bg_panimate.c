@@ -47,6 +47,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #elif UI_BUILD
 #include "ui/ui_local.h"
 #endif
+#include "bg_weapons.h"
 
 qboolean PM_SaberInTransition(int move);
 qboolean PM_SaberInDeflect(int move);
@@ -5354,7 +5355,7 @@ static int bg_animParseIncluding = 0;
 int BG_ParseAnimationEvtFile(const char* as_filename, const int animFileIndex, const int eventFileIndex)
 {
 	const char* text_p;
-	char text[80000];
+	static char text[80000];
 	char sfilename[MAX_QPATH];
 	fileHandle_t f;
 	int i;
@@ -5975,7 +5976,7 @@ void BG_SetTorsoAnimTimer(playerState_t* ps, const int time)
 #endif
 }
 
-void pm_saber_start_trans_anim(const int clientNum, const int saberAnimLevel, const int weapon, const int anim, float* animSpeed, const int fatigued)
+void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const int weapon, const int anim, float* animSpeed, const int fatigued)
 {
 	char buf[128];
 
@@ -6108,15 +6109,14 @@ void pm_saber_start_trans_anim(const int clientNum, const int saberAnimLevel, co
 			}
 			else if (saberAnimLevel == SS_MEDIUM)
 			{
-				if (fatigued & 1 << FLAG_SLIGHTFATIGUE)
-				{//Slow down saber moves...
+				if (fatigued & (1 << FLAG_SLIGHTFATIGUE))
+				{
 					const float fatiguedanimscale = 0.97f;
 					*animSpeed *= fatiguedanimscale;
 				}
 				else
 				{
-					const float realisticanimscale = 1.0f;
-					*animSpeed *= realisticanimscale;
+					*animSpeed *= 1.0f;
 				}
 			}
 			else if (saberAnimLevel == SS_STRONG)
@@ -6162,7 +6162,7 @@ static void BG_SetAnimFinal(playerState_t* ps, const animation_t* animations, co
 	assert(anim > -1);
 	assert(animations[anim].firstFrame > 0 || animations[anim].numFrames > 0);
 
-	pm_saber_start_trans_anim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, anim, &editAnimSpeed, ps->userInt3);
+	PM_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, anim, &editAnimSpeed, ps->userInt3);
 
 	// Set torso anim
 	if (setAnimParts & SETANIM_TORSO)
@@ -6376,7 +6376,7 @@ float bg_get_torso_anim_point(const playerState_t* ps, const int anim_index)
 	float anim_speed_factor = 1.0f;
 
 	//Be sure to scale by the proper anim speed just as if we were going to play the animation
-	pm_saber_start_trans_anim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, ps->torsoAnim, &anim_speed_factor,
+	PM_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, ps->torsoAnim, &anim_speed_factor,
 		ps->userInt3);
 
 	if (anim_speed_factor > 0)
@@ -6412,7 +6412,7 @@ float BG_GetLegsAnimPoint(const playerState_t* ps, const int anim_index)
 	float anim_speed_factor = 1.0f;
 
 	//Be sure to scale by the proper anim speed just as if we were going to play the animation
-	pm_saber_start_trans_anim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, ps->legsAnim, &anim_speed_factor,
+	PM_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, ps->legsAnim, &anim_speed_factor,
 		ps->userInt3);
 
 	if (anim_speed_factor > 0)

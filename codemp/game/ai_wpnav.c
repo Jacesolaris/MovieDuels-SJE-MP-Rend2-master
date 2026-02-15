@@ -649,6 +649,13 @@ static int CreateNewWP_InTrail(vec3_t origin, const int flags, const int afterin
 
 	while (i >= 0)
 	{
+		// Prevent buffer overrun BEFORE writing to i+1
+		if (i + 1 >= MAX_WPARRAY_SIZE)
+		{
+			trap->Print(S_COLOR_RED "ERROR: Waypoint insertion overflow at index %i\n", i + 1);
+			return 0;
+		}
+
 		if (gWPArray[i] && gWPArray[i]->inuse && gWPArray[i]->index != foundindex)
 		{
 			TransferWPData(i, i + 1);
@@ -663,13 +670,14 @@ static int CreateNewWP_InTrail(vec3_t origin, const int flags, const int afterin
 			}
 
 			gWPArray[i]->flags = flags;
-			gWPArray[i]->weight = 0; //calculated elsewhere
-			gWPArray[i]->associated_entity = ENTITYNUM_NONE; //set elsewhere
-			gWPArray[i]->disttonext = 0; //calculated elsewhere
+			gWPArray[i]->weight = 0;
+			gWPArray[i]->associated_entity = ENTITYNUM_NONE;
+			gWPArray[i]->disttonext = 0;
 			gWPArray[i]->forceJumpTo = 0;
 			gWPArray[i]->index = i;
 			gWPArray[i]->inuse = 1;
 			VectorCopy(origin, gWPArray[i]->origin);
+
 			gWPNum++;
 			break;
 		}
@@ -1979,64 +1987,56 @@ static void CalculateWeightGoals(void)
 
 static void CalculateJumpRoutes(void)
 {
-	int i = 0;
-
-	while (i < gWPNum)
+	for (int i = 0; i < gWPNum; i++)
 	{
-		if (gWPArray[i] && gWPArray[i]->inuse)
+		if (!gWPArray[i] || !gWPArray[i]->inuse)
+			continue;
+
+		if (!(gWPArray[i]->flags & WPFLAG_JUMP))
+			continue;
+
+		float nheightdif = 0;
+		float pheightdif = 0;
+
+		gWPArray[i]->forceJumpTo = 0;
+
+		// SAFE CHECK: i - 1 must be >= 0
+		if (i > 0 &&
+			gWPArray[i - 1] && gWPArray[i - 1]->inuse &&
+			gWPArray[i - 1]->origin[2] + 16 < gWPArray[i]->origin[2])
 		{
-			if (gWPArray[i]->flags & WPFLAG_JUMP)
-			{
-				float nheightdif = 0;
-				float pheightdif = 0;
-
-				gWPArray[i]->forceJumpTo = 0;
-
-				if (gWPArray[i - 1] && gWPArray[i - 1]->inuse && gWPArray[i - 1]->origin[2] + 16 < gWPArray[i]->origin[
-					2])
-				{
-					nheightdif = gWPArray[i]->origin[2] - gWPArray[i - 1]->origin[2];
-				}
-
-				if (gWPArray[i + 1] && gWPArray[i + 1]->inuse && gWPArray[i + 1]->origin[2] + 16 < gWPArray[i]->origin[
-					2])
-				{
-					pheightdif = gWPArray[i]->origin[2] - gWPArray[i + 1]->origin[2];
-				}
-
-				if (nheightdif > pheightdif)
-				{
-					pheightdif = nheightdif;
-				}
-
-				if (pheightdif)
-				{
-					if (pheightdif > 500)
-					{
-						gWPArray[i]->forceJumpTo = 999; //FORCE_LEVEL_3; //FJSR
-					}
-					else if (pheightdif > 256)
-					{
-						gWPArray[i]->forceJumpTo = 999; //FORCE_LEVEL_2; //FJSR
-					}
-					else if (pheightdif > 128)
-					{
-						gWPArray[i]->forceJumpTo = 999; //FORCE_LEVEL_1; //FJSR
-					}
-				}
-			}
+			nheightdif = gWPArray[i]->origin[2] - gWPArray[i - 1]->origin[2];
 		}
 
-		i++;
+		// SAFE CHECK: i + 1 must be < gWPNum
+		if (i + 1 < gWPNum &&
+			gWPArray[i + 1] && gWPArray[i + 1]->inuse &&
+			gWPArray[i + 1]->origin[2] + 16 < gWPArray[i]->origin[2])
+		{
+			pheightdif = gWPArray[i]->origin[2] - gWPArray[i + 1]->origin[2];
+		}
+
+		if (nheightdif > pheightdif)
+			pheightdif = nheightdif;
+
+		if (pheightdif > 0)
+		{
+			if (pheightdif > 500)
+				gWPArray[i]->forceJumpTo = 999;
+			else if (pheightdif > 256)
+				gWPArray[i]->forceJumpTo = 999;
+			else if (pheightdif > 128)
+				gWPArray[i]->forceJumpTo = 999;
+		}
 	}
 }
 
 static int LoadPathData(const char* filename)
 {
 	fileHandle_t f;
-	char fileString[WPARRAY_BUFFER_SIZE];
+	static char fileString[WPARRAY_BUFFER_SIZE];
 	char routePath[MAX_QPATH];
-	wpobject_t thiswp;
+	static wpobject_t thiswp;
 
 	int i = 0;
 	int i_cv;
