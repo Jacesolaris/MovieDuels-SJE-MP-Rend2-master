@@ -2992,9 +2992,7 @@ static qboolean melee_block_lightning(gentity_t* attacker, gentity_t* defender)
 static qboolean saber_block_lightning(const gentity_t* attacker, const gentity_t* defender)
 {
 	//defender is attempting to block lightning.  Try to do it.
-	const qboolean is_holding_block_button_and_attack = defender->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK
-		? qtrue
-		: qfalse; //Active Blocking
+	const qboolean is_holding_block_button_and_attack = defender->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK ? qtrue : qfalse; //Active Blocking
 	int fp_block_cost;
 	const qboolean saber_light_block = qtrue;
 
@@ -3044,8 +3042,7 @@ static qboolean saber_block_lightning(const gentity_t* attacker, const gentity_t
 	return qtrue;
 }
 
-static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t dir, const float dist, const float dot,
-	vec3_t impact_point)
+static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t dir, const float dist, const float dot, vec3_t impact_point)
 {
 	self->client->dangerTime = level.time;
 	self->client->ps.eFlags &= ~EF_INVULNERABLE;

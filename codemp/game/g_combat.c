@@ -58,7 +58,7 @@ extern qboolean PM_RollingAnim(int anim);
 extern qboolean PM_CrouchAnim(int anim);
 extern qboolean BG_KnockDownAnim(int anim);
 extern void ScalePlayer(gentity_t* self, int scale);
-extern qboolean PM_InAnimForsaber_move(int anim, int saber_move);
+extern qboolean PM_InAnimForSaberMove(int anim, int saber_move);
 extern qboolean PM_SaberInStart(int move);
 extern int PM_AnimLength(const animNumber_t anim);
 extern qboolean PM_SaberInReturn(int move);
@@ -2823,8 +2823,8 @@ extern void Rancor_DropVictim(gentity_t* self);
 extern qboolean g_dontFrickinCheck;
 extern qboolean g_endPDuel;
 extern qboolean g_noPDuelCheck;
-extern void saberReactivate(gentity_t* saberent, gentity_t* saber_owner);
-extern void saberBackToOwner(gentity_t* saberent);
+extern void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner);
+extern void WP_saberBackToOwner(gentity_t* saberent);
 void AddFatigueKillBonus(const gentity_t* attacker, const gentity_t* victim, int means_of_death);
 extern void BubbleShield_TurnOff(gentity_t* self);
 void G_CheckForblowingup(gentity_t* ent, const gentity_t* enemy, int damage);
@@ -3029,9 +3029,9 @@ void player_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker
 	{
 		gentity_t* saberEnt = &g_entities[self->client->ps.saberEntityNum];
 		self->client->saberKnockedTime = 0;
-		saberReactivate(saberEnt, self);
+		WP_saberReactivate(saberEnt, self);
 		saberEnt->r.contents = CONTENTS_LIGHTSABER;
-		saberEnt->think = saberBackToOwner;
+		saberEnt->think = WP_saberBackToOwner;
 		saberEnt->nextthink = level.time;
 		G_RunObject(saberEnt);
 	}
@@ -3863,7 +3863,7 @@ qboolean G_CheckForStrongAttackMomentum(const gentity_t* self)
 	if (pm_power_level_for_saber_anims(&self->client->ps) > FORCE_LEVEL_2)
 	{
 		//strong attacks can't be interrupted
-		if (PM_InAnimForsaber_move(self->client->ps.torsoAnim, self->client->ps.saber_move))
+		if (PM_InAnimForSaberMove(self->client->ps.torsoAnim, self->client->ps.saber_move))
 		{
 			//our saber_move was not already interupted by some other anim (like pain)
 			if (PM_SaberInStart(self->client->ps.saber_move))

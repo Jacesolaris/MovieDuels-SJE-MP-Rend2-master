@@ -1067,7 +1067,7 @@ void WP_ActivateSaber(gentity_t* self)
 
 #define PROPER_THROWN_VALUE 999 //Ah, well..
 
-void SaberUpdateSelf(gentity_t* ent)
+void WP_SaberUpdateSelf(gentity_t* ent)
 {
 	if (ent->r.ownerNum == ENTITYNUM_NONE)
 	{
@@ -1146,7 +1146,7 @@ void SaberUpdateSelf(gentity_t* ent)
 	ent->nextthink = level.time;
 }
 
-static void SaberGotHit(const gentity_t* self, gentity_t* other, trace_t* trace)
+static void WP_SaberGotHit(const gentity_t* self, gentity_t* other, trace_t* trace)
 {
 	const gentity_t* own = &g_entities[self->r.ownerNum];
 
@@ -1440,9 +1440,9 @@ void wp_saber_init_blade_data(const gentity_t* ent)
 	//should we happen to be removed (we belong to an NPC and he is removed) then
 	//we want to attempt to remove our g2 instance on the client in case we had one.
 
-	saberent->touch = SaberGotHit;
+	saberent->touch = WP_SaberGotHit;
 
-	saberent->think = SaberUpdateSelf;
+	saberent->think = WP_SaberUpdateSelf;
 	saberent->genericValue5 = 0;
 	saberent->nextthink = level.time + 50;
 
@@ -2524,7 +2524,7 @@ static void G_SaberBounce(const gentity_t* attacker, gentity_t* victim)
 		return;
 	}
 
-	if (attacker->client->ps.saberFatigueChainCount < MISHAPLEVEL_HUDFLASH)
+	if (attacker->client->ps.saberFatigueChainCount < MISHAPLEVEL_TEN)
 	{
 		return;
 	}
@@ -2534,7 +2534,7 @@ static void G_SaberBounce(const gentity_t* attacker, gentity_t* victim)
 		return;
 	}
 
-	if (attacker->r.svFlags & SVF_BOT)
+	if (attacker->r.svFlags & SVF_BOT) //attacker is a bot dont do this
 	{
 		return;
 	}
@@ -8473,7 +8473,7 @@ static QINLINE qboolean CheckThrownSaberDamaged(gentity_t* saberent, gentity_t* 
 
 #define THROWN_SABER_COMP
 
-static QINLINE void saberMoveBack(gentity_t* ent)
+static QINLINE void WP_saberMoveBack(gentity_t* ent)
 {
 	vec3_t origin, old_org;
 
@@ -8613,7 +8613,7 @@ static void MakeDeadSaber(const gentity_t* ent)
 	//fall off in the direction the real saber was headed
 	VectorCopy(ent->s.pos.trDelta, saberent->s.pos.trDelta);
 
-	saberMoveBack(saberent);
+	WP_saberMoveBack(saberent);
 	saberent->s.pos.trType = TR_GRAVITY;
 
 	trap->LinkEntity((sharedEntity_t*)saberent);
@@ -8624,8 +8624,8 @@ static void MakeDeadSaber(const gentity_t* ent)
 #define MAX_PLAYER_LEAVE_TIME 1500
 #define MIN_LEAVE_TIME 1250
 
-void saberReactivate(gentity_t* saberent, gentity_t* saber_owner);
-void saberBackToOwner(gentity_t* saberent);
+void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner);
+void WP_saberBackToOwner(gentity_t* saberent);
 
 static void DownedSaberThink(gentity_t* saberent)
 {
@@ -8692,7 +8692,7 @@ static void DownedSaberThink(gentity_t* saberent)
 		}
 #endif
 
-		saberReactivate(saberent, saber_own);
+		WP_saberReactivate(saberent, saber_own);
 
 		if (saber_own->health < 1)
 		{
@@ -8700,8 +8700,8 @@ static void DownedSaberThink(gentity_t* saberent)
 			MakeDeadSaber(saberent);
 		}
 
-		saberent->touch = SaberGotHit;
-		saberent->think = SaberUpdateSelf;
+		saberent->touch = WP_SaberGotHit;
+		saberent->think = WP_SaberUpdateSelf;
 		saberent->genericValue5 = 0;
 		saberent->nextthink = level.time;
 
@@ -8758,11 +8758,11 @@ static void DownedSaberThink(gentity_t* saberent)
 			saber_own->client->saberStoredIndex = saber_own->client->ps.saberEntityNum = saberent->s.number;
 		}
 #endif
-		saberReactivate(saberent, saber_own);
+		WP_saberReactivate(saberent, saber_own);
 
-		saberent->touch = SaberGotHit;
+		saberent->touch = WP_SaberGotHit;
 
-		saberent->think = saberBackToOwner;
+		saberent->think = WP_saberBackToOwner;
 		saberent->speed = 0;
 		saberent->genericValue5 = 0;
 		saberent->nextthink = level.time;
@@ -8808,7 +8808,7 @@ static void DrownedSaberTouch(gentity_t* self, gentity_t* other, trace_t* trace)
 			assert(!"Bad saber index!!!");
 		}
 #endif
-		saberReactivate(self, other);
+		WP_saberReactivate(self, other);
 
 		self->r.contents = CONTENTS_LIGHTSABER;
 
@@ -8825,9 +8825,9 @@ static void DrownedSaberTouch(gentity_t* self, gentity_t* other, trace_t* trace)
 			other->client->ps.forceHandExtendTime = level.time + 200;
 		}
 
-		self->touch = SaberGotHit;
+		self->touch = WP_SaberGotHit;
 
-		self->think = SaberUpdateSelf;
+		self->think = WP_SaberUpdateSelf;
 		self->genericValue5 = 0;
 		self->nextthink = level.time + 50;
 		WP_SaberRemoveG2Model(self);
@@ -8843,7 +8843,7 @@ static void DrownedSaberTouch(gentity_t* self, gentity_t* other, trace_t* trace)
 	}
 }
 
-void saberReactivate(gentity_t* saberent, gentity_t* saber_owner)
+void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner)
 {
 	saberent->s.saberInFlight = qtrue;
 
@@ -9386,7 +9386,7 @@ qboolean saberCheckKnockdown_Thrown(gentity_t* saberent, gentity_t* saberOwner, 
 	return qfalse;
 }
 
-void saberBackToOwner(gentity_t* saberent)
+void WP_saberBackToOwner(gentity_t* saberent)
 {
 	gentity_t* saber_owner = &g_entities[saberent->r.ownerNum];
 	vec3_t dir;
@@ -9419,8 +9419,8 @@ void saberBackToOwner(gentity_t* saberent)
 	if (saber_owner->health < 1 || !saber_owner->client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE])
 	{
 		//He's dead, just go back to our normal saber status
-		saberent->touch = SaberGotHit;
-		saberent->think = SaberUpdateSelf;
+		saberent->touch = WP_SaberGotHit;
+		saberent->think = WP_SaberUpdateSelf;
 		saberent->genericValue5 = 0;
 		saberent->nextthink = level.time;
 
@@ -9463,7 +9463,7 @@ void saberBackToOwner(gentity_t* saberent)
 
 		VectorNormalize(dir);
 
-		saberMoveBack(saberent);
+		WP_saberMoveBack(saberent);
 		VectorCopy(saberent->r.currentOrigin, saberent->s.pos.trBase);
 
 		if (saber_owner->client->ps.fd.forcePowerLevel[FP_SABERTHROW] >= FORCE_LEVEL_3)
@@ -9546,9 +9546,9 @@ void saberBackToOwner(gentity_t* saberent)
 				}
 			}
 
-			saberent->touch = SaberGotHit;
+			saberent->touch = WP_SaberGotHit;
 
-			saberent->think = SaberUpdateSelf;
+			saberent->think = WP_SaberUpdateSelf;
 			saberent->genericValue5 = 0;
 			saberent->nextthink = level.time + 50;
 			WP_SaberRemoveG2Model(saberent);
@@ -9563,13 +9563,13 @@ void saberBackToOwner(gentity_t* saberent)
 			return;
 		}
 
-		saberMoveBack(saberent);
+		WP_saberMoveBack(saberent);
 	}
 
 	saberent->nextthink = level.time;
 }
 
-void thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, qboolean stuck);
+void WP_thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, const qboolean stuck);
 
 void thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* trace)
 {
@@ -9600,34 +9600,13 @@ void thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* trac
 			VectorScale(trace->plane.normal, -1.0f, wallInward);
 
 			// Blade must be pointing INTO the wall
-			if (DotProduct(bladeDir, wallInward) > 0.5f)
+			if (DotProduct(bladeDir, wallInward) > 0.35f)
 			{
-				thrownSaberBallistics(saberent, saber_own, qtrue);
+				WP_thrownSaberBallistics(saberent, saber_own, qtrue);
 				return;
 			}
 		}
 	}
-
-	//if (other && other->client) // hit a player or NPC
-	//{
-	//	// Blade direction (UP vector)
-	//	vec3_t bladeDir;
-	//	AngleVectors(saberent->r.currentAngles, NULL, NULL, bladeDir);
-
-	//	// Direction from saber to enemy center
-	//	vec3_t toEnemy;
-	//	VectorSubtract(other->r.currentOrigin, saberent->r.currentOrigin, toEnemy);
-	//	VectorNormalize(toEnemy);
-
-	//	// Blade must be pointing INTO the enemy
-	//	float dot = DotProduct(bladeDir, toEnemy);
-
-	//	if (dot > 0.5f) // adjust tolerance as needed
-	//	{
-	//		thrownSaberBallistics(saberent, saber_own, qtrue);
-	//		return;
-	//	}
-	//}
 
 	if (other && other->r.ownerNum < MAX_CLIENTS &&
 		other->r.contents & CONTENTS_LIGHTSABER &&
@@ -9644,10 +9623,10 @@ void thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* trac
 
 	if (saber_own->r.svFlags & SVF_BOT && level.time - saber_own->client->saberKnockedTime > SABER_BOTRETRIEVE_DELAY)
 	{
-		saberReactivate(saberent, saber_own);
+		WP_saberReactivate(saberent, saber_own);
 
-		saberent->touch = SaberGotHit;
-		saberent->think = saberBackToOwner;
+		saberent->touch = WP_SaberGotHit;
+		saberent->think = WP_saberBackToOwner;
 		saberent->speed = 0;
 		saberent->genericValue5 = 0;
 		saberent->nextthink = level.time;
@@ -9691,8 +9670,8 @@ static void saberFirstThrown(gentity_t* saberent)
 	if (saber_own->health < 1 || !saber_own->client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE])
 	{
 		//He's dead, just go back to our normal saber status
-		saberent->touch = SaberGotHit;
-		saberent->think = SaberUpdateSelf;
+		saberent->touch = WP_SaberGotHit;
+		saberent->think = WP_SaberUpdateSelf;
 		saberent->genericValue5 = 0;
 		saberent->nextthink = level.time;
 
@@ -9720,13 +9699,13 @@ static void saberFirstThrown(gentity_t* saberent)
 
 	if (BG_HasYsalamiri(level.gametype, &saber_own->client->ps))
 	{
-		thrownSaberBallistics(saberent, saber_own, qfalse);
+		WP_thrownSaberBallistics(saberent, saber_own, qfalse);
 		goto runMin;
 	}
 
 	if (!BG_CanUseFPNow(level.gametype, &saber_own->client->ps, level.time, FP_SABERTHROW))
 	{
-		thrownSaberBallistics(saberent, saber_own, qfalse);
+		WP_thrownSaberBallistics(saberent, saber_own, qfalse);
 		goto runMin;
 	}
 
@@ -9735,13 +9714,13 @@ static void saberFirstThrown(gentity_t* saberent)
 
 	if (v_len >= 300 && saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW] == FORCE_LEVEL_1)
 	{
-		thrownSaberBallistics(saberent, saber_own, qfalse);
+		WP_thrownSaberBallistics(saberent, saber_own, qfalse);
 		goto runMin;
 	}
 
 	if (v_len >= SABER_MAX_THROW_DISTANCE * saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
 	{
-		thrownSaberBallistics(saberent, saber_own, qfalse);
+		WP_thrownSaberBallistics(saberent, saber_own, qfalse);
 		goto runMin;
 	}
 
@@ -9752,18 +9731,18 @@ static void saberFirstThrown(gentity_t* saberent)
 		{
 			saberent->s.eFlags &= ~EF_MISSILE_STICK;
 
-			saberReactivate(saberent, saber_own);
+			WP_saberReactivate(saberent, saber_own);
 
-			saberent->touch = SaberGotHit;
+			saberent->touch = WP_SaberGotHit;
 
 			if (level.time - saber_own->client->saberKnockedTime > SABER_BOTRETRIEVE_DELAY)
 			{
-				saberent->think = saberBackToOwner;
+				saberent->think = WP_saberBackToOwner;
 			}
 			else
 			{
 				G_RunObject(saberent);
-				thrownSaberBallistics(saberent, saber_own, qfalse);
+				WP_thrownSaberBallistics(saberent, saber_own, qfalse);
 			}
 			saberent->speed = 0;
 			saberent->genericValue5 = 0;
@@ -9774,7 +9753,7 @@ static void saberFirstThrown(gentity_t* saberent)
 		else
 		{
 			G_RunObject(saberent);
-			thrownSaberBallistics(saberent, saber_own, qfalse);
+			WP_thrownSaberBallistics(saberent, saber_own, qfalse);
 		}
 	}
 
@@ -9816,7 +9795,7 @@ static void saberFirstThrown(gentity_t* saberent)
 
 		if (level.time > SABER_BOTRETRIEVE_DELAY)
 		{
-			saberMoveBack(saberent);
+			WP_saberMoveBack(saberent);
 		}
 
 		VectorCopy(saberent->r.currentOrigin, saberent->s.pos.trBase);
@@ -12573,7 +12552,7 @@ nextStep:
 				{
 					//return to the owner now, this is a bad state to be in for here..
 					saberent->genericValue5 = 0;
-					saberent->think = SaberUpdateSelf;
+					saberent->think = WP_SaberUpdateSelf;
 					saberent->nextthink = level.time;
 					WP_SaberRemoveG2Model(saberent);
 
@@ -15429,7 +15408,7 @@ qboolean G_CanKickEntity(const gentity_t* self, const gentity_t* target)
 	return qfalse;
 }
 
-static void SaberBallisticsTouch(gentity_t* saberent, const gentity_t* other, trace_t* trace)
+static void WP_SaberBallisticsTouch(gentity_t* saberent, const gentity_t* other, trace_t* trace)
 {
 	//touch function for sabers in ballistics mode
 	gentity_t* saber_own = &g_entities[saberent->r.ownerNum];
@@ -15448,7 +15427,7 @@ static void SaberBallisticsTouch(gentity_t* saberent, const gentity_t* other, tr
 //when to make the switch to a simple dropped saber.
 #define BALLISTICSABER_BOUNCECOUNT 10
 
-static void SaberBallisticsThink(gentity_t* saberEnt)
+static void WP_SaberBallisticsThink(gentity_t* saberEnt)
 {
 	//think function for sabers in ballistics mode
 
@@ -15471,7 +15450,7 @@ static void SaberBallisticsThink(gentity_t* saberEnt)
 			G_SetAnim(saber_owner, NULL, SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
 
 			saberEnt->s.eFlags &= ~EF_MISSILE_STICK;
-			saberReactivate(saberEnt, saber_owner);
+			WP_saberReactivate(saberEnt, saber_owner);
 
 			saberEnt->speed = 0;
 			saberEnt->genericValue5 = 0;
@@ -15484,9 +15463,9 @@ static void SaberBallisticsThink(gentity_t* saberEnt)
 			saber_owner->client->ps.saberCanThrow = qfalse;
 			saber_owner->client->ps.saberThrowDelay = level.time + 300;
 
-			saberEnt->touch = SaberGotHit;
+			saberEnt->touch = WP_SaberGotHit;
 
-			saberEnt->think = SaberUpdateSelf;
+			saberEnt->think = WP_SaberUpdateSelf;
 			saberEnt->genericValue5 = 0;
 			saberEnt->nextthink = level.time + 50;
 			WP_SaberRemoveG2Model(saberEnt);
@@ -15502,11 +15481,11 @@ static void SaberBallisticsThink(gentity_t* saberEnt)
 			//we want to pull the saber back.
 			saberEnt->s.eFlags &= ~EF_MISSILE_STICK;
 
-			saberReactivate(saberEnt, saber_owner);
+			WP_saberReactivate(saberEnt, saber_owner);
 
-			saberEnt->touch = SaberGotHit;
+			saberEnt->touch = WP_SaberGotHit;
 
-			saberEnt->think = saberBackToOwner;
+			saberEnt->think = WP_saberBackToOwner;
 			saberEnt->speed = 0;
 			saberEnt->genericValue5 = 0;
 			saberEnt->nextthink = level.time;
@@ -15538,7 +15517,7 @@ static void SaberBallisticsThink(gentity_t* saberEnt)
 	}
 }
 
-void thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, const qboolean stuck)
+void WP_thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, const qboolean stuck)
 {
 	//this function converts the saber from thrown saber that's being held on course by the force into a saber that's just ballastically moving.
 	const saberInfo_t* saber1 = BG_MySaber(saber_own->clientNum, 0);
@@ -15564,7 +15543,7 @@ void thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, cons
 		saberEnt->bounceCount = 0;
 
 		// Make sure SaberBallisticsThink runs again
-		saberEnt->think = SaberBallisticsThink;
+		saberEnt->think = WP_SaberBallisticsThink;
 		saberEnt->nextthink = level.time + 50;
 	}
 	else
@@ -15635,8 +15614,8 @@ void thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, cons
 	saber_own->client->ps.saberEntityNum = 0;
 
 	//set the appropriate function pointer stuff
-	saberEnt->think = SaberBallisticsThink;
-	saberEnt->touch = SaberBallisticsTouch;
+	saberEnt->think = WP_SaberBallisticsThink;
+	saberEnt->touch = WP_SaberBallisticsTouch;
 	saberEnt->nextthink = level.time + FRAMETIME;
 
 	trap->LinkEntity((sharedEntity_t*)saberEnt);
@@ -15933,6 +15912,10 @@ void WP_BlockPointsDrain(const gentity_t* self, const int fatigue)
 
 void G_Beskar_Attack_Bounce(const gentity_t* self, gentity_t* other)
 {
+	if (!g_standard_humanoid(other))
+	{
+		return;
+	}
 	if (self->client->ps.saberBlocked == BLOCKED_NONE)
 	{
 		if (!pm_saber_in_special_attack(self->client->ps.torsoAnim))

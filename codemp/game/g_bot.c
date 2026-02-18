@@ -420,12 +420,12 @@ void g_load_sp_arenas(void)
 	level.arenas.num = 0;
 
 	// get all arenas from .arena files
-	numdirs = trap->FS_GetFileList("scriptsmp", ".arena", dirlist, 1024);
+	numdirs = trap->FS_GetFileList("scripts", ".arena", dirlist, 1024);
 	dirptr = dirlist;
 	for (i = 0; i < numdirs; i++, dirptr += dirlen + 1)
 	{
 		dirlen = strlen(dirptr);
-		Q_strncpyz(filename, "scriptsmp/", sizeof(filename));
+		Q_strncpyz(filename, "scripts/", sizeof(filename));
 		strcat(filename, dirptr);
 		G_LoadArenasFromFile(filename);
 	}
@@ -444,7 +444,7 @@ void g_load_sp_arenas(void)
 	level.arenas.num = 0;
 
 	// get all arenas from .arena files
-	int numFiles = trap->FS_GetFileList("scriptsmp", ".arena", filelist, ARRAY_LEN(filelist));
+	int numFiles = trap->FS_GetFileList("scripts", ".arena", filelist, ARRAY_LEN(filelist));
 
 	char* fileptr = filelist;
 	int i = 0;
@@ -456,7 +456,7 @@ void g_load_sp_arenas(void)
 	{
 		char filename[MAX_QPATH];
 		const int len = strlen(fileptr);
-		Com_sprintf(filename, sizeof filename, "scriptsmp/%s", fileptr);
+		Com_sprintf(filename, sizeof filename, "scripts/%s", fileptr);
 		G_LoadArenasFromFile(filename);
 		fileptr += len + 1;
 	}

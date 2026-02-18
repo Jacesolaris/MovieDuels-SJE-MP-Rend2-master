@@ -640,7 +640,7 @@ qboolean PM_SaberDrawPutawayAnim(const int anim)
 	return qfalse;
 }
 
-qboolean PM_InAnimForsaber_move(int anim, const int saber_move)
+qboolean PM_InAnimForSaberMove(int anim, const int saber_move)
 {
 	switch (anim)
 	{
@@ -1669,7 +1669,7 @@ int PM_InGrappleMove(const int anim)
 
 qboolean PM_SaberCanInterruptMove(const int move, const int anim)
 {
-	if (PM_InAnimForsaber_move(anim, move))
+	if (PM_InAnimForSaberMove(anim, move))
 	{
 		switch (move)
 		{

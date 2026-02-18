@@ -6011,30 +6011,24 @@ weapChecks:
 		}
 		int both = qfalse;
 
-		if (pm->ps->torsoAnim == BOTH_FORCELONGLEAP_ATTACK
-			|| pm->ps->torsoAnim == BOTH_FORCELONGLEAP_ATTACK2
-			|| pm->ps->torsoAnim == BOTH_FORCELONGLEAP_LAND
-			|| pm->ps->torsoAnim == BOTH_FORCELONGLEAP_LAND2)
+		if (pm->ps->torsoAnim == BOTH_FORCELONGLEAP_ATTACK ||
+			pm->ps->torsoAnim == BOTH_FORCELONGLEAP_ATTACK2 ||
+			pm->ps->torsoAnim == BOTH_FORCELONGLEAP_LAND)
 		{
 			//can't attack in these anims
-			return;
-		}
-		if (pm->cmd.buttons & BUTTON_ATTACK && pm->ps->torsoAnim == BOTH_FORCELONGLEAP_START)
-		{
-			//only 1 attack you can do from this anim
-			if (pm->ps->saberHolstered == 2)
-			{
-				pm->ps->saberHolstered = 0;
-				PM_AddEvent(EV_SABER_UNHOLSTER);
-			}
-			PM_SetSaberMove(LS_LEAP_ATTACK2);
 			return;
 		}
 		if (pm->ps->torsoAnim == BOTH_FORCELONGLEAP_START)
 		{
 			//only 1 attack you can do from this anim
-			if (pm->ps->torsoTimer >= 200 && pm->cmd.buttons & BUTTON_ATTACK)
+			if (pm->ps->torsoAnim >= 200)
 			{
+				//hit it early enough to do the attack
+				if (pm->ps->saberHolstered == 2)
+				{
+					pm->ps->saberHolstered = 0;
+					PM_AddEvent(EV_SABER_UNHOLSTER);
+				}
 				//hit it early enough to do the attack
 				PM_SetSaberMove(LS_LEAP_ATTACK);
 			}
@@ -7474,6 +7468,13 @@ static qboolean BG_SaberInPartialDamageMove(const playerState_t* ps, const int a
 
 	if ((ps->saber_move == BOTH_ROLL_STAB
 		|| ps->saber_move == LS_ROLL_STAB) && (torso_anim_point >= 0.30f && torso_anim_point <= 0.95f))
+	{
+		//don't do damage during the follow thru part of the roll stab.
+		return qtrue;
+	}
+
+	if ((ps->saber_move == BOTH_FORCELONGLEAP_ATTACK || ps->saber_move == BOTH_FORCELONGLEAP_ATTACK2)
+		&& (torso_anim_point >= 0.80f && torso_anim_point <= 0.20f))
 	{
 		//don't do damage during the follow thru part of the roll stab.
 		return qtrue;
