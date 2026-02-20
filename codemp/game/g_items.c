@@ -1384,7 +1384,7 @@ void ItemUse_Decca(gentity_t* ent)
 
 void ItemUse_Swoop(gentity_t* ent)
 {
-	gentity_t* swoop = NPC_SpawnType(ent, "swoop_mp", NULL, qtrue);
+	gentity_t* swoop = NPC_SpawnType(ent, "swoop", NULL, qtrue);
 
 	if (swoop && swoop->client)
 	{

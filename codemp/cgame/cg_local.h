@@ -1399,6 +1399,7 @@ typedef struct cgMedia_s {
 	qhandle_t	enlightenmentShader;
 	qhandle_t	invulnerabilityShader;
 	qhandle_t	galakShader;
+	qhandle_t	ShieldShader;
 
 	//#ifdef JK2AWARDS
 		// medals shown during gameplay

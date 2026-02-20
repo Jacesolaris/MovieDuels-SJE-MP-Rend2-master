@@ -35,6 +35,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "w_saber.h"
 #include "ai_main.h"
 #include "teams.h"
+#include "g_public.h"
 
 #define METROID_JUMP 1
 
@@ -346,7 +347,7 @@ void DetermineDodgeMax(const gentity_t* ent)
 	ent->client->ps.stats[STAT_MAX_DODGE] = (int)dodgeMax;
 }
 
-void WP_InitForcePowers(const gentity_t* ent)
+void WP_InitForcePowers(gentity_t* ent)
 {
 	int i, last_fp_known = -1;
 	qboolean warn_client, did_event = qfalse;
@@ -720,6 +721,26 @@ void WP_InitForcePowers(const gentity_t* ent)
 						ent->client->sess.sessionTeam = TEAM_SPECTATOR;
 						ent->client->sess.spectatorState = SPECTATOR_FREE;
 						ent->client->sess.spectatorClient = 0;
+
+						// --- REQUIRED spectator reset to prevent out-of-bounds ---
+						ent->client->ps.pm_type = PM_SPECTATOR;
+						ent->client->ps.groundEntityNum = ENTITYNUM_NONE;
+
+						VectorClear(ent->client->ps.velocity);
+						ent->client->ps.pm_flags = 0;
+						ent->client->ps.pm_time = 0;
+
+						// Clear collision box
+						VectorClear(ent->r.mins);
+						VectorClear(ent->r.maxs);
+						ent->r.contents = 0;
+
+						// Safe spectator spawn
+						VectorCopy(level.intermission_origin, ent->client->ps.origin);
+						VectorCopy(level.intermission_angle, ent->client->ps.viewangles);
+
+						trap->LinkEntity((sharedEntity_t*)ent);
+						// ----------------------------------------------------------
 
 						ent->client->pers.teamState.state = TEAM_BEGIN;
 						trap->SendServerCommand(ent - g_entities, "spc"); // Fire up the profile menu
@@ -1635,7 +1656,10 @@ void ForceHeal(gentity_t* self)
 		return;
 	}
 
-	if (self->painDebounceTime > level.time || self->client->ps.weaponTime && self->client->ps.weapon != WP_NONE)
+	if (self->painDebounceTime > level.time ||
+		(self->client->ps.weaponTime &&
+			self->client->ps.weapon != WP_NONE &&
+			self->client->ps.saberHolstered != 2))
 	{
 		//can't initiate a heal while taking pain or attacking
 		return;

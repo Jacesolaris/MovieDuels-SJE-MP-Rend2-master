@@ -815,7 +815,7 @@ void SetTeamQuick(const gentity_t* ent, const int team, const qboolean doBegin)
 
 	if (team == TEAM_SPECTATOR)
 	{
-		ent->client->sess.spectatorState = SPECTATOR_FREE;
+		ent->client->sess.spectatorState = SPECTATOR_FOLLOW; // SPECTATOR_FREE;
 		Info_SetValueForKey(userinfo, "team", "s");
 	}
 	else

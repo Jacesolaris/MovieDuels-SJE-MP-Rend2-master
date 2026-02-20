@@ -4733,159 +4733,122 @@ void SP_NPC_Droid_Protocol(gentity_t* self)
 /*
 NPC_Spawn_f
 */
+typedef void (*npcPrecacheFunc_t)(void);
 
-gentity_t* NPC_SpawnType(const gentity_t* ent, const char* npc_type, const char* targetname, const qboolean isVehicle)
+typedef struct
 {
-	gentity_t* NPCspawner = G_Spawn();
-	vec3_t forward, end;
-	trace_t trace;
+	const char* name;
+	npcPrecacheFunc_t func;
+} npcPrecacheEntry_t;
 
-	if (!NPCspawner)
+static const npcPrecacheEntry_t npcPrecacheTable[] =
+{
+	{ "gonk",           NPC_Gonk_Precache },
+	{ "mouse",          NPC_Mouse_Precache },
+	{ "r2d2",           NPC_R2D2_Precache },
+	{ "r5d2",           NPC_R5D2_Precache },
+	{ "atst",           NPC_ATST_Precache },
+	{ "mark1",          NPC_Mark1_Precache },
+	{ "mark2",          NPC_Mark2_Precache },
+	{ "interrogator",   (npcPrecacheFunc_t)NPC_Interrogator_Precache },
+	{ "rosh_dark",      npc_rosh_dark_precache },
+	{ "probe",          NPC_Probe_Precache },
+	{ "seeker",         NPC_Seeker_Precache },
+	{ "remote",         NPC_Remote_Precache },
+	{ "shadowtrooper",  npc_shadow_trooper_precache },
+	{ "minemonster",    NPC_MineMonster_Precache },
+	{ "howler",         NPC_Howler_Precache },
+	{ "sentry",         NPC_Sentry_Precache },
+	{ "protocol",       NPC_Protocol_Precache },
+	{ "galak_mech",     NPC_GalakMech_Precache },
+	{ "wampa",          NPC_Wampa_Precache },
+};
+
+static void NPC_PrecacheByName(const char* name)
+{
+	for (int i = 0; i < ARRAY_LEN(npcPrecacheTable); i++)
+	{
+		if (!Q_stricmp(name, npcPrecacheTable[i].name))
+		{
+			npcPrecacheTable[i].func();
+			return;
+		}
+	}
+
+	// fallback to generic precache
+	NPC_PrecacheByClassName(name);
+}
+
+static void NPC_FindSpawnPoint(const gentity_t* ent, vec3_t out)
+{
+	vec3_t forward, end;
+	trace_t tr;
+
+	AngleVectors(ent->client->ps.viewangles, forward, NULL, NULL);
+	VectorNormalize(forward);
+
+	VectorMA(ent->r.currentOrigin, 128, forward, end);
+	trap->Trace(&tr, ent->r.currentOrigin, NULL, NULL, end, 0, MASK_SOLID, qfalse, 0, 0);
+	VectorCopy(tr.endpos, end);
+
+	end[2] -= 24;
+	trap->Trace(&tr, tr.endpos, NULL, NULL, end, 0, MASK_SOLID, qfalse, 0, 0);
+	VectorCopy(tr.endpos, out);
+
+	out[2] += 24;
+}
+
+
+gentity_t* NPC_SpawnType(const gentity_t* ent, const char* npc_type, const char* targetname, qboolean isVehicle)
+{
+	if (!ent || !ent->client)
+		return NULL;
+
+	if (!npc_type || !npc_type[0])
+	{
+		Com_Printf(S_COLOR_RED"NPC_Spawn Error: Missing NPC type.\n");
+		return NULL;
+	}
+
+	// Allocate spawner
+	gentity_t* spawner = G_Spawn();
+	if (!spawner)
 	{
 		Com_Printf(S_COLOR_RED"NPC_Spawn Error: Out of entities!\n");
 		return NULL;
 	}
 
-	NPCspawner->think = G_FreeEntity;
-	NPCspawner->nextthink = level.time + FRAMETIME;
+	spawner->think = G_FreeEntity;
+	spawner->nextthink = level.time + FRAMETIME;
 
-	if (!npc_type)
-	{
-		return NULL;
-	}
+	// Position the spawner
+	vec3_t spawnPos;
+	NPC_FindSpawnPoint(ent, spawnPos);
 
-	if (!npc_type[0])
-	{
-		Com_Printf(
-			S_COLOR_RED"Error, expected one of:\n"S_COLOR_WHITE
-			" NPC spawn [NPC type (from ext_data/MD_MP_NPC)]\n NPC spawn vehicle [VEH type (from ext_data/MD_MP_VEHICLES)]\n");
-		return NULL;
-	}
+	G_SetOrigin(spawner, spawnPos);
+	VectorCopy(spawner->r.currentOrigin, spawner->s.origin);
 
-	if (!ent || !ent->client)
-	{
-		//screw you, go away
-		return NULL;
-	}
+	// Face same yaw as player
+	spawner->s.angles[1] = ent->client->ps.viewangles[1];
 
-	//rwwFIXMEFIXME: Care about who is issuing this command/other clients besides 0?
-	//Spawn it at spot of first player
-	//FIXME: will gib them!
-	AngleVectors(ent->client->ps.viewangles, forward, NULL, NULL);
-	VectorNormalize(forward);
-	VectorMA(ent->r.currentOrigin, 128, forward, end);
-	trap->Trace(&trace, ent->r.currentOrigin, NULL, NULL, end, 0, MASK_SOLID, qfalse, 0, 0);
-	VectorCopy(trace.endpos, end);
-	end[2] -= 24;
-	trap->Trace(&trace, trace.endpos, NULL, NULL, end, 0, MASK_SOLID, qfalse, 0, 0);
-	VectorCopy(trace.endpos, end);
-	end[2] += 24;
-	G_SetOrigin(NPCspawner, end);
-	VectorCopy(NPCspawner->r.currentOrigin, NPCspawner->s.origin);
-	//set the yaw so that they face away from player
-	NPCspawner->s.angles[1] = ent->client->ps.viewangles[1];
+	trap->LinkEntity((sharedEntity_t*)spawner);
 
-	trap->LinkEntity((sharedEntity_t*)NPCspawner);
-
-	NPCspawner->NPC_type = G_NewString(npc_type);
-
+	// Assign NPC type + targetname
+	spawner->NPC_type = G_NewString(npc_type);
 	if (targetname)
-	{
-		NPCspawner->NPC_targetname = G_NewString(targetname);
-	}
+		spawner->NPC_targetname = G_NewString(targetname);
 
-	NPCspawner->count = 1;
-
-	NPCspawner->delay = 0;
+	spawner->count = 1;
+	spawner->delay = 0;
 
 	if (isVehicle)
-	{
-		NPCspawner->classname = "NPC_Vehicle";
-	}
+		spawner->classname = "NPC_Vehicle";
 
-	//call precache funcs for James' builds
-	if (!Q_stricmp("gonk", NPCspawner->NPC_type))
-	{
-		NPC_Gonk_Precache();
-	}
-	else if (!Q_stricmp("mouse", NPCspawner->NPC_type))
-	{
-		NPC_Mouse_Precache();
-	}
-	else if (!Q_strncmp("r2d2", NPCspawner->NPC_type, 4))
-	{
-		NPC_R2D2_Precache();
-	}
-	else if (!Q_stricmp("atst", NPCspawner->NPC_type))
-	{
-		NPC_ATST_Precache();
-	}
-	else if (!Q_strncmp("r5d2", NPCspawner->NPC_type, 4))
-	{
-		NPC_R5D2_Precache();
-	}
-	else if (!Q_stricmp("mark1", NPCspawner->NPC_type))
-	{
-		NPC_Mark1_Precache();
-	}
-	else if (!Q_stricmp("mark2", NPCspawner->NPC_type))
-	{
-		NPC_Mark2_Precache();
-	}
-	else if (!Q_stricmp("interrogator", NPCspawner->NPC_type))
-	{
-		NPC_Interrogator_Precache(NULL);
-	}
-	else if (!Q_stricmp("rosh_dark", NPCspawner->NPC_type))
-	{
-		npc_rosh_dark_precache();
-	}
-	else if (!Q_stricmp("probe", NPCspawner->NPC_type))
-	{
-		NPC_Probe_Precache();
-	}
-	else if (!Q_stricmp("seeker", NPCspawner->NPC_type))
-	{
-		NPC_Seeker_Precache();
-	}
-	else if (!Q_stricmp("remote", NPCspawner->NPC_type))
-	{
-		NPC_Remote_Precache();
-	}
-	else if (!Q_strncmp("shadowtrooper", NPCspawner->NPC_type, 13))
-	{
-		npc_shadow_trooper_precache();
-	}
-	else if (!Q_stricmp("minemonster", NPCspawner->NPC_type))
-	{
-		NPC_MineMonster_Precache();
-	}
-	else if (!Q_stricmp("howler", NPCspawner->NPC_type))
-	{
-		NPC_Howler_Precache();
-	}
-	else if (!Q_stricmp("sentry", NPCspawner->NPC_type))
-	{
-		NPC_Sentry_Precache();
-	}
-	else if (!Q_stricmp("protocol", NPCspawner->NPC_type))
-	{
-		NPC_Protocol_Precache();
-	}
-	else if (!Q_stricmp("galak_mech", NPCspawner->NPC_type))
-	{
-		NPC_GalakMech_Precache();
-	}
-	else if (!Q_stricmp("wampa", NPCspawner->NPC_type))
-	{
-		NPC_Wampa_Precache();
-	}
-	else
-	{
-		NPC_PrecacheByClassName(NPCspawner->NPC_type);
-	}
+	// Precache
+	NPC_PrecacheByName(npc_type);
 
-	return NPC_Spawn_Do(NPCspawner);
+	// Final spawn
+	return NPC_Spawn_Do(spawner);
 }
 
 static void NPC_Spawn_f(gentity_t* ent)

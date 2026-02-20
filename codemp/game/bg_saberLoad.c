@@ -635,9 +635,7 @@ qboolean WP_SaberBladeDoTransitionDamage(const saberInfo_t* saber, const int bla
 		return qtrue;
 
 	return qfalse;
-}
-
-qboolean WP_UseFirstValidSaberStyle(
+}qboolean WP_UseFirstValidSaberStyle(
 	const saberInfo_t* saber1,
 	const saberInfo_t* saber2,
 	const int saberHolstered,
@@ -685,18 +683,13 @@ qboolean WP_UseFirstValidSaberStyle(
 		{
 			saber1Active = qfalse;
 		}
-		else
+		else if (saber1->numBlades > 1) // staff
 		{
-			// Staff
-			if (saber1->numBlades > 1)
-			{
-				saber1Active = (saberHolstered <= 1);
-			}
-			// Single
-			else
-			{
-				saber1Active = (saberHolstered == 0);
-			}
+			saber1Active = (saberHolstered <= 1);
+		}
+		else // single
+		{
+			saber1Active = (saberHolstered == 0);
 		}
 	}
 
@@ -708,7 +701,10 @@ qboolean WP_UseFirstValidSaberStyle(
 	// -----------------------------------------------------
 	// FILTER FORBIDDEN STYLES (SABER 1)
 	// -----------------------------------------------------
-	if (saber1Active && saber1 && saber1->model[0] && saber1->stylesForbidden)
+	if (saber1Active &&
+		saber1 &&
+		saber1->model[0] &&
+		saber1->stylesForbidden)
 	{
 		if (saber1->stylesForbidden & (1 << *saberAnimLevel))
 		{
@@ -720,7 +716,11 @@ qboolean WP_UseFirstValidSaberStyle(
 	// -----------------------------------------------------
 	// FILTER FORBIDDEN STYLES (SABER 2)
 	// -----------------------------------------------------
-	if (dualSabers && saber2Active && saber2 && saber2->stylesForbidden)
+	if (dualSabers &&
+		saber2 &&
+		saber2->model[0] &&
+		saber2Active &&
+		saber2->stylesForbidden)
 	{
 		if (saber2->stylesForbidden & (1 << *saberAnimLevel))
 		{
@@ -736,22 +736,21 @@ qboolean WP_UseFirstValidSaberStyle(
 	{
 		if (dualSabers)
 		{
-			Com_Printf("WARNING: No valid saber styles for %s\n", saber1 ? saber1->name : "<NULL>");
-			Com_Printf("WARNING: No valid saber styles for %s\n", saber2 ? saber2->name : "<NULL>");
+			Com_Printf("WARNING: No valid saber styles for %s\n",
+				saber1 ? saber1->name : "<NULL>");
+			Com_Printf("WARNING: No valid saber styles for %s\n",
+				saber2 ? saber2->name : "<NULL>");
 		}
 		else
 		{
-			Com_Printf("WARNING: No valid saber styles for %s\n", saber1 ? saber1->name : "<NULL>");
+			Com_Printf("WARNING: No valid saber styles for %s\n",
+				saber1 ? saber1->name : "<NULL>");
 		}
 	}
 	else if (styleInvalid)
 	{
-	
-		// If you want players to default to FAST:
+		// Preferred fallback style
 		int preferredStyle = SS_FAST;
-
-		// If you prefer MEDIUM as the fallback, use:
-		// int preferredStyle = SS_MEDIUM;
 
 		// If preferred style is valid, use it
 		if (validStyles & (1 << preferredStyle))

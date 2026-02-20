@@ -114,9 +114,10 @@ static int UI_ParseInfos(const char* buf, int max, char* infos[])
 UI_LoadArenasFromFile
 ===============
 */
-static void UI_LoadArenasFromFile(char* filename) {
+static void UI_LoadArenasFromFile(char* filename)
+{
 	fileHandle_t	f;
-	char			buf[MAX_ARENAS_TEXT];
+	static char			buf[MAX_ARENAS_TEXT];
 
 	const int len = trap->FS_Open(filename, &f, FS_READ);
 	if (!f) {
@@ -145,7 +146,7 @@ UI_LoadArenas
 #define MAPSBUFSIZE (MAX_MAPS * 64)
 void UI_LoadArenas(void)
 {
-	char		dirlist[MAPSBUFSIZE];
+	static char		dirlist[MAPSBUFSIZE];
 	int			dirlen = 0;
 
 	ui_numArenas = 0;
@@ -244,7 +245,7 @@ void UI_LoadArenas(void)
 
 void UI_LoadSPArenas(void)
 {
-	char		dirlist[MAPSBUFSIZE];
+	static char		dirlist[MAPSBUFSIZE];
 	int			dirlen = 0;
 
 	ui_numArenas = 0;
@@ -350,7 +351,7 @@ UI_LoadBotsFromFile
 static void UI_LoadBotsFromFile(char* filename)
 {
 	fileHandle_t	f;
-	char			buf[MAX_BOTS_TEXT];
+	static char			buf[MAX_BOTS_TEXT];
 
 	const int len = trap->FS_Open(filename, &f, FS_READ);
 	if (!f) {

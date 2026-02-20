@@ -657,32 +657,48 @@ char* G2_GetBoneNameFromSkel(const CGhoul2Info& ghoul2, const int boneNum)
 
 void G2_RagGetBoneBasePoseMatrixLow(const CGhoul2Info& ghoul2, const int boneNum, const mdxaBone_t& boneMatrix, mdxaBone_t& retMatrix, vec3_t scale)
 {
-	assert(ghoul2.mBoneCache);
-	CBoneCache& boneCache = *ghoul2.mBoneCache;
-	assert(boneCache.mod);
-	assert(boneNum >= 0 && boneNum < boneCache.header->numBones);
+	// Validate bone cache
+	if (!ghoul2.mBoneCache)
+	{
+		Com_Printf("Rend2 G2_RagGetBoneBasePoseMatrixLow: ERROR: mBoneCache is NULL\n");
+		MDXA_Identity(retMatrix);
+		return;
+	}
 
+	CBoneCache& boneCache = *ghoul2.mBoneCache;
+
+	if (!boneCache.mod)
+	{
+		Com_Printf("Rend2 G2_RagGetBoneBasePoseMatrixLow: ERROR: boneCache.mod is NULL\n");
+		MDXA_Identity(retMatrix);
+		return;
+	}
+
+	if (boneNum < 0 || boneNum >= boneCache.header->numBones)
+	{
+		Com_Printf("Rend2 G2_RagGetBoneBasePoseMatrixLow: ERROR: boneNum %d out of range (max %d)\n",
+			boneNum, boneCache.header->numBones);
+		MDXA_Identity(retMatrix);
+		return;
+	}
+
+	// Normal path
 	mdxaSkelOffsets_t* offsets =
 		(mdxaSkelOffsets_t*)((byte*)boneCache.header + sizeof(mdxaHeader_t));
-	mdxaSkel_t* skel = (mdxaSkel_t*)((byte*)offsets + offsets->offsets[boneNum]);
+
+	mdxaSkel_t* skel =
+		(mdxaSkel_t*)((byte*)boneCache.header +
+			sizeof(mdxaHeader_t) +
+			offsets->offsets[boneNum]);
 
 	Mat3x4_Multiply(&retMatrix, &boneMatrix, &skel->BasePoseMat);
 
-	if (scale[0])
-	{
-		retMatrix.matrix[0][3] *= scale[0];
-	}
+	// Apply scale
+	if (scale[0]) retMatrix.matrix[0][3] *= scale[0];
+	if (scale[1]) retMatrix.matrix[1][3] *= scale[1];
+	if (scale[2]) retMatrix.matrix[2][3] *= scale[2];
 
-	if (scale[1])
-	{
-		retMatrix.matrix[1][3] *= scale[1];
-	}
-
-	if (scale[2])
-	{
-		retMatrix.matrix[2][3] *= scale[2];
-	}
-
+	// Normalize axes
 	VectorNormalize((float*)&retMatrix.matrix[0]);
 	VectorNormalize((float*)&retMatrix.matrix[1]);
 	VectorNormalize((float*)&retMatrix.matrix[2]);

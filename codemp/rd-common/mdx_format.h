@@ -159,7 +159,23 @@ typedef struct mdxaBone_s {
 #endif
 
 ////////////////////////////////////
-
+#ifdef __cplusplus
+static inline void MDXA_Identity(mdxaBone_t& m)
+{
+	memset(&m, 0, sizeof(mdxaBone_t));
+	m.matrix[0][0] = 1.0f;
+	m.matrix[1][1] = 1.0f;
+	m.matrix[2][2] = 1.0f;
+}
+#else
+static inline void MDXA_Identity(mdxaBone_t* m)
+{
+	memset(m, 0, sizeof(mdxaBone_t));
+	m->matrix[0][0] = 1.0f;
+	m->matrix[1][1] = 1.0f;
+	m->matrix[2][2] = 1.0f;
+}
+#endif
 // mdxHeader_t  - this contains the header for the file, with sanity checking and version checking, plus number of lod's to be expected
 //
 typedef struct mdxmHeader_s {

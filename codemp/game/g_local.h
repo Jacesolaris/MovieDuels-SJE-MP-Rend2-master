@@ -1838,7 +1838,7 @@ qboolean HasSetSaberOnly(void);
 void WP_ForcePowerStop(gentity_t* self, forcePowers_t forcePower);
 void WP_SaberPositionUpdate(gentity_t* self, usercmd_t* ucmd);
 void wp_saber_init_blade_data(const gentity_t* ent);
-void WP_InitForcePowers(const gentity_t* ent);
+void WP_InitForcePowers(gentity_t* ent);
 void WP_SpawnInitForcePowers(gentity_t* ent);
 void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd);
 int ForcePowerUsableOn(const gentity_t* attacker, const gentity_t* other, forcePowers_t forcePower);

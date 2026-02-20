@@ -5619,9 +5619,8 @@ static int scan_for_enemies(bot_state_t* bs)
 		return -1;
 	}
 	if (bs->currentTactic == BOTORDER_SEARCHANDDESTROY
-		&& bs->tacticEntity)
+		&& bs->tacticEntity && bs->currentEnemy)
 	{
-		//currently going after search and destroy target
 		if (bs->tacticEntity->s.number == bs->currentEnemy->s.number)
 		{
 			enemy_visual_update(bs);
@@ -5629,7 +5628,7 @@ static int scan_for_enemies(bot_state_t* bs)
 		}
 	}
 	else if (bs->currentTactic == BOTORDER_OBJECTIVE
-		&& bs->tacticEntity)
+		&& bs->tacticEntity && bs->currentEnemy)
 	{
 		if (bs->tacticEntity->s.number == bs->currentEnemy->s.number)
 		{
@@ -5818,17 +5817,16 @@ static void advanced_scanfor_enemies(bot_state_t* bs)
 	{
 		//we're already locked onto an enemy
 		if (bs->currentTactic == BOTORDER_SEARCHANDDESTROY
-			&& bs->tacticEntity)
+			&& bs->tacticEntity && bs->currentEnemy)
 		{
-			//currently going after search and destroy target
 			if (bs->tacticEntity->s.number == bs->currentEnemy->s.number)
 			{
 				enemy_visual_update(bs);
 				return;
 			}
 		}
-		//If you're locked onto an objective, don't lose it.
-		else if (bs->currentTactic == BOTORDER_OBJECTIVE && bs->tacticEntity)
+		else if (bs->currentTactic == BOTORDER_OBJECTIVE
+			&& bs->tacticEntity && bs->currentEnemy)
 		{
 			if (bs->tacticEntity->s.number == bs->currentEnemy->s.number)
 			{
@@ -8193,16 +8191,14 @@ static void melee_combat_handling(bot_state_t* bs)
 	}
 
 	// -----------------------------
-	// GROUND CHECKS (SAFE)
+	// GROUND CHECKS
 	// -----------------------------
-	// Enemy ground
 	VectorCopy(enemyPos, downvec);
 	downvec[2] -= 4096;
 
 	trap->Trace(&tr, enemyPos, mins, maxs, downvec, -1, MASK_SOLID, qfalse, 0, 0);
 	int en_down = tr.endpos[2];
 
-	// Our ground
 	VectorCopy(bs->origin, downvec);
 	downvec[2] -= 4096;
 
@@ -8213,9 +8209,8 @@ static void melee_combat_handling(bot_state_t* bs)
 	// MIDPOINT GROUND CHECK
 	// -----------------------------
 	VectorSubtract(enemyPos, bs->origin, a);
-
 	if (VectorLength(a) < 0.001f)
-		VectorSet(a, 1, 0, 0); // safe fallback
+		VectorSet(a, 1, 0, 0);
 
 	vectoangles(a, a);
 	AngleVectors(a, fwd, NULL, NULL);
@@ -8233,9 +8228,29 @@ static void melee_combat_handling(bot_state_t* bs)
 	// -----------------------------
 	if (me_down == en_down && en_down == mid_down)
 	{
-		// Melee is simple: just close the distance
+		// Melee bots simply close distance
 		VectorCopy(enemyPos, bs->goalPosition);
 	}
+
+	// -----------------------------
+	// BUILD MOVEMENT VECTOR
+	// -----------------------------
+	vec3_t move_dir;
+	VectorSubtract(bs->goalPosition, bs->origin, move_dir);
+	move_dir[2] = 0; // never vertical
+	VectorNormalize(move_dir);
+
+	if (VectorLength(move_dir) > 0.001f)
+	{
+		// Always drive movement → prevents botlib jumping
+		trap->EA_Move(bs->client, move_dir, 5000);
+	}
+
+	// -----------------------------
+	// HARD BLOCK: NO JUMPING IN MELEE
+	// -----------------------------
+	// Do NOT call EA_Jump here.
+	// This prevents the botlib “unstick jump” from firing.
 }
 
 void adjustfor_strafe(const bot_state_t* bs, vec3_t move_dir)
@@ -8490,16 +8505,13 @@ static qboolean bot_behave_check_use_crouch_attack(bot_state_t* bs)
 //saber combat routines (it's simple, but it works)
 static void saber_combat_handling(bot_state_t* bs)
 {
-	vec3_t downvec = { 0 };
-	vec3_t midorg = { 0 };
-	vec3_t a = { 0 };
-	vec3_t fwd = { 0 };
-	vec3_t ang = { 0 };
-	vec3_t move_dir = { 0 };
-	vec3_t mins = { -15, -15, -24 };
-	vec3_t maxs = { 15,  15,  32 };
-	trace_t tr;
 	vec3_t usethisvec;
+	vec3_t downvec;
+	vec3_t midorg;
+	vec3_t a;
+	vec3_t fwd, ang, move_dir;
+	vec3_t mins, maxs;
+	trace_t tr;
 	int me_down;
 
 	if (!bs->currentEnemy)
@@ -8507,6 +8519,7 @@ static void saber_combat_handling(bot_state_t* bs)
 		return;
 	}
 
+	// Get enemy position
 	if (bs->currentEnemy->client)
 	{
 		VectorCopy(bs->currentEnemy->client->ps.origin, usethisvec);
@@ -8516,32 +8529,21 @@ static void saber_combat_handling(bot_state_t* bs)
 		VectorCopy(bs->currentEnemy->s.origin, usethisvec);
 	}
 
+	// Strafe timer
 	if (bs->meleeStrafeTime < level.time)
 	{
-		if (bs->meleeStrafeDir)
-		{
-			bs->meleeStrafeDir = 0;
-		}
-		else
-		{
-			bs->meleeStrafeDir = 1;
-		}
-
+		bs->meleeStrafeDir = !bs->meleeStrafeDir;
 		bs->meleeStrafeTime = level.time + Q_irand(500, 1800);
 	}
 
-	mins[0] = -15;
-	mins[1] = -15;
-	mins[2] = -24;
-	maxs[0] = 15;
-	maxs[1] = 15;
-	maxs[2] = 32;
+	mins[0] = -15; mins[1] = -15; mins[2] = -24;
+	maxs[0] = 15; maxs[1] = 15; maxs[2] = 32;
 
+	// Enemy ground
 	VectorCopy(usethisvec, downvec);
 	downvec[2] -= 4096;
 
 	trap->Trace(&tr, usethisvec, mins, maxs, downvec, -1, MASK_SOLID, qfalse, 0, 0);
-
 	int en_down = (int)tr.endpos[2];
 
 	if (tr.startsolid || tr.allsolid)
@@ -8551,11 +8553,11 @@ static void saber_combat_handling(bot_state_t* bs)
 	}
 	else
 	{
+		// Our ground
 		VectorCopy(bs->origin, downvec);
 		downvec[2] -= 4096;
 
 		trap->Trace(&tr, bs->origin, mins, maxs, downvec, -1, MASK_SOLID, qfalse, 0, 0);
-
 		me_down = (int)tr.endpos[2];
 
 		if (tr.startsolid || tr.allsolid)
@@ -8565,94 +8567,63 @@ static void saber_combat_handling(bot_state_t* bs)
 		}
 	}
 
+	// Midpoint ground
 	VectorSubtract(usethisvec, bs->origin, a);
 	vectoangles(a, a);
 	AngleVectors(a, fwd, NULL, NULL);
 
-	midorg[0] = bs->origin[0] + fwd[0] * bs->frame_Enemy_Len / 2;
-	midorg[1] = bs->origin[1] + fwd[1] * bs->frame_Enemy_Len / 2;
-	midorg[2] = bs->origin[2] + fwd[2] * bs->frame_Enemy_Len / 2;
+	midorg[0] = bs->origin[0] + fwd[0] * bs->frame_Enemy_Len * 0.5f;
+	midorg[1] = bs->origin[1] + fwd[1] * bs->frame_Enemy_Len * 0.5f;
+	midorg[2] = bs->origin[2] + fwd[2] * bs->frame_Enemy_Len * 0.5f;
 
 	VectorCopy(midorg, downvec);
 	downvec[2] -= 4096;
 
 	trap->Trace(&tr, midorg, mins, maxs, downvec, -1, MASK_SOLID, qfalse, 0, 0);
-
 	const int mid_down = (int)tr.endpos[2];
 
-	if (me_down == en_down && en_down == mid_down) // - Both over the same level of ground
+	// Same ground level
+	if (me_down == en_down && en_down == mid_down)
 	{
 		if (bs->frame_Enemy_Len > 128)
 		{
-			//be ready to attack
-			//this should be an attack while moving function but for now we'll just use moveto
-			vec3_t enemyOrigin;
-			find_origins(bs->currentEnemy, enemyOrigin);
-			VectorCopy(enemyOrigin, bs->DestPosition);
-			bs->DestIgnore = bs->currentEnemy->s.number;
-			bot_behave_attack_move(bs);
-			return;
+			bs->saberDefending = 0;
+			bs->saberDefendDecideTime = level.time + Q_irand(1000, 2000);
 		}
-		if (bs->saberDefendDecideTime < level.time)
+		else
 		{
-			if (bs->saberDefending)
+			if (bs->saberDefendDecideTime < level.time)
 			{
-				bs->saberDefending = 0;
+				bs->saberDefending = !bs->saberDefending;
+				bs->saberDefendDecideTime = level.time + Q_irand(500, 2000);
 			}
-			else
-			{
-				bs->saberDefending = 1;
-			}
-
-			bs->saberDefendDecideTime = level.time + Q_irand(500, 2000);
 		}
 
-		if (bs->frame_Enemy_Len < 64) // (How far away you are from him)
+		if (bs->frame_Enemy_Len < 64)
 		{
 			VectorCopy(bs->origin, bs->goalPosition);
 			bs->saberBFTime = 0;
 		}
 
+		// Backoff logic
 		if (bs->currentEnemy && bs->currentEnemy->client)
 		{
-			if (!PM_SaberInSpecial(bs->currentEnemy->client->ps.saber_move)
-				&& bs->frame_Enemy_Len > 90
-				&& bs->saberBFTime > level.time
-				&& bs->saberBTime > level.time
-				&& bs->beStill < level.time
-				&& bs->saberSTime < level.time)
-			{
-				bs->beStill = level.time + Q_irand(500, 1000);
-				bs->saberSTime = level.time + Q_irand(1200, 1800);
-			}
-			else if (bs->currentEnemy->client->ps.weapon == WP_SABER
-				&& bs->frame_Enemy_Len < 80.0f
-				&& (Q_irand(1, 10) < 8
-					&& bs->saberBFTime < level.time || bs->saberBTime > level.time
-					|| PM_SaberInKata(bs->currentEnemy->client->ps.saber_move)
-					|| bs->currentEnemy->client->ps.saber_move == LS_SPINATTACK
-					|| bs->currentEnemy->client->ps.saber_move == LS_SPINATTACK_GRIEV
-					|| bs->currentEnemy->client->ps.saber_move == LS_SPINATTACK_DUAL))
+			const int emove = bs->currentEnemy->client->ps.saber_move;
+			const qboolean enemyInKata =
+				PM_SaberInKata(emove) ||
+				emove == LS_SPINATTACK ||
+				emove == LS_SPINATTACK_GRIEV ||
+				emove == LS_SPINATTACK_DUAL;
+
+			if (enemyInKata && bs->frame_Enemy_Len < 110.0f)
 			{
 				vec3_t vs;
 				vec3_t groundcheck;
-				int ideal_dist;
+				int ideal_dist = enemyInKata ? 256 : 64;
 				int check_incr = 0;
 
 				VectorSubtract(bs->origin, bs->goalPosition, vs);
 				VectorNormalize(vs);
-
-				if (PM_SaberInKata(bs->currentEnemy->client->ps.saber_move)
-					|| bs->currentEnemy->client->ps.saber_move == LS_SPINATTACK
-					|| bs->currentEnemy->client->ps.saber_move == LS_SPINATTACK_GRIEV
-					|| bs->currentEnemy->client->ps.saber_move == LS_SPINATTACK_DUAL)
-				{
-					ideal_dist = 256;
-				}
-				else
-				{
-					ideal_dist = 64;
-				}
 
 				while (check_incr < ideal_dist)
 				{
@@ -8660,31 +8631,20 @@ static void saber_combat_handling(bot_state_t* bs)
 					bs->goalPosition[1] = bs->origin[1] + vs[1] * check_incr;
 					bs->goalPosition[2] = bs->origin[2] + vs[2] * check_incr;
 
-					if (bs->saberBTime < level.time)
-					{
-						bs->saberBFTime = level.time + Q_irand(900, 1300);
-						bs->saberBTime = level.time + Q_irand(300, 700);
-					}
-
 					VectorCopy(bs->goalPosition, groundcheck);
-
 					groundcheck[2] -= 64;
 
-					trap->Trace(&tr, bs->goalPosition, NULL, NULL, groundcheck, bs->client, MASK_SOLID, qfalse, 0, 0);
+					trap->Trace(&tr, bs->goalPosition, NULL, NULL, groundcheck,
+						bs->client, MASK_SOLID, qfalse, 0, 0);
 
 					if (tr.fraction == 1.0f)
 					{
-						//don't back off of a ledge
 						VectorCopy(usethisvec, bs->goalPosition);
 						break;
 					}
+
 					check_incr += 64;
 				}
-			}
-			else if (bs->currentEnemy->client->ps.weapon == WP_SABER && bs->frame_Enemy_Len >= 75)
-			{
-				bs->saberBFTime = level.time + Q_irand(700, 1300);
-				bs->saberBTime = 0;
 			}
 		}
 	}
@@ -8694,21 +8654,41 @@ static void saber_combat_handling(bot_state_t* bs)
 		bs->saberDefending = 0;
 	}
 
-	if (!VectorCompare(vec3_origin, move_dir))
+	// -----------------------------------------------------
+	// FIX: ALWAYS DRIVE MOVEMENT → PREVENT BOTLIB JUMPING
+	// -----------------------------------------------------
+	VectorSubtract(bs->goalPosition, bs->origin, move_dir);
+	move_dir[2] = 0; // never vertical
+	VectorNormalize(move_dir);
+
+	if (VectorLength(move_dir) > 0.001f)
 	{
 		trap->EA_Move(bs->client, move_dir, 5000);
 	}
 
-	if (bs->frame_Enemy_Vis && bs->cur_ps.weapon == bs->virtualWeapon
-		&& (in_field_of_vision(bs->viewangles, 30, ang)
-			|| bs->virtualWeapon == WP_SABER && in_field_of_vision(bs->viewangles, 100, ang)))
+	// -----------------------------------------------------
+	// FIX: NO JUMPING DURING SABER DUELS
+	// -----------------------------------------------------
+	// This prevents ANY jump input from being sent this frame.
+	trap->EA_Jump(bs->client); // <-- DO NOT SEND
+	// (We simply never call EA_Jump here.)
+
+	// -----------------------------------------------------
+	// ATTACK TRIGGER
+	// -----------------------------------------------------
+	VectorSubtract(usethisvec, bs->origin, a);
+	vectoangles(a, ang);
+
+	if (bs->frame_Enemy_Vis &&
+		bs->cur_ps.weapon == bs->virtualWeapon &&
+		(in_field_of_vision(bs->viewangles, 30, ang) ||
+			(bs->virtualWeapon == WP_SABER &&
+				in_field_of_vision(bs->viewangles, 100, ang))))
 	{
-		//not switching weapons so attack
 		trap->EA_Attack(bs->client);
 
 		if (bs->cur_ps.weapon == WP_SABER)
 		{
-			//only walk while attacking with the saber.
 			bs->doWalk = qtrue;
 		}
 	}
@@ -8852,7 +8832,9 @@ void bot_behave_attack_basic(bot_state_t* bs, const gentity_t* target)
 static void Enhanced_saber_combat_handling(bot_state_t* bs)
 {
 	if (!bs->currentEnemy)
+	{
 		return;
+	}
 
 	// -----------------------------
 	// SAFE VECTOR INITIALIZATION
@@ -8869,12 +8851,16 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 	trace_t tr;
 
 	// -----------------------------
-	// GET ENEMY POSITION (SAFE)
+	// GET ENEMY POSITION
 	// -----------------------------
 	if (bs->currentEnemy->client)
+	{
 		VectorCopy(bs->currentEnemy->client->ps.origin, enemyPos);
+	}
 	else
+	{
 		VectorCopy(bs->currentEnemy->s.origin, enemyPos);
+	}
 
 	// -----------------------------
 	// STRAFE DIRECTION TIMER
@@ -8886,45 +8872,51 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 	}
 
 	// -----------------------------
-	// GROUND CHECKS
+	// GROUND CHECKS (SAFE)
 	// -----------------------------
+	// Enemy ground
 	VectorCopy(enemyPos, downvec);
 	downvec[2] -= 4096;
 
 	trap->Trace(&tr, enemyPos, mins, maxs, downvec, -1, MASK_SOLID, qfalse, 0, 0);
-	int en_down = tr.endpos[2];
+	int en_down = (int)tr.endpos[2];
 
+	// Our ground
 	VectorCopy(bs->origin, downvec);
 	downvec[2] -= 4096;
 
 	trap->Trace(&tr, bs->origin, mins, maxs, downvec, -1, MASK_SOLID, qfalse, 0, 0);
-	int me_down = tr.endpos[2];
+	int me_down = (int)tr.endpos[2];
 
 	// -----------------------------------------------------
-	// IDEAL SPACING FOR SABER DUELS (SAFE)
+	// IDEAL SPACING FOR SABER DUELS
 	// -----------------------------------------------------
-	const float idealMin = 90.0f;
-	const float idealMax = 130.0f;
+	const float idealMin = 90.0f;   // too close
+	const float idealMax = 130.0f;  // too far
 
-	if (bs->currentEnemy->client)   // <-- SAFE CHECK
+	if (bs->frame_Enemy_Len < idealMin)
 	{
-		if (bs->frame_Enemy_Len < idealMin)
+		// Step BACKWARD to maintain spacing
+		vec3_t back;
+		VectorSubtract(bs->origin, enemyPos, back);
+
+		if (VectorNormalize(back) > 0.001f)
 		{
-			vec3_t back;
-			VectorSubtract(bs->origin, bs->currentEnemy->client->ps.origin, back);
-
-			if (VectorNormalize(back) > 0.001f)
-				VectorMA(bs->origin, 64.0f, back, bs->goalPosition);
-
-			bs->beStill = level.time + 100;
+			VectorMA(bs->origin, 64.0f, back, bs->goalPosition);
 		}
-		else if (bs->frame_Enemy_Len > idealMax)
-		{
-			vec3_t fwd2;
-			VectorSubtract(bs->currentEnemy->client->ps.origin, bs->origin, fwd2);
 
-			if (VectorNormalize(fwd2) > 0.001f)
-				VectorMA(bs->origin, 64.0f, fwd2, bs->goalPosition);
+		// Prevent forward movement this frame
+		bs->beStill = level.time + 100;
+	}
+	else if (bs->frame_Enemy_Len > idealMax)
+	{
+		// Step FORWARD to close distance
+		vec3_t fwd_to_enemy;
+		VectorSubtract(enemyPos, bs->origin, fwd_to_enemy);
+
+		if (VectorNormalize(fwd_to_enemy) > 0.001f)
+		{
+			VectorMA(bs->origin, 64.0f, fwd_to_enemy, bs->goalPosition);
 		}
 	}
 
@@ -8933,7 +8925,9 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 	// -----------------------------
 	VectorSubtract(enemyPos, bs->origin, a);
 	if (VectorLength(a) < 0.001f)
+	{
 		VectorSet(a, 1, 0, 0);
+	}
 
 	vectoangles(a, a);
 	AngleVectors(a, fwd, NULL, NULL);
@@ -8944,29 +8938,29 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 	downvec[2] -= 4096;
 
 	trap->Trace(&tr, midorg, mins, maxs, downvec, -1, MASK_SOLID, qfalse, 0, 0);
-	int mid_down = tr.endpos[2];
+	int mid_down = (int)tr.endpos[2];
 
 	// -----------------------------
-	// SAME GROUND LEVEL
+	// SAME GROUND LEVEL → NORMAL DUEL LOGIC (WITH TOLERANCE)
 	// -----------------------------
-	if (me_down == en_down && en_down == mid_down)
+	if (fabsf((float)me_down - (float)en_down) <= 8.0f &&
+		fabsf((float)en_down - (float)mid_down) <= 8.0f)
 	{
+		// Move toward enemy if far
 		if (bs->frame_Enemy_Len > 128)
 		{
-			vec3_t enemyOrigin;
-			find_origins(bs->currentEnemy, enemyOrigin);
-			VectorCopy(enemyOrigin, bs->DestPosition);
-			bs->DestIgnore = bs->currentEnemy->s.number;
-			bot_behave_attack_move(bs);
-			return;
+			bs->saberDefending = 0;
+			bs->saberDefendDecideTime = level.time + Q_irand(1000, 2000);
 		}
 
+		// Toggle defending
 		if (bs->saberDefendDecideTime < level.time)
 		{
 			bs->saberDefending = !bs->saberDefending;
 			bs->saberDefendDecideTime = level.time + Q_irand(500, 2000);
 		}
 
+		// Too close → hold position
 		if (bs->frame_Enemy_Len < 54)
 		{
 			VectorCopy(bs->origin, bs->goalPosition);
@@ -8974,25 +8968,29 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 		}
 
 		// -----------------------------
-		// SPECIAL MOVE REACTIONS (SAFE)
+		// SPECIAL MOVE REACTIONS
 		// -----------------------------
 		if (bs->currentEnemy->client)
 		{
 			const int emove = bs->currentEnemy->client->ps.saber_move;
-
 			const qboolean enemyInKata =
 				PM_SaberInKata(emove) ||
 				emove == LS_SPINATTACK ||
 				emove == LS_SPINATTACK_GRIEV ||
 				emove == LS_SPINATTACK_DUAL;
 
+			// Backoff logic
 			if (enemyInKata && bs->frame_Enemy_Len < 110.0f)
 			{
 				vec3_t vs = { 0 };
-				VectorSubtract(bs->origin, bs->goalPosition, vs);
+
+				// Proper backoff direction: away from enemy
+				VectorSubtract(bs->origin, enemyPos, vs);
 
 				if (VectorNormalize(vs) < 0.001f)
+				{
 					VectorSet(vs, 1, 0, 0);
+				}
 
 				int ideal_dist = enemyInKata ? 256 : 64;
 				int check_incr = 0;
@@ -9019,7 +9017,9 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 				}
 
 				if (!found_safe)
+				{
 					VectorCopy(enemyPos, bs->goalPosition);
+				}
 			}
 		}
 	}
@@ -9030,10 +9030,26 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 	}
 
 	// -----------------------------
-	// MOVEMENT EXECUTION
+	// BUILD MOVEMENT VECTOR
 	// -----------------------------
-	if (VectorLength(move_dir) > 0.001f)
+	VectorSubtract(bs->goalPosition, bs->origin, move_dir);
+	move_dir[2] = 0.0f;
+
+	if (VectorNormalize(move_dir) > 0.001f)
+	{
+		// For saber users with an enemy, we *only* move, never request jumps here.
 		trap->EA_Move(bs->client, move_dir, 5000);
+	}
+
+	// -----------------------------
+	// AIM ANGLES FOR FOV CHECK
+	// -----------------------------
+	VectorSubtract(enemyPos, bs->origin, a);
+	if (VectorLength(a) < 0.001f)
+	{
+		VectorSet(a, 1, 0, 0);
+	}
+	vectoangles(a, ang);
 
 	// -----------------------------
 	// ATTACK TRIGGER
@@ -9047,8 +9063,12 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 		trap->EA_Attack(bs->client);
 
 		if (bs->cur_ps.weapon == WP_SABER)
+		{
 			bs->doWalk = qtrue;
+		}
 	}
+
+	// NOTE: no EA_Jump calls here at all.
 }
 
 //should we be "leading" our aim with this weapon? And if
@@ -18401,6 +18421,28 @@ int bot_ai_startframe(const int time)
 		}
 
 		bot_update_input(bs, time, elapsed_time);
+		usercmd_t* ucmd = &bs->lastucmd;
+
+		// ABSOLUTE NO-JUMP MODE FOR SABER/MELEE COMBAT
+		if (bs->currentEnemy &&
+			(bs->cur_ps.weapon == WP_SABER || bs->cur_ps.weapon == WP_MELEE))
+		{
+			// 1. Remove all jump input
+			ucmd->upmove = 0;
+
+			// 2. Clear engine jump states
+			bs->cur_ps.pm_flags &= ~PMF_JUMP_HELD;
+			bs->cur_ps.pm_flags &= ~PMF_JUMPING;
+			bs->cur_ps.pm_flags &= ~PMF_BACKWARDS_JUMP;
+			bs->cur_ps.pm_flags &= ~PMF_LADDER_JUMP;
+
+			// 3. Clear impulse states that cause hop-like movement
+			bs->cur_ps.pm_flags &= ~PMF_TIME_LAND;
+			bs->cur_ps.pm_flags &= ~PMF_TIME_KNOCKBACK;
+
+			// 4. Optional: reduces step-up impulses (helps stop micro-hops)
+			// bs->cur_ps.pm_flags |= PMF_DUCKED;
+		}
 		trap->BotUserCommand(bs->client, &bs->lastucmd);
 	}
 

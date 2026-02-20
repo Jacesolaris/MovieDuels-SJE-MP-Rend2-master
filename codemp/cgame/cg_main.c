@@ -1553,6 +1553,7 @@ static void CG_RegisterGraphics(void)
 	cgs.media.enlightenmentShader = trap->R_RegisterShader("powerups/enlightenmentshell");
 	cgs.media.invulnerabilityShader = trap->R_RegisterShader("powerups/invulnerabilityshell");
 	cgs.media.galakShader = trap->R_RegisterShader("gfx/effects/irid_shield");
+	cgs.media.ShieldShader = trap->R_RegisterShader("gfx/effects/barrier_shield");
 
 	//#ifdef JK2AWARDS
 	cgs.media.medalImpressive = trap->R_RegisterShaderNoMip("medal_impressive");

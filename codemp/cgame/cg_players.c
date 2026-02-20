@@ -13549,6 +13549,14 @@ static void CG_DrawPlayerSphere(const centity_t* cent, vec3_t origin, const floa
 		ent.shaderRGBA[2] = 0;
 		ent.shaderRGBA[3] = 100;
 	}
+	else if (shader == cgs.media.ShieldShader)
+	{
+		// added the blue ysal shader
+		ent.shaderRGBA[0] = 0;
+		ent.shaderRGBA[1] = 20;
+		ent.shaderRGBA[2] = 255;
+		ent.shaderRGBA[3] = 80;
+	}
 	else
 	{
 		//ysal red/blue, boon
@@ -19674,14 +19682,14 @@ stillDoSaber:
 
 		if (perc2 >= 0.0f && perc2 <= 1.0f)
 		{
-			CG_DrawPlayerSphere(cent, cent->lerpOrigin, 1.25f, cgs.media.ysaliblueShader);
+			CG_DrawPlayerSphere(cent, cent->lerpOrigin, 1.25f, cgs.media.ShieldShader);
 		}
 	}
 	else if ((cent->currentState.powerups & (1 << PW_SPHERESHIELDED)))
 	{//fully cloaked
 		if (cg.renderingThirdPerson || cent->currentState.number != cg.predictedPlayerState.clientNum)
 		{
-			CG_DrawPlayerSphere(cent, cent->lerpOrigin, 1.25f, cgs.media.ysaliblueShader);
+			CG_DrawPlayerSphere(cent, cent->lerpOrigin, 1.25f, cgs.media.ShieldShader);
 		}
 	}
 

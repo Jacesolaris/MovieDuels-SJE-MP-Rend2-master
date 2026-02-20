@@ -934,7 +934,7 @@ void SetTeam(gentity_t* ent, const char* s)
 	else if (!Q_stricmp(s, "spectator") || !Q_stricmp(s, "s") || !Q_stricmp(s, "spectate"))
 	{
 		team = TEAM_SPECTATOR;
-		spec_state = SPECTATOR_FREE;
+		spec_state = SPECTATOR_FOLLOW; // SPECTATOR_FREE;
 	}
 	else if (g_gametype.integer == GT_SINGLE_PLAYER)
 	{
@@ -1221,6 +1221,28 @@ void StopFollowing(gentity_t* ent)
 	ent->client->ps.eFlags &= ~EF_DISINTEGRATION;
 	for (int i = 0; i < PW_NUM_POWERUPS; i++)
 		ent->client->ps.powerups[i] = 0;
+
+	// --- REQUIRED spectator reset to prevent out-of-bounds ---
+	ent->client->ps.pm_type = PM_SPECTATOR;
+	ent->client->ps.groundEntityNum = ENTITYNUM_NONE;
+
+	// Clear movement
+	VectorClear(ent->client->ps.velocity);
+	ent->client->ps.pm_flags = 0;
+	ent->client->ps.pm_time = 0;
+
+	// Clear collision (THIS is the correct place)
+	VectorClear(ent->r.mins);
+	VectorClear(ent->r.maxs);
+	ent->r.contents = 0; // no collision at all
+
+	// Safe spectator spawn
+	VectorCopy(level.intermission_origin, ent->client->ps.origin);
+	VectorCopy(level.intermission_angle, ent->client->ps.viewangles);
+
+	// Make sure the entity is linked with no collision
+	trap->LinkEntity((sharedEntity_t*)ent);
+	// -----------------------------------------------------------
 }
 
 /*
@@ -3501,6 +3523,12 @@ void Cmd_ToggleSaber_f(gentity_t* ent)
 			}
 			ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
 			ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
+
+			// Clear any lingering saber‑combat state
+			ent->client->ps.duelInProgress = qfalse;
+			ent->client->ps.saberLockFrame = 0;
+			ent->client->ps.saberLockTime = 0;
+
 			//prevent anything from being done for 400ms after holster
 			ent->client->ps.weaponTime = 400;
 		}
