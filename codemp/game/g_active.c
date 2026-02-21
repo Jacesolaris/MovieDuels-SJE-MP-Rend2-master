@@ -1500,34 +1500,41 @@ but any server game effects are handled here
 
 static void ClientEvents(gentity_t* ent, int old_event_sequence)
 {
+	if (ent == NULL || ent->client == NULL)
+	{
+		return; // analyzer-safe guard
+	}
+
+	gclient_t* Client = ent->client; // now guaranteed non-null
 	int damage;
 
-	const gclient_t* Client = ent->client;
-
+	// Clamp old_event_sequence
 	if (old_event_sequence < Client->ps.eventSequence - MAX_PS_EVENTS)
 	{
 		old_event_sequence = Client->ps.eventSequence - MAX_PS_EVENTS;
 	}
+
 	for (int i = old_event_sequence; i < Client->ps.eventSequence; i++)
 	{
-		vec3_t dir;
-		const int event = Client->ps.events[i & MAX_PS_EVENTS - 1];
+		vec3_t dir = { 0, 0, 0 }; // initialized to silence warnings
+		const int index = (i & (MAX_PS_EVENTS - 1));
+		const int event = Client->ps.events[index];
 
 		switch (event)
 		{
 		case EV_FALL:
 		{
-			const int delta = Client->ps.eventParms[i & MAX_PS_EVENTS - 1];
+			const int delta = Client->ps.eventParms[index];
 			qboolean knockDownage = qfalse;
 
-			if (Client && Client->ps.fallingToDeath)
+			if (Client->ps.fallingToDeath)
 			{
 				break;
 			}
 
 			if (ent->s.eType != ET_PLAYER)
 			{
-				break; // not in the player model
+				break;
 			}
 
 			if (dmflags.integer & DF_NO_FALLING)
@@ -1535,7 +1542,7 @@ static void ClientEvents(gentity_t* ent, int old_event_sequence)
 				break;
 			}
 
-			if (Client && PM_InKnockDownOnly(Client->ps.legsAnim))
+			if (PM_InKnockDownOnly(Client->ps.legsAnim))
 			{
 				if (delta <= 14)
 				{
@@ -1554,26 +1561,22 @@ static void ClientEvents(gentity_t* ent, int old_event_sequence)
 			if (knockDownage)
 			{
 				damage = delta * 1;
-				//you suffer for falling unprepared. A lot. Makes throws and things useful, and more realistic I suppose.
 			}
 			else
 			{
-				if (level.gametype == GT_SIEGE &&
-					delta > 60)
+				if (level.gametype == GT_SIEGE && delta > 60)
 				{
-					//longer falls hurt more
-					damage = delta * 1; //good enough for now, I guess
+					damage = delta * 1;
 				}
 				else
 				{
-					//damage = delta * 0.16; //good enough for now, I guess
-					damage = delta * 1; //good enough for now, I guess
+					damage = delta * 1;
 				}
 			}
 
 			VectorSet(dir, 0, 0, 1);
 
-			ent->pain_debounce_time = level.time + 200; // no normal pain sound
+			ent->pain_debounce_time = level.time + 200;
 			G_Damage(ent, NULL, NULL, NULL, NULL, damage, DAMAGE_NO_ARMOR, MOD_FALLING);
 
 			if (ent->health < 1)
@@ -1582,19 +1585,20 @@ static void ClientEvents(gentity_t* ent, int old_event_sequence)
 			}
 		}
 		break;
+
 		case EV_ROLL:
 		{
-			const int delta = Client->ps.eventParms[i & MAX_PS_EVENTS - 1];
+			const int delta = Client->ps.eventParms[index];
 			qboolean knock_downage = qfalse;
 
-			if (Client && Client->ps.fallingToDeath)
+			if (Client->ps.fallingToDeath)
 			{
 				break;
 			}
 
 			if (ent->s.eType != ET_PLAYER)
 			{
-				break; // not in the player model
+				break;
 			}
 
 			if (dmflags.integer & DF_NO_FALLING)
@@ -1621,25 +1625,22 @@ static void ClientEvents(gentity_t* ent, int old_event_sequence)
 			if (knock_downage)
 			{
 				damage = delta * 1;
-				//you suffer for falling unprepared. A lot. Makes throws and things useful, and more realistic I suppose.
 			}
 			else
 			{
-				if (level.gametype == GT_SIEGE &&
-					delta > 60)
+				if (level.gametype == GT_SIEGE && delta > 60)
 				{
-					//longer falls hurt more
-					damage = delta * 1; //good enough for now, I guess
+					damage = delta * 1;
 				}
 				else
 				{
-					damage = delta * 0.16; //good enough for now, I guess
+					damage = delta * 0.16f;
 				}
 			}
 
 			VectorSet(dir, 0, 0, 1);
 
-			ent->pain_debounce_time = level.time + 200; // no normal pain sound
+			ent->pain_debounce_time = level.time + 200;
 			G_Damage(ent, NULL, NULL, NULL, NULL, damage, DAMAGE_NO_ARMOR, MOD_FALLING);
 
 			if (ent->health < 1)
@@ -1648,16 +1649,18 @@ static void ClientEvents(gentity_t* ent, int old_event_sequence)
 			}
 		}
 		break;
+
 		case EV_FIRE_WEAPON:
 			if (PM_ReloadAnim(Client->ps.torsoAnim))
 			{
 				return;
 			}
 
-			if (ent && ent->client && ent->client->frozenTime > level.time)
+			if (ent->client->frozenTime > level.time)
 			{
-				return; //this entity is mind-tricking the current client, so don't render it
+				return;
 			}
+
 			FireWeapon(ent, qfalse);
 			ent->client->dangerTime = level.time;
 			ent->client->ps.eFlags &= ~EF_INVULNERABLE;
@@ -1670,10 +1673,11 @@ static void ClientEvents(gentity_t* ent, int old_event_sequence)
 				return;
 			}
 
-			if (ent && ent->client && ent->client->frozenTime > level.time)
+			if (ent->client->frozenTime > level.time)
 			{
-				return; //this entity is mind-tricking the current client, so don't render it
+				return;
 			}
+
 			FireWeapon(ent, qtrue);
 			ent->client->dangerTime = level.time;
 			ent->client->ps.eFlags &= ~EF_INVULNERABLE;
@@ -1686,55 +1690,24 @@ static void ClientEvents(gentity_t* ent, int old_event_sequence)
 			ent->client->invulnerableTimer = 0;
 			break;
 
-			//rww - Note that these must be in the same order (ITEM#-wise) as they are in holdable_t
-		case EV_USE_ITEM1: //seeker droid        HI_SEEKER
-			ItemUse_Seeker(ent);
-			break;
-		case EV_USE_ITEM2: //shield              HI_SHIELD
-			ItemUse_Shield(ent);
-			break;
-		case EV_USE_ITEM3: //medpack             HI_MEDPAC
-			ItemUse_MedPack(ent);
-			break;
-		case EV_USE_ITEM4: //big medpack         HI_MEDPAC_BIG
-			ItemUse_MedPack_Big(ent);
-			break;
-		case EV_USE_ITEM5: //binoculars          HI_BINOCULARS
-			ItemUse_Binoculars(ent);
-			break;
-		case EV_USE_ITEM6: //sentry gun          HI_SENTRY_GUN
-			ItemUse_Sentry(ent);
-			break;
-		case EV_USE_ITEM7: //jetpack             HI_JETPACK
-			ItemUse_Jetpack(ent);
-			break;
-		case EV_USE_ITEM8: //health disp         HI_HEALTHDISP
-			ItemUse_UseDisp(ent, HI_HEALTHDISP);
-			break;
-		case EV_USE_ITEM9: //ammo disp           HI_AMMODISP
-			ItemUse_UseDisp(ent, HI_AMMODISP);
-			break;
-		case EV_USE_ITEM10: //eweb               HI_EWEB
-			ItemUse_UseEWeb(ent);
-			break;
-		case EV_USE_ITEM11: //cloak              HI_CLOAK
-			ItemUse_UseCloak(ent);
-			break;
-		case EV_USE_ITEM12: //flamethrower       HI_FLAMETHROWER
-			ItemUse_FlameThrower(ent);
-			break;
-		case EV_USE_ITEM13: //swoop              HI_SWOOP
-			ItemUse_Swoop(ent);
-			break;
-		case EV_USE_ITEM14: //Decca              HI_DROIDEKA
-			ItemUse_Decca(ent);
-			break;
-		case EV_USE_ITEM15: //sphereshield       HI_SPHERESHIELD
-			ItemUse_UseSphereshield(ent);
-			break;
-		case EV_USE_ITEM16: //Grapple hook       HI_GRAPPLE
-			//
-			break;
+			// Items 1–16 unchanged
+		case EV_USE_ITEM1: ItemUse_Seeker(ent); break;
+		case EV_USE_ITEM2: ItemUse_Shield(ent); break;
+		case EV_USE_ITEM3: ItemUse_MedPack(ent); break;
+		case EV_USE_ITEM4: ItemUse_MedPack_Big(ent); break;
+		case EV_USE_ITEM5: ItemUse_Binoculars(ent); break;
+		case EV_USE_ITEM6: ItemUse_Sentry(ent); break;
+		case EV_USE_ITEM7: ItemUse_Jetpack(ent); break;
+		case EV_USE_ITEM8: ItemUse_UseDisp(ent, HI_HEALTHDISP); break;
+		case EV_USE_ITEM9: ItemUse_UseDisp(ent, HI_AMMODISP); break;
+		case EV_USE_ITEM10: ItemUse_UseEWeb(ent); break;
+		case EV_USE_ITEM11: ItemUse_UseCloak(ent); break;
+		case EV_USE_ITEM12: ItemUse_FlameThrower(ent); break;
+		case EV_USE_ITEM13: ItemUse_Swoop(ent); break;
+		case EV_USE_ITEM14: ItemUse_Decca(ent); break;
+		case EV_USE_ITEM15: ItemUse_UseSphereshield(ent); break;
+		case EV_USE_ITEM16: break;
+
 		default:
 			break;
 		}

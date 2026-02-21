@@ -35,6 +35,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_local.h"
 #include "w_saber.h"
 #include "ai_main.h"
+#include <string.h>
 
 #define SABER_BOX_SIZE 16.0f
 #define SABER_BIG_BOX_SIZE 16.0f
@@ -145,6 +146,9 @@ qboolean WP_DoingForcedAnimationForForcePowers(const gentity_t* self);
 void thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* trace);
 int WP_SaberCanBlockThrownSaber(gentity_t* self, vec3_t point, qboolean projectile);
 void G_Beskar_Attack_Bounce(const gentity_t* self, gentity_t* other);
+qboolean saberCheckKnockdown_Thrown(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other);
+qboolean saberCheckKnockdown_Smashed(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other, int damage);
+qboolean saberCheckKnockdown_BrokenParry(gentity_t* saberent, gentity_t* saberOwner, gentity_t* other);
 
 float VectorBlockDistance(vec3_t v1, vec3_t v2)
 {
@@ -2709,9 +2713,37 @@ static QINLINE qboolean G_G2TraceCollide(trace_t* tr, vec3_t last_valid_start, v
 	return qfalse;
 }
 
-qboolean saberCheckKnockdown_Thrown(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other);
-qboolean saberCheckKnockdown_Smashed(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other, int damage);
-qboolean saberCheckKnockdown_BrokenParry(gentity_t* saberent, gentity_t* saberOwner, gentity_t* other);
+// Returns qtrue if point P lies inside triangle ABC (barycentric method)
+static qboolean PointInTriangle_Barycentric(
+	const vec3_t P,
+	const vec3_t A,
+	const vec3_t B,
+	const vec3_t C)
+{
+	vec3_t v0, v1, v2;
+	VectorSubtract(B, A, v0);
+	VectorSubtract(C, A, v1);
+	VectorSubtract(P, A, v2);
+
+	float dot00 = DotProduct(v0, v0);
+	float dot01 = DotProduct(v0, v1);
+	float dot02 = DotProduct(v0, v2);
+	float dot11 = DotProduct(v1, v1);
+	float dot12 = DotProduct(v1, v2);
+
+	float denom = dot00 * dot11 - dot01 * dot01;
+	if (denom == 0.0f)
+	{
+		// Degenerate triangle (zero area)
+		return qfalse;
+	}
+
+	float invDenom = 1.0f / denom;
+	float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+	float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+	return (u >= 0.0f && v >= 0.0f && (u + v) <= 1.0f);
+}
 
 typedef struct saber_face_s
 {
@@ -2720,14 +2752,20 @@ typedef struct saber_face_s
 	vec3_t v3;
 } saber_face_t;
 
-//build faces around blade for collision checking -rww
-static QINLINE void g_build_saber_faces(vec3_t base, vec3_t tip, const float radius, vec3_t fwd, vec3_t right,
+// build faces around blade for collision checking -rww
+static void g_build_saber_faces(
+	const vec3_t base,
+	const vec3_t tip,
+	float radius,
+	const vec3_t fwd,
+	const vec3_t right,
 	int* f_num,
 	saber_face_t** f_list)
 {
 	static saber_face_t faces[12];
 	int i = 0;
-	const float* d1 = NULL, * d2 = NULL;
+	const float* d1 = NULL;
+	const float* d2 = NULL;
 	vec3_t inv_fwd;
 	vec3_t inv_right;
 
@@ -2738,33 +2776,32 @@ static QINLINE void g_build_saber_faces(vec3_t base, vec3_t tip, const float rad
 
 	while (i < 8)
 	{
-		//yeah, this part is kind of a hack, but eh
 		if (i < 2)
 		{
-			//"left" surface
-			d1 = &fwd[0];
-			d2 = &inv_right[0];
+			// "left" surface
+			d1 = fwd;
+			d2 = inv_right;
 		}
 		else if (i < 4)
 		{
-			//"right" surface
-			d1 = &fwd[0];
-			d2 = &right[0];
+			// "right" surface
+			d1 = fwd;
+			d2 = right;
 		}
 		else if (i < 6)
 		{
-			//"front" surface
-			d1 = &right[0];
-			d2 = &fwd[0];
+			// "front" surface
+			d1 = right;
+			d2 = fwd;
 		}
-		else if (i < 8)
+		else
 		{
-			//"back" surface
-			d1 = &right[0];
-			d2 = &inv_fwd[0];
+			// "back" surface
+			d1 = right;
+			d2 = inv_fwd;
 		}
 
-		//first triangle for this surface
+		// first triangle for this surface
 		VectorMA(base, radius / 3.0f, d1, faces[i].v1);
 		VectorMA(faces[i].v1, radius / 3.0f, d2, faces[i].v1);
 
@@ -2776,7 +2813,7 @@ static QINLINE void g_build_saber_faces(vec3_t base, vec3_t tip, const float rad
 
 		i++;
 
-		//second triangle for this surface
+		// second triangle for this surface
 		VectorMA(tip, -radius / 3.0f, d1, faces[i].v1);
 		VectorMA(faces[i].v1, radius / 3.0f, d2, faces[i].v1);
 
@@ -2789,8 +2826,8 @@ static QINLINE void g_build_saber_faces(vec3_t base, vec3_t tip, const float rad
 		i++;
 	}
 
-	//top surface
-	//face 1
+	// top surface
+	// face 1
 	VectorMA(tip, radius / 3.0f, fwd, faces[i].v1);
 	VectorMA(faces[i].v1, -radius / 3.0f, right, faces[i].v1);
 
@@ -2802,7 +2839,7 @@ static QINLINE void g_build_saber_faces(vec3_t base, vec3_t tip, const float rad
 
 	i++;
 
-	//face 2
+	// face 2
 	VectorMA(tip, radius / 3.0f, fwd, faces[i].v1);
 	VectorMA(faces[i].v1, radius / 3.0f, right, faces[i].v1);
 
@@ -2814,8 +2851,8 @@ static QINLINE void g_build_saber_faces(vec3_t base, vec3_t tip, const float rad
 
 	i++;
 
-	//bottom surface
-	//face 1
+	// bottom surface
+	// face 1
 	VectorMA(base, radius / 3.0f, fwd, faces[i].v1);
 	VectorMA(faces[i].v1, -radius / 3.0f, right, faces[i].v1);
 
@@ -2827,7 +2864,7 @@ static QINLINE void g_build_saber_faces(vec3_t base, vec3_t tip, const float rad
 
 	i++;
 
-	//face 2
+	// face 2
 	VectorMA(base, radius / 3.0f, fwd, faces[i].v1);
 	VectorMA(faces[i].v1, radius / 3.0f, right, faces[i].v1);
 
@@ -2839,149 +2876,155 @@ static QINLINE void g_build_saber_faces(vec3_t base, vec3_t tip, const float rad
 
 	i++;
 
-	//yeah.. always going to be 12 I suppose.
-	*f_num = i;
-	*f_list = &faces[0];
+	*f_num = i;        // always 12
+	*f_list = faces;
 }
 
-//collision utility function -rww
-static QINLINE void g_sab_col_calc_plane_eq(vec3_t x, vec3_t y, vec3_t z, float* plane_eq)
+// collision utility function -rww
+// Builds a normalized plane equation from three points: Ax + By + Cz + D = 0
+static void g_sab_col_calc_plane_eq(
+	const vec3_t x,
+	const vec3_t y,
+	const vec3_t z,
+	float* plane_eq)
 {
+	// Original unnormalized plane equation
 	plane_eq[0] = x[1] * (y[2] - z[2]) + y[1] * (z[2] - x[2]) + z[1] * (x[2] - y[2]);
 	plane_eq[1] = x[2] * (y[0] - z[0]) + y[2] * (z[0] - x[0]) + z[2] * (x[0] - y[0]);
 	plane_eq[2] = x[0] * (y[1] - z[1]) + y[0] * (z[1] - x[1]) + z[0] * (x[1] - y[1]);
-	plane_eq[3] = -(x[0] * (y[1] * z[2] - z[1] * y[2]) + y[0] * (z[1] * x[2] - x[1] * z[2]) + z[0] * (x[1] * y[2] - y[1]
-		* x[2]));
+	plane_eq[3] = -(x[0] * (y[1] * z[2] - z[1] * y[2]) +
+		y[0] * (z[1] * x[2] - x[1] * z[2]) +
+		z[0] * (x[1] * y[2] - y[1] * x[2]));
+
+	// Normalize the normal (A,B,C) and adjust D accordingly
+	vec3_t n;
+	VectorSet(n, plane_eq[0], plane_eq[1], plane_eq[2]);
+
+	float len = VectorLength(n);
+	if (len > 0.0f)
+	{
+		float invLen = 1.0f / len;
+
+		n[0] *= invLen;
+		n[1] *= invLen;
+		n[2] *= invLen;
+
+		plane_eq[0] = n[0];
+		plane_eq[1] = n[1];
+		plane_eq[2] = n[2];
+
+		// Recompute D so that the plane still passes through x
+		plane_eq[3] = -DotProduct(n, x);
+	}
 }
 
-//collision utility function -rww
-static QINLINE int g_sab_col_point_relative_to_plane(vec3_t pos, float* side, const float* plane_eq)
+// Collision utility function – returns which side of a plane a point lies on.
+static int g_sab_col_point_relative_to_plane(
+	const vec3_t pos,
+	float* side,
+	const float* plane_eq)
 {
-	*side = plane_eq[0] * pos[0] + plane_eq[1] * pos[1] + plane_eq[2] * pos[2] + plane_eq[3];
+	*side = plane_eq[0] * pos[0] +
+		plane_eq[1] * pos[1] +
+		plane_eq[2] * pos[2] +
+		plane_eq[3];
 
 	if (*side > 0.0f)
-	{
 		return 1;
-	}
+
 	if (*side < 0.0f)
-	{
 		return -1;
-	}
 
 	return 0;
 }
 
-//do actual collision check using generated saber "faces"
-static QINLINE qboolean g_saber_face_collision_check(const int f_num, saber_face_t* f_list, vec3_t atk_start,
-	vec3_t atk_end,
-	vec3_t atk_mins, vec3_t atk_maxs, vec3_t impact_point)
+// Do actual collision check using generated saber "faces"
+// Do actual collision check using generated saber "faces"
+static qboolean g_saber_face_collision_check(
+	int f_num,
+	saber_face_t* f_list,
+	const vec3_t atk_start,
+	const vec3_t atk_end,
+	vec3_t atk_mins,
+	vec3_t atk_maxs,
+	vec3_t impact_point)
 {
-	static float side, side2, dist;
-	static vec3_t dir;
-	int i = 0;
+	float side, side2, dist;
+	vec3_t dir;
 
-	if (VectorCompare(atk_mins, vec3_origin) && VectorCompare(atk_maxs, vec3_origin))
+	// If mins/maxs are zero, give the saber a default thickness
+	if (VectorCompare(atk_mins, vec3_origin) &&
+		VectorCompare(atk_maxs, vec3_origin))
 	{
 		VectorSet(atk_mins, -1.0f, -1.0f, -1.0f);
 		VectorSet(atk_maxs, 1.0f, 1.0f, 1.0f);
 	}
 
+	// Direction of the saber sweep
 	VectorSubtract(atk_end, atk_start, dir);
 
-	while (i < f_num)
+	for (int i = 0; i < f_num; i++, f_list++)
 	{
-		static float plane_eq[4];
+		float plane_eq[4];
 		g_sab_col_calc_plane_eq(f_list->v1, f_list->v2, f_list->v3, plane_eq);
 
-		if (g_sab_col_point_relative_to_plane(atk_start, &side, plane_eq) !=
-			g_sab_col_point_relative_to_plane(atk_end, &side2, plane_eq))
+		int side_start = g_sab_col_point_relative_to_plane(atk_start, &side, plane_eq);
+		int side_end = g_sab_col_point_relative_to_plane(atk_end, &side2, plane_eq);
+
+		// No crossing of this face's plane
+		if (side_start == side_end)
 		{
-			static vec3_t point;
-			//start/end points intersect with the plane
-			static vec3_t extruded;
-			static vec3_t min_point, max_point;
-			static vec3_t plane_normal;
-			static int facing;
-
-			VectorCopy(&plane_eq[0], plane_normal);
-			side2 = plane_normal[0] * dir[0] + plane_normal[1] * dir[1] + plane_normal[2] * dir[2];
-
-			dist = side / side2;
-			VectorMA(atk_start, -dist, dir, point);
-
-			VectorAdd(point, atk_mins, min_point);
-			VectorAdd(point, atk_maxs, max_point);
-
-			//point is now the point at which we intersect on the plane.
-			//see if that point is within the edges of the face.
-			VectorMA(f_list->v1, -2.0f, plane_normal, extruded);
-			g_sab_col_calc_plane_eq(f_list->v1, f_list->v2, extruded, plane_eq);
-			facing = g_sab_col_point_relative_to_plane(point, &side, plane_eq);
-
-			if (facing < 0)
-			{
-				//not intersecting.. let's try with the mins/maxs and see if they intersect on the edge plane
-				facing = g_sab_col_point_relative_to_plane(min_point, &side, plane_eq);
-				if (facing < 0)
-				{
-					facing = g_sab_col_point_relative_to_plane(max_point, &side, plane_eq);
-				}
-			}
-
-			if (facing >= 0)
-			{
-				//first edge is facing...
-				VectorMA(f_list->v2, -2.0f, plane_normal, extruded);
-				g_sab_col_calc_plane_eq(f_list->v2, f_list->v3, extruded, plane_eq);
-				facing = g_sab_col_point_relative_to_plane(point, &side, plane_eq);
-
-				if (facing < 0)
-				{
-					//not intersecting.. let's try with the mins/maxs and see if they intersect on the edge plane
-					facing = g_sab_col_point_relative_to_plane(min_point, &side, plane_eq);
-					if (facing < 0)
-					{
-						facing = g_sab_col_point_relative_to_plane(max_point, &side, plane_eq);
-					}
-				}
-
-				if (facing >= 0)
-				{
-					//second edge is facing...
-					VectorMA(f_list->v3, -2.0f, plane_normal, extruded);
-					g_sab_col_calc_plane_eq(f_list->v3, f_list->v1, extruded, plane_eq);
-					facing = g_sab_col_point_relative_to_plane(point, &side, plane_eq);
-
-					if (facing < 0)
-					{
-						//not intersecting.. let's try with the mins/maxs and see if they intersect on the edge plane
-						facing = g_sab_col_point_relative_to_plane(min_point, &side, plane_eq);
-						if (facing < 0)
-						{
-							facing = g_sab_col_point_relative_to_plane(max_point, &side, plane_eq);
-						}
-					}
-
-					if (facing >= 0)
-					{
-						//third edge is facing.. success
-						VectorCopy(point, impact_point);
-						return qtrue;
-					}
-				}
-			}
+			continue;
 		}
 
-		i++;
-		f_list++;
+		// plane_eq[0..2] is already a normalized normal
+		vec3_t plane_normal;
+		VectorSet(plane_normal, plane_eq[0], plane_eq[1], plane_eq[2]);
+
+		side2 = DotProduct(plane_normal, dir);
+		if (side2 == 0.0f)
+		{
+			// Parallel to plane, skip
+			continue;
+		}
+
+		dist = side / side2;
+
+		vec3_t point;
+		VectorMA(atk_start, -dist, dir, point);
+
+		// ---- Option A: conservative thickness test ----
+		// 1) Center point
+		if (PointInTriangle_Barycentric(point, f_list->v1, f_list->v2, f_list->v3))
+		{
+			VectorCopy(point, impact_point);
+			return qtrue;
+		}
+
+		// 2) Point offset by atk_mins
+		vec3_t p_min;
+		VectorAdd(point, atk_mins, p_min);
+		if (PointInTriangle_Barycentric(p_min, f_list->v1, f_list->v2, f_list->v3))
+		{
+			VectorCopy(p_min, impact_point);
+			return qtrue;
+		}
+
+		// 3) Point offset by atk_maxs
+		vec3_t p_max;
+		VectorAdd(point, atk_maxs, p_max);
+		if (PointInTriangle_Barycentric(p_max, f_list->v1, f_list->v2, f_list->v3))
+		{
+			VectorCopy(p_max, impact_point);
+			return qtrue;
+		}
 	}
 
-	//did not hit anything
 	return qfalse;
 }
 
-//Copies all the important data from one trace_t to another.  Please note that this doesn't transfer ALL
-//of the trace_t data.
+// Copies all the important data from one trace_t to another.
+// Please note that this doesn't transfer ALL of the trace_t data.
 static void trace_copy(const trace_t* a, trace_t* b)
 {
 	b->allsolid = a->allsolid;
@@ -2989,137 +3032,144 @@ static void trace_copy(const trace_t* a, trace_t* b)
 	VectorCopy(a->endpos, b->endpos);
 	b->entityNum = a->entityNum;
 	b->fraction = a->fraction;
-	//This is the only thing that's ever really used from the plane data.
+	// This is the only thing that's ever really used from the plane data.
 	VectorCopy(a->plane.normal, b->plane.normal);
 	b->startsolid = a->startsolid;
 	b->surfaceFlags = a->surfaceFlags;
 }
 
-//Reset the trace to be "blank".
-static QINLINE void trace_clear(trace_t* tr, vec3_t end)
+// Reset the trace to be "blank".
+static void trace_clear(trace_t* tr, const vec3_t end)
 {
-	tr->fraction = 1;
+	tr->fraction = 1.0f;
 	VectorCopy(end, tr->endpos);
 	tr->entityNum = ENTITYNUM_NONE;
 }
 
-//check for collision of 2 blades -rww
+// check for collision of 2 blades -rww
 qboolean WP_SaberIsOff(const gentity_t* self, int saberNum);
 qboolean WP_BladeIsOff(const gentity_t* self, int saberNum, int blade_num);
 
-static QINLINE qboolean g_saber_collide(gentity_t* atk, const gentity_t* def, vec3_t atk_start, vec3_t atk_end,
+static qboolean g_saber_collide(
+	gentity_t* atk,
+	gentity_t* def,
+	vec3_t atk_start,
+	vec3_t atk_end,
 	vec3_t atk_mins,
-	vec3_t atk_maxs, trace_t* tr)
+	vec3_t atk_maxs,
+	trace_t* tr)
 {
-	static int i, j;
-
-	if (!def->inuse || !def->client)
+	// Must have a valid defending client with sabers
+	if (!def || !def->inuse || !def->client)
 	{
-		//must have 2 clients and a valid saber entity
 		trace_clear(tr, atk_end);
 		return qfalse;
 	}
 
 	if (def->client->ps.saberHolstered == 2)
 	{
-		//no sabers on.
+		// No sabers on.
 		trace_clear(tr, atk_end);
 		return qfalse;
 	}
 
-	i = 0;
-	while (i < MAX_SABERS)
+	for (int i = 0; i < MAX_SABERS; i++)
 	{
-		j = 0;
-
 		if (WP_SaberIsOff(def, i))
 		{
-			//saber is off and can't be used.
-			i++;
+			// Saber is off and can't be used.
 			continue;
 		}
 
-		if (def->client->saber[i].model && def->client->saber[i].model[0])
+		if (!def->client->saber[i].model ||
+			!def->client->saber[i].model[0])
 		{
-			int f_num;
-			saber_face_t* f_list;
+			continue;
+		}
 
-			//go through each blade on the defender's sabers
-			while (j < def->client->saber[i].numBlades)
+		// Go through each blade on the defender's sabers
+		for (int j = 0; j < def->client->saber[i].numBlades; j++)
+		{
+			if (WP_BladeIsOff(def, i, j))
 			{
-				const bladeInfo_t* blade = &def->client->saber[i].blade[j];
+				// This particular blade is turned off.
+				continue;
+			}
 
-				if (WP_BladeIsOff(def, i, j))
-				{
-					//this particular blade is turned off.
-					j++;
-					continue;
-				}
+			const bladeInfo_t* blade = &def->client->saber[i].blade[j];
 
-				if (level.time - blade->storageTime < 200)
-				{
-					vec3_t tip;
-					vec3_t base;
-					vec3_t right;
-					vec3_t fwd;
-					vec3_t v;
-					//recently updated
-					//first get base and tip of blade
-					VectorCopy(blade->muzzlePoint, base);
-					VectorMA(base, blade->lengthMax, blade->muzzleDir, tip);
+			if (level.time - blade->storageTime >= 200)
+			{
+				// Blade data too old, skip.
+				continue;
+			}
 
-					//Now get relative angles between the points
-					VectorSubtract(tip, base, v);
-					vectoangles(v, v);
-					AngleVectors(v, NULL, right, fwd);
+			vec3_t tip;
+			vec3_t base;
+			vec3_t right;
+			vec3_t fwd;
+			vec3_t v;
 
-					//now build collision faces for this blade
-					g_build_saber_faces(base, tip, blade->radius * 4.0f, fwd, right, &f_num, &f_list);
-					if (f_num > 0)
-					{
+			// Recently updated: first get base and tip of blade
+			VectorCopy(blade->muzzlePoint, base);
+			VectorMA(base, blade->lengthMax, blade->muzzleDir, tip);
+
+			// Now get relative angles between the points
+			VectorSubtract(tip, base, v);
+			vectoangles(v, v);
+			AngleVectors(v, NULL, right, fwd);
+
+			// Now build collision faces for this blade
+			int           f_num = 0;
+			saber_face_t* f_list = NULL;
+			g_build_saber_faces(base, tip, blade->radius * 4.0f, fwd, right, &f_num, &f_list);
+
+			if (f_num <= 0)
+			{
+				continue;
+			}
+
 #if 0
-						if (atk->inuse && atk->client && atk->s.number == 0)
-						{
-							int x = 0;
-							saberFace_t* l = fList;
-							while (x < fNum)
-							{
-								G_TestLine(fList->v1, fList->v2, 0x0000ff, 100);
-								G_TestLine(fList->v2, fList->v3, 0x0000ff, 100);
-								G_TestLine(fList->v3, fList->v1, 0x0000ff, 100);
+			if (atk && atk->inuse && atk->client && atk->s.number == 0)
+			{
+				int x = 0;
+				saber_face_t* l = f_list;
+				while (x < f_num)
+				{
+					G_TestLine(f_list->v1, f_list->v2, 0x0000ff, 100);
+					G_TestLine(f_list->v2, f_list->v3, 0x0000ff, 100);
+					G_TestLine(f_list->v3, f_list->v1, 0x0000ff, 100);
 
-								fList++;
-								x++;
-							}
-							fList = l;
-						}
+					f_list++;
+					x++;
+				}
+				f_list = l;
+			}
 #endif
 
-						if (g_saber_face_collision_check(f_num, f_list, atk_start, atk_end, atk_mins, atk_maxs,
-							tr->endpos))
-						{
-							//collided
-							//determine the plane of impact for the viewlocking stuff.
-							vec3_t result;
+			if (g_saber_face_collision_check(f_num, f_list,
+				atk_start, atk_end,
+				atk_mins, atk_maxs,
+				tr->endpos))
+			{
+				// Collided: determine the plane of impact for the viewlocking stuff.
+				vec3_t result;
 
-							tr->fraction = calc_trace_fraction(atk_start, atk_end, tr->endpos);
+				tr->fraction = calc_trace_fraction(atk_start, atk_end, tr->endpos);
 
-							G_FindClosestPointOnLineSegment(base, tip, tr->endpos, result);
-							VectorSubtract(tr->endpos, result, result);
-							VectorCopy(result, tr->plane.normal);
-							if (atk && atk->client)
-							{
-								atk->client->lastSaberCollided = i;
-								atk->client->lastBladeCollided = j;
-							}
-							return qtrue;
-						}
-					}
+				G_FindClosestPointOnLineSegment(base, tip, tr->endpos, result);
+				VectorSubtract(tr->endpos, result, result);
+				VectorCopy(result, tr->plane.normal);
+
+				if (atk && atk->client)
+				{
+					atk->client->lastSaberCollided = i;
+					atk->client->lastBladeCollided = j;
 				}
-				j++;
+
+				return qtrue;
 			}
 		}
-		i++;
 	}
 
 	trace_clear(tr, atk_end);
@@ -4608,46 +4658,44 @@ static void restore_real_trace_content(void)
 	}
 }
 
-#define REALTRACE_MISS             0 // didn't hit anything
-#define REALTRACE_HIT              1 // hit object normally
-#define REALTRACE_SABERBLOCKHIT    2 // hit a player
-#define REALTRACE_HIT_WORLD        3 // hit world
+#define REALTRACE_MISS          0 // didn't hit anything
+#define REALTRACE_HIT           1 // hit object normally
+#define REALTRACE_SABERBLOCKHIT 2 // hit a player
+#define REALTRACE_HIT_WORLD     3 // hit world
 
-#define REALTRACE_MISS             0 // didn't hit anything
-#define REALTRACE_HIT              1 // hit object normally
-#define REALTRACE_SABERBLOCKHIT    2 // hit a player
-#define REALTRACE_HIT_WORLD        3 // hit world
-
-static QINLINE int finish_real_trace(trace_t* results, trace_t* closest_trace, vec3_t end)
+// Finish a real trace: restore content, classify result, and copy the closest trace.
+static int finish_real_trace(trace_t* results, const trace_t* closest_trace, const vec3_t end)
 {
-	// Revert the real trace content removals and finish up the realtrace.
-	// Restore all the entities we blanked out.
-	gentity_t* current_ent = &g_entities[closest_trace->entityNum];
-
+	// Restore all entities we blanked out during real trace.
 	restore_real_trace_content();
 
-	// No hit: endpos == end
+	// No hit: closest endpos is exactly the requested end.
 	if (VectorCompare(closest_trace->endpos, end))
 	{
 		trace_clear(results, end);
 		return REALTRACE_MISS;
 	}
 
-	// Hit the world
+	// Hit the world.
 	if (closest_trace->entityNum == ENTITYNUM_WORLD)
 	{
 		trace_copy(closest_trace, results);
 		return REALTRACE_HIT_WORLD;
 	}
 
-	// Hit a client
-	if (current_ent && current_ent->inuse && current_ent->client)
+	// Hit a client (player/NPC).
+	if (closest_trace->entityNum >= 0 && closest_trace->entityNum < MAX_GENTITIES)
 	{
-		trace_copy(closest_trace, results);
-		return REALTRACE_SABERBLOCKHIT;
+		const gentity_t* current_ent = &g_entities[closest_trace->entityNum];
+
+		if (current_ent && current_ent->inuse && current_ent->client)
+		{
+			trace_copy(closest_trace, results);
+			return REALTRACE_SABERBLOCKHIT;
+		}
 	}
 
-	// Hit a normal entity
+	// Hit some other entity.
 	trace_copy(closest_trace, results);
 	return REALTRACE_HIT;
 }
@@ -4659,18 +4707,18 @@ int g_real_trace(
 	vec3_t mins,
 	vec3_t maxs,
 	vec3_t end,
-	const int pass_entity_num,
-	const int contentmask,
-	const int rSaberNum,
-	const int rBladeNum
+	int pass_entity_num,
+	int contentmask,
+	int rSaberNum,
+	int rBladeNum
 )
 {
-	vec3_t  current_start;
+	vec3_t current_start;
 	trace_t closest_trace;
-	float   closest_fraction = 1.1f;
+	float closest_fraction = 1.1f;
 
 	const qboolean atk_is_saberer =
-		(attacker && attacker->client && attacker->client->ps.weapon == WP_SABER) ? qtrue : qfalse;
+		(attacker && attacker->client && attacker->client->ps.weapon == WP_SABER);
 
 	init_real_trace_content();
 
@@ -4687,7 +4735,18 @@ int g_real_trace(
 	{
 		vec3_t current_end_pos;
 
-		trap->Trace(tr, current_start, mins, maxs, end, pass_entity_num, contentmask, qfalse, 0, 0);
+		trap->Trace(
+			tr,
+			current_start,
+			mins,
+			maxs,
+			end,
+			pass_entity_num,
+			contentmask,
+			qfalse,
+			0,
+			0
+		);
 
 		VectorCopy(tr->endpos, current_end_pos);
 		const int current_entity_num = tr->entityNum;
@@ -4697,6 +4756,7 @@ int g_real_trace(
 			VectorCopy(current_start, tr->endpos);
 		}
 
+		// No hit at all
 		if (tr->entityNum == ENTITYNUM_NONE)
 		{
 			if (!VectorCompare(start, current_start))
@@ -4714,10 +4774,17 @@ int g_real_trace(
 
 		gentity_t* current_ent = &g_entities[tr->entityNum];
 
+		// Saber block logic
 		if (current_ent->inuse && current_ent->client)
 		{
 			if (attacker &&
-				wp_saber_must_block(current_ent, attacker, qtrue, tr->endpos, rSaberNum, rBladeNum))
+				wp_saber_must_block(
+					current_ent,
+					attacker,
+					qtrue,
+					tr->endpos,
+					rSaberNum,
+					rBladeNum))
 			{
 				if (!VectorCompare(start, current_start))
 				{
@@ -4734,12 +4801,14 @@ int g_real_trace(
 				return finish_real_trace(tr, &closest_trace, end);
 			}
 
+			// Ghoul2 collision
 			G_G2TraceCollide(tr, current_start, end, mins, maxs);
 		}
 		else if ((current_ent->r.contents & CONTENTS_LIGHTSABER) &&
 			current_ent->r.contents != -1 &&
 			current_ent->inuse)
 		{
+			// Saber vs saber collision
 			gentity_t* saber_owner = &g_entities[current_ent->r.ownerNum];
 
 			g_saber_collide(
@@ -4754,6 +4823,7 @@ int g_real_trace(
 		}
 		else if (tr->entityNum < ENTITYNUM_WORLD)
 		{
+			// Ghoul2 or normal entity
 			if (current_ent->inuse && current_ent->ghoul2)
 			{
 				G_G2TraceCollide(tr, current_start, end, mins, maxs);
@@ -4775,6 +4845,7 @@ int g_real_trace(
 		}
 		else
 		{
+			// Hit world
 			if (!VectorCompare(start, current_start))
 			{
 				tr->fraction = calc_trace_fraction(start, end, tr->endpos);
@@ -4788,6 +4859,7 @@ int g_real_trace(
 			return finish_real_trace(tr, &closest_trace, end);
 		}
 
+		// Update closest trace
 		if (!VectorCompare(start, current_start))
 		{
 			tr->fraction = calc_trace_fraction(start, end, tr->endpos);
@@ -4799,6 +4871,7 @@ int g_real_trace(
 			closest_fraction = tr->fraction;
 		}
 
+		// Add passthrough content
 		if (!add_real_trace_content(current_entity_num))
 		{
 			break;
@@ -8872,7 +8945,7 @@ void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner)
 	trap->LinkEntity((sharedEntity_t*)saberent);
 }
 
-#define SABER_BOTRETRIEVE_DELAY 600
+#define SABER_BOTRETRIEVE_DELAY 1500
 #define SABER_RETRIEVE_DELAY 3000 //3 seconds for now. This will leave you nice and open if you lose your saber.
 
 static void saberKnockDown(gentity_t* saberent, gentity_t* saber_owner, const gentity_t* other)
@@ -9009,7 +9082,7 @@ void WP_SaberAddG2Model(gentity_t* saberent, const char* saber_model, const qhan
 	trap->G2API_InitGhoul2Model(&saberent->ghoul2, saber_model, saberent->s.modelIndex, saber_skin, 0, 0, 0);
 }
 
-//Make the saber go flying directly out of the owner's hand in the specified direction
+// Make the saber go flying directly out of the owner's hand in the specified direction
 qboolean saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity)
 {
 	if (!saberent || !saber_owner ||
@@ -9019,23 +9092,34 @@ qboolean saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t
 		return qfalse;
 	}
 
-	if (!saber_owner->client->ps.saberEntityNum)
+	// Saber entity index 0 is valid, so check <= 0 instead of !
+	if (saber_owner->client->ps.saberEntityNum <= 0)
 	{
-		//already gone
+		// already gone
 		return qfalse;
 	}
 
-	if (level.time - saber_owner->client->lastSaberStorageTime > 50)
+	// Allow a slightly larger window for saber base data (more FPS‑robust)
+	if (level.time - saber_owner->client->lastSaberStorageTime > 150)
 	{
-		//must have a reasonably updated saber base pos
+		// must have a reasonably updated saber base pos
 		return qfalse;
 	}
 
+	// Recently in saberlock? Don't disarm.
 	if (saber_owner->client->ps.saberLockTime > level.time - 100)
 	{
 		return qfalse;
 	}
+
+	// Not disarmable at all
 	if (saber_owner->client->saber[0].saberFlags & SFL_NOT_DISARMABLE)
+	{
+		return qfalse;
+	}
+
+	// If velocity is zero, don't bother
+	if (VectorCompare(velocity, vec3_origin))
 	{
 		return qfalse;
 	}
@@ -9043,13 +9127,16 @@ qboolean saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t
 	saber_owner->client->ps.saberInFlight = qtrue;
 	saber_owner->client->ps.saberEntityState = 1;
 
-	saberent->s.saberInFlight = qfalse; //qtrue;
+	// This should be true for a knocked‑out saber
+	saberent->s.saberInFlight = qtrue;
 
 	saberent->s.pos.trType = TR_LINEAR;
 	saberent->s.eType = ET_GENERAL;
 	saberent->s.eFlags = 0;
 
-	WP_SaberAddG2Model(saberent, saber_owner->client->saber[0].model, saber_owner->client->saber[0].skin);
+	WP_SaberAddG2Model(saberent,
+		saber_owner->client->saber[0].model,
+		saber_owner->client->saber[0].skin);
 
 	saberent->s.modelGhoul2 = 127;
 
@@ -9071,10 +9158,13 @@ qboolean saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t
 
 	saberent->genericValue5 = 0;
 
-	G_SetOrigin(saberent, saber_owner->client->lastSaberBase_Always); //use this as opposed to the right hand bolt,
-	//because I don't want to risk reconstructing the skel again to get it here. And it isn't worth storing.
+	// Use stored saber base instead of hand bolt
+	G_SetOrigin(saberent, saber_owner->client->lastSaberBase_Always);
+
 	saberKnockDown(saberent, saber_owner, saber_owner);
-	VectorCopy(velocity, saberent->s.pos.trDelta); //override the velocity on the knocked away saber.
+
+	// Override the velocity on the knocked‑away saber
+	VectorCopy(velocity, saberent->s.pos.trDelta);
 
 	return qtrue;
 }
@@ -9163,9 +9253,11 @@ qboolean saberCheckKnockdown_DuelLoss(gentity_t* saberent, gentity_t* saberOwner
 	return qfalse;
 }
 
-//Knock the saber out of the hands of saberOwner using the net momentum between saberOwner and others net momentum
 qboolean ButterFingers(gentity_t* saberent, gentity_t* saber_owner, const gentity_t* other, const trace_t* tr)
 {
+	if (!saberent || !saber_owner || !saber_owner->client)
+		return qfalse;
+
 	vec3_t svelocity, ovelocity;
 	vec3_t sswing, oswing;
 	vec3_t dir;
@@ -9175,59 +9267,66 @@ qboolean ButterFingers(gentity_t* saberent, gentity_t* saber_owner, const gentit
 	VectorClear(sswing);
 	VectorClear(oswing);
 
-	if (!saber_owner->client->olderIsValid || level.time - saber_owner->client->lastSaberStorageTime >= 200
-		|| !saber_owner->client->ps.saberEntityNum || saber_owner->client->ps.saberInFlight)
+	// Validate saber owner data
+	if (!saber_owner->client->olderIsValid ||
+		(level.time - saber_owner->client->lastSaberStorageTime) >= 300 ||
+		saber_owner->client->ps.saberEntityNum <= 0 ||
+		saber_owner->client->ps.saberInFlight)
 	{
-		//old or bad saberOwner data or you don't have a saber in your hand.  We're kind of screwed so just return.
 		return qfalse;
 	}
-	VectorSubtract(saber_owner->client->lastSaberBase_Always, saber_owner->client->olderSaberBase, sswing);
+
+	// Owner swing vector
+	VectorSubtract(saber_owner->client->lastSaberBase_Always,
+		saber_owner->client->olderSaberBase,
+		sswing);
+
 	VectorAdd(saber_owner->client->ps.velocity, sswing, sswing);
 
+	// Other entity influence
 	if (other && other->client && other->inuse)
 	{
-		if (other->client->olderIsValid && level.time - other->client->lastSaberStorageTime >= 200
-			&& other->client->ps.saberEntityNum && !other->client->ps.saberInFlight)
+		if (other->client->olderIsValid &&
+			(level.time - other->client->lastSaberStorageTime) <= 300 &&
+			other->client->ps.saberEntityNum > 0 &&
+			!other->client->ps.saberInFlight)
 		{
-			VectorSubtract(other->client->lastSaberBase_Always, other->client->olderSaberBase, oswing);
+			VectorSubtract(other->client->lastSaberBase_Always,
+				other->client->olderSaberBase,
+				oswing);
+
 			VectorCopy(other->client->ps.velocity, ovelocity);
 			VectorAdd(ovelocity, oswing, oswing);
 		}
-		else if (other->client->ps.velocity)
+		else if (!VectorCompare(other->client->ps.velocity, vec3_origin))
 		{
 			VectorCopy(other->client->ps.velocity, oswing);
 		}
 	}
 	else
 	{
-		//No useable client data....ok  Let's try just bouncing off of the impact surface then.
-		//scale things back a bit for realism.
+		// Impact surface fallback
 		VectorScale(sswing, SABER_ELASTIC_RATIO, sswing);
 
 		if (DotProduct(tr->plane.normal, sswing) > 0)
-		{
-			//weird impact as the saber is moving away from the impact plane.  Oh well.
 			VectorScale(tr->plane.normal, -VectorLength(sswing), oswing);
-		}
 		else
-		{
 			VectorScale(tr->plane.normal, VectorLength(sswing), oswing);
-		}
 	}
 
+	// Combine vectors
 	if (DotProduct(sswing, oswing) > 0)
-	{
 		VectorSubtract(oswing, sswing, dir);
-	}
 	else
-	{
 		VectorAdd(oswing, sswing, dir);
-	}
-	//don't pull it back on the next frame
+
+	// Normalize direction
+	if (VectorNormalize(dir) == 0)
+		return qfalse;
+
+	// Prevent immediate re‑grab
 	if (level.time - saber_owner->client->saberKnockedTime <= MAX_LEAVE_TIME)
-	{
 		saber_owner->client->buttons &= ~BUTTON_ATTACK;
-	}
 
 	return saberKnockOutOfHand(saberent, saber_owner, dir);
 }

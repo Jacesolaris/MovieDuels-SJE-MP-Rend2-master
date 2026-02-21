@@ -42,6 +42,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_public.h"
 #include "g_public.h"
 #include "anims.h"
+#include "surfaceflags.h"
+#include <string.h>
+#include <qcommon\q_string.h>
+#include "teams.h"
+#include <qcommon\q_platform.h>
+#include <qcommon\q_color.h>
 
 #define	MISSILE_PRESTEP_TIME	50
 
@@ -473,7 +479,7 @@ gentity_t* tgt_list[MAX_GENTITIES];
 
 void G_StasisMissile(gentity_t* ent, gentity_t* missile, vec3_t forward)
 {
-	vec3_t bounce_dir;
+	vec3_t bounce_dir = { 0 };
 	vec3_t dir;
 	static qboolean registered = qfalse;
 
@@ -1518,7 +1524,7 @@ killProj:
 	//
 	if (strcmp(ent->classname, "hook") == 0)
 	{
-		vec3_t v;
+		vec3_t v = { 0 };
 		gentity_t* nent = G_Spawn();
 
 		if (other->takedamage || other->client || other->s.eType == ET_MOVER)
@@ -1584,7 +1590,7 @@ killProj:
 	//
 	if (strcmp(ent->classname, "stun") == 0)
 	{
-		vec3_t v;
+		vec3_t v = { 0 };
 		gentity_t* nent = G_Spawn();
 
 		if (other->takedamage || other->client || other->s.eType == ET_MOVER)
@@ -2020,16 +2026,11 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 {
 	// Handles all the behavior needed to saber block a blaster bolt.
 	const int   other_def_level = ReflectionLevel(blocker);
-	float       slop_factor = (MISHAP_MAXINACCURACY - 6) *
-		(FORCE_LEVEL_3 - blocker->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE]) /
-		FORCE_LEVEL_3;
+	float       slop_factor = (MISHAP_MAXINACCURACY - 6) * (FORCE_LEVEL_3 - blocker->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE]) / FORCE_LEVEL_3;
 	gentity_t* prev_owner = &g_entities[bolt->r.ownerNum];
-	const float distance = vector_bolt_distance(blocker->r.currentOrigin,
-		prev_owner->r.currentOrigin);
-	const qboolean manual_proj_blocking = (blocker->client->ps.ManualBlockingFlags &
-		(1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
-	const qboolean accurate_missile_block = (blocker->client->ps.ManualBlockingFlags &
-		(1 << MBF_ACCURATEMISSILEBLOCKING)) ? qtrue : qfalse;
+	const float distance = vector_bolt_distance(blocker->r.currentOrigin, prev_owner->r.currentOrigin);
+	const qboolean manual_proj_blocking = (blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
+	const qboolean accurate_missile_block = (blocker->client->ps.ManualBlockingFlags & (1 << MBF_ACCURATEMISSILEBLOCKING)) ? qtrue : qfalse;
 	const int   manual_run_blocking = manual_running_and_saberblocking(blocker);
 	const int   npc_is_blocking = manual_npc_saberblocking(blocker);
 

@@ -1,4 +1,10 @@
 #include "g_local.h"
+#include <stdio.h>
+#include <qcommon\q_string.h>
+#include <qcommon\q_platform.h>
+#include "g_public.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_shared.h>
 
 //the max autosave file size define
 #define MAX_AUTOSAVE_FILESIZE 1024
@@ -134,7 +140,7 @@ void Create_Autosave(vec3_t origin, int size, const qboolean teleportPlayers)
 
 void Load_Autosaves(void)
 {
-	//load in our autosave from the .autosp
+	// load in our autosave from the .autosp
 	fileHandle_t f;
 	char buf[MAX_AUTOSAVE_FILESIZE];
 	char loadPath[MAX_QPATH];
@@ -155,11 +161,11 @@ void Load_Autosaves(void)
 	}
 	if (!len)
 	{
-		//empty file
 		Com_Printf("^5Empty autosave file!\n");
 		trap->FS_Close(f);
 		return;
 	}
+
 	trap->FS_Read(buf, len, f);
 	trap->FS_Close(f);
 
@@ -167,19 +173,37 @@ void Load_Autosaves(void)
 
 	while (*s != '\0' && s - buf < len)
 	{
-		vec3_t positionData;
+		vec3_t positionData = { 0, 0, 0 };
+
 		if (*s == '\n')
 		{
-			//hop over newlines
 			s++;
 			continue;
 		}
 
-		sscanf(s, "%f %f %f %i %i", &positionData[0], &positionData[1], &positionData[2], &sizeData, &teleportPlayers);
+		int parsed = sscanf(
+			s,
+			"%f %f %f %i %i",
+			&positionData[0],
+			&positionData[1],
+			&positionData[2],
+			&sizeData,
+			&teleportPlayers
+		);
+
+		if (parsed != 5)
+		{
+			// malformed line — skip safely
+			while (*s != '\n' && *s != '\0' && s - buf < len)
+			{
+				s++;
+			}
+			continue;
+		}
 
 		Create_Autosave(positionData, sizeData, teleportPlayers);
 
-		//advance to the end of the line
+		// advance to end of line
 		while (*s != '\n' && *s != '\0' && s - buf < len)
 		{
 			s++;

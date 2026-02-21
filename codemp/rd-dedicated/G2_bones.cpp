@@ -3097,8 +3097,6 @@ static void G2_RagGetWorldAnimMatrix(CGhoul2Info& ghoul2, const boneInfo_t& bone
 			bone.boneNumber, params->settleFrame, bone.hasAnimFrameMatrix);
 	}
 
-
-
 	G2_RagGetBoneBasePoseMatrixLow(ghoul2, bone.boneNumber,
 		true_base_matrix, baseBoneMatrix, params->scale);
 

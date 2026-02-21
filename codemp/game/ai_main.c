@@ -12402,31 +12402,42 @@ void standard_bot_ai(bot_state_t* bs)
 				bs->saberPowerTime = level.time + Q_irand(3000, 15000);
 			}
 
-			if (g_entities[bs->client].client->ps.fd.saberAnimLevel != SS_STAFF
-				&& g_entities[bs->client].client->ps.fd.saberAnimLevel != SS_DUAL) // dont change staff or dual styles
+			playerState_t* ps = &g_entities[bs->client].client->ps;
+			playerState_t* enemyps = &bs->currentEnemy->client->ps;
+
+			if (ps->fd.saberAnimLevel != SS_STAFF &&
+				ps->fd.saberAnimLevel != SS_DUAL)
 			{
-				if (bs->currentEnemy->client->ps.fd.blockPoints > BLOCKPOINTS_FULL   // enemy has high BP
-					&& g_entities[bs->client].client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] > 2) // We have offense level 3
+				int enemyBP = enemyps->fd.blockPoints;
+
+				// HIGH BLOCKPOINTS → STRONG STYLE
+				if (enemyBP > BLOCKPOINTS_FULL &&
+					ps->fd.forcePowerLevel[FP_SABER_OFFENSE] > 2)
 				{
-					if (g_entities[bs->client].client->ps.fd.saberAnimLevel != SS_STRONG
-						&& g_entities[bs->client].client->ps.fd.saberAnimLevel != SS_DESANN && bs->saberPower)  // should swap from desann to strong and vise versa
-					{ //if we are up against someone with a lot of blockpoints and we have a strong attack available, then h4q them
+					if (ps->fd.saberAnimLevel != SS_STRONG &&
+						ps->fd.saberAnimLevel != SS_DESANN &&
+						bs->saberPower)
+					{
 						Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
 					}
 				}
-				else if (bs->currentEnemy->client->ps.fd.blockPoints > BLOCKPOINTS_HALF
-					&& g_entities[bs->client].client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] > 1)
+
+				// MEDIUM BLOCKPOINTS → MEDIUM STYLE
+				else if (enemyBP > BLOCKPOINTS_HALF &&
+					ps->fd.forcePowerLevel[FP_SABER_OFFENSE] > 1)
 				{
-					if (g_entities[bs->client].client->ps.fd.saberAnimLevel != SS_MEDIUM)
-					{ //they're down on blockpoints a little, use level 2 if we can
+					if (ps->fd.saberAnimLevel != SS_MEDIUM)
+					{
 						Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
 					}
 				}
+
+				// LOW BLOCKPOINTS → FAST STYLE
 				else
 				{
-					if (g_entities[bs->client].client->ps.fd.saberAnimLevel != SS_FAST
-						&& g_entities[bs->client].client->ps.fd.saberAnimLevel != SS_TAVION)
-					{ //they've gone below 40 blockpoints, go at them with quick attacks
+					if (ps->fd.saberAnimLevel != SS_FAST &&
+						ps->fd.saberAnimLevel != SS_TAVION)
+					{
 						Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
 					}
 				}
@@ -14534,24 +14545,63 @@ void Enhanced_bot_ai(bot_state_t* bs)
 				bs->saberPowerTime = level.time + Q_irand(3000, 15000);
 			}
 
+			if (level.gametype == GT_SINGLE_PLAYER)
+			{
+				saber_range *= 3;
+			}
+
 			// Core saber combat
 			if (bs->frame_Enemy_Len <= saber_range)
 			{
 				// Walk during saber combat
 				bs->doWalk = qtrue;
 
-				// Force single-saber bots to cycle styles if needed
-				if (!dualSabers && !staffSaber &&
-					(bs->cur_ps.fd.saberAnimLevel != SS_MEDIUM))
+				playerState_t* ps = &g_entities[bs->client].client->ps;
+				playerState_t* enemyps = &bs->currentEnemy->client->ps;
+
+				if (ps->fd.saberAnimLevel != SS_STAFF &&
+					ps->fd.saberAnimLevel != SS_DUAL)
 				{
-					Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+					int enemyBP = enemyps->fd.blockPoints;
+
+					// HIGH BLOCKPOINTS → STRONG STYLE
+					if (enemyBP > BLOCKPOINTS_FULL &&
+						ps->fd.forcePowerLevel[FP_SABER_OFFENSE] > 2)
+					{
+						if (ps->fd.saberAnimLevel != SS_STRONG &&
+							ps->fd.saberAnimLevel != SS_DESANN &&
+							bs->saberPower)
+						{
+							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+						}
+					}
+
+					// MEDIUM BLOCKPOINTS → MEDIUM STYLE
+					else if (enemyBP > BLOCKPOINTS_HALF &&
+						ps->fd.forcePowerLevel[FP_SABER_OFFENSE] > 1)
+					{
+						if (ps->fd.saberAnimLevel != SS_MEDIUM)
+						{
+							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+						}
+					}
+
+					// LOW BLOCKPOINTS → FAST STYLE
+					else
+					{
+						if (ps->fd.saberAnimLevel != SS_FAST &&
+							ps->fd.saberAnimLevel != SS_TAVION)
+						{
+							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+						}
+					}
 				}
 
 				// -----------------------------------------
 				// ALWAYS RUN ENHANCED SABER HANDLING HERE
 				// -----------------------------------------
 
-				if (bs->cur_ps.saberFatigueChainCount >= MISHAPLEVEL_HUDFLASH || bs->cur_ps.stats[STAT_HEALTH] < 30)
+				if (bs->cur_ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY || bs->cur_ps.stats[STAT_HEALTH] < 50)
 				{
 					Enhanced_saber_combat_handling(bs);
 				}

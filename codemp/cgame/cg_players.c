@@ -18964,21 +18964,21 @@ stillDoSaber:
 						{
 							if (m == 0)
 							{
-								//guess this is an 0ldsk3wl saber
+								// Try old JK2-style tag
 								tag_bolt = trap->G2API_AddBolt(saberEnt->ghoul2, 0, "*flash");
 
 								if (tag_bolt == -1)
 								{
-									assert(0);
+									Com_Printf("^1WARNING: Saber model '%s' missing bolt '%s' and fallback '*flash'.\n",
+										ci->saber[0].model, tag_name);
 								}
 								break;
 							}
 
-							if (tag_bolt == -1)
-							{
-								assert(0);
-								break;
-							}
+							// Blade index > 0 but bolt missing
+							Com_Printf("^1WARNING: Saber model '%s' missing bolt '%s'.\n",
+								ci->saber[0].model, tag_name);
+							break;
 						}
 
 						m++;
