@@ -1174,7 +1174,7 @@ netField_t entityStateFields[] =
 	{NETF(grappletimeplayer), 32},
 	{NETF(grapplestartTime), 32},
 	{NETF(grapplelaststartTime), 32},
-	{ NETF(modelindex), 32 }
+	{NETF(modelindex), 32 }
 };
 
 // if (int)f == f and (int)f + ( 1<<(FLOAT_INT_BITS-1) ) < ( 1 << FLOAT_INT_BITS )
@@ -2315,7 +2315,8 @@ static bitStorage_t* g_psfBitStorage = nullptr;
 //rww - Check the overrides files to see if the mod wants anything changed
 void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 {
-	char overrideFile[4096];
+	// Increased buffer to allow larger override files
+	char overrideFile[16384];
 	char entryName[4096]{};
 	char bits[4096]{};
 	char* fileName;
@@ -2327,7 +2328,6 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 
 	if (psfOverrides)
 	{
-		//do PSF overrides instead of NETF
 		fileName = "psf_overrides.txt";
 		bitStorage = &g_psfBitStorage;
 		numFields = static_cast<int>(std::size(playerStateFields));
@@ -2341,7 +2341,6 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 
 	if (*bitStorage)
 	{
-		//if we have saved off the defaults before we want to stuff them all back in now
 		const bitStorage_t* restore = *bitStorage;
 
 		while (i < numFields)
@@ -2362,37 +2361,32 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 		}
 	}
 
-	const int len = FS_FOpenFileRead(va("ext_data/MP/%s", fileName), &f, qfalse);
+	const int len = FS_FOpenFileRead(va("ext_data/MD_MP/%s", fileName), &f, qfalse);
 
 	if (!f || len < 0)
 	{
-		//silently exit since this file is not needed to proceed.
 		return;
 	}
 
-	if (len >= 4096)
+	// Updated limit check to match new buffer size
+	if (len >= 16384)
 	{
-		Com_Printf("WARNING: %s is >= 4096 bytes and is being ignored\n", fileName);
+		Com_Printf("WARNING: %s is >= 16384 bytes and is being ignored\n", fileName);
 		FS_FCloseFile(f);
 		return;
 	}
 
-	//Get contents of the file
 	FS_Read(overrideFile, len, f);
 	FS_FCloseFile(f);
 
-	//because FS_Read does not do this for us.
 	overrideFile[len] = 0;
 
-	//If we haven't saved off the initial stuff yet then stuff it all into
-	//a list.
 	if (!*bitStorage)
 	{
 		i = 0;
 
 		while (i < numFields)
 		{
-			//Alloc memory for this new ptr
 			*bitStorage = static_cast<bitStorage_t*>(Z_Malloc(sizeof(bitStorage_t), TAG_GENERAL, qtrue));
 
 			if (psfOverrides)
@@ -2404,19 +2398,17 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 				(*bitStorage)->bits = entityStateFields[i].bits;
 			}
 
-			//Point to the ->next of the existing current ptr
 			bitStorage = &(*bitStorage)->next;
 			i++;
 		}
 	}
 
 	i = 0;
-	//Now parse through. Lines beginning with ; are disabled.
+
 	while (overrideFile[i])
 	{
 		if (overrideFile[i] == ';')
 		{
-			//parse to end of the line
 			while (overrideFile[i] != '\n')
 			{
 				i++;
@@ -2427,7 +2419,6 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 			overrideFile[i] != '\n' &&
 			overrideFile[i] != '\r')
 		{
-			//on a valid char I guess, parse it
 			int j = 0;
 
 			while (overrideFile[i] && overrideFile[i] != ',')
@@ -2440,21 +2431,18 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 
 			if (!overrideFile[i])
 			{
-				//just give up, this shouldn't happen
 				Com_Printf("WARNING: Parsing error for %s\n", fileName);
 				return;
 			}
 
 			while (overrideFile[i] == ',' || overrideFile[i] == ' ')
 			{
-				//parse to the start of the value
 				i++;
 			}
 
 			j = 0;
 			while (overrideFile[i] != '\n' && overrideFile[i] != '\r')
 			{
-				//now read the value in
 				bits[j] = overrideFile[i];
 				j++;
 				i++;
@@ -2465,7 +2453,6 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 			{
 				if (strcmp(bits, "GENTITYNUM_BITS") == 0)
 				{
-					//special case
 					ibits = GENTITYNUM_BITS;
 				}
 				else
@@ -2475,25 +2462,20 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 
 				j = 0;
 
-				//Now go through all the fields and see if we can find a match
 				while (j < numFields)
 				{
 					if (psfOverrides)
 					{
-						//check psf fields
 						if (strcmp(playerStateFields[j].name, entryName) == 0)
 						{
-							//found it, set the bits
 							playerStateFields[j].bits = ibits;
 							break;
 						}
 					}
 					else
 					{
-						//otherwise check netf fields
 						if (strcmp(entityStateFields[j].name, entryName) == 0)
 						{
-							//found it, set the bits
 							entityStateFields[j].bits = ibits;
 							break;
 						}
@@ -2503,13 +2485,11 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 
 				if (j == numFields)
 				{
-					//failed to find the value
 					Com_Printf("WARNING: Value '%s' from %s is not valid\n", entryName, fileName);
 				}
 			}
 			else
 			{
-				//also should not happen
 				Com_Printf("WARNING: Parsing error for %s\n", fileName);
 				return;
 			}

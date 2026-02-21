@@ -1773,7 +1773,21 @@ static void CG_RegisterGraphics(void)
 	cgs.media.defendShader = trap->R_RegisterShaderNoMip("ui/assets/statusbar/defend.tga");
 	cgs.media.retrieveShader = trap->R_RegisterShaderNoMip("ui/assets/statusbar/retrieve.tga");
 	cgs.media.escortShader = trap->R_RegisterShaderNoMip("ui/assets/statusbar/escort.tga");
+
 	cgs.media.cursor = trap->R_RegisterShaderNoMip("menu/art/3_cursor2");
+
+	cgs.media.cursor_anakin = trap->R_RegisterShaderNoMip("gfx/menus/cursor_anakin");
+	cgs.media.cursor_jk = trap->R_RegisterShaderNoMip("gfx/menus/cursor_jk");
+	cgs.media.cursor_katarn = trap->R_RegisterShaderNoMip("gfx/menus/cursor_katarn");
+	cgs.media.cursor_kylo = trap->R_RegisterShaderNoMip("gfx/menus/cursor_kylo");
+	cgs.media.cursor_luke = trap->R_RegisterShaderNoMip("gfx/menus/cursor_luke");
+	cgs.media.cursor_obiwan = trap->R_RegisterShaderNoMip("gfx/menus/cursor_obiwan");
+	cgs.media.cursor_oldrepublic = trap->R_RegisterShaderNoMip("gfx/menus/cursor_oldrepublic");
+	cgs.media.cursor_quigon = trap->R_RegisterShaderNoMip("gfx/menus/cursor_quigon");
+	cgs.media.cursor_rey = trap->R_RegisterShaderNoMip("gfx/menus/cursor_rey");
+	cgs.media.cursor_vader = trap->R_RegisterShaderNoMip("gfx/menus/cursor_vader");
+	cgs.media.cursor_windu = trap->R_RegisterShaderNoMip("gfx/menus/cursor_windu");
+
 	cgs.media.sizeCursor = trap->R_RegisterShaderNoMip("ui/assets/sizecursor.tga");
 	cgs.media.selectCursor = trap->R_RegisterShaderNoMip("ui/assets/selectcursor.tga");
 	//cgs.media.hitmarkerGraphic = trap->R_RegisterShaderNoMip("gfx/2d/crosshair_hitmarker.tga");
@@ -1955,6 +1969,27 @@ static char* CG_GetMenuBuffer(const char* filename)
 	return buf;
 }
 
+typedef struct {
+	const char* tokenName;      // keyword in .cfg
+	char** stringTarget;   // pointer to the char* storing the path
+	qhandle_t* shaderTarget;   // pointer to the qhandle_t storing the shader
+} cgCursorAssetDef_t;
+
+static cgCursorAssetDef_t cgCursorAssets[] = {
+	{ "cursor",            &cgDC.Assets.cursorStr,            &cgDC.Assets.cursor },
+	{ "cursor_anakin",     &cgDC.Assets.cursor_anakinStr,     &cgDC.Assets.cursor_anakin },
+	{ "cursor_jk",         &cgDC.Assets.cursor_jkStr,         &cgDC.Assets.cursor_jk },
+	{ "cursor_katarn",     &cgDC.Assets.cursor_katarnStr,     &cgDC.Assets.cursor_katarn },
+	{ "cursor_kylo",       &cgDC.Assets.cursor_kyloStr,       &cgDC.Assets.cursor_kylo },
+	{ "cursor_luke",       &cgDC.Assets.cursor_lukeStr,       &cgDC.Assets.cursor_luke },
+	{ "cursor_obiwan",     &cgDC.Assets.cursor_obiwanStr,     &cgDC.Assets.cursor_obiwan },
+	{ "cursor_oldrepublic",&cgDC.Assets.cursor_oldrepublicStr,&cgDC.Assets.cursor_oldrepublic },
+	{ "cursor_quigon",     &cgDC.Assets.cursor_quigonStr,     &cgDC.Assets.cursor_quigon },
+	{ "cursor_rey",        &cgDC.Assets.cursor_reyStr,        &cgDC.Assets.cursor_rey },
+	{ "cursor_vader",      &cgDC.Assets.cursor_vaderStr,      &cgDC.Assets.cursor_vader },
+	{ "cursor_windu",      &cgDC.Assets.cursor_winduStr,      &cgDC.Assets.cursor_windu }
+};
+
 //
 // ==============================
 // new hud stuff ( mission pack )
@@ -2089,14 +2124,21 @@ static qboolean CG_Asset_Parse(const int handle)
 			continue;
 		}
 
-		if (Q_stricmp(token.string, "cursor") == 0)
+		// Cursor asset parsing
+		for (int c = 0; c < ARRAY_LEN(cgCursorAssets); c++)
 		{
-			if (!PC_String_Parse(handle, &cgDC.Assets.cursorStr))
+			if (Q_stricmp(token.string, cgCursorAssets[c].tokenName) == 0)
 			{
-				return qfalse;
+				if (!PC_String_Parse(handle, cgCursorAssets[c].stringTarget))
+				{
+					return qfalse;
+				}
+
+				*cgCursorAssets[c].shaderTarget =
+					trap->R_RegisterShaderNoMip(*cgCursorAssets[c].stringTarget);
+
+				continue;
 			}
-			cgDC.Assets.cursor = trap->R_RegisterShaderNoMip(cgDC.Assets.cursorStr);
-			continue;
 		}
 
 		if (Q_stricmp(token.string, "fadeClamp") == 0)

@@ -713,6 +713,19 @@ static void AssetCache(void)
 	uiInfo.uiDC.Assets.sliderBar = trap->R_RegisterShaderNoMip(ASSET_SLIDER_BAR);
 	uiInfo.uiDC.Assets.sliderThumb = trap->R_RegisterShaderNoMip(ASSET_SLIDER_THUMB);
 
+
+	uiInfo.uiDC.Assets.cursor_anakin = trap->R_RegisterShaderNoMip(ASSET_ANAKIN);
+	uiInfo.uiDC.Assets.cursor_jk = trap->R_RegisterShaderNoMip(ASSET_JK);
+	uiInfo.uiDC.Assets.cursor_katarn = trap->R_RegisterShaderNoMip(ASSET_KATARN);
+	uiInfo.uiDC.Assets.cursor_kylo = trap->R_RegisterShaderNoMip(ASSET_KYLO);
+	uiInfo.uiDC.Assets.cursor_luke = trap->R_RegisterShaderNoMip(ASSET_LUKE);
+	uiInfo.uiDC.Assets.cursor_obiwan = trap->R_RegisterShaderNoMip(ASSET_OBIWAN);
+	uiInfo.uiDC.Assets.cursor_oldrepublic = trap->R_RegisterShaderNoMip(ASSET_OLDREPUBLIC);
+	uiInfo.uiDC.Assets.cursor_quigon = trap->R_RegisterShaderNoMip(ASSET_QUIGON);
+	uiInfo.uiDC.Assets.cursor_rey = trap->R_RegisterShaderNoMip(ASSET_RAY);
+	uiInfo.uiDC.Assets.cursor_vader = trap->R_RegisterShaderNoMip(ASSET_VADER);
+	uiInfo.uiDC.Assets.cursor_windu = trap->R_RegisterShaderNoMip(ASSET_WINDU);
+
 	// Icons for various server settings.
 	uiInfo.uiDC.Assets.needPass = trap->R_RegisterShaderNoMip("gfx/menus/needpass");
 	uiInfo.uiDC.Assets.noForce = trap->R_RegisterShaderNoMip("gfx/menus/noforce");
@@ -1205,6 +1218,28 @@ static char* GetMenuBuffer(const char* filename)
 	return buf;
 }
 
+
+typedef struct {
+	const char* tokenName;      // keyword in .menu/.cfg
+	char** stringTarget;   // pointer to the char* that stores the path
+	qhandle_t* shaderTarget;   // pointer to the qhandle_t that stores the shader
+} cursorAssetDef_t;
+
+static cursorAssetDef_t cursorAssets[] = {
+	{ "cursor",            &uiInfo.uiDC.Assets.cursorStr,            &uiInfo.uiDC.Assets.cursor },
+	{ "cursor_anakin",     &uiInfo.uiDC.Assets.cursor_anakinStr,     &uiInfo.uiDC.Assets.cursor_anakin },
+	{ "cursor_jk",         &uiInfo.uiDC.Assets.cursor_jkStr,         &uiInfo.uiDC.Assets.cursor_jk },
+	{ "cursor_katarn",     &uiInfo.uiDC.Assets.cursor_katarnStr,     &uiInfo.uiDC.Assets.cursor_katarn },
+	{ "cursor_kylo",       &uiInfo.uiDC.Assets.cursor_kyloStr,       &uiInfo.uiDC.Assets.cursor_kylo },
+	{ "cursor_luke",       &uiInfo.uiDC.Assets.cursor_lukeStr,       &uiInfo.uiDC.Assets.cursor_luke },
+	{ "cursor_obiwan",     &uiInfo.uiDC.Assets.cursor_obiwanStr,     &uiInfo.uiDC.Assets.cursor_obiwan },
+	{ "cursor_oldrepublic",&uiInfo.uiDC.Assets.cursor_oldrepublicStr,&uiInfo.uiDC.Assets.cursor_oldrepublic },
+	{ "cursor_quigon",     &uiInfo.uiDC.Assets.cursor_quigonStr,     &uiInfo.uiDC.Assets.cursor_quigon },
+	{ "cursor_rey",        &uiInfo.uiDC.Assets.cursor_reyStr,        &uiInfo.uiDC.Assets.cursor_rey },
+	{ "cursor_vader",      &uiInfo.uiDC.Assets.cursor_vaderStr,      &uiInfo.uiDC.Assets.cursor_vader },
+	{ "cursor_windu",      &uiInfo.uiDC.Assets.cursor_winduStr,      &uiInfo.uiDC.Assets.cursor_windu }
+};
+
 static qboolean Asset_Parse(int handle)
 {
 	pc_token_t token;
@@ -1278,15 +1313,23 @@ static qboolean Asset_Parse(int handle)
 			continue;
 		}
 
-		if (Q_stricmp(token.string, "cursor") == 0)
+		// Cursor asset parsing
+		for (int c = 0; c < ARRAY_LEN(cursorAssets); c++)
 		{
-			if (!PC_String_Parse(handle, &uiInfo.uiDC.Assets.cursorStr))
+			if (Q_stricmp(token.string, cursorAssets[c].tokenName) == 0)
 			{
-				Com_Printf(S_COLOR_YELLOW, "Bad 1st parameter for keyword 'cursor'");
-				return qfalse;
+				if (!PC_String_Parse(handle, cursorAssets[c].stringTarget))
+				{
+					Com_Printf(S_COLOR_YELLOW "Bad 1st parameter for keyword '%s'\n",
+						cursorAssets[c].tokenName);
+					return qfalse;
+				}
+
+				*cursorAssets[c].shaderTarget =
+					trap->R_RegisterShaderNoMip(*cursorAssets[c].stringTarget);
+
+				continue;
 			}
-			uiInfo.uiDC.Assets.cursor = trap->R_RegisterShaderNoMip(uiInfo.uiDC.Assets.cursorStr);
-			continue;
 		}
 
 		// gradientbar
@@ -10906,6 +10949,23 @@ static void UI_Init(qboolean inGameLoad)
 	trap->Cvar_Update(&ui_actualNetGametype);
 }
 
+
+static qhandle_t* uiCursors[] =
+{
+	&uiInfo.uiDC.Assets.cursor,            // 0
+	&uiInfo.uiDC.Assets.cursor_anakin,     // 1
+	&uiInfo.uiDC.Assets.cursor_jk,         // 2
+	&uiInfo.uiDC.Assets.cursor_katarn,     // 3
+	&uiInfo.uiDC.Assets.cursor_kylo,       // 4
+	&uiInfo.uiDC.Assets.cursor_luke,       // 5
+	&uiInfo.uiDC.Assets.cursor_obiwan,     // 6
+	&uiInfo.uiDC.Assets.cursor_oldrepublic,// 7
+	&uiInfo.uiDC.Assets.cursor_quigon,     // 8
+	&uiInfo.uiDC.Assets.cursor_rey,        // 9
+	&uiInfo.uiDC.Assets.cursor_vader,      // 10
+	&uiInfo.uiDC.Assets.cursor_windu       // 11
+};
+
 #define	UI_FPS_FRAMES	4
 
 static void UI_Refresh(int realtime)
@@ -10956,11 +11016,24 @@ static void UI_Refresh(int realtime)
 	}
 	// draw cursor
 	UI_SetColor(NULL);
-	if (Menu_Count() > 0 && trap->Key_GetCatcher() & KEYCATCH_UI)
+
+	if (Menu_Count() > 0 && (trap->Key_GetCatcher() & KEYCATCH_UI))
 	{
-		UI_DrawHandlePic((float)uiInfo.uiDC.cursorx, (float)uiInfo.uiDC.cursory, 40.0f, 40.0f,
-			uiInfo.uiDC.Assets.cursor);
-		//UI_DrawHandlePic( uiInfo.uiDC.cursorx, uiInfo.uiDC.cursory, 48, 48, uiInfo.uiDC.Assets.cursor);
+		int index = g_cursor.integer;
+
+		// Clamp to valid range
+		if (index < 0 || index >= (int)(sizeof(uiCursors) / sizeof(uiCursors[0])))
+		{
+			index = 0; // fallback to default cursor
+		}
+
+		UI_DrawHandlePic(
+			(float)uiInfo.uiDC.cursorx,
+			(float)uiInfo.uiDC.cursory,
+			40.0f,
+			40.0f,
+			*uiCursors[index]
+		);
 	}
 
 	if (ui_rankChange.integer)

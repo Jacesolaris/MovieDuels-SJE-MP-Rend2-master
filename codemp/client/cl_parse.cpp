@@ -33,6 +33,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #else
 #include <zlib.h>
 #endif
+#include <qcommon\q_color.h>
 
 static char hiddenCvarVal[128];
 
@@ -414,7 +415,7 @@ rww - Update fs_game, this message is so we can use the ext_data
 void MSG_CheckNETFPSFOverrides(qboolean psfOverrides);
 void FS_UpdateGamedir(void);
 
-void CL_ParseSetGame(msg_t* msg)
+static void CL_ParseSetGame(msg_t* msg)
 {
 	char newGameDir[MAX_QPATH]{};
 	int i = 0;

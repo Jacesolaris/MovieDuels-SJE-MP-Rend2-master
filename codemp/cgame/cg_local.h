@@ -29,6 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "game/bg_public.h"
 #include "cg_public.h"
 #include "cg_holster.h"
+#include <game\bg_weapons.h>
 
 // The entire cgame module is unloaded and reloaded on each level change,
 // so there is NO persistant data between levels on the client side.
@@ -1525,6 +1526,17 @@ typedef struct cgMedia_s {
 	qhandle_t demp2ShellShader;
 
 	qhandle_t cursor;
+	qhandle_t cursor_anakin;
+	qhandle_t cursor_jk;
+	qhandle_t cursor_katarn;
+	qhandle_t cursor_kylo;
+	qhandle_t cursor_luke;
+	qhandle_t cursor_obiwan;
+	qhandle_t cursor_oldrepublic;
+	qhandle_t cursor_quigon;
+	qhandle_t cursor_rey;
+	qhandle_t cursor_vader;
+	qhandle_t cursor_windu;
 	qhandle_t selectCursor;
 	qhandle_t sizeCursor;
 

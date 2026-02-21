@@ -104,6 +104,18 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define SLIDER_THUMB_WIDTH 12.0
 #define SLIDER_THUMB_HEIGHT 20.0
 #define	NUM_CROSSHAIRS			9
+//
+#define ASSET_ANAKIN               "gfx/menus/cursor_anakin.tga"
+#define ASSET_JK                   "gfx/menus/cursor_jk.tga"
+#define ASSET_KATARN               "gfx/menus/cursor_katarn.tga"
+#define ASSET_KYLO                 "gfx/menus/cursor_kylo.tga"
+#define ASSET_LUKE                 "gfx/menus/cursor_luke.tga"
+#define ASSET_OBIWAN               "gfx/menus/cursor_obiwan.tga"
+#define ASSET_OLDREPUBLIC          "gfx/menus/cursor_oldrepublic.tga"
+#define ASSET_QUIGON               "gfx/menus/cursor_quigon.tga"
+#define ASSET_RAY                  "gfx/menus/cursor_rey.tga"
+#define ASSET_VADER                "gfx/menus/cursor_vader.tga"
+#define ASSET_WINDU                "gfx/menus/cursor_windu.tga"
 
 enum {
 	SSF_JPEG = 0,
@@ -353,12 +365,36 @@ typedef struct menuDef_s {
 typedef struct cachedAssets_s {
 	const char* fontStr;
 	const char* cursorStr;
+
+	const char* cursor_anakinStr;
+	const char* cursor_jkStr;
+	const char* cursor_katarnStr;
+	const char* cursor_kyloStr;
+	const char* cursor_lukeStr;
+	const char* cursor_obiwanStr;
+	const char* cursor_oldrepublicStr;
+	const char* cursor_quigonStr;
+	const char* cursor_reyStr;
+	const char* cursor_vaderStr;
+	const char* cursor_winduStr;
+
 	const char* gradientStr;
 	qhandle_t	qhSmallFont;
 	qhandle_t	qhSmall2Font;
 	qhandle_t	qhMediumFont;
 	qhandle_t	qhBigFont;
 	qhandle_t cursor;
+	qhandle_t cursor_anakin;
+	qhandle_t cursor_jk;
+	qhandle_t cursor_katarn;
+	qhandle_t cursor_kylo;
+	qhandle_t cursor_luke;
+	qhandle_t cursor_obiwan;
+	qhandle_t cursor_oldrepublic;
+	qhandle_t cursor_quigon;
+	qhandle_t cursor_rey;
+	qhandle_t cursor_vader;
+	qhandle_t cursor_windu;
 	qhandle_t gradientBar;
 	qhandle_t scrollBarArrowUp;
 	qhandle_t scrollBarArrowDown;
