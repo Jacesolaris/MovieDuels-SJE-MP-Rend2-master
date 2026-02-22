@@ -36,6 +36,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "ai_main.h"
 #include "teams.h"
 #include "g_public.h"
+#include "anims.h"
 
 #define METROID_JUMP 1
 
@@ -1721,6 +1722,31 @@ void ForceHeal(gentity_t* self)
 		WP_ForcePowerDrain(&self->client->ps, FP_HEAL, 0);
 	}
 
+
+	// ------------------------------------------------------------
+	// BOT: Change saber style after healing
+	// ------------------------------------------------------------
+	if (self->r.svFlags & SVF_BOT)
+	{
+		playerState_t* ps = &self->client->ps;
+
+		// Only switch if saber is active
+		if (ps->weapon == WP_SABER && ps->saberHolstered == 0)
+		{
+			// Cooldown so bots don't spam-switch
+			if (level.time > self->client->botLastStyleSwitch + 1500)
+			{
+				// 40% chance to switch stance after healing
+				if (Q_irand(0, 100) < 40)
+				{
+					Cmd_SaberAttackCycle_f(self);
+				}
+
+				self->client->botLastStyleSwitch = level.time;
+			}
+		}
+	}
+
 	if (self->client->ps.fd.forcePowerLevel[FP_HEAL] < FORCE_LEVEL_2)
 	{
 		G_SetAnim(self, &self->client->pers.cmd, SETANIM_BOTH, BOTH_FORCEHEAL_START, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
@@ -1734,15 +1760,6 @@ void ForceHeal(gentity_t* self)
 		self->client->ps.saber_move = self->client->ps.saberBounceMove = LS_READY;
 		self->client->ps.saberBlocked = BLOCKED_NONE;
 	}
-
-	/*if (self->client->ps.fd.forcePowerLevel[FP_HEAL] < FORCE_LEVEL_2)
-	{
-		G_Sound(self, CHAN_ITEM, G_SoundIndex("sound/weapons/force/heal.wav"));
-	}
-	else
-	{
-		G_Sound(self, CHAN_ITEM, G_SoundIndex("sound/player/injecthealth.mp3"));
-	}*/
 	G_Sound(self, CHAN_ITEM, G_SoundIndex("sound/weapons/force/heal.wav"));
 
 	G_PlayBoltedEffect(G_EffectIndex("force/heal2.efx"), self, "thoracic");

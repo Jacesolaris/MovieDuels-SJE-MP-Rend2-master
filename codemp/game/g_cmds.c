@@ -3590,18 +3590,6 @@ void Cmd_SaberAttackCycle_f(gentity_t* ent)
 		return;
 	}
 
-	if (ent->health <= 0
-		|| ent->client->tempSpectate >= level.time
-		|| ent->client->sess.sessionTeam == TEAM_SPECTATOR)
-	{
-		return;
-	}
-	if (ent->client->sess.sessionTeam == TEAM_SPECTATOR)
-	{
-		//not for spectators
-		return;
-	}
-
 	if (ent->client->ps.m_iVehicleNum)
 	{
 		//in a vehicle like at-st
@@ -3616,11 +3604,6 @@ void Cmd_SaberAttackCycle_f(gentity_t* ent)
 
 	if (ent->r.svFlags & SVF_BOT)
 	{
-		if (ent->client->ps.weapon == WP_SABER && ent->client->ps.saberHolstered == 0)
-		{
-			return;
-		}
-
 		if (ent->client->ps.weapon == WP_SABER && ent->client->ps.saberInFlight)
 		{
 			//saber not currently in use or available.

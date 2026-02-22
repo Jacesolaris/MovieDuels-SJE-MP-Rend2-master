@@ -235,7 +235,9 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 	}
 
 	return qfalse;
-}static void sab_beh_add_mishap_attacker(gentity_t* attacker, const gentity_t* blocker)
+}
+
+static void sab_beh_add_mishap_attacker(gentity_t* attacker, const gentity_t* blocker)
 {
 	// Clamp mishap values
 	if (attacker->client->ps.fd.blockPoints <= MISHAPLEVEL_NONE ||

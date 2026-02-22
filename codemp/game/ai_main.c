@@ -780,7 +780,7 @@ static void ai_mod_jump(bot_state_t* bs)
 	case JS_JUMPING:
 	{
 		// Keep jetpack assist if we have it
-		BotOrderJetPack(bs);
+		AI_EnableJetpack(bs);
 
 		// If we hit ground, transition to landing
 		if (bot->s.groundEntityNum != ENTITYNUM_NONE)
@@ -789,6 +789,13 @@ static void ai_mod_jump(bot_state_t* bs)
 			NPC_SetAnim(bot, SETANIM_BOTH, BOTH_LAND1,
 				SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			bs->BOTjumpState = JS_LANDING;
+
+			if (bs->cur_ps.weapon == WP_SABER &&
+				Q_irand(0, 1000) < 5) // 0.5% per frame ≈ every 3–6 seconds
+			{
+				Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+				bs->nextStyleSwitchTime = level.time + Q_irand(1500, 2500);
+			}
 			return;
 		}
 
@@ -1576,7 +1583,7 @@ static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_
 		{
 			if (visible(self, bs->currentEnemy) || walktime[client] > level.time)
 			{
-				bi.actionflags |= ACTION_WALK;
+				bot_should_walk_saber(bs, &bi);
 				walktime[client] = level.time + 2000;
 
 				if (bs->cur_ps.saberHolstered)
@@ -1586,7 +1593,6 @@ static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_
 			{
 				walktime[client] = 0;
 				bi.actionflags &= ~ACTION_WALK;
-				//bot_should_walk_saber(bs, &bi);
 			}
 		}
 		else
@@ -9099,7 +9105,7 @@ float bot_weapon_can_lead(const bot_state_t* bs)
 //offset the desired view angles with aim leading in mind
 void bot_aim_leading(bot_state_t* bs, vec3_t headlevel, const float lead_amount)
 {
-	vec3_t predicted_spot;
+	vec3_t predicted_spot = { 0 };
 	vec3_t movement_vector;
 	vec3_t a, ang;
 
@@ -10987,9 +10993,22 @@ void standard_bot_ai(bot_state_t* bs)
 	int forceHostile = 0;
 	gentity_t* friend_in_lof = 0;
 	vec3_t pre_frame_g_angles;
-	vec3_t move_dir;
+	vec3_t move_dir = { 0 };
 	const saberInfo_t* saber1 = BG_MySaber(bs->client, 0);
 	const saberInfo_t* saber2 = BG_MySaber(bs->client, 1);
+
+	qboolean dualSabers = qfalse;
+	qboolean staffSaber = qfalse;
+
+	if (saber2 && saber2->model[0])
+	{
+		dualSabers = qtrue;
+	}
+
+	if (saber1->numBlades > 1)
+	{
+		staffSaber = qtrue;
+	}
 
 	//Reset the action states
 	bs->doAttack = qfalse;
@@ -11200,6 +11219,7 @@ void standard_bot_ai(bot_state_t* bs)
 		if (!bs->deathActivitiesDone && bs->lastHurt && bs->lastHurt->client && bs->lastHurt->s.number != bs->client)
 		{
 			bot_death_notify(bs);
+
 			if (pass_loved_one_check(bs, bs->lastHurt))
 			{
 				//CHAT: Died
@@ -11235,52 +11255,36 @@ void standard_bot_ai(bot_state_t* bs)
 		bs->tacticEntity = NULL;
 		bs->objectiveType = 0;
 		bs->MiscBotFlags = 0;
+		bs->cur_ps.saberFatigueChainCount = MISHAPLEVEL_NONE;
+		bs->cur_ps.fd.blockPoints = BLOCK_POINTS_MAX; //reset block points on death so bots don't get stuck in a bad block state after dying
 
 		if (rand() % 10 < 5 &&
 			(!bs->doChat || bs->chatTime < level.time))
 		{
 			trap->EA_Attack(bs->client);
-			if (g_entities[bs->client].client->ps.fd.saberAnimLevel != SS_STAFF
-				&& g_entities[bs->client].client->ps.fd.saberAnimLevel != SS_DUAL)
-			{
-				Cmd_SaberAttackCycle_f(&g_entities[bs->client]); // we died lets change the saber style
+
+			if (dualSabers && bs->cur_ps.fd.saberAnimLevel != SS_DUAL)
+			{//dual sabers
+				Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+			}
+
+			if (staffSaber && bs->cur_ps.fd.saberAnimLevel != SS_STAFF)
+			{//dual sabers
+				Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+			}
+
+			if (!dualSabers && !staffSaber
+				&& (bs->cur_ps.fd.saberAnimLevel != SS_FAST &&
+					bs->cur_ps.fd.saberAnimLevel != SS_TAVION &&
+					bs->cur_ps.fd.saberAnimLevel != SS_MEDIUM &&
+					bs->cur_ps.fd.saberAnimLevel != SS_STRONG &&
+					bs->cur_ps.fd.saberAnimLevel != SS_DESANN))
+			{//using a single saber
+				Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
 			}
 		}
 
 		return;
-	}
-
-	qboolean dualSabers = qfalse;
-	qboolean staffSaber = qfalse;
-
-	if (saber2 && saber2->model[0])
-	{
-		dualSabers = qtrue;
-	}
-
-	if (saber1->numBlades > 1)
-	{
-		staffSaber = qtrue;
-	}
-
-	if (dualSabers && bs->cur_ps.fd.saberAnimLevel != SS_DUAL)
-	{//dual sabers
-		Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
-	}
-
-	if (staffSaber && bs->cur_ps.fd.saberAnimLevel != SS_STAFF)
-	{//dual sabers
-		Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
-	}
-
-	if (!dualSabers && !staffSaber
-		&& (bs->cur_ps.fd.saberAnimLevel != SS_FAST &&
-			bs->cur_ps.fd.saberAnimLevel != SS_TAVION &&
-			bs->cur_ps.fd.saberAnimLevel != SS_MEDIUM &&
-			bs->cur_ps.fd.saberAnimLevel != SS_STRONG &&
-			bs->cur_ps.fd.saberAnimLevel != SS_DESANN))
-	{//using a single saber
-		Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
 	}
 
 	bot_check_speak(&g_entities[bs->client], qtrue);
@@ -12402,47 +12406,6 @@ void standard_bot_ai(bot_state_t* bs)
 				bs->saberPowerTime = level.time + Q_irand(3000, 15000);
 			}
 
-			playerState_t* ps = &g_entities[bs->client].client->ps;
-			playerState_t* enemyps = &bs->currentEnemy->client->ps;
-
-			if (ps->fd.saberAnimLevel != SS_STAFF &&
-				ps->fd.saberAnimLevel != SS_DUAL)
-			{
-				int enemyBP = enemyps->fd.blockPoints;
-
-				// HIGH BLOCKPOINTS → STRONG STYLE
-				if (enemyBP > BLOCKPOINTS_FULL &&
-					ps->fd.forcePowerLevel[FP_SABER_OFFENSE] > 2)
-				{
-					if (ps->fd.saberAnimLevel != SS_STRONG &&
-						ps->fd.saberAnimLevel != SS_DESANN &&
-						bs->saberPower)
-					{
-						Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
-					}
-				}
-
-				// MEDIUM BLOCKPOINTS → MEDIUM STYLE
-				else if (enemyBP > BLOCKPOINTS_HALF &&
-					ps->fd.forcePowerLevel[FP_SABER_OFFENSE] > 1)
-				{
-					if (ps->fd.saberAnimLevel != SS_MEDIUM)
-					{
-						Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
-					}
-				}
-
-				// LOW BLOCKPOINTS → FAST STYLE
-				else
-				{
-					if (ps->fd.saberAnimLevel != SS_FAST &&
-						ps->fd.saberAnimLevel != SS_TAVION)
-					{
-						Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
-					}
-				}
-			}
-
 			if (level.gametype == GT_SINGLE_PLAYER)
 			{
 				saber_range *= 3;
@@ -12450,6 +12413,52 @@ void standard_bot_ai(bot_state_t* bs)
 
 			if (bs->frame_Enemy_Len <= saber_range)
 			{
+				if (!dualSabers && !staffSaber)
+				{
+					// Cooldown: switch styles at most once every 1.5 seconds
+					if (level.time >= bs->nextStyleSwitchTime)
+					{
+						playerState_t* ps = &g_entities[bs->client].client->ps;
+						playerState_t* enemyps = &bs->currentEnemy->client->ps;
+
+						// STRONG STYLE LOGIC
+						if ((bs->currentEnemy->health > 75 ||
+							enemyps->fd.blockPoints > BLOCKPOINTS_FULL) &&
+							ps->fd.saberAnimLevel != SS_STRONG &&
+							ps->fd.saberAnimLevel != SS_DESANN &&
+							bs->saberPower)
+						{
+							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+							bs->nextStyleSwitchTime = level.time + Q_irand(1200, 1800);
+						}
+
+						// MEDIUM STYLE LOGIC
+						else if ((bs->currentEnemy->health > 40 ||
+							enemyps->fd.blockPoints > BLOCKPOINTS_HALF) &&
+							ps->fd.saberAnimLevel != SS_MEDIUM)
+						{
+							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+							bs->nextStyleSwitchTime = level.time + Q_irand(1200, 1800);
+						}
+
+						// RANDOM VARIETY SWITCH (much more reasonable chance)
+						else if (bs->cur_ps.weapon == WP_SABER &&
+							Q_irand(0, 1000) < 5) // 0.5% per frame ≈ every 3–6 seconds
+						{
+							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+							bs->nextStyleSwitchTime = level.time + Q_irand(1500, 2500);
+						}
+
+						// FAST STYLE LOGIC
+						else if (ps->fd.saberAnimLevel != SS_FAST &&
+							ps->fd.saberAnimLevel != SS_TAVION)
+						{
+							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+							bs->nextStyleSwitchTime = level.time + Q_irand(1200, 1800);
+						}
+					}
+				}
+
 				saber_combat_handling(bs);
 
 				if (bs->frame_Enemy_Len < 80)
@@ -13270,6 +13279,8 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		bs->tacticEntity = NULL;
 		bs->objectiveType = 0;
 		bs->MiscBotFlags = 0;
+		bs->cur_ps.saberFatigueChainCount = MISHAPLEVEL_NONE;
+		bs->cur_ps.fd.blockPoints = BLOCK_POINTS_MAX; //reset block points on death so bots don't get stuck in a bad block state after dying
 
 		if (rand() % 10 < 5 &&
 			(!bs->doChat || bs->chatTime < level.time))
@@ -14016,7 +14027,7 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		if (RMG.integer)
 		{
 			//this is somewhat hacky, but in RMG we don't really care about vertical placement because points are scattered across only the terrain.
-			vec3_t vec_b, vec_c;
+			vec3_t vec_b = { 0 }, vec_c = { 0 };
 
 			vec_b[0] = bs->origin[0];
 			vec_b[1] = bs->origin[1];
@@ -14553,46 +14564,48 @@ void Enhanced_bot_ai(bot_state_t* bs)
 			// Core saber combat
 			if (bs->frame_Enemy_Len <= saber_range)
 			{
-				// Walk during saber combat
-				bs->doWalk = qtrue;
-
-				playerState_t* ps = &g_entities[bs->client].client->ps;
-				playerState_t* enemyps = &bs->currentEnemy->client->ps;
-
-				if (ps->fd.saberAnimLevel != SS_STAFF &&
-					ps->fd.saberAnimLevel != SS_DUAL)
+				if (!dualSabers && !staffSaber)
 				{
-					int enemyBP = enemyps->fd.blockPoints;
-
-					// HIGH BLOCKPOINTS → STRONG STYLE
-					if (enemyBP > BLOCKPOINTS_FULL &&
-						ps->fd.forcePowerLevel[FP_SABER_OFFENSE] > 2)
+					// Cooldown: switch styles at most once every 1.5 seconds
+					if (level.time >= bs->nextStyleSwitchTime)
 					{
-						if (ps->fd.saberAnimLevel != SS_STRONG &&
+						playerState_t* ps = &g_entities[bs->client].client->ps;
+						playerState_t* enemyps = &bs->currentEnemy->client->ps;
+
+						// STRONG STYLE LOGIC
+						if ((bs->currentEnemy->health > 75 ||
+							enemyps->fd.blockPoints > BLOCKPOINTS_FULL) &&
+							ps->fd.saberAnimLevel != SS_STRONG &&
 							ps->fd.saberAnimLevel != SS_DESANN &&
 							bs->saberPower)
 						{
 							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+							bs->nextStyleSwitchTime = level.time + Q_irand(1200, 1800);
 						}
-					}
 
-					// MEDIUM BLOCKPOINTS → MEDIUM STYLE
-					else if (enemyBP > BLOCKPOINTS_HALF &&
-						ps->fd.forcePowerLevel[FP_SABER_OFFENSE] > 1)
-					{
-						if (ps->fd.saberAnimLevel != SS_MEDIUM)
+						// MEDIUM STYLE LOGIC
+						else if ((bs->currentEnemy->health > 40 ||
+							enemyps->fd.blockPoints > BLOCKPOINTS_HALF) &&
+							ps->fd.saberAnimLevel != SS_MEDIUM)
 						{
 							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+							bs->nextStyleSwitchTime = level.time + Q_irand(1200, 1800);
 						}
-					}
 
-					// LOW BLOCKPOINTS → FAST STYLE
-					else
-					{
-						if (ps->fd.saberAnimLevel != SS_FAST &&
+						// RANDOM VARIETY SWITCH (much more reasonable chance)
+						else if (bs->cur_ps.weapon == WP_SABER &&
+							Q_irand(0, 1000) < 5) // 0.5% per frame ≈ every 3–6 seconds
+						{
+							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+							bs->nextStyleSwitchTime = level.time + Q_irand(1500, 2500);
+						}
+
+						// FAST STYLE LOGIC
+						else if (ps->fd.saberAnimLevel != SS_FAST &&
 							ps->fd.saberAnimLevel != SS_TAVION)
 						{
 							Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+							bs->nextStyleSwitchTime = level.time + Q_irand(1200, 1800);
 						}
 					}
 				}
@@ -16395,6 +16408,9 @@ qboolean BotOrderJetPack(bot_state_t* bs)
 	bs->forceMove_Forward = 0;
 	bs->forceMove_Right = 0;
 	bs->forceMove_Up = 0;
+	bs->cur_ps.eFlags |= EF_JETPACK_ACTIVE;
+	bs->cur_ps.eFlags |= EF_JETPACK_FLAMING;
+	bs->cur_ps.eFlags |= EF3_JETPACK_HOVER;
 
 	// Always fly when enemy is present
 	bs->forceMove_Up = 1;
@@ -16420,6 +16436,7 @@ qboolean BotOrderJetPack(bot_state_t* bs)
 	bs->doBotKick = qfalse;
 	bs->doJump = qfalse;
 	bs->doWalk = qfalse;
+	AI_EnableJetpack(bs);
 
 	return qtrue;
 }
