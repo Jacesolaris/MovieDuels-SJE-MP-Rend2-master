@@ -6109,15 +6109,8 @@ void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const
 			}
 			else if (saberAnimLevel == SS_MEDIUM)
 			{
-				if (fatigued & (1 << FLAG_SLIGHTFATIGUE))
-				{
-					const float fatiguedanimscale = 0.97f;
-					*animSpeed *= fatiguedanimscale;
-				}
-				else
-				{
-					*animSpeed *= 1.0f;
-				}
+				const float realisticanimscale = 1.0f;
+				*animSpeed *= realisticanimscale;
 			}
 			else if (saberAnimLevel == SS_STRONG)
 			{

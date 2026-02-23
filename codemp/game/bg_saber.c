@@ -615,7 +615,83 @@ saber_moveName_t transitionMove[Q_NUM_QUADS][Q_NUM_QUADS] =
 	}
 };
 
-saber_moveName_t PM_NPCSaberAttackFromQuad(const int quad)
+static saber_moveName_t PM_NPCSaberAttackFromBlock(const int quad)
+{
+	saber_moveName_t auto_move = LS_NONE;
+
+	if (auto_move != LS_NONE && PM_SaberInSpecial(auto_move))
+	{
+		return auto_move;
+	}
+
+	//pick another one
+	saber_moveName_t newmove = LS_NONE;
+
+	// Default quadrant‑based selection
+	switch (quad)
+	{
+	case Q_T:
+		return Q_irand(0, 1) ? LS_A_T2B : LS_A_TR2BL;
+
+	case Q_TR:
+		switch (Q_irand(0, 2))
+		{
+		case 0: return LS_A_R2L;
+		case 1: return LS_A_TR2BL;
+		default: return LS_T1_TR_BR;
+		}
+
+	case Q_TL:
+		switch (Q_irand(0, 2))
+		{
+		case 0: return LS_A_L2R;
+		case 1: return LS_A_TL2BR;
+		default: return LS_T1_TL_BL;
+		}
+
+	case Q_BR:
+		switch (Q_irand(0, 2))
+		{
+		case 0: return LS_A_BR2TL;
+		case 1: return LS_T1_BR_TR;
+		default: return LS_A_R2L;
+		}
+
+	case Q_BL:
+		switch (Q_irand(0, 2))
+		{
+		case 0: return LS_A_BL2TR;
+		case 1: return LS_T1_BL_TL;
+		default: return LS_A_L2R;
+		}
+
+	case Q_L:
+		switch (Q_irand(0, 2))
+		{
+		case 0: return LS_A_L2R;
+		case 1: return LS_T1__L_T_;
+		default: return LS_A_R2L;
+		}
+
+	case Q_R:
+		switch (Q_irand(0, 2))
+		{
+		case 0: return LS_A_R2L;
+		case 1: return LS_T1__R_T_;
+		default: return LS_A_L2R;
+		}
+
+	case Q_B:
+		return PM_SaberLungeAttackMove(qtrue);
+
+	default:
+		return LS_NONE;
+	}
+
+	return newmove;
+}
+
+static saber_moveName_t PM_NPCSaberAttackFromQuad(const int quad)
 {
 	saber_moveName_t auto_move = LS_NONE;
 
@@ -1408,16 +1484,16 @@ qboolean PM_SaberKataDone(const int curmove, const int newmove)
 	{
 		if (curmove == LS_NONE || newmove == LS_NONE)
 		{
-			if (pm->ps->fd.saberAnimLevel >= FORCE_LEVEL_3 && pm->ps->saberAttackChainCount > Q_irand(0, 1))
+			if (pm->ps->fd.saberAnimLevel >= FORCE_LEVEL_3 && pm->ps->saberAttackChainCount > Q_irand(MISHAPLEVEL_NONE, MISHAPLEVEL_MIN))
 			{
 				return qtrue;
 			}
 		}
-		else if (pm->ps->saberAttackChainCount > Q_irand(2, 3))
+		else if (pm->ps->saberAttackChainCount > Q_irand(MISHAPLEVEL_TWO, MISHAPLEVEL_THREE))
 		{
 			return qtrue;
 		}
-		else if (pm->ps->saberAttackChainCount > 0)
+		else if (pm->ps->saberAttackChainCount > MISHAPLEVEL_NONE)
 		{
 			const int chain_angle = PM_SaberAttackChainAngle(curmove, newmove);
 			if (chain_angle < 135 || chain_angle > 215)
@@ -1428,7 +1504,7 @@ qboolean PM_SaberKataDone(const int curmove, const int newmove)
 			if (chain_angle == 180)
 			{
 				//continues the momentum perfectly, allow it to chain 66% of the time
-				if (pm->ps->saberAttackChainCount > 1)
+				if (pm->ps->saberAttackChainCount > MISHAPLEVEL_MIN)
 				{
 					return qtrue;
 				}
@@ -1436,7 +1512,7 @@ qboolean PM_SaberKataDone(const int curmove, const int newmove)
 			else
 			{
 				//would continue the movement somewhat, 50% chance of continuing
-				if (pm->ps->saberAttackChainCount > 2)
+				if (pm->ps->saberAttackChainCount > MISHAPLEVEL_TWO)
 				{
 					return qtrue;
 				}
@@ -1446,7 +1522,7 @@ qboolean PM_SaberKataDone(const int curmove, const int newmove)
 	else
 	{
 		if ((pm->ps->fd.saberAnimLevel == FORCE_LEVEL_2 || pm->ps->fd.saberAnimLevel == SS_DUAL)
-			&& pm->ps->saberAttackChainCount > Q_irand(2, 5))
+			&& pm->ps->saberAttackChainCount > Q_irand(MISHAPLEVEL_TWO, MISHAPLEVEL_LIGHT))
 		{
 			return qtrue;
 		}
@@ -6122,26 +6198,38 @@ weapChecks:
 		}
 
 		if (curmove >= LS_PARRY_UP && curmove <= LS_REFLECT_LL)
-		{//from a parry or reflection, can go directly into an attack
-			switch (saber_moveData[curmove].endQuad)
+		{//from a parry or reflection, can go directly into an attack			
+#ifdef _GAME
+			qboolean  bot = (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT);
+			qboolean  npc = (pm_entSelf->s.eType == ET_NPC);
+
+			if (bot || npc)
 			{
-			case Q_T:
-				newmove = LS_A_T2B;
-				break;
-			case Q_TR:
-				newmove = LS_A_TR2BL;
-				break;
-			case Q_TL:
-				newmove = LS_A_TL2BR;
-				break;
-			case Q_BR:
-				newmove = LS_A_BR2TL;
-				break;
-			case Q_BL:
-				newmove = LS_A_BL2TR;
-				break;
-			default:;
-				//shouldn't be a parry that ends at L, R or B
+				newmove = PM_NPCSaberAttackFromBlock(saber_moveData[curmove].endQuad); // from a parry or reflection, can go directly into an attack
+			}
+			else
+#endif
+			{
+				switch (saber_moveData[curmove].endQuad)
+				{
+				case Q_T:
+					newmove = LS_A_T2B;
+					break;
+				case Q_TR:
+					newmove = LS_A_TR2BL;
+					break;
+				case Q_TL:
+					newmove = LS_A_TL2BR;
+					break;
+				case Q_BR:
+					newmove = LS_A_BR2TL;
+					break;
+				case Q_BL:
+					newmove = LS_A_BL2TR;
+					break;
+				default:;
+					//shouldn't be a parry that ends at L, R or B
+				}
 			}
 		}
 
@@ -6188,27 +6276,11 @@ weapChecks:
 				{
 					newmove = PM_SaberAttackForMovement(curmove);
 
-					if (pm->ps->saberFatigueChainCount < MISHAPLEVEL_TEN)
+					if ((PM_SaberInBounce(curmove) || PM_SaberInBrokenParry(curmove))
+						&& saber_moveData[newmove].startQuad == saber_moveData[curmove].endQuad)
 					{
-						if ((PM_SaberInBounce(curmove) || PM_SaberInBrokenParry(curmove))
-							&& saber_moveData[newmove].startQuad == saber_moveData[curmove].endQuad)
-						{
-							//this attack would be a repeat of the last (which was blocked), so don't actually use it, use the default chain attack for this bounce
-							newmove = saber_moveData[curmove].chain_attack;
-						}
-					}
-					else
-					{
-						if ((PM_SaberInBounce(curmove) || PM_SaberInParry(curmove))
-							&& newmove >= LS_A_TL2BR && newmove <= LS_A_T2B)
-						{
-							//prevent similar attack directions to prevent lightning-like bounce attacks.
-							if (saber_moveData[newmove].startQuad == saber_moveData[curmove].endQuad)
-							{
-								//can't attack in the same direction
-								newmove = LS_READY;
-							}
-						}
+						//this attack would be a repeat of the last (which was blocked), so don't actually use it, use the default chain attack for this bounce
+						newmove = saber_moveData[curmove].chain_attack;
 					}
 				}
 

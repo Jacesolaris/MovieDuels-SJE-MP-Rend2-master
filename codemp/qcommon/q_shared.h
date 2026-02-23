@@ -1565,10 +1565,9 @@ typedef struct siegePers_s
 #define MISHAPLEVEL_SEVEN		    7
 #define MISHAPLEVEL_SIX 		    6
 #define MISHAPLEVEL_LIGHT		    5
-#define MISHAPLEVEL_PAIN		    5
 #define MISHAPLEVEL_FOUR		    4
 #define MISHAPLEVEL_THREE		    3
-#define MISHAPLEVEL_TWO   2
+#define MISHAPLEVEL_TWO             2
 #define MISHAPLEVEL_MIN		        1
 #define MISHAPLEVEL_NONE		    0
 
