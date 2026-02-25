@@ -3004,7 +3004,7 @@ static qboolean melee_block_lightning(gentity_t* attacker, gentity_t* defender)
 		return qfalse;
 	}
 
-	if (!in_front(attacker->client->ps.origin, defender->client->ps.origin, defender->client->ps.viewangles, -0.7f))
+	if (!InFront(attacker->client->ps.origin, defender->client->ps.origin, defender->client->ps.viewangles, -0.7f))
 		//can't block behind us while hand blocking.
 	{
 		//not facing the lightning attacker
@@ -3047,7 +3047,7 @@ static qboolean saber_block_lightning(const gentity_t* attacker, const gentity_t
 		return qfalse;
 	}
 
-	if (!in_front(attacker->client->ps.origin, defender->client->ps.origin, defender->client->ps.viewangles, -0.7f))
+	if (!InFront(attacker->client->ps.origin, defender->client->ps.origin, defender->client->ps.viewangles, -0.7f))
 		//can't block behind us while hand blocking.
 	{
 		//not facing the lightning attacker
@@ -3410,7 +3410,7 @@ static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t 
 					else if (traceEnt->client->ps.weapon == WP_NONE
 						|| traceEnt->client->ps.weapon == WP_MELEE
 						&& traceEnt->client->ps.fd.forcePower > 20
-						&& in_front(self->client->ps.origin, traceEnt->client->ps.origin,
+						&& InFront(self->client->ps.origin, traceEnt->client->ps.origin,
 							traceEnt->client->ps.viewangles, -0.7f))
 					{
 						if (hand_lightning_blocked && !saber_lightning_blocked)
@@ -4893,7 +4893,7 @@ static qboolean playeris_resisting_force_throw(const gentity_t* player, gentity_
 	if (manual_forceblocking(player))
 	{
 		// player was pushing, or player's force push/pull is high enough to try to stop me
-		if (in_front(attacker->r.currentOrigin, player->client->renderInfo.eyePoint, player->client->ps.viewangles,
+		if (InFront(attacker->r.currentOrigin, player->client->renderInfo.eyePoint, player->client->ps.viewangles,
 			0.3f))
 		{
 			//I'm in front of player
@@ -4950,7 +4950,7 @@ static qboolean ShouldPlayerResistForceThrow(const gentity_t* self, const gentit
 		return 0;
 	}
 
-	if (!in_front(thrower->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.3f))
+	if (!InFront(thrower->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.3f))
 	{
 		//not facing the attacker
 		return 0;
@@ -6511,7 +6511,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 							pers.cmd.buttons & BUTTON_BLOCK
 							|| push_target[x]->client->ps.BlasterAttackChainCount <= BLASTERMISHAPLEVEL_HEAVYER && !
 							BG_IsUsingHeavyWeap(&push_target[x]->client->ps)
-							&& in_front(push_target[x]->client->ps.origin, self->client->ps.origin,
+							&& InFront(push_target[x]->client->ps.origin, self->client->ps.origin,
 								self->client->ps.viewangles, -0.7f))
 						{
 							WP_ResistForcePush(push_target[x], self, qfalse);
@@ -6572,7 +6572,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 								}
 							}
 						}
-						else if (!in_front(push_target[x]->r.currentOrigin, self->r.currentOrigin,
+						else if (!InFront(push_target[x]->r.currentOrigin, self->r.currentOrigin,
 							self->client->ps.viewangles, 0.3f) && !walk_check(push_target[x]))
 						{
 							G_Knockdown(push_target[x], self, push_dir, 300, qtrue);
@@ -6631,7 +6631,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 							pers.cmd.buttons & BUTTON_BLOCK
 							|| push_target[x]->client->ps.BlasterAttackChainCount <= BLASTERMISHAPLEVEL_HEAVYER && !
 							BG_IsUsingHeavyWeap(&push_target[x]->client->ps)
-							&& in_front(push_target[x]->client->ps.origin, self->client->ps.origin,
+							&& InFront(push_target[x]->client->ps.origin, self->client->ps.origin,
 								self->client->ps.viewangles, -0.7f))
 						{
 							WP_ResistForcePush(push_target[x], self, qfalse);
@@ -6692,7 +6692,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 								}
 							}
 						}
-						else if (!in_front(push_target[x]->r.currentOrigin, self->r.currentOrigin,
+						else if (!InFront(push_target[x]->r.currentOrigin, self->r.currentOrigin,
 							self->client->ps.viewangles, 0.3f) && !walk_check(push_target[x]))
 						{
 							G_Knockdown(push_target[x], self, push_dir, 300, qtrue);
@@ -7150,7 +7150,7 @@ static void DoGripAction(gentity_t* self, const forcePowers_t forcePower)
 		return;
 	}
 
-	if (!in_front(gripEnt->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.9f) &&
+	if (!InFront(gripEnt->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.9f) &&
 		grip_level < FORCE_LEVEL_3)
 	{
 		WP_ForcePowerStop(self, forcePower);
@@ -7907,7 +7907,7 @@ static void FindGenericEnemyIndex(const gentity_t* self)
 			const float tlen = VectorLength(a);
 
 			if (tlen < blen &&
-				in_front(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.8f) &&
+				InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.8f) &&
 				org_visible(self->client->ps.origin, ent->client->ps.origin, self->s.number))
 			{
 				blen = tlen;
@@ -8067,7 +8067,7 @@ static void SeekerDroneUpdate(gentity_t* self)
 		}
 		else
 		{
-			if (!in_front(en->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.8f))
+			if (!InFront(en->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.8f))
 			{
 				self->client->ps.genericEnemyIndex = ENTITYNUM_NONE;
 			}

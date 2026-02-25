@@ -144,7 +144,7 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 
 	// Slight tolerance so attacks slightly off-center can still be blocked
 	const qboolean in_front_of_me =
-		in_front(attacker->client->ps.origin,
+		InFront(attacker->client->ps.origin,
 			blocker->client->ps.origin,
 			blocker->client->ps.viewangles,
 			0.3f);
@@ -213,12 +213,25 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 
 	VectorNormalize(parrier_move);
 
+	// ------------------------------------------------------------
 	// Style-based threshold
-	float threshold = 0.4f;
-	if (blocker->client->ps.fd.saberAnimLevel == SS_FAST)
+	// ------------------------------------------------------------
+	float threshold = 0.40f; // MP default
+
+	switch (blocker->client->ps.fd.saberAnimLevel)
+	{
+	case SS_FAST:
 		threshold = 0.55f;
-	else if (blocker->client->ps.fd.saberAnimLevel == SS_STRONG)
+		break;
+
+	case SS_STRONG:
 		threshold = 0.35f;
+		break;
+
+	default:
+		threshold = 0.40f;
+		break;
+	}
 
 	const float block_dot = DotProduct(hit_flat, parrier_move);
 

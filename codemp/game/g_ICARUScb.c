@@ -117,6 +117,7 @@ enum
 };
 
 #include "icarus/interpreter.h"
+#include <stdarg.h>
 
 extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
 

@@ -41,6 +41,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "ui/ui_shared.h"
 #include "ui/ui_public.h"
+#include <qcommon\q_math.h>
+#include <game\bg_public.h>
 
 extern float CG_RadiusForCent(const centity_t* cent);
 qboolean CG_WorldCoordToScreenCoordFloat(vec3_t world_coord, float* x, float* y);

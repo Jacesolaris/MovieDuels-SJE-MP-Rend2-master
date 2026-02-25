@@ -907,7 +907,7 @@ void scriptrunner_run(gentity_t* ent)
 	}
 }
 
-void target_scriptrunner_use(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void target_scriptrunner_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	if (self->nextthink > level.time)
 	{

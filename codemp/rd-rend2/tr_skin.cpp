@@ -1,4 +1,6 @@
 #include "tr_local.h"
+#include <qcommon\qfiles.h>
+#include <cassert>
 
 /*
 ============================================================================

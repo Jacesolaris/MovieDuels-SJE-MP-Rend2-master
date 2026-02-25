@@ -411,7 +411,10 @@ char** Sys_ListFiles(const char* directory, const char* extension, char* filter,
 	char search[MAX_OSPATH];
 	int nfiles;
 	char** listCopy;
-	char* list[MAX_FOUND_FILES];
+
+	// The big one — now static, safe, and no longer on the stack
+	static char* list[MAX_FOUND_FILES];
+
 	_finddata_t findinfo;
 	int flag;
 	int i;
@@ -469,14 +472,13 @@ char** Sys_ListFiles(const char* directory, const char* extension, char* filter,
 
 	do
 	{
-		if (!wantsubs && flag ^ findinfo.attrib & _A_SUBDIR || wantsubs && findinfo.attrib & _A_SUBDIR)
+		if ((!wantsubs && (flag ^ (findinfo.attrib & _A_SUBDIR))) ||
+			(wantsubs && (findinfo.attrib & _A_SUBDIR)))
 		{
 			if (*extension)
 			{
 				if (strlen(findinfo.name) < extLen ||
-					Q_stricmp(
-						findinfo.name + strlen(findinfo.name) - extLen,
-						extension))
+					Q_stricmp(findinfo.name + strlen(findinfo.name) - extLen, extension))
 				{
 					continue; // didn't match
 				}
@@ -509,6 +511,7 @@ char** Sys_ListFiles(const char* directory, const char* extension, char* filter,
 	}
 	listCopy[i] = nullptr;
 
+	// sort the list
 	do
 	{
 		flag = 0;

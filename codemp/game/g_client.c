@@ -37,6 +37,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "ghoul2/G2.h"
 #include "bg_saga.h"
 #include <qcommon/q_string.h>
+#include <qcommon\q_math.h>
+#include "bg_public.h"
+#include <qcommon\q_shared.h>
 
 // g_client.c -- client functions that don't happen every frame
 
@@ -610,7 +613,7 @@ SpotWouldTelefrag
 */
 qboolean SpotWouldTelefrag(const gentity_t* spot)
 {
-	int touch[MAX_GENTITIES];
+	static int touch[MAX_GENTITIES];  // safe and recommended
 	vec3_t mins, maxs;
 
 	VectorAdd(spot->s.origin, player_mins, mins);
@@ -639,7 +642,7 @@ qboolean SpotWouldTelefrag(const gentity_t* spot)
 
 qboolean spot_would_telefrag2(const gentity_t* mover, vec3_t dest)
 {
-	int touch[MAX_GENTITIES];
+	static int touch[MAX_GENTITIES];  // safe and recommended
 	vec3_t mins, maxs;
 
 	VectorAdd(dest, mover->r.mins, mins);
@@ -869,8 +872,11 @@ static qboolean SafeSpawn_FindOffset(const vec3_t baseOrigin, vec3_t outOrigin)
    WITH SAFE SPAWN LOGIC
    ============================================================ */
 
-static gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origin,
-	vec3_t angles, const team_t team,
+static gentity_t* SelectRandomFurthestSpawnPoint(
+	vec3_t avoidPoint,
+	vec3_t origin,
+	vec3_t angles,
+	const team_t team,
 	const qboolean isbot)
 {
 	vec3_t delta;
@@ -883,17 +889,25 @@ static gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origi
 	gentity_t* spot = NULL;
 	const char* classname = NULL;
 
+	// TEAM SPAWNPOINTS
 	if (level.gametype == GT_TEAM &&
 		team != TEAM_FREE &&
 		team != TEAM_SPECTATOR)
 	{
-		if (team == TEAM_RED)
-			classname = "info_player_start_red";
-		else
-			classname = "info_player_start_blue";
+		classname = (team == TEAM_RED)
+			? "info_player_start_red"
+			: "info_player_start_blue";
 
 		while ((spot = G_Find(spot, FOFS(classname), classname)) != NULL)
 		{
+			// SAFETY: ensure classname exists
+			if (!spot->classname)
+				continue;
+
+			// SAFETY: ensure origin is valid
+			if (!spot->s.origin)
+				continue;
+
 			if (SpotWouldTelefrag(spot))
 				continue;
 
@@ -933,6 +947,7 @@ static gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origi
 		}
 	}
 
+	// FALLBACK TO DEATHMATCH SPAWNPOINTS
 	if (!numSpots)
 	{
 		classname = "info_player_deathmatch";
@@ -940,6 +955,12 @@ static gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origi
 
 		while ((spot = G_Find(spot, FOFS(classname), classname)) != NULL)
 		{
+			if (!spot->classname)
+				continue;
+
+			if (!spot->s.origin)
+				continue;
+
 			if (SpotWouldTelefrag(spot))
 				continue;
 
@@ -991,13 +1012,14 @@ static gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origi
 		}
 	}
 
+	// PICK RANDOM FROM TOP HALF
 	const int rnd = Q_flrand(0.0f, 1.0f) * (numSpots / 2);
 
 	vec3_t baseOrigin;
 	VectorCopy(list_spot[rnd]->s.origin, baseOrigin);
 	baseOrigin[2] += 9;
 
-	// Force SafeSpawn for bots OR if only one spawnpoint exists
+	// SAFE SPAWN LOGIC
 	if (isbot || numSpots == 1 || SafeSpawn_IsOccupied(baseOrigin))
 	{
 		vec3_t offsetOrigin;
@@ -1009,7 +1031,6 @@ static gentity_t* SelectRandomFurthestSpawnPoint(vec3_t avoidPoint, vec3_t origi
 			return list_spot[rnd];
 		}
 
-		// As a fallback, nudge bots slightly
 		if (isbot)
 		{
 			origin[0] = baseOrigin[0] + Q_irand(-24, 24);

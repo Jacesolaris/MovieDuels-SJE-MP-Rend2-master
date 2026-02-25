@@ -3292,7 +3292,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 				if (enemyDist < MELEE_DIST_SQUARED
 					&& !NPCS.NPC->client->ps.weaponTime //not firing
 					&& !PM_InKnockDown(&NPCS.NPC->client->ps) //not knocked down
-					&& in_front(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin,
+					&& InFront(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin,
 						NPCS.NPC->client->ps.viewangles, 0.3f))
 				{
 					vec3_t smack_dir;
@@ -3353,7 +3353,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 		if (enemyDist < MELEE_DIST_SQUARED
 			&& !NPCS.NPC->client->ps.weaponTime //not firing
 			&& !PM_InKnockDown(&NPCS.NPC->client->ps) //not knocked down
-			&& in_front(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, NPCS.NPC->client->ps.viewangles,
+			&& InFront(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, NPCS.NPC->client->ps.viewangles,
 				0.3f)) //within 80 and in front
 		{
 			//enemy within 80, if very close, use melee attack to slap away
@@ -3371,7 +3371,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 		else if (enemyDist < MELEE_DIST_SQUARED
 			&& !NPCS.NPC->client->ps.weaponTime //not firing
 			&& !PM_InKnockDown(&NPCS.NPC->client->ps) //not knocked down
-			&& !in_front(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, NPCS.NPC->client->ps.viewangles,
+			&& !InFront(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, NPCS.NPC->client->ps.viewangles,
 				-0.25f)) //within 80 and generally behind
 		{
 			//enemy within 80, if very close, use melee attack to slap away
@@ -3410,7 +3410,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 				if (enemyDist < MELEE_DIST_SQUARED
 					&& !NPCS.NPC->client->ps.weaponTime //not firing
 					&& !PM_InKnockDown(&NPCS.NPC->client->ps) //not knocked down
-					&& in_front(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin,
+					&& InFront(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin,
 						NPCS.NPC->client->ps.viewangles, 0.3f))
 				{
 					vec3_t smack_dir;
@@ -3472,7 +3472,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 		if (enemyDist < MELEE_DIST_SQUARED
 			&& !NPCS.NPC->client->ps.weaponTime //not firing
 			&& !PM_InKnockDown(&NPCS.NPC->client->ps) //not knocked down
-			&& in_front(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, NPCS.NPC->client->ps.viewangles,
+			&& InFront(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, NPCS.NPC->client->ps.viewangles,
 				0.3f)) //within 80 and in front
 		{
 			//enemy within 80, if very close, use melee attack to slap away
@@ -3490,7 +3490,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 		else if (enemyDist < MELEE_DIST_SQUARED
 			&& !NPCS.NPC->client->ps.weaponTime //not firing
 			&& !PM_InKnockDown(&NPCS.NPC->client->ps) //not knocked down
-			&& !in_front(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, NPCS.NPC->client->ps.viewangles,
+			&& !InFront(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, NPCS.NPC->client->ps.viewangles,
 				-0.25f)) //within 80 and generally behind
 		{
 			//enemy within 80, if very close, use melee attack to slap away
@@ -3688,7 +3688,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 		if (enemy_dist < forcePushPullRadius[testlevel] - 16)
 		{
 			//close enough to push
-			if (in_front(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->client->renderInfo.eyePoint,
+			if (InFront(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->client->renderInfo.eyePoint,
 				NPCS.NPC->client->renderInfo.eyeAngles, 0.6f))
 			{
 				//knock it down
@@ -3707,7 +3707,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 							&& !Q_irand(0, 10)))))))
 	{
 		//can't use saber and they're in striking range
-		if (!Q_irand(0, 5) && in_front(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin,
+		if (!Q_irand(0, 5) && InFront(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin,
 			NPCS.NPC->client->ps.viewangles, 0.2f))
 		{
 			if ((NPCS.NPCInfo->scriptFlags & SCF_DONT_FIRE || NPCS.NPC->client->pers.maxHealth - NPCS.NPC->health >
@@ -3744,7 +3744,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 		&& NPCS.NPC->client->ps.fd.forcePowersKnown & 1 << FP_DRAIN //know how to drain
 		&& WP_ForcePowerAvailable(NPCS.NPC, FP_DRAIN, 20) //have enough power
 		&& !Q_irand(0, 10)
-		&& in_front(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, NPCS.NPC->client->ps.viewangles, 0.2f))
+		&& InFront(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, NPCS.NPC->client->ps.viewangles, 0.2f))
 	{
 		TIMER_Set(NPCS.NPC, "draining", 3000);
 		TIMER_Set(NPCS.NPC, "attackDelay", 3000);
@@ -5738,7 +5738,7 @@ static evasionType_t Jedi_CheckEvadeSpecialAttacks(void)
 			|| Q_irand(0, NPCS.NPCInfo->rank) > RANK_LT_JG)
 		{
 			//see if we should back off
-			if (in_front(NPCS.NPC->r.currentOrigin, NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->enemy->r.currentAngles,
+			if (InFront(NPCS.NPC->r.currentOrigin, NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->enemy->r.currentAngles,
 				0.0f))
 			{
 				//facing me
@@ -5772,7 +5772,7 @@ static evasionType_t Jedi_CheckEvadeSpecialAttacks(void)
 				//see if we should evade
 				vec3_t yawOnlyAngles;
 				VectorSet(yawOnlyAngles, 0, NPCS.NPC->enemy->r.currentAngles[YAW], 0);
-				if (in_front(NPCS.NPC->r.currentOrigin, NPCS.NPC->enemy->r.currentOrigin, yawOnlyAngles, 0.25f))
+				if (InFront(NPCS.NPC->r.currentOrigin, NPCS.NPC->enemy->r.currentOrigin, yawOnlyAngles, 0.25f))
 				{
 					float minSafeDistSq = NPCS.NPC->r.maxs[0] * 1.5f + NPCS.NPC->enemy->r.maxs[0] * 1.5f +
 						wp_saber_length(NPCS.NPC->enemy) + 24.0f;
@@ -8220,7 +8220,7 @@ static void Jedi_CheckEnemyMovement(const float enemy_dist)
 				if (enemy_dist < 256 && enemy_dist > 64)
 				{
 					//close
-					if (!in_front(NPCS.NPC->r.currentOrigin, NPCS.NPC->enemy->r.currentOrigin,
+					if (!InFront(NPCS.NPC->r.currentOrigin, NPCS.NPC->enemy->r.currentOrigin,
 						NPCS.NPC->enemy->r.currentAngles, 0.0f))
 					{
 						//behind him

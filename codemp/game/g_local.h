@@ -1891,7 +1891,7 @@ float NPC_GetHFOVPercentage(vec3_t spot, vec3_t from, vec3_t facing, float hFOV)
 float NPC_GetVFOVPercentage(vec3_t spot, vec3_t from, vec3_t facing, float vFOV);
 
 extern void G_SetEnemy(gentity_t* self, gentity_t* enemy);
-qboolean in_front(vec3_t spot, vec3_t from, vec3_t from_angles, float thresh_hold);
+qboolean InFront(vec3_t spot, vec3_t from, vec3_t from_angles, float thresh_hold);
 
 // ai_main.c
 #define MAX_FILEPATH			144

@@ -40,7 +40,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define SABER_BOX_SIZE 16.0f
 #define SABER_BIG_BOX_SIZE 16.0f
 extern bot_state_t* botstates[MAX_CLIENTS];
-extern qboolean in_front(vec3_t spot, vec3_t from, vec3_t from_angles, float thresh_hold);
+extern qboolean InFront(vec3_t spot, vec3_t from, vec3_t from_angles, float thresh_hold);
 extern void G_TestLine(vec3_t start, vec3_t end, int color, int time);
 extern void G_BlockLine(vec3_t start, vec3_t end, int color, int time);
 extern float VectorDistance(vec3_t v1, vec3_t v2);
@@ -2470,11 +2470,11 @@ qboolean WP_SabersCheckLock(gentity_t* ent1, gentity_t* ent2)
 		return qfalse;
 	}
 
-	if (!in_front(ent1->client->ps.origin, ent2->client->ps.origin, ent2->client->ps.viewangles, 0.4f))
+	if (!InFront(ent1->client->ps.origin, ent2->client->ps.origin, ent2->client->ps.viewangles, 0.4f))
 	{
 		return qfalse;
 	}
-	if (!in_front(ent2->client->ps.origin, ent1->client->ps.origin, ent1->client->ps.viewangles, 0.4f))
+	if (!InFront(ent2->client->ps.origin, ent1->client->ps.origin, ent1->client->ps.viewangles, 0.4f))
 	{
 		return qfalse;
 	}
@@ -3503,7 +3503,7 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 			}
 		}
 
-		if (!in_front(attacker->client->ps.origin, defender->client->ps.origin, defender->client->ps.viewangles, -0.7f))
+		if (!InFront(attacker->client->ps.origin, defender->client->ps.origin, defender->client->ps.viewangles, -0.7f))
 		{
 			//player is behind us, costs more to block
 			//staffs back block at normal cost.
@@ -3789,7 +3789,7 @@ int WP_SaberBoltBlockCost(gentity_t* defender, const gentity_t* attacker)
 	if (attacker && attacker->client)
 	{
 		//attacker is a player so he must have just hit you with a saber blow.
-		if (!in_front(attacker->client->ps.origin, defender->client->ps.origin, defender->client->ps.viewangles, -0.7f))
+		if (!InFront(attacker->client->ps.origin, defender->client->ps.origin, defender->client->ps.viewangles, -0.7f))
 		{
 			//player is behind us, costs more to block
 			//staffs back block at normal cost.
@@ -4050,7 +4050,7 @@ int wp_saber_must_block(
 
 		// Can't block while running and hit from behind or mid-swing
 		if (!walk_check(self) &&
-			(!in_front(atk->client->ps.origin,
+			(!InFront(atk->client->ps.origin,
 				self->client->ps.origin,
 				self->client->ps.viewangles,
 				-0.7f) ||
@@ -4112,7 +4112,7 @@ int wp_saber_must_block(
 	// ------------------------------------------------------------
 	// ALLOW BLOCKING FROM BEHIND
 	// ------------------------------------------------------------
-	if (!in_front(point,
+	if (!InFront(point,
 		self->client->ps.origin,
 		self->client->ps.viewangles,
 		-0.7f))
@@ -4476,7 +4476,7 @@ int wp_saber_must_bolt_block(gentity_t* self, const gentity_t* atk, const qboole
 		}
 
 		if (!walk_check(self)
-			&& (!in_front(atk->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, -0.7f)
+			&& (!InFront(atk->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, -0.7f)
 				|| PM_SaberInAttack(self->client->ps.saber_move)
 				|| PM_SaberInStart(self->client->ps.saber_move)))
 		{
@@ -4512,7 +4512,7 @@ int wp_saber_must_bolt_block(gentity_t* self, const gentity_t* atk, const qboole
 	}
 
 	// allow for blocking behind our backs
-	if (!in_front(point, self->client->ps.origin, self->client->ps.viewangles, -0.7f))
+	if (!InFront(point, self->client->ps.origin, self->client->ps.viewangles, -0.7f))
 	{
 		return 1;
 	}
@@ -13763,7 +13763,7 @@ qboolean WP_SaberMBlockDirection(gentity_t* self, vec3_t hitloc, const qboolean 
 {
 	vec3_t diff, fwdangles = { 0, 0, 0 }, right;
 	vec3_t cl_eye;
-	const qboolean inFront = in_front(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
+	const qboolean inFront = InFront(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
 
 	VectorCopy(self->client->ps.origin, cl_eye);
 	cl_eye[2] += self->client->ps.viewheight;
@@ -14007,7 +14007,7 @@ qboolean WP_SaberBlockNonRandom(gentity_t* self, vec3_t hitloc, const qboolean m
 {
 	vec3_t diff, fwdangles = { 0, 0, 0 }, right;
 	vec3_t cl_eye;
-	const qboolean inFront = in_front(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
+	const qboolean inFront = InFront(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
 
 	VectorCopy(self->client->ps.origin, cl_eye);
 	cl_eye[2] += self->client->ps.viewheight;
@@ -14257,7 +14257,7 @@ qboolean WP_SaberBouncedSaberDirection(gentity_t* self, vec3_t hitloc, const qbo
 {
 	vec3_t diff, fwdangles = { 0, 0, 0 }, right;
 	vec3_t cl_eye;
-	const qboolean inFront = in_front(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
+	const qboolean inFront = InFront(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
 
 	VectorCopy(self->client->ps.origin, cl_eye);
 	cl_eye[2] += self->client->ps.viewheight;
@@ -14499,7 +14499,7 @@ qboolean WP_SaberFatiguedParryDirection(gentity_t* self, vec3_t hitloc, const qb
 {
 	vec3_t diff, fwdangles = { 0, 0, 0 }, right;
 	vec3_t cl_eye;
-	const qboolean inFront = in_front(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
+	const qboolean inFront = InFront(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
 
 	VectorCopy(self->client->ps.origin, cl_eye);
 	cl_eye[2] += self->client->ps.viewheight;
@@ -14743,7 +14743,7 @@ qboolean wp_saber_block_non_random_missile(gentity_t* self, vec3_t hitloc, const
 {
 	vec3_t diff, fwdangles = { 0, 0, 0 }, right;
 	vec3_t cl_eye;
-	const qboolean inFront = in_front(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
+	const qboolean inFront = InFront(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
 
 	VectorCopy(self->client->ps.origin, cl_eye);
 	cl_eye[2] += self->client->ps.viewheight;
@@ -14985,7 +14985,7 @@ qboolean WP_SaberBlockBolt(gentity_t* self, vec3_t hitloc, const qboolean missil
 {
 	vec3_t diff, fwdangles = { 0, 0, 0 }, right;
 	vec3_t cl_eye;
-	const qboolean inFront = in_front(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
+	const qboolean inFront = InFront(hitloc, self->client->ps.origin, self->client->ps.viewangles, -0.7f);
 
 	VectorCopy(self->client->ps.origin, cl_eye);
 	cl_eye[2] += self->client->ps.viewheight;

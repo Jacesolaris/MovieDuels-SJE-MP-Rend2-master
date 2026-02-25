@@ -31,6 +31,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/timing.h"
 #include "NPCNav/navigator.h"
 #include <string.h>
+#include <cassert>
 
 botlib_export_t* botlib_export;
 
