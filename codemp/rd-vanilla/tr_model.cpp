@@ -771,6 +771,53 @@ static qboolean ServerLoadMDXA(model_t* mod, void* buffer, const char* mod_name,
 	return qtrue;
 }
 
+static const char* humanoid_prefixes[] =
+{
+	"models/players/_humanoid",
+	"models/players/JK2anims/",
+	"models/players/_humanoid_ani",
+	"models/players/_humanoid_bdroid",
+	"models/players/_humanoid_ben",
+	"models/players/_humanoid_cal",
+	"models/players/_humanoid_clo",
+	"models/players/_humanoid_deka",
+	"models/players/_humanoid_df2",
+	"models/players/_humanoid_dooku",
+	"models/players/_humanoid_galen",
+	"models/players/_humanoid_gon",
+	"models/players/_humanoid_grievous",
+	"models/players/_humanoid_jabba",
+	"models/players/_humanoid_jango",
+	"models/players/_humanoid_kotor",
+	"models/players/_humanoid_luke",
+	"models/players/_humanoid_mace",
+	"models/players/_humanoid_maul",
+	"models/players/_humanoid_md",
+	"models/players/_humanoid_melee",
+	"models/players/_humanoid_obi",
+	"models/players/_humanoid_obi3",
+	"models/players/_humanoid_pal",
+	"models/players/_humanoid_reb",
+	"models/players/_humanoid_ren",
+	"models/players/_humanoid_rey",
+	"models/players/_humanoid_sbd",
+	"models/players/_humanoid_vader",
+	"models/players/_humanoid_yoda"
+};
+
+static qboolean R_IsHumanoidAnimName(const char* animName)
+{
+	if (!animName || !animName[0])
+		return qfalse;
+
+	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
+	{
+		if (strstr(animName, humanoid_prefixes[i]))
+			return qtrue;
+	}
+	return qfalse;
+}
+
 /*
 =================
 ServerLoadMDXM - load a Ghoul 2 Mesh file
@@ -778,16 +825,16 @@ ServerLoadMDXM - load a Ghoul 2 Mesh file
 */
 static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
-	int					i;
+	int                 i;
 	mdxmHeader_t* pinmodel, * mdxm;
 	mdxmLOD_t* lod;
 	mdxmSurface_t* surf;
-	int					version;
-	int					size;
+	int                 version;
+	int                 size;
 	mdxmSurfHierarchy_t* surfInfo;
 
 #ifdef Q3_BIG_ENDIAN
-	int					k;
+	int                     k;
 	mdxmTriangle_t* tri;
 	mdxmVertex_t* v;
 	int* boneRef;
@@ -796,10 +843,8 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 	mdxmHierarchyOffsets_t* surfIndexes;
 #endif
 
-	pinmodel = static_cast<mdxmHeader_t*>(buffer);
-	//
-	// read some fields from the binary, but only LittleLong() them when we know this wasn't an already-cached model...
-	//
+	pinmodel = (mdxmHeader_t*)buffer;
+
 	version = pinmodel->version;
 	size = pinmodel->ofsEnd;
 
@@ -809,7 +854,8 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 		LL(size);
 	}
 
-	if (version != MDXM_VERSION) {
+	if (version != MDXM_VERSION)
+	{
 		return qfalse;
 	}
 
@@ -817,9 +863,10 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 	mod->dataSize += size;
 
 	qboolean bAlreadyFound = qfalse;
-	mdxm = mod->mdxm = static_cast<mdxmHeader_t*>(RE_RegisterServerModels_Malloc(size, buffer, mod_name, &bAlreadyFound, TAG_MODEL_GLM));
+	mdxm = mod->mdxm = (mdxmHeader_t*)RE_RegisterServerModels_Malloc(
+		size, buffer, mod_name, &bAlreadyFound, TAG_MODEL_GLM);
 
-	assert(bAlreadyCached == bAlreadyFound);	// I should probably eliminate 'bAlreadyFound', but wtf?
+	assert(bAlreadyCached == bAlreadyFound);
 
 	if (!bAlreadyFound)
 	{
@@ -836,33 +883,31 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 		LL(mdxm->ofsEnd);
 	}
 
-	// Decide which animation GLA to use on the server.
-	// - Non-humanoids: use mdxm->animName as-is.
-	// - Base humanoid: prefer _humanoid_mp if present, otherwise fall back to original _humanoid.
+	/*
+	============================================================
+		HUMANOID DETECTION USING PREFIX LIST
+	============================================================
+	*/
+
 	const char* animNameToUse = mdxm->animName;
-	qhandle_t animIndex = 0;
+	qhandle_t   animIndex = 0;
 
-	// Detect ANY humanoid or humanoid variant by animName
-	if (strstr(mdxm->animName, "models/players/_humanoid/") ||
-		strstr(mdxm->animName, "models/players/_humanoid_"))
+	if (R_IsHumanoidAnimName(mdxm->animName))
 	{
-		const char* mpHumanoid = "models/players/_humanoid_mp/_humanoid";
+		const char* forcedHumanoid = "models/players/_humanoid_mp/_humanoid";
 
-		// Try MP humanoid first
-		animIndex = RE_RegisterModel(va("%s.gla", mpHumanoid));
-		if (animIndex)
+		animIndex = RE_RegisterModel(va("%s.gla", forcedHumanoid));
+		if (!animIndex)
 		{
-			animNameToUse = mpHumanoid;
+			Com_Error(ERR_DROP,
+				"ServerLoadMDXM: required MP humanoid GLA missing: %s.gla",
+				forcedHumanoid);
 		}
-		else
-		{
-			// Fallback to original humanoid
-			animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
-		}
+
+		animNameToUse = forcedHumanoid;
 	}
 	else
 	{
-		// Non-humanoid or custom skeleton: use the model's own animName
 		animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
 	}
 
@@ -873,55 +918,61 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 		return qfalse;
 	}
 
-	// Keep animName in sync with what we actually loaded
 	Q_strncpyz(mdxm->animName, animNameToUse, sizeof(mdxm->animName));
 
-	mod->numLods = mdxm->numLODs - 1;	//copy this up to the model for ease of use - it wil get inced after this.
+	mod->numLods = mdxm->numLODs - 1;
 
 	if (bAlreadyFound)
 	{
-		return qtrue;	// All done. Stop, go no further, do not LittleLong(), do not pass Go...
+		return qtrue;
 	}
 
+	/*
+	============================================================
+		SURFACE + LOD PROCESSING (unchanged)
+	============================================================
+	*/
+
 	surfInfo = (mdxmSurfHierarchy_t*)((byte*)mdxm + mdxm->ofsSurfHierarchy);
+
 #ifdef Q3_BIG_ENDIAN
 	surfIndexes = (mdxmHierarchyOffsets_t*)((byte*)mdxm + sizeof(mdxmHeader_t));
 #endif
+
 	for (i = 0; i < mdxm->numSurfaces; i++)
 	{
 		LL(surfInfo->numChildren);
 		LL(surfInfo->parentIndex);
 
-		// do all the children indexs
 		for (int j = 0; j < surfInfo->numChildren; j++)
 		{
 			LL(surfInfo->childIndexes[j]);
 		}
 
-		// We will not be using shaders on the server.
 		surfInfo->shaderIndex = 0;
 
 		RE_RegisterModels_StoreShaderRequest(mod_name, &surfInfo->shader[0], &surfInfo->shaderIndex);
 
 #ifdef Q3_BIG_ENDIAN
-		// swap the surface offset
 		LL(surfIndexes->offsets[i]);
 		assert(surfInfo == (mdxmSurfHierarchy_t*)((byte*)surfIndexes + surfIndexes->offsets[i]));
 #endif
 
-		// find the next surface
-		surfInfo = (mdxmSurfHierarchy_t*)((byte*)surfInfo + (intptr_t) & static_cast<mdxmSurfHierarchy_t*>(nullptr)->childIndexes[surfInfo->numChildren]);
+		surfInfo = (mdxmSurfHierarchy_t*)((byte*)surfInfo +
+			(intptr_t) & ((mdxmSurfHierarchy_t*)0)->childIndexes[surfInfo->numChildren]);
 	}
 
-	// swap all the LOD's	(we need to do the middle part of this even for intel, because of shader reg and err-check)
 	lod = (mdxmLOD_t*)((byte*)mdxm + mdxm->ofsLODs);
+
 	for (int l = 0; l < mdxm->numLODs; l++)
 	{
-		int	triCount = 0;
+		int triCount = 0;
 
 		LL(lod->ofsEnd);
-		// swap all the surfaces
-		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) + mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t));
+
+		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) +
+			mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t));
+
 		for (i = 0; i < mdxm->numSurfaces; i++)
 		{
 			LL(surf->thisSurfaceIndex);
@@ -936,42 +987,36 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 
 			triCount += surf->numTriangles;
 
-			if (surf->numVerts > SHADER_MAX_VERTEXES) {
+			if (surf->numVerts > SHADER_MAX_VERTEXES)
 				return qfalse;
-			}
-			if (surf->numTriangles * 3 > SHADER_MAX_INDEXES) {
-				return qfalse;
-			}
 
-			// change to surface identifier
+			if (surf->numTriangles * 3 > SHADER_MAX_INDEXES)
+				return qfalse;
+
 			surf->ident = SF_MDX;
 
 #ifdef Q3_BIG_ENDIAN
-			// swap the LOD offset
 			indexes = (mdxmLODSurfOffset_t*)((byte*)lod + sizeof(mdxmLOD_t));
 			LL(indexes->offsets[surf->thisSurfaceIndex]);
 
-			// do all the bone reference data
 			boneRef = (int*)((byte*)surf + surf->ofsBoneReferences);
-			for (j = 0; j < surf->numBoneReferences; j++)
+			for (int j = 0; j < surf->numBoneReferences; j++)
 			{
 				LL(boneRef[j]);
 			}
 
-			// swap all the triangles
 			tri = (mdxmTriangle_t*)((byte*)surf + surf->ofsTriangles);
-			for (j = 0; j < surf->numTriangles; j++, tri++)
+			for (int j = 0; j < surf->numTriangles; j++, tri++)
 			{
 				LL(tri->indexes[0]);
 				LL(tri->indexes[1]);
 				LL(tri->indexes[2]);
 			}
 
-			// swap all the vertexes
 			v = (mdxmVertex_t*)((byte*)surf + surf->ofsVerts);
 			pTexCoords = (mdxmVertexTexCoord_t*)&v[surf->numVerts];
 
-			for (j = 0; j < surf->numVerts; j++)
+			for (int j = 0; j < surf->numVerts; j++)
 			{
 				LF(v->normal[0]);
 				LF(v->normal[1]);
@@ -990,11 +1035,9 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 			}
 #endif
 
-			// find the next surface
 			surf = (mdxmSurface_t*)((byte*)surf + surf->ofsEnd);
 		}
 
-		// find the next LOD
 		lod = (mdxmLOD_t*)((byte*)lod + lod->ofsEnd);
 	}
 

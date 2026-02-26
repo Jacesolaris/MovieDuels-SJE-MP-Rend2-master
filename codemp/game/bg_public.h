@@ -42,6 +42,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_weapons.h"
 #include "anims.h"
 #include "bg_vehicles.h"
+#include "surfaceflags.h"
+#include <qcommon\q_platform.h>
+#include <qcommon\q_math.h>
+#include <qcommon\q_shared.h>
 
 //these two defs are shared now because we do clientside ent parsing
 #define	MAX_SPAWN_VARS			64
@@ -2015,7 +2019,7 @@ void	BG_InitAnimsets();
 void	BG_ClearAnimsets();
 int		bg_parse_animation_file(const char* filename, animation_t* anim_set, qboolean is_humanoid);
 #ifndef _GAME
-int		BG_ParseAnimationEvtFile(const char* as_filename, int animFileIndex, int eventFileIndex);
+int		BG_ParseAnimationEvtFile(const char* as_filename, const int animFileIndex, const int eventFileIndex);
 #endif
 
 qboolean BG_HasAnimation(int anim_index, int animation);

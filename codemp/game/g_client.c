@@ -2088,13 +2088,62 @@ void* g2SaberInstance = NULL;
 qboolean BG_IsValidCharacterModel(const char* model_name, const char* skin_name);
 qboolean BG_ValidateSkinForTeam(const char* model_name, char* skin_name, int team, float* colors);
 void BG_GetVehicleModelName(char* modelName, const char* vehicleName, size_t len);
+// Prefixes that count as humanoid
+static const char* humanoid_prefixes[] =
+{
+	"models/players/_humanoid",
+	"models/players/JK2anims/",
+	"models/players/_humanoid_ani",
+	"models/players/_humanoid_bdroid",
+	"models/players/_humanoid_ben",
+	"models/players/_humanoid_cal",
+	"models/players/_humanoid_clo",
+	"models/players/_humanoid_deka",
+	"models/players/_humanoid_df2",
+	"models/players/_humanoid_dooku",
+	"models/players/_humanoid_galen",
+	"models/players/_humanoid_gon",
+	"models/players/_humanoid_grievous",
+	"models/players/_humanoid_jabba",   // ⭐ Added
+	"models/players/_humanoid_jango",
+	"models/players/_humanoid_kotor",
+	"models/players/_humanoid_luke",
+	"models/players/_humanoid_mace",
+	"models/players/_humanoid_maul",
+	"models/players/_humanoid_md",
+	"models/players/_humanoid_melee",  // ⭐ Added
+	"models/players/_humanoid_obi",
+	"models/players/_humanoid_obi3",
+	"models/players/_humanoid_pal",
+	"models/players/_humanoid_reb",    // ⭐ Added
+	"models/players/_humanoid_ren",
+	"models/players/_humanoid_rey",
+	"models/players/_humanoid_sbd",
+	"models/players/_humanoid_vader",
+	"models/players/_humanoid_yoda"
+};
+
+qboolean BG_IsHumanoidModel(const char* path)
+{
+	if (!path || !path[0])
+	{
+		return qfalse;
+	}
+
+	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
+	{
+		if (!Q_strncmp(path, humanoid_prefixes[i], strlen(humanoid_prefixes[i])))
+		{
+			return qtrue;
+		}
+	}
+
+	return qfalse;
+}
 
 void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 {
 	int handle;
-#if 0
-	char		/**gla_name,*/* slash;
-#endif
 	char gla_name[MAX_QPATH];
 	const vec3_t tempVec = { 0, 0, 0 };
 
@@ -2117,7 +2166,7 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 	if (!precachedKyle)
 	{
 		char afilename[MAX_QPATH];
-		Com_sprintf(afilename, sizeof afilename, "models/players/"DEFAULT_MODEL"/model.glm");
+		Com_sprintf(afilename, sizeof afilename, "models/players/" DEFAULT_MODEL "/model.glm");
 		handle = trap->G2API_InitGhoul2Model(&precachedKyle, afilename, 0, 0, -20, 0, 0);
 
 		if (handle < 0)
@@ -2125,7 +2174,7 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 			return;
 		}
 
-		const int defSkin = trap->R_RegisterSkin("models/players/"DEFAULT_MODEL"/model_default.skin");
+		const int defSkin = trap->R_RegisterSkin("models/players/" DEFAULT_MODEL "/model_default.skin");
 		trap->G2API_SetSkin(precachedKyle, 0, defSkin, defSkin);
 	}
 
@@ -2214,8 +2263,6 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 							ent->client->ps.customRGBA[1] = colorOverride[1] * 255.0f;
 							ent->client->ps.customRGBA[2] = colorOverride[2] * 255.0f;
 						}
-
-						//BG_ValidateSkinForTeam( truncModelName, skin, ent->client->sess.sessionTeam, NULL );
 					}
 					else if (level.gametype == GT_SIEGE)
 					{
@@ -2269,16 +2316,21 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 				gla_name[0] = 0;
 				trap->G2API_GetGLAName(ent->ghoul2, 0, gla_name);
 
-				// If this is a normal player (no custom skeleton) and the model is not using any _humanoid* GLA, fall back.
-				if ((!gla_name[0] ||
-					!strstr(gla_name, "players/_humanoid_mp")) &&
-					ent->s.number < MAX_CLIENTS &&
+				// ------------------------------------------------
+				// PLAYER SAFETY: enforce humanoid for normal players
+				// ------------------------------------------------
+				if (ent->s.number < MAX_CLIENTS &&
 					!G_PlayerHasCustomSkeleton(ent))
 				{
-					// a bad model
-					trap->G2API_CleanGhoul2Models(&ent->ghoul2);
-					ent->ghoul2 = NULL;
-					trap->G2API_DuplicateGhoul2Instance(precachedKyle, &ent->ghoul2);
+					qboolean isHumanoid = BG_IsHumanoidModel(gla_name);
+
+					// If a player model is not using any humanoid prefix, fall back to Kyle.
+					if (!isHumanoid)
+					{
+						trap->G2API_CleanGhoul2Models(&ent->ghoul2);
+						ent->ghoul2 = NULL;
+						trap->G2API_DuplicateGhoul2Instance(precachedKyle, &ent->ghoul2);
+					}
 				}
 
 				if (ent->s.number >= MAX_CLIENTS)
@@ -2320,14 +2372,14 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 	trap->G2API_GetGLAName(ent->ghoul2, 0, gla_name);
 
 	// ------------------------------------------------------------
-	// NORMALIZE GLA PATH (critical for rend2 bots)
+	// NORMALIZE GLA PATH (critical for bots / rend2)
 	// ------------------------------------------------------------
 	char resolvedGLA[MAX_QPATH];
 
 	Q_strncpyz(resolvedGLA, gla_name, sizeof(resolvedGLA));
 
-	// Normalize ANY humanoid GLA path to the MP humanoid GLA
-	if (!Q_strncmp(resolvedGLA, "models/players/_humanoid", strlen("models/players/_humanoid")))
+	// If this GLA is any humanoid-prefix path, force it to MP humanoid.
+	if (BG_IsHumanoidModel(resolvedGLA))
 	{
 		Q_strncpyz(resolvedGLA, "models/players/_humanoid_mp/_humanoid", sizeof(resolvedGLA));
 	}
@@ -2353,16 +2405,14 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 		ent->localAnimIndex = -1;
 
 		// HUMANOID?
-		if (strstr(resolvedGLA, "_humanoid_mp"))
+		if (BG_IsHumanoidModel(resolvedGLA))
 		{
-			if (strstr(resolvedGLA, "players/rockettrooper/"))
-				ent->localAnimIndex = 1;
-			else
-				ent->localAnimIndex = 0;
+			// All humanoid-prefix models share index 0 (_humanoid_mp)
+			ent->localAnimIndex = 0;
 		}
 		else
 		{
-			// NON-HUMANOID
+			// NON-HUMANOID (gonk, r2d2, vehicles, etc.)
 			char animPath[MAX_QPATH];
 			Q_strncpyz(animPath, resolvedGLA, sizeof(animPath));
 
@@ -2381,11 +2431,8 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 	}
 	else
 	{
-		// PLAYER (server-side)
-		if (strstr(resolvedGLA, "players/rockettrooper/"))
-			ent->localAnimIndex = 1;
-		else
-			ent->localAnimIndex = 0;
+		// PLAYER (server-side): all valid players are humanoid_mp now
+		ent->localAnimIndex = 0;
 	}
 
 	if (ent->s.NPC_class == CLASS_VEHICLE &&
@@ -9713,19 +9760,21 @@ qboolean g_standard_humanoid(gentity_t* self)
 		return qfalse;
 	}
 
-	// Normalize GLA path (critical for rend2)
+	// Normalize GLA path
 	Q_strncpyz(resolvedGLA, gla_name, sizeof(resolvedGLA));
 
-	// Normalize ANY humanoid GLA path to the MP humanoid GLA
-	if (!Q_strncmp(resolvedGLA, "models/players/_humanoid", strlen("models/players/_humanoid")))
+	// If this GLA matches any humanoid prefix, force to MP humanoid
+	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
 	{
-		Q_strncpyz(resolvedGLA, "models/players/_humanoid_mp/_humanoid", sizeof(resolvedGLA));
-	}
+		const char* prefix = humanoid_prefixes[i];
 
-	// Any players/_humanoid* folder counts as humanoid
-	if (strstr(resolvedGLA, "models/players/_humanoid_mp"))
-	{
-		return qtrue;
+		if (!Q_strncmp(resolvedGLA, prefix, strlen(prefix)))
+		{
+			Q_strncpyz(resolvedGLA,
+				"models/players/_humanoid_mp/_humanoid",
+				sizeof(resolvedGLA));
+			return qtrue;
+		}
 	}
 
 	return qfalse;

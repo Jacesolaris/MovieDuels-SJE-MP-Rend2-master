@@ -277,6 +277,54 @@ models/players/visor/animation.cfg, etc
 
 ======================
 */
+static const char* humanoid_prefixes[] =
+{
+	"models/players/_humanoid",
+	"models/players/JK2anims/",
+	"models/players/_humanoid_ani",
+	"models/players/_humanoid_bdroid",
+	"models/players/_humanoid_ben",
+	"models/players/_humanoid_cal",
+	"models/players/_humanoid_clo",
+	"models/players/_humanoid_deka",
+	"models/players/_humanoid_df2",
+	"models/players/_humanoid_dooku",
+	"models/players/_humanoid_galen",
+	"models/players/_humanoid_gon",
+	"models/players/_humanoid_grievous",
+	"models/players/_humanoid_jabba",
+	"models/players/_humanoid_jango",
+	"models/players/_humanoid_kotor",
+	"models/players/_humanoid_luke",
+	"models/players/_humanoid_mace",
+	"models/players/_humanoid_maul",
+	"models/players/_humanoid_md",
+	"models/players/_humanoid_melee",
+	"models/players/_humanoid_obi",
+	"models/players/_humanoid_obi3",
+	"models/players/_humanoid_pal",
+	"models/players/_humanoid_reb",
+	"models/players/_humanoid_ren",
+	"models/players/_humanoid_rey",
+	"models/players/_humanoid_sbd",
+	"models/players/_humanoid_vader",
+	"models/players/_humanoid_yoda"
+};
+
+static qboolean UI_IsHumanoidPath(const char* path)
+{
+	if (!path || !path[0])
+		return qfalse;
+
+	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
+	{
+		const char* prefix = humanoid_prefixes[i];
+		if (!Q_strncmp(path, prefix, strlen(prefix)))
+			return qtrue;
+	}
+
+	return qfalse;
+}
 static char UIPAFtext[120000];
 
 int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean is_humanoid)
@@ -285,127 +333,68 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 	int i;
 	int used_index;
 	int nextIndex = uiNumAllAnims;
-
 	fileHandle_t f;
 
-	// Detect and reuse existing non-humanoid sets
+	// ------------------------------------------------------------
+	// HUMANOID DETECTION USING PREFIX LIST
+	// ------------------------------------------------------------
+	if (UI_IsHumanoidPath(filename))
+	{
+		is_humanoid = qtrue;
+
+		// FIX: UI must use the static humanoid animset
+		if (!animset)
+		{
+			animset = uiHumanoidAnimations;
+		}
+	}
+
+	// ------------------------------------------------------------
+	// REUSE EXISTING NON-HUMANOID SETS
+	// ------------------------------------------------------------
 	if (!is_humanoid)
 	{
-		i = 1;
-		while (i < uiNumAllAnims)
+		for (i = 1; i < uiNumAllAnims; i++)
 		{
-			// see if it's been loaded already
 			if (!Q_stricmp(bgAllAnims[i].filename, filename))
 			{
 				animset = bgAllAnims[i].anims;
-				return i; // already have it
+				return i;
 			}
-			i++;
 		}
 
-		// Looks like it has not yet been loaded. Allocate space for the anim set if we need to, and continue along.
+		// Allocate if needed
 		if (!animset)
 		{
-			// Detect ANY humanoid by path (base or variant)
-			if (strstr(filename, "players/_humanoid/") ||
-				strstr(filename, "players/_humanoid_") ||
-				strstr(filename, "models/players/_humanoid/") ||
-				strstr(filename, "models/players/_humanoid_"))
+			animset = UI_AnimsetAlloc();
+			if (!animset)
 			{
-				animset = uiHumanoidAnimations;
-				is_humanoid = qtrue;
-				nextIndex = 0;
-			}
-			else
-			{
-				animset = UI_AnimsetAlloc();
-
-				if (!animset)
-				{
-					assert(!"Anim set alloc failed!");
-					return -1;
-				}
+				assert(!"Anim set alloc failed!");
+				return -1;
 			}
 		}
 	}
 #ifdef _DEBUG
 	else
 	{
+		// This assert is now safe because animset is guaranteed non-null
 		assert(animset);
 	}
 #endif
 
-	// Decide which filename to actually load:
-	// - For humanoids: prefer _humanoid_mp if present, otherwise fall back to the original.
-	// - For non-humanoids: use the given filename as-is.
+	// ------------------------------------------------------------
+	// NORMALIZE HUMANOID PATH TO MP HUMANOID
+	// ------------------------------------------------------------
 	const char* animFileName = filename;
 
 	if (is_humanoid)
 	{
-		// Normalize to a canonical humanoid path root if possible
-		// We only care about swapping _humanoid -> _humanoid_mp in the path.
-		char mpPath[MAX_QPATH];
-
-		// If it's already an MP humanoid path, just use it.
-		if (strstr(filename, "_humanoid_mp/"))
-		{
-			animFileName = filename;
-		}
-		else
-		{
-			// Try to build an MP humanoid path from the original
-			Q_strncpyz(mpPath, filename, sizeof(mpPath));
-			// Replace first occurrence of "_humanoid/" with "_humanoid_mp/"
-			// Try to build an MP humanoid path from the original
-			Q_strncpyz(mpPath, filename, sizeof(mpPath));
-
-			char* pos = strstr(mpPath, "_humanoid/");
-			char* posVar = strstr(mpPath, "_humanoid_");
-
-			if (posVar && (!pos || posVar < pos))
-			{
-				// Handle variant: _humanoid_xxx/
-				char* slash = strchr(posVar, '/');
-				if (slash)
-				{
-					char tail[MAX_QPATH];
-					Q_strncpyz(tail, slash + 1, sizeof(tail));
-					*posVar = '\0';
-					Q_strcat(mpPath, sizeof(mpPath), "_humanoid_mp/");
-					Q_strcat(mpPath, sizeof(mpPath), tail);
-				}
-			}
-			else if (pos)
-			{
-				// Handle plain: _humanoid/
-				char tail[MAX_QPATH];
-				Q_strncpyz(tail, pos + strlen("_humanoid/"), sizeof(tail));
-				*pos = '\0';
-				Q_strcat(mpPath, sizeof(mpPath), "_humanoid_mp/");
-				Q_strcat(mpPath, sizeof(mpPath), tail);
-			}
-
-			// Try MP humanoid first
-			int lenTest = trap->FS_Open(mpPath, &f, FS_READ);
-			if (f && lenTest > 0)
-			{
-				// MP humanoid exists, use it
-				trap->FS_Close(f);
-				animFileName = mpPath;
-			}
-			else
-			{
-				// Fallback to original filename
-				if (f)
-				{
-					trap->FS_Close(f);
-				}
-				animFileName = filename;
-			}
-		}
+		animFileName = "models/players/_humanoid_mp/animation.cfg";
 	}
 
-	// load the file
+	// ------------------------------------------------------------
+	// LOAD FILE (only once for humanoid)
+	// ------------------------------------------------------------
 	if (!UIPAFtextLoaded || !is_humanoid)
 	{
 		const int len = trap->FS_Open(animFileName, &f, FS_READ);
@@ -414,7 +403,7 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 		{
 			return -1;
 		}
-		if (len >= sizeof UIPAFtext - 1)
+		if (len >= sizeof(UIPAFtext) - 1)
 		{
 			trap->FS_Close(f);
 			Com_Error(ERR_DROP, "%s exceeds the allowed ui-side animation buffer!", animFileName);
@@ -426,14 +415,15 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 	}
 	else
 	{
-		// Humanoid already loaded, reuse index 0
+		// Humanoid already loaded
 		return 0;
 	}
 
-	// parse the text
+	// ------------------------------------------------------------
+	// PARSE ANIMATION.CFG
+	// ------------------------------------------------------------
 	text_p = UIPAFtext;
 
-	// initialize anim array
 	for (i = 0; i < MAX_ANIMATIONS; i++)
 	{
 		animset[i].firstFrame = 0;
@@ -444,92 +434,57 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 
 	COM_BeginParseSession("UI_ParseAnimationFile");
 
-	// read information for each frame
 	while (1)
 	{
 		const char* token = COM_Parse(&text_p);
-
 		if (!token || !token[0])
-		{
 			break;
-		}
 
 		const int animNum = GetIDForString(animTable, token);
 		if (animNum == -1)
-		{
-#ifdef _DEBUG
-			//Com_Printf(S_COLOR_RED"WARNING: Unknown token %s in %s\n", token, animFileName);
-#endif
 			continue;
-		}
 
 		token = COM_Parse(&text_p);
-		if (!token)
-		{
-			break;
-		}
+		if (!token) break;
 		animset[animNum].firstFrame = atoi(token);
 
 		token = COM_Parse(&text_p);
-		if (!token)
-		{
-			break;
-		}
+		if (!token) break;
 		animset[animNum].numFrames = atoi(token);
 
 		token = COM_Parse(&text_p);
-		if (!token)
-		{
-			break;
-		}
+		if (!token) break;
 		animset[animNum].loopFrames = atoi(token);
 
 		token = COM_Parse(&text_p);
-		if (!token)
-		{
-			break;
-		}
+		if (!token) break;
 		float fps = atof(token);
-		if (fps == 0)
-		{
-			fps = 1; // avoid divide by zero
-		}
+		if (fps == 0) fps = 1;
+
 		if (fps < 0)
-		{
-			// backwards
 			animset[animNum].frameLerp = floor(1000.0f / fps);
-		}
 		else
-		{
 			animset[animNum].frameLerp = ceil(1000.0f / fps);
-		}
 	}
 
+	// ------------------------------------------------------------
+	// STORE RESULT
+	// ------------------------------------------------------------
 	if (is_humanoid)
 	{
 		bgAllAnims[0].anims = animset;
-		Q_strncpyz(bgAllAnims[0].filename, animFileName, sizeof bgAllAnims[0].filename);
+		Q_strncpyz(bgAllAnims[0].filename, animFileName, sizeof(bgAllAnims[0].filename));
 		UIPAFtextLoaded = qtrue;
-
 		used_index = 0;
 	}
 	else
 	{
 		bgAllAnims[nextIndex].anims = animset;
-		Q_strncpyz(bgAllAnims[nextIndex].filename, animFileName, sizeof bgAllAnims[nextIndex].filename);
+		Q_strncpyz(bgAllAnims[nextIndex].filename, animFileName, sizeof(bgAllAnims[nextIndex].filename));
 
 		used_index = nextIndex;
 
-		if (nextIndex)
-		{
-			// don't bother increasing the number if this ended up as a humanoid load.
-			uiNumAllAnims++;
-		}
-		else
-		{
-			UIPAFtextLoaded = qtrue;
-			used_index = 0;
-		}
+		uiNumAllAnims++;
 	}
 
 	return used_index;
@@ -712,7 +667,6 @@ static void AssetCache(void)
 	uiInfo.uiDC.Assets.scrollBarThumb = trap->R_RegisterShaderNoMip(ASSET_SCROLL_THUMB);
 	uiInfo.uiDC.Assets.sliderBar = trap->R_RegisterShaderNoMip(ASSET_SLIDER_BAR);
 	uiInfo.uiDC.Assets.sliderThumb = trap->R_RegisterShaderNoMip(ASSET_SLIDER_THUMB);
-
 
 	uiInfo.uiDC.Assets.cursor_anakin = trap->R_RegisterShaderNoMip(ASSET_ANAKIN);
 	uiInfo.uiDC.Assets.cursor_jk = trap->R_RegisterShaderNoMip(ASSET_JK);
@@ -1217,7 +1171,6 @@ static char* GetMenuBuffer(const char* filename)
 	//COM_Compress(buf);
 	return buf;
 }
-
 
 typedef struct {
 	const char* tokenName;      // keyword in .menu/.cfg
@@ -11041,7 +10994,6 @@ static void UI_Init(qboolean inGameLoad)
 	trap->Cvar_Set("ui_actualNetGameType", va("%d", ui_netGametype.integer));
 	trap->Cvar_Update(&ui_actualNetGametype);
 }
-
 
 static qhandle_t* uiCursors[] =
 {

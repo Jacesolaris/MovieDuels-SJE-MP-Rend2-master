@@ -553,6 +553,7 @@ typedef struct bot_state_s
 	int in_saber_combat;
 	qboolean inSaberFallback;
 	int nextStyleSwitchTime;
+	int landingReleaseTime;
 
 	//end rww
 } bot_state_t;

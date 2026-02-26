@@ -30,13 +30,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/movie-duels											///
+///								    https://www.moddb.com/mods/movie-duels											            ///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
 #include "qcommon/q_shared.h"
 #include "bg_public.h"
-#include "bg_local.h"
 #include "anims.h"
 #include "cgame/animtable.h"
 
@@ -48,6 +47,14 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "ui/ui_local.h"
 #endif
 #include "bg_weapons.h"
+#include <math.h>
+#include <string.h>
+#include <assert.h>
+#include <qcommon\q_string.h>
+#include <stdlib.h>
+#include "g_public.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
 
 qboolean PM_SaberInTransition(int move);
 qboolean PM_SaberInDeflect(int move);
@@ -4736,7 +4743,7 @@ void BG_InitAnimsets(void)
 }
 
 //ALWAYS call on game/cgame shutdown
-void BG_ClearAnimsets(void)
+void BG_ClearAnimsets()
 {
 }
 
@@ -5341,109 +5348,96 @@ static void ParseAnimationEvtBlock(const char* aeb_filename, animevent_t* anim_e
 ======================
 BG_ParseAnimationEvtFile
 
-Read a configuration file containing animation events
-models/players/kyle/mpanimevents.cfg, etc
+Loads and parses an animation-event configuration file:
+	models/players/<model>/mpanimevents.cfg
 
-This file's presence is not required
-
+Supports:
+- optional "include" directives
+- upper/lower event blocks
+- caching to avoid re-parsing
+- recursive include protection
 ======================
 */
 bgLoadedEvents_t bgAllEvents[MAX_ANIM_FILES];
 int bgNumAnimEvents = 1;
 static int bg_animParseIncluding = 0;
 
+// Single shared text buffer for animation event parsing.
+// Replaces the old 80 KB stack allocation.
+static char bgAnimEvtTextBuffer[80000];
+
 int BG_ParseAnimationEvtFile(const char* as_filename, const int animFileIndex, const int eventFileIndex)
 {
-	const char* text_p;
-	static char text[80000];
+	const char* text_p = NULL;
+	char* text = bgAnimEvtTextBuffer;      // static global buffer
 	char sfilename[MAX_QPATH];
 	fileHandle_t f;
 	int i;
 	int used_index = -1;
-	int forced_index;
 
 	assert(animFileIndex < MAX_ANIM_FILES);
 	assert(eventFileIndex < MAX_ANIM_FILES);
 
-	if (eventFileIndex == -1)
-	{
-		forced_index = 0;
-	}
-	else
-	{
-		forced_index = eventFileIndex;
-	}
+	// Determine which event index to use
+	const int forced_index = (eventFileIndex == -1) ? 0 : eventFileIndex;
 
+	// Skip if already parsed (unless inside an include)
 	if (bg_animParseIncluding <= 0)
 	{
-		//if we should be parsing an included file, skip this part
 		if (bgAllEvents[forced_index].eventsParsed)
-		{
-			//already cached this one
 			return forced_index;
-		}
 	}
 
 	animevent_t* legs_anim_events = bgAllEvents[forced_index].legsAnimEvents;
 	animevent_t* torso_anim_events = bgAllEvents[forced_index].torsoAnimEvents;
 	const animation_t* animations = bgAllAnims[animFileIndex].anims;
 
+	// Check if this file was already loaded (avoid duplicates)
 	if (bg_animParseIncluding <= 0)
 	{
-		//if we should be parsing an included file, skip this part
-		//Go through and see if this filename is already in the table.
-		i = 0;
-		while (i < bgNumAnimEvents && forced_index != 0)
+		for (i = 0; i < bgNumAnimEvents && forced_index != 0; i++)
 		{
 			if (!Q_stricmp(as_filename, bgAllEvents[i].filename))
-			{
-				//looks like we have it already.
 				return i;
-			}
-			i++;
 		}
 	}
 
-	// Load and parse mpanimevents.cfg file
-	Com_sprintf(sfilename, sizeof sfilename, "%smpanimevents.cfg", as_filename);
+	// Build full path to mpanimevents.cfg
+	Com_sprintf(sfilename, sizeof(sfilename), "%smpanimevents.cfg", as_filename);
 
+	// Initialize event arrays (only when not inside an include)
 	if (bg_animParseIncluding <= 0)
 	{
-		//should already be done if we're including
-		//initialize anim event array
 		for (i = 0; i < MAX_ANIM_EVENTS; i++)
 		{
-			//Type of event
 			torso_anim_events[i].eventType = AEV_NONE;
 			legs_anim_events[i].eventType = AEV_NONE;
-			//Frame to play event on
+
 			torso_anim_events[i].keyFrame = -1;
 			legs_anim_events[i].keyFrame = -1;
-			//we allow storage of one string, temporarily (in case we have to look up an index later, then make sure to set stringData to NULL so we only do the look-up once)
+
 			torso_anim_events[i].stringData = NULL;
 			legs_anim_events[i].stringData = NULL;
-			//Unique IDs, can be soundIndex of sound file to play OR effect index or footstep type, etc.
+
 			for (int j = 0; j < AED_ARRAY_SIZE; j++)
 			{
 				torso_anim_events[i].eventData[j] = -1;
 				legs_anim_events[i].eventData[j] = -1;
 			}
+
 			torso_anim_events[i].ambtime = 0;
 			legs_anim_events[i].ambtime = 0;
-
 			torso_anim_events[i].ambrandom = 0;
 			legs_anim_events[i].ambrandom = 0;
 		}
 	}
 
-	// load the file
+	// Load file
 	const int len = trap->FS_Open(sfilename, &f, FS_READ);
 	if (len <= 0)
-	{
-		//no file
-		goto fin;
-	}
-	if (len >= sizeof text - 1)
+		goto finish;
+
+	if (len >= (int)sizeof(bgAnimEvtTextBuffer) - 1)
 	{
 		trap->FS_Close(f);
 #ifndef FINAL_BUILD
@@ -5451,64 +5445,65 @@ int BG_ParseAnimationEvtFile(const char* as_filename, const int animFileIndex, c
 #else
 		Com_Printf("File %s too long\n", sfilename);
 #endif
-		goto fin;
+		goto finish;
 	}
 
 	trap->FS_Read(text, len, f);
-	text[len] = 0;
+	text[len] = '\0';
 	trap->FS_Close(f);
 
-	// parse the text
 	text_p = text;
 
 	COM_BeginParseSession("BG_ParseAnimationEvtFile");
 
-	// read information for batches of sounds (UPPER or LOWER)
+	// Parse tokens
 	while (1)
 	{
-		// Get base frame of sequence
 		const char* token = COM_Parse(&text_p);
 		if (!token || !token[0])
-		{
 			break;
-		}
 
-		if (!Q_stricmp(token, "include")) // grab from another mpanimevents.cfg
+		// include <otherfile>
+		if (!Q_stricmp(token, "include"))
 		{
-			//NOTE: you REALLY should NOT do this after the main block of UPPERSOUNDS and LOWERSOUNDS
 			const char* include_filename = COM_Parse(&text_p);
-			if (include_filename != NULL)
+			if (include_filename)
 			{
 				char full_i_path[MAX_QPATH];
-				strcpy(full_i_path, va("models/players/%s/", include_filename));
+				Com_sprintf(full_i_path, sizeof(full_i_path),
+					"models/players/%s/", include_filename);
+
 				bg_animParseIncluding++;
 				BG_ParseAnimationEvtFile(full_i_path, animFileIndex, forced_index);
 				bg_animParseIncluding--;
 			}
+			continue;
 		}
 
-		if (!Q_stricmp(token, "UPPEREVENTS")) // A batch of upper sounds
+		// UPPER or LOWER event blocks
+		if (!Q_stricmp(token, "UPPEREVENTS"))
 		{
 			ParseAnimationEvtBlock(as_filename, torso_anim_events, animations, &text_p);
 		}
-		else if (!Q_stricmp(token, "LOWEREVENTS")) // A batch of lower sounds
+		else if (!Q_stricmp(token, "LOWEREVENTS"))
 		{
 			ParseAnimationEvtBlock(as_filename, legs_anim_events, animations, &text_p);
 		}
 	}
 
 	used_index = forced_index;
-fin:
-	//Mark this anim set so that we know we tried to load he sounds, don't care if the load failed
+
+finish:
+
+	// Mark as parsed (only when not inside include)
 	if (bg_animParseIncluding <= 0)
 	{
-		//if we should be parsing an included file, skip this part
 		bgAllEvents[forced_index].eventsParsed = qtrue;
-		strcpy(bgAllEvents[forced_index].filename, as_filename);
-		if (forced_index)
-		{
+		Q_strncpyz(bgAllEvents[forced_index].filename, as_filename,
+			sizeof(bgAllEvents[forced_index].filename));
+
+		if (forced_index != 0)
 			bgNumAnimEvents++;
-		}
 	}
 
 	return used_index;
@@ -5524,6 +5519,57 @@ models/players/visor/animation.cfg, etc
 
 ======================
 */
+static const char* humanoid_prefixes[] =
+{
+	"models/players/_humanoid",
+	"models/players/JK2anims/",
+	"models/players/_humanoid_ani",
+	"models/players/_humanoid_bdroid",
+	"models/players/_humanoid_ben",
+	"models/players/_humanoid_cal",
+	"models/players/_humanoid_clo",
+	"models/players/_humanoid_deka",
+	"models/players/_humanoid_df2",
+	"models/players/_humanoid_dooku",
+	"models/players/_humanoid_galen",
+	"models/players/_humanoid_gon",
+	"models/players/_humanoid_grievous",
+	"models/players/_humanoid_jabba",
+	"models/players/_humanoid_jango",
+	"models/players/_humanoid_kotor",
+	"models/players/_humanoid_luke",
+	"models/players/_humanoid_mace",
+	"models/players/_humanoid_maul",
+	"models/players/_humanoid_md",
+	"models/players/_humanoid_melee",
+	"models/players/_humanoid_obi",
+	"models/players/_humanoid_obi3",
+	"models/players/_humanoid_pal",
+	"models/players/_humanoid_reb",
+	"models/players/_humanoid_ren",
+	"models/players/_humanoid_rey",
+	"models/players/_humanoid_sbd",
+	"models/players/_humanoid_vader",
+	"models/players/_humanoid_yoda"
+};
+
+static qboolean R_IsHumanoidAnimName(const char* animName)
+{
+	if (!animName || !animName[0])
+		return qfalse;
+
+	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
+	{
+		const char* prefix = humanoid_prefixes[i];
+
+		// Match only if prefix is at the start of animName
+		if (strstr(animName, prefix) == animName)
+			return qtrue;
+	}
+
+	return qfalse;
+}
+
 int bg_parse_animation_file(const char* filename, animation_t* anim_set, const qboolean is_humanoid)
 {
 	char* text_p;
@@ -5536,44 +5582,40 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 
 	bgpa_ftext[0] = '\0';
 
-	// Normalize ANY humanoid anim path to MP version
-	if ((strstr(filename, "players/_humanoid/") ||
-		strstr(filename, "players/_humanoid_"))
-		&& !strstr(filename, "_humanoid_mp"))
+	// ------------------------------------------------------------
+	// HUMANOID NORMALIZATION USING PREFIX LIST
+	// ------------------------------------------------------------
+	if (R_IsHumanoidAnimName(filename))
 	{
 		filename = "models/players/_humanoid_mp/animation.cfg";
 	}
+
+	// ------------------------------------------------------------
+	// NON-HUMANOID: check if already loaded
+	// ------------------------------------------------------------
 	if (!is_humanoid)
 	{
-		i = 0;
-		while (i < bgNumAllAnims)
+		for (i = 0; i < bgNumAllAnims; i++)
 		{
-			// see if it's been loaded already
 			if (!Q_stricmp(bgAllAnims[i].filename, filename))
 			{
-				bgAllAnims[i].anims;
-				return i; // alright, we already have it.
+				return i; // already loaded
 			}
-			i++;
 		}
 
-		// Looks like it has not yet been loaded. Allocate space for the anim set if we need to, and continue along.
+		// Allocate anim set if needed
 		if (!anim_set)
 		{
-			// Any players/_humanoid* path counts as humanoid
-			if (strstr(filename, "players/_humanoid_mp"))
+			if (R_IsHumanoidAnimName(filename))
 			{
-				// then use the static humanoid set.
 				anim_set = bgHumanoidAnimations;
 				next_index = 0;
 			}
 			else if (strstr(filename, "players/rockettrooper/"))
 			{
-				// rockettrooper always index 1
 				next_index = 1;
 				anim_set = BG_AnimsetAlloc();
 				dyn_alloc = qtrue;
-
 				if (!anim_set)
 				{
 					assert(!"Anim set alloc failed!");
@@ -5584,7 +5626,6 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 			{
 				anim_set = BG_AnimsetAlloc();
 				dyn_alloc = qtrue;
-
 				if (!anim_set)
 				{
 					assert(!"Anim set alloc failed!");
@@ -5600,12 +5641,13 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 	}
 #endif
 
-	// load the file
+	// ------------------------------------------------------------
+	// LOAD FILE (only once for humanoid)
+	// ------------------------------------------------------------
 	if (!bgpa_ftext_loaded || !is_humanoid)
 	{
-		// rww - We are always using the same animation config now. So only load it once.
 		const int len = trap->FS_Open(filename, &f, FS_READ);
-		if (len <= 0 || len >= (int)sizeof bgpa_ftext - 1)
+		if (len <= 0 || len >= (int)sizeof(bgpa_ftext) - 1)
 		{
 			if (len > 0)
 			{
@@ -5627,7 +5669,6 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		}
 
 		trap->FS_Read(bgpa_ftext, len, f);
-
 		bgpa_ftext[len] = 0;
 		trap->FS_Close(f);
 	}
@@ -5641,10 +5682,11 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		return 0; // humanoid index
 	}
 
-	// parse the text
+	// ------------------------------------------------------------
+	// PARSE ANIMATION.CFG
+	// ------------------------------------------------------------
 	text_p = bgpa_ftext;
 
-	// initialize anim array so that from 0 to MAX_ANIMATIONS, set default values of 0 1 0 100
 	for (i = 0; i < MAX_ANIMATIONS; i++)
 	{
 		anim_set[i].firstFrame = 0;
@@ -5653,11 +5695,9 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		anim_set[i].frameLerp = 100;
 	}
 
-	// read information for each frame
 	while (1)
 	{
 		char* token = COM_Parse(&text_p);
-
 		if (!token || !token[0])
 		{
 			break;
@@ -5667,122 +5707,60 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		if (anim_num == -1)
 		{
 #ifdef _DEBUG
-			if (strcmp(token, "ROOT"))
-			{
-				///Com_Printf(S_COLOR_RED "WARNING: Unknown token %s in %s\n", token, filename);
-			}
 			while (token[0])
 			{
-				token = COM_ParseExt(&text_p, qfalse); // returns empty string when next token is EOL
+				token = COM_ParseExt(&text_p, qfalse);
 			}
 #endif
 			continue;
 		}
 
 		token = COM_Parse(&text_p);
-		if (!token)
-		{
-			break;
-		}
+		if (!token) break;
 		anim_set[anim_num].firstFrame = atoi(token);
 
 		token = COM_Parse(&text_p);
-		if (!token)
-		{
-			break;
-		}
+		if (!token) break;
 		anim_set[anim_num].numFrames = atoi(token);
 
 		token = COM_Parse(&text_p);
-		if (!token)
-		{
-			break;
-		}
+		if (!token) break;
 		anim_set[anim_num].loopFrames = atoi(token);
 
 		token = COM_Parse(&text_p);
-		if (!token)
-		{
-			break;
-		}
+		if (!token) break;
 		float fps = (float)atof(token);
-		if (fps == 0.0f)
-		{
-			fps = 1.0f; // Don't allow divide by zero error
-		}
+		if (fps == 0.0f) fps = 1.0f;
+
 		if (fps < 0.0f)
 		{
-			// backwards
 			anim_set[anim_num].frameLerp = (int)floor(1000.0f / fps);
-
-			// Slow down saber moves...
-			for (int x = 4; x < LS_MOVE_MAX; x++)
-			{
-				if (saber_moveData[x].animToUse + 77 * 4 == anim_num) // SS_TAVION
-				{
-					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.2f);
-					break;
-				}
-				if (saber_moveData[x].animToUse + 77 * 5 == anim_num) // SS_DUAL
-				{
-					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.1f);
-					break;
-				}
-				if (saber_moveData[x].animToUse + 77 * 6 == anim_num) // SS_STAFF
-				{
-					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.1f);
-					break;
-				}
-			}
 		}
 		else
 		{
 			anim_set[anim_num].frameLerp = (int)ceil(1000.0f / fps);
-
-			// Slow down saber moves...
-			for (int x = 4; x < LS_MOVE_MAX; x++)
-			{
-				if (saber_moveData[x].animToUse + 77 * 4 == anim_num) // SS_TAVION
-				{
-					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.2f);
-					break;
-				}
-				if (saber_moveData[x].animToUse + 77 * 5 == anim_num) // SS_DUAL
-				{
-					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.1f);
-					break;
-				}
-				if (saber_moveData[x].animToUse + 77 * 6 == anim_num) // SS_STAFF
-				{
-					anim_set[anim_num].frameLerp = (int)(anim_set[anim_num].frameLerp * 1.1f);
-					break;
-				}
-			}
 		}
 	}
 
-#ifdef CONVENIENT_ANIMATION_FILE_DEBUG_THING
-	SpewDebugStuffToFile();
-#endif
-
+	// ------------------------------------------------------------
+	// STORE RESULT
+	// ------------------------------------------------------------
 	if (is_humanoid)
 	{
 		bgAllAnims[0].anims = anim_set;
-		Q_strncpyz(bgAllAnims[0].filename, filename, sizeof bgAllAnims[0].filename);
+		Q_strncpyz(bgAllAnims[0].filename, filename, sizeof(bgAllAnims[0].filename));
 		bgpa_ftext_loaded = qtrue;
-
 		used_index = 0;
 	}
 	else
 	{
 		bgAllAnims[next_index].anims = anim_set;
-		Q_strncpyz(bgAllAnims[next_index].filename, filename, sizeof bgAllAnims[next_index].filename);
+		Q_strncpyz(bgAllAnims[next_index].filename, filename, sizeof(bgAllAnims[next_index].filename));
 
 		used_index = bgNumAllAnims;
 
 		if (next_index > 1)
 		{
-			// don't bother increasing the number if this ended up as a humanoid/rockettrooper load.
 			bgNumAllAnims++;
 		}
 		else

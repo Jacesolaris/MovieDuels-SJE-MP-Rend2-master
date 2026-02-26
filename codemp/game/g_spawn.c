@@ -1791,8 +1791,6 @@ static void SP_worldspawn(void)
 	char* text;
 	int i;
 
-	//I want to "cull" entities out of net sends to clients to reduce
-	//net traffic on our larger open maps -rww
 	G_SpawnFloat("distanceCull", "6000.0", &g_cullDistance);
 	trap->SetServerCull(g_cullDistance);
 
@@ -1806,17 +1804,26 @@ static void SP_worldspawn(void)
 	{
 		if (Q_stricmp("spawnscript", level.spawnVars[i][0]) == 0)
 		{
-			//ONly let them set spawnscript, we don't want them setting an angle or something on the world.
 			G_ParseField(level.spawnVars[i][0], level.spawnVars[i][1], &g_entities[ENTITYNUM_WORLD]);
 		}
 	}
-	//The server will precache the standard model and animations, so that there is no hit
-	//when the first client connnects.
+
+	// ------------------------------------------------------------
+	// PRELOAD HUMANOID ANIMATIONS (prefix-based)
+	// ------------------------------------------------------------
 	if (!bgpa_ftext_loaded)
 	{
-		bg_parse_animation_file("models/players/_humanoid_mp/animation.cfg", bgHumanoidAnimations, qtrue);
+		// Always load the MP humanoid animation set
+		bg_parse_animation_file(
+			"models/players/_humanoid_mp/animation.cfg",
+			bgHumanoidAnimations,
+			qtrue
+		);
 	}
 
+	// ------------------------------------------------------------
+	// PRECACHE DEFAULT HUMANOID MODEL (Kyle)
+	// ------------------------------------------------------------
 	if (!precachedKyle)
 	{
 		trap->G2API_InitGhoul2Model(
@@ -1827,7 +1834,6 @@ static void SP_worldspawn(void)
 
 		if (precachedKyle)
 		{
-			// NEW (matches DEFAULT_MODEL like the GLM above):
 			const int defSkin = trap->R_RegisterSkin(
 				va("models/players/%s/model_default.skin", DEFAULT_MODEL)
 			);
@@ -1836,42 +1842,39 @@ static void SP_worldspawn(void)
 		}
 	}
 
+	// ------------------------------------------------------------
+	// PRECACHE DEFAULT SABER INSTANCE
+	// ------------------------------------------------------------
 	if (!g2SaberInstance)
 	{
 		trap->G2API_InitGhoul2Model(&g2SaberInstance, DEFAULT_SABER_MODEL, 0, 0, -20, 0, 0);
 
 		if (g2SaberInstance)
 		{
-			// indicate we will be bolted to model 0 (ie the player) on bolt 0 (always the right hand) when we get copied
 			trap->G2API_SetBoltInfo(g2SaberInstance, 0, 0);
-			// now set up the gun bolt on it
 			trap->G2API_AddBolt(g2SaberInstance, 0, "*blade1");
 		}
 	}
 
 	if (level.gametype == GT_SIEGE)
 	{
-		//a tad bit of a hack, but..
 		EWebPrecache();
 	}
 
-	// make some data visible to connecting client
 	trap->SetConfigstring(CS_GAME_VERSION, GAME_VERSION);
-
 	trap->SetConfigstring(CS_LEVEL_START_TIME, va("%i", level.startTime));
 
 	G_SpawnString("music", "", &text);
 	if (strcmp(text, "") == 0)
 	{
-		//ok there isn't a given music file for this map, check for dynamic music.
 		LoadDynamicMusic();
 	}
 	trap->SetConfigstring(CS_MUSIC, text);
 
 	G_SpawnString("message", "", &text);
-	trap->SetConfigstring(CS_MESSAGE, text); // map specific message
+	trap->SetConfigstring(CS_MESSAGE, text);
 
-	trap->SetConfigstring(CS_MOTD, g_motd.string); // message of the day
+	trap->SetConfigstring(CS_MOTD, g_motd.string);
 
 	G_SpawnString("gravity", "800", &text);
 	trap->Cvar_Set("g_gravity", text);
@@ -1890,7 +1893,6 @@ static void SP_worldspawn(void)
 	g_entities[ENTITYNUM_NONE].r.ownerNum = ENTITYNUM_NONE;
 	g_entities[ENTITYNUM_NONE].classname = "nothing";
 
-	// see if we want a warmup time
 	trap->SetConfigstring(CS_WARMUP, "");
 	if (g_restarted.integer)
 	{
@@ -1898,13 +1900,12 @@ static void SP_worldspawn(void)
 		trap->Cvar_Update(&g_restarted);
 		level.warmupTime = 0;
 	}
-	else if (g_doWarmup.integer
-		&& level.gametype != GT_DUEL
-		&& level.gametype != GT_POWERDUEL
-		&& level.gametype != GT_SIEGE
-		&& level.gametype != GT_SINGLE_PLAYER)
+	else if (g_doWarmup.integer &&
+		level.gametype != GT_DUEL &&
+		level.gametype != GT_POWERDUEL &&
+		level.gametype != GT_SIEGE &&
+		level.gametype != GT_SINGLE_PLAYER)
 	{
-		// Turn it on
 		level.warmupTime = -1;
 		trap->SetConfigstring(CS_WARMUP, va("%i", level.warmupTime));
 		G_LogPrintf("Warmup:\n");

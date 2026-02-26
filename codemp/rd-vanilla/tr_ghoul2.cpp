@@ -3950,6 +3950,53 @@ int OldToNewRemapTable[72] = {
 	52 // Bone71:   "face_always_":			Parent: "cranium"  (index 17)
 };
 
+static const char* humanoid_prefixes[] =
+{
+	"models/players/_humanoid",
+	"models/players/JK2anims/",
+	"models/players/_humanoid_ani",
+	"models/players/_humanoid_bdroid",
+	"models/players/_humanoid_ben",
+	"models/players/_humanoid_cal",
+	"models/players/_humanoid_clo",
+	"models/players/_humanoid_deka",
+	"models/players/_humanoid_df2",
+	"models/players/_humanoid_dooku",
+	"models/players/_humanoid_galen",
+	"models/players/_humanoid_gon",
+	"models/players/_humanoid_grievous",
+	"models/players/_humanoid_jabba",
+	"models/players/_humanoid_jango",
+	"models/players/_humanoid_kotor",
+	"models/players/_humanoid_luke",
+	"models/players/_humanoid_mace",
+	"models/players/_humanoid_maul",
+	"models/players/_humanoid_md",
+	"models/players/_humanoid_melee",
+	"models/players/_humanoid_obi",
+	"models/players/_humanoid_obi3",
+	"models/players/_humanoid_pal",
+	"models/players/_humanoid_reb",
+	"models/players/_humanoid_ren",
+	"models/players/_humanoid_rey",
+	"models/players/_humanoid_sbd",
+	"models/players/_humanoid_vader",
+	"models/players/_humanoid_yoda"
+};
+
+static qboolean R_IsHumanoidAnimName(const char* animName)
+{
+	if (!animName || !animName[0])
+		return qfalse;
+
+	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
+	{
+		if (strstr(animName, humanoid_prefixes[i]))
+			return qtrue;
+	}
+	return qfalse;
+}
+
 qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
 	int i, j;
@@ -3961,7 +4008,7 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 	mdxmSurfHierarchy_t* surfInfo;
 
 #ifdef Q3_BIG_ENDIAN
-	int					k;
+	int                     k;
 	mdxmTriangle_t* tri;
 	mdxmVertex_t* v;
 	int* boneRef;
@@ -4014,29 +4061,27 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		LL(mdxm->ofsEnd);
 	}
 
+	// --------------------------------------------------------------------
 	// Decide which animation GLA to use.
-	// - Non-humanoids: use mdxm->animName as-is.
-	// - Base humanoid: prefer _humanoid_mp if present, otherwise fall back to original _humanoid.
+	// Rule:
+	//  - Any humanoid-family animName (by prefix) is forced to _humanoid_mp/_humanoid.gla
+	//  - Non-humanoids keep their own animName
+	// --------------------------------------------------------------------
 	const char* animNameToUse = mdxm->animName;
-	qhandle_t animIndex = 0;
+	qhandle_t   animIndex = 0;
 
-	// Detect ANY humanoid or humanoid variant by animName
-	if (strstr(mdxm->animName, "models/players/_humanoid/") ||
-		strstr(mdxm->animName, "models/players/_humanoid_"))
+	if (R_IsHumanoidAnimName(mdxm->animName))
 	{
-		const char* mpHumanoid = "models/players/_humanoid_mp/_humanoid";
+		const char* forcedHumanoid = "models/players/_humanoid_mp/_humanoid";
 
-		// Try MP humanoid first
-		animIndex = RE_RegisterModel(va("%s.gla", mpHumanoid));
-		if (animIndex)
+		animIndex = RE_RegisterModel(va("%s.gla", forcedHumanoid));
+		if (!animIndex)
 		{
-			animNameToUse = mpHumanoid;
+			Com_Error(ERR_DROP,
+				"R_LoadMDXM: required MP humanoid GLA missing: %s.gla", forcedHumanoid);
 		}
-		else
-		{
-			// Fallback to original humanoid
-			animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
-		}
+
+		animNameToUse = forcedHumanoid;
 	}
 	else
 	{
@@ -4056,7 +4101,7 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 	// Keep animName in sync with what we actually loaded
 	Q_strncpyz(mdxm->animName, animNameToUse, sizeof(mdxm->animName));
 
-	mod->numLods = mdxm->numLODs - 1; //copy this up to the model for ease of use - it wil get inced after this.
+	mod->numLods = mdxm->numLODs - 1; // copy this up to the model for ease of use - it will get inced after this.
 
 	if (bAlreadyFound)
 	{
@@ -4080,10 +4125,10 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		LL(surfInfo->numChildren);
 		LL(surfInfo->parentIndex);
 
-		Q_strlwr(surfInfo->name); //just in case
+		Q_strlwr(surfInfo->name); // just in case
 		if (strcmp(&surfInfo->name[strlen(surfInfo->name) - 4], "_off") == 0)
 		{
-			surfInfo->name[strlen(surfInfo->name) - 4] = 0; //remove "_off" from name
+			surfInfo->name[strlen(surfInfo->name) - 4] = 0; // remove "_off" from name
 		}
 
 		// do all the children indexs
@@ -4113,11 +4158,11 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 #endif
 
 		// find the next surface
-		surfInfo = (mdxmSurfHierarchy_t*)((byte*)surfInfo + (size_t) & static_cast<mdxmSurfHierarchy_t*>(nullptr)->
-			childIndexes[surfInfo->numChildren]);
+		surfInfo = (mdxmSurfHierarchy_t*)((byte*)surfInfo +
+			(size_t) & static_cast<mdxmSurfHierarchy_t*>(nullptr)->childIndexes[surfInfo->numChildren]);
 	}
 
-	// swap all the LOD's	(we need to do the middle part of this even for intel, because of shader reg and err-check)
+	// swap all the LOD's (we need to do the middle part of this even for intel, because of shader reg and err-check)
 	lod = (mdxmLOD_t*)((byte*)mdxm + mdxm->ofsLODs);
 	for (int l = 0; l < mdxm->numLODs; l++)
 	{
@@ -4125,7 +4170,8 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 
 		LL(lod->ofsEnd);
 		// swap all the surfaces
-		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) + mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t));
+		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) +
+			mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t));
 		for (i = 0; i < mdxm->numSurfaces; i++)
 		{
 			LL(surf->thisSurfaceIndex);
@@ -4153,7 +4199,6 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 
 			// change to surface identifier
 			surf->ident = SF_MDX;
-			// register the shaders
 #ifdef Q3_BIG_ENDIAN
 			// swap the LOD offset
 			indexes = (mdxmLODSurfOffset_t*)((byte*)lod + sizeof(mdxmLOD_t));
@@ -4214,6 +4259,7 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 					}
 				}
 			}
+
 			// find the next surface
 			surf = (mdxmSurface_t*)((byte*)surf + surf->ofsEnd);
 		}

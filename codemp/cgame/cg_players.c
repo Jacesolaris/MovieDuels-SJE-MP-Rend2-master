@@ -527,9 +527,63 @@ static qboolean CG_ParseSurfsFile(const char* model_name, const char* skin_name,
 CG_RegisterClientModelname
 ==========================
 */
+static const char* humanoid_prefixes[] =
+{
+	"models/players/_humanoid",
+	"models/players/JK2anims/",
+	"models/players/_humanoid_ani",
+	"models/players/_humanoid_bdroid",
+	"models/players/_humanoid_ben",
+	"models/players/_humanoid_cal",
+	"models/players/_humanoid_clo",
+	"models/players/_humanoid_deka",
+	"models/players/_humanoid_df2",
+	"models/players/_humanoid_dooku",
+	"models/players/_humanoid_galen",
+	"models/players/_humanoid_gon",
+	"models/players/_humanoid_grievous",
+	"models/players/_humanoid_jabba",
+	"models/players/_humanoid_jango",
+	"models/players/_humanoid_kotor",
+	"models/players/_humanoid_luke",
+	"models/players/_humanoid_mace",
+	"models/players/_humanoid_maul",
+	"models/players/_humanoid_md",
+	"models/players/_humanoid_melee",
+	"models/players/_humanoid_obi",
+	"models/players/_humanoid_obi3",
+	"models/players/_humanoid_pal",
+	"models/players/_humanoid_reb",
+	"models/players/_humanoid_ren",
+	"models/players/_humanoid_rey",
+	"models/players/_humanoid_sbd",
+	"models/players/_humanoid_vader",
+	"models/players/_humanoid_yoda"
+};
+
+static qboolean R_IsHumanoidAnimName(const char* animName)
+{
+	if (!animName || !animName[0])
+		return qfalse;
+
+	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
+	{
+		const char* prefix = humanoid_prefixes[i];
+
+		// Match only if prefix is at the start of animName
+		if (strstr(animName, prefix) == animName)
+			return qtrue;
+	}
+
+	return qfalse;
+}
+
 qboolean BG_IsValidCharacterModel(const char* model_name, const char* skin_name);
 qboolean BG_ValidateSkinForTeam(const char* model_name, char* skin_name, int team, float* colors);
 
+// ======================================================================
+// CG_RegisterClientModelname (with humanoid prefix enforcement)
+// ======================================================================
 static qboolean CG_RegisterClientModelname(
 	clientInfo_t* ci,
 	const char* model_name,
@@ -583,7 +637,7 @@ retryModel:
 		ci->colorOverride[0] = ci->colorOverride[1] = ci->colorOverride[2] = 0.0f;
 	}
 
-	// Handle 3?part skins
+	// Handle 3-part skins
 	if (strchr(skin_name, '|') &&
 		strstr(skin_name, "head") &&
 		strstr(skin_name, "torso") &&
@@ -619,19 +673,21 @@ retryModel:
 	trap->G2API_GetGLAName(ci->ghoul2Model, 0, gla_name);
 
 	// ------------------------------------------------------------
-	// NORMALIZE GLA PATH (THIS FIXES BOTS)
+	// NORMALIZE GLA PATH USING HUMANOID PREFIXES
 	// ------------------------------------------------------------
 	Q_strncpyz(resolvedGLA, gla_name, sizeof(resolvedGLA));
 
-	if (!Q_strncmp(resolvedGLA, "models/players/_humanoid", strlen("models/players/_humanoid")))
+	if (R_IsHumanoidAnimName(resolvedGLA))
 	{
-		Q_strncpyz(resolvedGLA, "models/players/_humanoid_mp/_humanoid", sizeof(resolvedGLA));
+		Q_strncpyz(resolvedGLA,
+			"models/players/_humanoid_mp/_humanoid",
+			sizeof(resolvedGLA));
 	}
 
 	// ------------------------------------------------------------
-	// HUMANOID DETECTION USING NORMALIZED PATH
+	// HUMANOID DETECTION USING PREFIX LIST
 	// ------------------------------------------------------------
-	isHumanoidGLA = BG_IsHumanoidModel(resolvedGLA);
+	isHumanoidGLA = R_IsHumanoidAnimName(resolvedGLA);
 
 	// Store final GLA name
 	Q_strncpyz(ci->glaName, resolvedGLA, sizeof(ci->glaName));
@@ -13950,13 +14006,11 @@ static void CG_G2AnimEntModelLoad(centity_t* cent)
 	}
 
 	// ------------------------------------------------------------
-	// Determine humanoid vs non-humanoid from stored clientInfo
+	// HUMANOID DETECTION USING PREFIX LIST
 	// ------------------------------------------------------------
 	qboolean isHumanoid = qfalse;
 
-	// We store ci->glaName as "models/players/_humanoid_mp/_humanoid"
-	// so just check for that, no ".gla" suffix.
-	if (ci->glaName[0] && strstr(ci->glaName, "_humanoid_mp/_humanoid"))
+	if (ci->glaName[0] && R_IsHumanoidAnimName(ci->glaName))
 	{
 		isHumanoid = qtrue;
 	}
@@ -14392,18 +14446,32 @@ static void CG_ForceFPLSPlayerModel(centity_t* cent, clientInfo_t* ci)
 {
 	animation_t* anim;
 
-	if (cg_fpls.integer && !cg.renderingThirdPerson)
+	// ------------------------------------------------------------
+	// HUMANOID DETECTION USING PREFIX LIST
+	// ------------------------------------------------------------
+	qboolean isHumanoid = qfalse;
+
+	if (ci->glaName[0] && R_IsHumanoidAnimName(ci->glaName))
+	{
+		isHumanoid = qtrue;
+	}
+
+	// ------------------------------------------------------------
+	// ONLY HUMANOIDS CAN USE FPLS
+	// ------------------------------------------------------------
+	if (cg_fpls.integer && !cg.renderingThirdPerson && isHumanoid)
 	{
 		int skinHandle;
 
-		// Use unified humanoid MP FPLS skin
+		// Unified humanoid MP FPLS skin
 		skinHandle = trap->R_RegisterSkin("models/players/_humanoid_mp/model_fpls2.skin");
 
+		// Reset ghoul2
 		trap->G2API_CleanGhoul2Models(&(ci->ghoul2Model));
 
 		ci->torsoSkin = skinHandle;
 
-		// Use unified humanoid MP model
+		// Unified humanoid MP model
 		trap->G2API_InitGhoul2Model(
 			&ci->ghoul2Model,
 			"models/players/_humanoid_mp/model.glm",
@@ -14412,21 +14480,23 @@ static void CG_ForceFPLSPlayerModel(centity_t* cent, clientInfo_t* ci)
 			0, 0, 0
 		);
 
+		// Bolts
 		ci->bolt_rhand = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*r_hand");
 
 		trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "model_root",
 			0, 12, BONE_ANIM_OVERRIDE_LOOP, 1.0f, cg.time, -1, -1);
+
 		trap->G2API_SetBoneAngles(ci->ghoul2Model, 0, "upper_lumbar",
-			vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, cg.time);
+			vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z,
+			NULL, 0, cg.time);
+
 		trap->G2API_SetBoneAngles(ci->ghoul2Model, 0, "cranium",
-			vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_Z, NEGATIVE_Y, POSITIVE_X, NULL, 0, cg.time);
+			vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_Z, NEGATIVE_Y, POSITIVE_X,
+			NULL, 0, cg.time);
 
 		ci->bolt_lhand = trap->G2API_AddBolt(ci->ghoul2Model, 0, "*l_hand");
 
-		// rhand must always be first bolt, lhand second, jetpack third
 		trap->G2API_AddBolt(ci->ghoul2Model, 0, "*chestg");
-
-		// claw bolts
 		trap->G2API_AddBolt(ci->ghoul2Model, 0, "*r_hand_cap_r_arm");
 		trap->G2API_AddBolt(ci->ghoul2Model, 0, "*l_hand_cap_l_arm");
 
@@ -14437,24 +14507,26 @@ static void CG_ForceFPLSPlayerModel(centity_t* cent, clientInfo_t* ci)
 		}
 
 		ci->bolt_motion = trap->G2API_AddBolt(ci->ghoul2Model, 0, "Motion");
-
-		// lower lumbar for footsteps
 		ci->bolt_llumbar = trap->G2API_AddBolt(ci->ghoul2Model, 0, "lower_lumbar");
 
+		// Copy weapon instance
 		CG_CopyG2WeaponInstance(cent, cent->currentState.weapon, ci->ghoul2Model);
 	}
 	else
 	{
+		// Non-humanoid OR not in FPLS → load normally
 		CG_RegisterClientModelname(ci, ci->modelName, ci->skinName, ci->teamName, cent->currentState.number);
 	}
 
-	// Legs anim
+	// ------------------------------------------------------------
+	// LEGS ANIMATION
+	// ------------------------------------------------------------
 	anim = &bgAllAnims[cent->localAnimIndex].anims[cent->currentState.legsAnim];
 	if (anim)
 	{
-		int   flags = (anim->loopFrames != -1) ? BONE_ANIM_OVERRIDE_LOOP : BONE_ANIM_OVERRIDE_FREEZE;
-		int   firstFrame = anim->firstFrame;
-		int   setFrame = -1;
+		int flags = (anim->loopFrames != -1) ? BONE_ANIM_OVERRIDE_LOOP : BONE_ANIM_OVERRIDE_FREEZE;
+		int firstFrame = anim->firstFrame;
+		int setFrame = -1;
 		float animSpeed = 50.0f / anim->frameLerp;
 
 		if (cent->pe.legs.frame >= anim->firstFrame &&
@@ -14470,13 +14542,15 @@ static void CG_ForceFPLSPlayerModel(centity_t* cent, clientInfo_t* ci)
 		cent->currentState.legsAnim = 0;
 	}
 
-	// Torso anim
+	// ------------------------------------------------------------
+	// TORSO ANIMATION
+	// ------------------------------------------------------------
 	anim = &bgAllAnims[cent->localAnimIndex].anims[cent->currentState.torsoAnim];
 	if (anim)
 	{
-		int   flags = (anim->loopFrames != -1) ? BONE_ANIM_OVERRIDE_LOOP : BONE_ANIM_OVERRIDE_FREEZE;
-		int   firstFrame = anim->firstFrame;
-		int   setFrame = -1;
+		int flags = (anim->loopFrames != -1) ? BONE_ANIM_OVERRIDE_LOOP : BONE_ANIM_OVERRIDE_FREEZE;
+		int firstFrame = anim->firstFrame;
+		int setFrame = -1;
 		float animSpeed = 50.0f / anim->frameLerp;
 
 		if (cent->pe.torso.frame >= anim->firstFrame &&
@@ -14492,6 +14566,9 @@ static void CG_ForceFPLSPlayerModel(centity_t* cent, clientInfo_t* ci)
 		cent->currentState.torsoAnim = 0;
 	}
 
+	// ------------------------------------------------------------
+	// FINAL GH2 DUPLICATION
+	// ------------------------------------------------------------
 	trap->G2API_CleanGhoul2Models(&(cent->ghoul2));
 	trap->G2API_DuplicateGhoul2Instance(ci->ghoul2Model, &cent->ghoul2);
 	trap->G2API_AttachInstanceToEntNum(cent->ghoul2, cent->currentState.number, qfalse);

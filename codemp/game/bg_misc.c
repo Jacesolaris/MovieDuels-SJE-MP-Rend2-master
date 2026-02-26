@@ -44,6 +44,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #elif defined(UI_BUILD)
 #include "ui/ui_local.h"
 #endif
+#include <qcommon\q_platform.h>
 
 const char* bgToggleableSurfaces[BG_NUM_TOGGLEABLE_SURFACES] =
 {
@@ -471,23 +472,6 @@ static qboolean BG_FileExists(const char* fileName)
 			return qtrue;
 		}
 	}
-	return qfalse;
-}
-
-qboolean BG_IsHumanoidModel(const char* glaName)
-{
-	if (!glaName || !glaName[0])
-	{
-		return qfalse;
-	}
-
-	// Detect ANY humanoid or humanoid variant
-	if (strstr(glaName, "players/_humanoid/") ||
-		strstr(glaName, "players/_humanoid_"))
-	{
-		return qtrue;
-	}
-
 	return qfalse;
 }
 

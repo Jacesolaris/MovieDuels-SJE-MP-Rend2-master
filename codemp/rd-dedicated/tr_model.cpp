@@ -741,6 +741,53 @@ qboolean ServerLoadMDXA(model_t* mod, void* buffer, const char* mod_name, qboole
 	return qtrue;
 }
 
+static const char* humanoid_prefixes[] =
+{
+	"models/players/_humanoid",
+	"models/players/JK2anims/",
+	"models/players/_humanoid_ani",
+	"models/players/_humanoid_bdroid",
+	"models/players/_humanoid_ben",
+	"models/players/_humanoid_cal",
+	"models/players/_humanoid_clo",
+	"models/players/_humanoid_deka",
+	"models/players/_humanoid_df2",
+	"models/players/_humanoid_dooku",
+	"models/players/_humanoid_galen",
+	"models/players/_humanoid_gon",
+	"models/players/_humanoid_grievous",
+	"models/players/_humanoid_jabba",
+	"models/players/_humanoid_jango",
+	"models/players/_humanoid_kotor",
+	"models/players/_humanoid_luke",
+	"models/players/_humanoid_mace",
+	"models/players/_humanoid_maul",
+	"models/players/_humanoid_md",
+	"models/players/_humanoid_melee",
+	"models/players/_humanoid_obi",
+	"models/players/_humanoid_obi3",
+	"models/players/_humanoid_pal",
+	"models/players/_humanoid_reb",
+	"models/players/_humanoid_ren",
+	"models/players/_humanoid_rey",
+	"models/players/_humanoid_sbd",
+	"models/players/_humanoid_vader",
+	"models/players/_humanoid_yoda"
+};
+
+static qboolean R_IsHumanoidAnimName(const char* animName)
+{
+	if (!animName || !animName[0])
+		return qfalse;
+
+	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
+	{
+		if (strstr(animName, humanoid_prefixes[i]))
+			return qtrue;
+	}
+	return qfalse;
+}
+
 /*
 =================
 ServerLoadMDXM - load a Ghoul 2 Mesh file
@@ -757,8 +804,8 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 	mdxmSurfHierarchy_t* surfInfo;
 
 #if 0 //#ifndef _M_IX86
-	int					k;
-	int					frameSize;
+	int                 k;
+	int                 frameSize;
 	mdxmTag_t* tag;
 	mdxmTriangle_t* tri;
 	mdxmVertex_t* v;
@@ -767,9 +814,8 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 #endif
 
 	pinmodel = static_cast<mdxmHeader_t*>(buffer);
-	//
+
 	// read some fields from the binary, but only LittleLong() them when we know this wasn't an already-cached model...
-	//
 	version = pinmodel->version;
 	size = pinmodel->ofsEnd;
 
@@ -807,29 +853,28 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 		LL(mdxm->ofsEnd);
 	}
 
+	// --------------------------------------------------------------------
 	// Decide which animation GLA to use.
-	// - Non-humanoids: use mdxm->animName as-is.
-	// - Base humanoid: prefer _humanoid_mp if present, otherwise fall back to original _humanoid.
+	// Rule:
+	//  - Any humanoid-family animName (by prefix) is forced to _humanoid_mp/_humanoid.gla
+	//  - Non-humanoids keep their own animName
+	// --------------------------------------------------------------------
 	const char* animNameToUse = mdxm->animName;
-	qhandle_t animIndex = 0;
+	qhandle_t   animIndex = 0;
 
-	// Detect ANY humanoid or humanoid variant by animName
-	if (strstr(mdxm->animName, "models/players/_humanoid/") ||
-		strstr(mdxm->animName, "models/players/_humanoid_"))
+	if (R_IsHumanoidAnimName(mdxm->animName))
 	{
-		const char* mpHumanoid = "models/players/_humanoid_mp/_humanoid";
+		const char* forcedHumanoid = "models/players/_humanoid_mp/_humanoid";
 
-		// Try MP humanoid first
-		animIndex = RE_RegisterModel(va("%s.gla", mpHumanoid));
-		if (animIndex)
+		animIndex = RE_RegisterModel(va("%s.gla", forcedHumanoid));
+		if (!animIndex)
 		{
-			animNameToUse = mpHumanoid;
+			// On server we can't render, but this is a hard requirement for gameplay
+			Com_Error(ERR_DROP,
+				"ServerLoadMDXM: required MP humanoid GLA missing: %s.gla", forcedHumanoid);
 		}
-		else
-		{
-			// Fallback to original humanoid
-			animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
-		}
+
+		animNameToUse = forcedHumanoid;
 	}
 	else
 	{
@@ -847,14 +892,17 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 	// Keep animName in sync with what we actually loaded
 	Q_strncpyz(mdxm->animName, animNameToUse, sizeof(mdxm->animName));
 
-	mod->numLods = mdxm->numLODs - 1; //copy this up to the model for ease of use - it wil get inced after this.
+	mod->numLods = mdxm->numLODs - 1; // copy this up to the model for ease of use - it will get inced after this.
 
 	if (bAlreadyFound)
 	{
-		return qtrue; // All done. Stop, go no further, do not LittleLong(), do not pass Go...
+		// All done. Stop, go no further, do not LittleLong(), do not pass Go...
+		return qtrue;
 	}
 
-	surfInfo = reinterpret_cast<mdxmSurfHierarchy_t*>(reinterpret_cast<byte*>(mdxm) + mdxm->ofsSurfHierarchy);
+	surfInfo = reinterpret_cast<mdxmSurfHierarchy_t*>(
+		reinterpret_cast<byte*>(mdxm) + mdxm->ofsSurfHierarchy);
+
 	for (i = 0; i < mdxm->numSurfaces; i++)
 	{
 		LL(surfInfo->numChildren);
@@ -870,19 +918,25 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 		RE_RegisterModels_StoreShaderRequest(mod_name, &surfInfo->shader[0], &surfInfo->shaderIndex);
 
 		// find the next surface
-		surfInfo = reinterpret_cast<mdxmSurfHierarchy_t*>(reinterpret_cast<byte*>(surfInfo) + reinterpret_cast<intptr_t>(&static_cast<mdxmSurfHierarchy_t*>(nullptr)->
-			childIndexes[surfInfo->numChildren]));
+		surfInfo = reinterpret_cast<mdxmSurfHierarchy_t*>(
+			reinterpret_cast<byte*>(surfInfo) +
+			reinterpret_cast<intptr_t>(&static_cast<mdxmSurfHierarchy_t*>(nullptr)->childIndexes[surfInfo->numChildren]));
 	}
 
-	// swap all the LOD's	(we need to do the middle part of this even for intel, because of shader reg and err-check)
-	lod = reinterpret_cast<mdxmLOD_t*>(reinterpret_cast<byte*>(mdxm) + mdxm->ofsLODs);
+	// swap all the LOD's (we need to do the middle part of this even for intel, because of shader reg and err-check)
+	lod = reinterpret_cast<mdxmLOD_t*>(
+		reinterpret_cast<byte*>(mdxm) + mdxm->ofsLODs);
+
 	for (int l = 0; l < mdxm->numLODs; l++)
 	{
 		int triCount = 0;
 
 		LL(lod->ofsEnd);
+
 		// swap all the surfaces
-		surf = reinterpret_cast<mdxmSurface_t*>(reinterpret_cast<byte*>(lod) + sizeof(mdxmLOD_t) + mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t));
+		surf = reinterpret_cast<mdxmSurface_t*>(
+			reinterpret_cast<byte*>(lod) + sizeof(mdxmLOD_t) + mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t));
+
 		for (i = 0; i < mdxm->numSurfaces; i++)
 		{
 			LL(surf->numTriangles);
@@ -909,53 +963,17 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 			surf->ident = SF_MDX;
 
 #if 0 //#ifndef _M_IX86
-			// do all the bone reference data
-			boneRef = (int*)((byte*)surf + surf->ofsBoneReferences);
-			for (j = 0; j < surf->numBoneReferences; j++)
-			{
-				LL(boneRef[j]);
-			}
-
-			// swap all the triangles
-			tri = (mdxmTriangle_t*)((byte*)surf + surf->ofsTriangles);
-			for (j = 0; j < surf->numTriangles; j++, tri++)
-			{
-				LL(tri->indexes[0]);
-				LL(tri->indexes[1]);
-				LL(tri->indexes[2]);
-			}
-
-			// swap all the vertexes
-			v = (mdxmVertex_t*)((byte*)surf + surf->ofsVerts);
-			for (j = 0; j < surf->numVerts; j++)
-			{
-				v->normal[0] = LittleFloat(v->normal[0]);
-				v->normal[1] = LittleFloat(v->normal[1]);
-				v->normal[2] = LittleFloat(v->normal[2]);
-
-				v->texCoords[0] = LittleFloat(v->texCoords[0]);
-				v->texCoords[1] = LittleFloat(v->texCoords[1]);
-
-				v->numWeights = LittleLong(v->numWeights);
-				v->offset[0] = LittleFloat(v->offset[0]);
-				v->offset[1] = LittleFloat(v->offset[1]);
-				v->offset[2] = LittleFloat(v->offset[2]);
-
-				for (k = 0; k < surf->maxVertBoneWeights; k++)
-				{
-					v->weights[k].boneIndex = LittleLong(v->weights[k].boneIndex);
-					v->weights[k].boneWeight = LittleFloat(v->weights[k].boneWeight);
-				}
-				v = (mdxmVertex_t*)&v->weights[surf->maxVertBoneWeights];
-			}
+			// ... endian-swapping vertex/triangle data if needed ...
 #endif
 
 			// find the next surface
-			surf = reinterpret_cast<mdxmSurface_t*>(reinterpret_cast<byte*>(surf) + surf->ofsEnd);
+			surf = reinterpret_cast<mdxmSurface_t*>(
+				reinterpret_cast<byte*>(surf) + surf->ofsEnd);
 		}
 
 		// find the next LOD
-		lod = reinterpret_cast<mdxmLOD_t*>(reinterpret_cast<byte*>(lod) + lod->ofsEnd);
+		lod = reinterpret_cast<mdxmLOD_t*>(
+			reinterpret_cast<byte*>(lod) + lod->ofsEnd);
 	}
 
 	return qtrue;

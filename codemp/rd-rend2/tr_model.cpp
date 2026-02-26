@@ -482,6 +482,53 @@ static qboolean R_LoadMDXA_Server(model_t* mod, void* buffer, const char* mod_na
 	return qtrue;
 }
 
+static const char* humanoid_prefixes[] =
+{
+	"models/players/_humanoid",
+	"models/players/JK2anims/",
+	"models/players/_humanoid_ani",
+	"models/players/_humanoid_bdroid",
+	"models/players/_humanoid_ben",
+	"models/players/_humanoid_cal",
+	"models/players/_humanoid_clo",
+	"models/players/_humanoid_deka",
+	"models/players/_humanoid_df2",
+	"models/players/_humanoid_dooku",
+	"models/players/_humanoid_galen",
+	"models/players/_humanoid_gon",
+	"models/players/_humanoid_grievous",
+	"models/players/_humanoid_jabba",
+	"models/players/_humanoid_jango",
+	"models/players/_humanoid_kotor",
+	"models/players/_humanoid_luke",
+	"models/players/_humanoid_mace",
+	"models/players/_humanoid_maul",
+	"models/players/_humanoid_md",
+	"models/players/_humanoid_melee",
+	"models/players/_humanoid_obi",
+	"models/players/_humanoid_obi3",
+	"models/players/_humanoid_pal",
+	"models/players/_humanoid_reb",
+	"models/players/_humanoid_ren",
+	"models/players/_humanoid_rey",
+	"models/players/_humanoid_sbd",
+	"models/players/_humanoid_vader",
+	"models/players/_humanoid_yoda"
+};
+
+static qboolean R_IsHumanoidAnimName(const char* animName)
+{
+	if (!animName || !animName[0])
+		return qfalse;
+
+	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
+	{
+		if (strstr(animName, humanoid_prefixes[i]))
+			return qtrue;
+	}
+	return qfalse;
+}
+
 /*
 =================
 R_LoadMDXM_Server - load a Ghoul 2 Mesh file
@@ -489,12 +536,12 @@ R_LoadMDXM_Server - load a Ghoul 2 Mesh file
 */
 static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
-	int					i, l, j;
+	int                 i, l, j;
 	mdxmHeader_t* pinmodel, * mdxm;
 	mdxmLOD_t* lod;
 	mdxmSurface_t* surf;
-	int					version;
-	int					size;
+	int                 version;
+	int                 size;
 	mdxmSurfHierarchy_t* surfInfo;
 
 	pinmodel = (mdxmHeader_t*)buffer;
@@ -510,7 +557,8 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 		LL(size);
 	}
 
-	if (version != MDXM_VERSION) {
+	if (version != MDXM_VERSION)
+	{
 		return qfalse;
 	}
 
@@ -522,19 +570,18 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 	mod->data.glm = (mdxmData_t*)ri->Hunk_Alloc(sizeof(mdxmData_t), h_low);
 	mod->data.glm->header = mdxm;
 
-	assert(bAlreadyCached == bAlreadyFound);	// I should probably eliminate 'bAlreadyFound', but wtf?
+	assert(bAlreadyCached == bAlreadyFound);
 
 	if (!bAlreadyFound)
 	{
 		// horrible new hackery, if !bAlreadyFound then we've just done a tag-morph, so we need to set the
-		//	bool reference passed into this function to true, to tell the caller NOT to do an ri->FS_Freefile since
-		//	we've hijacked that memory block...
+		//  bool reference passed into this function to true, to tell the caller NOT to do an ri->FS_Freefile since
+		//  we've hijacked that memory block...
 		//
 		// Aaaargh. Kill me now...
 		//
 		bAlreadyCached = qtrue;
 		assert(mdxm == buffer);
-		//		memcpy( mdxm, buffer, size );	// and don't do this now, since it's the same thing
 
 		LL(mdxm->ident);
 		LL(mdxm->version);
@@ -545,29 +592,27 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 		LL(mdxm->ofsEnd);
 	}
 
+	// --------------------------------------------------------------------
 	// Decide which animation GLA to use on the server.
-	// - Non-humanoids: use mdxm->animName as-is.
-	// - Base humanoid: prefer _humanoid_mp if present, otherwise fall back to original _humanoid.
+	// Rule:
+	//  - Any humanoid-family animName (by prefix) is forced to _humanoid_mp/_humanoid.gla
+	//  - Non-humanoids keep their own animName
+	// --------------------------------------------------------------------
 	const char* animNameToUse = mdxm->animName;
-	qhandle_t animIndex = 0;
+	qhandle_t   animIndex = 0;
 
-	// Detect ANY humanoid or humanoid variant by animName
-	if (strstr(mdxm->animName, "models/players/_humanoid/") ||
-		strstr(mdxm->animName, "models/players/_humanoid_"))
+	if (R_IsHumanoidAnimName(mdxm->animName))
 	{
-		const char* mpHumanoid = "models/players/_humanoid_mp/_humanoid";
+		const char* forcedHumanoid = "models/players/_humanoid_mp/_humanoid";
 
-		// Try MP humanoid first
-		animIndex = RE_RegisterModel(va("%s.gla", mpHumanoid));
-		if (animIndex)
+		animIndex = RE_RegisterModel(va("%s.gla", forcedHumanoid));
+		if (!animIndex)
 		{
-			animNameToUse = mpHumanoid;
+			Com_Error(ERR_DROP,
+				"R_LoadMDXM_Server: required MP humanoid GLA missing: %s.gla", forcedHumanoid);
 		}
-		else
-		{
-			// Fallback to original humanoid
-			animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
-		}
+
+		animNameToUse = forcedHumanoid;
 	}
 	else
 	{
@@ -582,11 +627,14 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 		return qfalse;
 	}
 
-	mod->numLods = mdxm->numLODs - 1;	//copy this up to the model for ease of use - it wil get inced after this.
+	// Keep animName in sync with what we actually loaded
+	Q_strncpyz(mdxm->animName, animNameToUse, sizeof(mdxm->animName));
+
+	mod->numLods = mdxm->numLODs - 1;   // copy this up to the model for ease of use - it will get inced after this.
 
 	if (bAlreadyFound)
 	{
-		return qtrue;	// All done. Stop, go no further, do not LittleLong(), do not pass Go...
+		return qtrue;   // All done. Stop, go no further, do not LittleLong(), do not pass Go...
 	}
 
 	bool isAnOldModelFile = false;
@@ -609,26 +657,25 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 		}
 
 		// We will not be using shaders on the server.
-		//sh = 0;
-		// insert it in the surface list
-
 		surfInfo->shaderIndex = 0;
 
 		CModelCache->StoreShaderRequest(mod_name, &surfInfo->shader[0], &surfInfo->shaderIndex);
 
 		// find the next surface
-		surfInfo = (mdxmSurfHierarchy_t*)((byte*)surfInfo + (intptr_t)(&((mdxmSurfHierarchy_t*)0)->childIndexes[surfInfo->numChildren]));
+		surfInfo = (mdxmSurfHierarchy_t*)((byte*)surfInfo +
+			(intptr_t)(&((mdxmSurfHierarchy_t*)0)->childIndexes[surfInfo->numChildren]));
 	}
 
-	// swap all the LOD's	(we need to do the middle part of this even for intel, because of shader reg and err-check)
+	// swap all the LOD's (we need to do the middle part of this even for intel, because of shader reg and err-check)
 	lod = (mdxmLOD_t*)((byte*)mdxm + mdxm->ofsLODs);
 	for (l = 0; l < mdxm->numLODs; l++)
 	{
-		int	triCount = 0;
+		int triCount = 0;
 
 		LL(lod->ofsEnd);
 		// swap all the surfaces
-		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) + (mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
+		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) +
+			(mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
 		for (i = 0; i < mdxm->numSurfaces; i++)
 		{
 			LL(surf->numTriangles);
@@ -639,21 +686,21 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 			LL(surf->ofsHeader);
 			LL(surf->numBoneReferences);
 			LL(surf->ofsBoneReferences);
-			//			LL(surf->maxVertBoneWeights);
+			//          LL(surf->maxVertBoneWeights);
 
 			triCount += surf->numTriangles;
 
-			if (surf->numVerts > SHADER_MAX_VERTEXES) {
+			if (surf->numVerts > SHADER_MAX_VERTEXES)
+			{
 				return qfalse;
 			}
-			if (surf->numTriangles * 3 > SHADER_MAX_INDEXES) {
+			if (surf->numTriangles * 3 > SHADER_MAX_INDEXES)
+			{
 				return qfalse;
 			}
 
 			// change to surface identifier
 			surf->ident = SF_MDX;
-
-			// register the shaders
 
 			// find the next surface
 			surf = (mdxmSurface_t*)((byte*)surf + surf->ofsEnd);

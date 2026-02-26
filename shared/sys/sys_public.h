@@ -22,6 +22,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include "qcommon/q_shared.h"
+#include <rd-common\tr_types.h>
 
 constexpr auto MAXPRINTMSG = 4096;
 
@@ -155,7 +156,7 @@ const char* Sys_Basename(const char* path);
 
 bool Sys_PathCmp(const char* path1, const char* path2);
 
-char** Sys_ListFiles(const char* directory, const char* extension, char* filter, int* numfiles, qboolean wantsubs);
+char** Sys_ListFiles(const char* directory, const char* extension, char* filter, int* numfiles, const qboolean wantsubs);
 void Sys_FreeFileList(char** ps_list);
 //rwwRMG - changed to fileList to not conflict with list type
 

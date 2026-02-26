@@ -3758,14 +3758,61 @@ int OldToNewRemapTable[72] = {
 52// Bone71:   "face_always_":			Parent: "cranium"  (index 17)
 };
 
+static const char* humanoid_prefixes[] =
+{
+	"models/players/_humanoid",
+	"models/players/JK2anims/",
+	"models/players/_humanoid_ani",
+	"models/players/_humanoid_bdroid",
+	"models/players/_humanoid_ben",
+	"models/players/_humanoid_cal",
+	"models/players/_humanoid_clo",
+	"models/players/_humanoid_deka",
+	"models/players/_humanoid_df2",
+	"models/players/_humanoid_dooku",
+	"models/players/_humanoid_galen",
+	"models/players/_humanoid_gon",
+	"models/players/_humanoid_grievous",
+	"models/players/_humanoid_jabba",
+	"models/players/_humanoid_jango",
+	"models/players/_humanoid_kotor",
+	"models/players/_humanoid_luke",
+	"models/players/_humanoid_mace",
+	"models/players/_humanoid_maul",
+	"models/players/_humanoid_md",
+	"models/players/_humanoid_melee",
+	"models/players/_humanoid_obi",
+	"models/players/_humanoid_obi3",
+	"models/players/_humanoid_pal",
+	"models/players/_humanoid_reb",
+	"models/players/_humanoid_ren",
+	"models/players/_humanoid_rey",
+	"models/players/_humanoid_sbd",
+	"models/players/_humanoid_vader",
+	"models/players/_humanoid_yoda"
+};
+
+static qboolean R_IsHumanoidAnimName(const char* animName)
+{
+	if (!animName || !animName[0])
+		return qfalse;
+
+	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
+	{
+		if (strstr(animName, humanoid_prefixes[i]))
+			return qtrue;
+	}
+	return qfalse;
+}
+
 qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
-	int					i, l, j;
+	int                 i, l, j;
 	mdxmHeader_t* pinmodel, * mdxm;
 	mdxmLOD_t* lod;
 	mdxmSurface_t* surf;
-	int					version;
-	int					size;
+	int                 version;
+	int                 size;
 	mdxmSurfHierarchy_t* surfInfo;
 
 	pinmodel = (mdxmHeader_t*)buffer;
@@ -3781,8 +3828,9 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		LL(size);
 	}
 
-	if (version != MDXM_VERSION) {
-		Com_Printf(S_COLOR_YELLOW  "R_LoadMDXM: %s has wrong version (%i should be %i)\n",
+	if (version != MDXM_VERSION)
+	{
+		Com_Printf(S_COLOR_YELLOW "R_LoadMDXM: %s has wrong version (%i should be %i)\n",
 			mod_name, version, MDXM_VERSION);
 		return qfalse;
 	}
@@ -3818,29 +3866,27 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		LL(mdxm->ofsEnd);
 	}
 
+	// --------------------------------------------------------------------
 	// Decide which animation GLA to use.
-	// - Non-humanoids: use mdxm->animName as-is.
-	// - Base humanoid: prefer _humanoid_mp if present, otherwise fall back to original _humanoid.
+	// Rule:
+	//  - Any humanoid-family animName (by prefix) is forced to _humanoid_mp/_humanoid.gla
+	//  - Non-humanoids keep their own animName
+	// --------------------------------------------------------------------
 	const char* animNameToUse = mdxm->animName;
-	qhandle_t animIndex = 0;
+	qhandle_t   animIndex = 0;
 
-	// Detect ANY humanoid or humanoid variant by animName
-	if (strstr(mdxm->animName, "models/players/_humanoid/") ||
-		strstr(mdxm->animName, "models/players/_humanoid_"))
+	if (R_IsHumanoidAnimName(mdxm->animName))
 	{
-		const char* mpHumanoid = "models/players/_humanoid_mp/_humanoid";
+		const char* forcedHumanoid = "models/players/_humanoid_mp/_humanoid";
 
-		// Try MP humanoid first
-		animIndex = RE_RegisterModel(va("%s.gla", mpHumanoid));
-		if (animIndex)
+		animIndex = RE_RegisterModel(va("%s.gla", forcedHumanoid));
+		if (!animIndex)
 		{
-			animNameToUse = mpHumanoid;
+			Com_Error(ERR_DROP,
+				"R_LoadMDXM: required MP humanoid GLA missing: %s.gla", forcedHumanoid);
 		}
-		else
-		{
-			// Fallback to original humanoid
-			animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
-		}
+
+		animNameToUse = forcedHumanoid;
 	}
 	else
 	{
@@ -3852,15 +3898,19 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 
 	if (!mdxm->animIndex)
 	{
-		Com_Printf(S_COLOR_YELLOW  "R_LoadMDXM: missing animation file %s for mesh %s\n", mdxm->animName, mdxm->name);
+		Com_Printf(S_COLOR_YELLOW "R_LoadMDXM: missing animation file %s for mesh %s\n",
+			animNameToUse, mdxm->name);
 		return qfalse;
 	}
 
-	mod->numLods = mdxm->numLODs - 1;	//copy this up to the model for ease of use - it wil get inced after this.
+	// Keep animName in sync with what we actually loaded
+	Q_strncpyz(mdxm->animName, animNameToUse, sizeof(mdxm->animName));
+
+	mod->numLods = mdxm->numLODs - 1;   // copy this up to the model for ease of use - it will get inced after this.
 
 	if (bAlreadyFound)
 	{
-		return qtrue;	// All done. Stop, go no further, do not LittleLong(), do not pass Go...
+		return qtrue;   // All done. Stop, go no further, do not LittleLong(), do not pass Go...
 	}
 
 	bool isAnOldModelFile = false;
@@ -3876,10 +3926,10 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		LL(surfInfo->numChildren);
 		LL(surfInfo->parentIndex);
 
-		Q_strlwr(surfInfo->name);	//just in case
+		Q_strlwr(surfInfo->name);   // just in case
 		if (!strcmp(&surfInfo->name[strlen(surfInfo->name) - 4], "_off"))
 		{
-			surfInfo->name[strlen(surfInfo->name) - 4] = 0;	//remove "_off" from name
+			surfInfo->name[strlen(surfInfo->name) - 4] = 0;   // remove "_off" from name
 		}
 
 		// do all the children indexs
@@ -3904,18 +3954,21 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		CModelCache->StoreShaderRequest(mod_name, &surfInfo->shader[0], &surfInfo->shaderIndex);
 
 		// find the next surface
-		surfInfo = (mdxmSurfHierarchy_t*)((byte*)surfInfo + offsetof(mdxmSurfHierarchy_t, childIndexes) + sizeof(int) * surfInfo->numChildren);
+		surfInfo = (mdxmSurfHierarchy_t*)((byte*)surfInfo +
+			offsetof(mdxmSurfHierarchy_t, childIndexes) +
+			sizeof(int) * surfInfo->numChildren);
 	}
 
-	// swap all the LOD's	(we need to do the middle part of this even for intel, because of shader reg and err-check)
+	// swap all the LOD's (we need to do the middle part of this even for intel, because of shader reg and err-check)
 	lod = (mdxmLOD_t*)((byte*)mdxm + mdxm->ofsLODs);
 	for (l = 0; l < mdxm->numLODs; l++)
 	{
-		int	triCount = 0;
+		int triCount = 0;
 
 		LL(lod->ofsEnd);
 		// swap all the surfaces
-		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) + (mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
+		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) +
+			(mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
 		for (i = 0; i < mdxm->numSurfaces; i++)
 		{
 			LL(surf->numTriangles);
@@ -3926,21 +3979,21 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 			LL(surf->ofsHeader);
 			LL(surf->numBoneReferences);
 			LL(surf->ofsBoneReferences);
-			//			LL(surf->maxVertBoneWeights);
+			//          LL(surf->maxVertBoneWeights);
 
 			triCount += surf->numTriangles;
 
-			if (surf->numVerts > SHADER_MAX_VERTEXES) {
-				Com_Error(
-					ERR_DROP,
+			if (surf->numVerts > SHADER_MAX_VERTEXES)
+			{
+				Com_Error(ERR_DROP,
 					"R_LoadMDXM: %s has more than %i verts on a surface (%i)",
 					mod_name,
 					SHADER_MAX_VERTEXES,
 					surf->numVerts);
 			}
-			if (surf->numTriangles * 3 > SHADER_MAX_INDEXES) {
-				Com_Error(
-					ERR_DROP,
+			if (surf->numTriangles * 3 > SHADER_MAX_INDEXES)
+			{
+				Com_Error(ERR_DROP,
 					"R_LoadMDXM: %s has more than %i triangles on a surface (%i)",
 					mod_name,
 					SHADER_MAX_INDEXES / 3,
@@ -3949,7 +4002,6 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 
 			// change to surface identifier
 			surf->ident = SF_MDX;
-			// register the shaders
 
 			if (isAnOldModelFile)
 			{
@@ -3966,6 +4018,7 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 					}
 				}
 			}
+
 			// find the next surface
 			surf = (mdxmSurface_t*)((byte*)surf + surf->ofsEnd);
 		}
@@ -3973,7 +4026,9 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		lod = (mdxmLOD_t*)((byte*)lod + lod->ofsEnd);
 	}
 
+	// --------------------------------------------------------------------
 	// Make a copy on the GPU
+	// --------------------------------------------------------------------
 	lod = (mdxmLOD_t*)((byte*)mdxm + mdxm->ofsLODs);
 
 	mod->data.glm->vboModels = (mdxmVBOModel_t*)ri->Hunk_Alloc(sizeof(mdxmVBOModel_t) * mdxm->numLODs, h_low);
@@ -3990,11 +4045,11 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		uint32_t* tangents;
 
 		byte* data;
-		int dataSize = 0;
-		int ofsPosition, ofsNormals, ofsTexcoords, ofsBoneRefs, ofsWeights, ofsTangents;
-		int stride = 0;
-		int numVerts = 0;
-		int numTriangles = 0;
+		int   dataSize = 0;
+		int   ofsPosition, ofsNormals, ofsTexcoords, ofsBoneRefs, ofsWeights, ofsTangents;
+		int   stride = 0;
+		int   numVerts = 0;
+		int   numTriangles = 0;
 
 		// +1 to add total vertex count
 		int* baseVertexes = (int*)ri->Hunk_AllocateTempMemory(sizeof(int) * (mdxm->numSurfaces + 1));
@@ -4004,7 +4059,8 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		vboModel->vboMeshes = (mdxmVBOMesh_t*)ri->Hunk_Alloc(sizeof(mdxmVBOMesh_t) * mdxm->numSurfaces, h_low);
 		vboMeshes = vboModel->vboMeshes;
 
-		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) + (mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
+		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) +
+			(mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
 
 		// Calculate the required size of the vertex buffer.
 		for (int n = 0; n < mdxm->numSurfaces; n++)
@@ -4059,12 +4115,14 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		glIndex_t* index = indices;
 		uint32_t* tangentsf = (uint32_t*)ri->Hunk_AllocateTempMemory(sizeof(uint32_t) * numVerts);
 
-		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) + (mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
+		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) +
+			(mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
 
 		for (int n = 0; n < mdxm->numSurfaces; n++)
 		{
 			mdxmTriangle_t* t = (mdxmTriangle_t*)((byte*)surf + surf->ofsTriangles);
-			glIndex_t* surf_indices = (glIndex_t*)ri->Hunk_AllocateTempMemory(sizeof(glIndex_t) * surf->numTriangles * 3);
+			glIndex_t* surf_indices = (glIndex_t*)ri->Hunk_AllocateTempMemory(
+				sizeof(glIndex_t) * surf->numTriangles * 3);
 			glIndex_t* surfIndex = surf_indices;
 
 			for (int k = 0; k < surf->numTriangles; k++, index += 3, surfIndex += 3)
@@ -4102,7 +4160,8 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 
 		assert(index == (indices + numTriangles * 3));
 
-		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) + (mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
+		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) +
+			(mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
 
 		for (int n = 0; n < mdxm->numSurfaces; n++)
 		{
@@ -4125,6 +4184,7 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 				int numWeights = G2_GetVertWeights(&v[k]);
 				int lastWeight = 255;
 				int lastInfluence = numWeights - 1;
+
 				for (int w = 0; w < lastInfluence; w++)
 				{
 					float weight = G2_GetVertBoneWeightNotSlow(&v[k], w);
@@ -4135,13 +4195,14 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 					lastWeight -= weights[w];
 				}
 #ifdef DEBUG
-
 				assert(lastWeight > 0);
 #endif
 				// Ensure that all the weights add up to 1.0
 				weights[lastInfluence] = lastWeight;
-				int packedIndex = G2_GetVertBoneIndex(&v[k], lastInfluence);
-				bonerefs[lastInfluence] = boneRef[packedIndex];
+				{
+					int packedIndex = G2_GetVertBoneIndex(&v[k], lastInfluence);
+					bonerefs[lastInfluence] = boneRef[packedIndex];
+				}
 
 				// Fill in the rest of the info with zeroes.
 				for (int w = numWeights; w < 4; w++)
@@ -4180,6 +4241,7 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		{
 			modelName = mdxm->name;
 		}
+
 		VBO_t* vbo = R_CreateVBO(data, dataSize, VBO_USAGE_STATIC);
 		IBO_t* ibo = R_CreateIBO((byte*)indices, sizeof(glIndex_t) * numTriangles * 3, VBO_USAGE_STATIC);
 
@@ -4208,7 +4270,8 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		vbo->sizes[ATTR_INDEX_BONE_INDEXES] = sizeof(*bonerefs);
 		vbo->sizes[ATTR_INDEX_TANGENT] = sizeof(*tangents);
 
-		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) + (mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
+		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) +
+			(mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
 
 		for (int n = 0; n < mdxm->numSurfaces; n++)
 		{
