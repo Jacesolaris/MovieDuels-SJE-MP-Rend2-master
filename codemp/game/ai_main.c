@@ -49,6 +49,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "teams.h"
 #include "anims.h"
 #include "surfaceflags.h"
+#include <qcommon\q_platform.h>
+#include <qcommon\q_math.h>
 //
 
 #define BOT_THINK_TIME	1000/bot_fps.integer
@@ -792,11 +794,12 @@ static void ai_mod_jump(bot_state_t* bs)
 			bs->BOTjumpState = JS_LANDING;
 
 			if (bs->cur_ps.weapon == WP_SABER &&
-				Q_irand(0, 1000) < 5) // 0.5% per frame ≈ every 3–6 seconds
+				Q_irand(0, 1000) < 5)
 			{
-				Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
-				bs->nextStyleSwitchTime = level.time + Q_irand(1500, 2500);
+				// schedule a style switch 1.5 seconds after landing
+				bs->nextStyleSwitchTime = level.time + 1500;
 			}
+
 			return;
 		}
 
@@ -826,6 +829,14 @@ static void ai_mod_jump(bot_state_t* bs)
 		// Hold movement/attacks only during this short window
 		if (level.time < bs->landingReleaseTime)
 			return;
+
+		// Perform delayed saber-style switch if scheduled
+		if (bs->nextStyleSwitchTime > 0 &&
+			level.time >= bs->nextStyleSwitchTime)
+		{
+			Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+			bs->nextStyleSwitchTime = 0;
+		}
 
 		// Landing complete — reset state
 		bs->landingReleaseTime = 0;
@@ -14737,7 +14748,7 @@ void Enhanced_bot_ai(bot_state_t* bs)
 	if (bs->shootGoal &&
 		bs->shootGoal->health > 0 && bs->shootGoal->takedamage)
 	{
-		vec3_t dif;
+		vec3_t dif = { 0 };
 		dif[0] = (bs->shootGoal->r.absmax[0] + bs->shootGoal->r.absmin[0]) / 2;
 		dif[1] = (bs->shootGoal->r.absmax[1] + bs->shootGoal->r.absmin[1]) / 2;
 		dif[2] = (bs->shootGoal->r.absmax[2] + bs->shootGoal->r.absmin[2]) / 2;

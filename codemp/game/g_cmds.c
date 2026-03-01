@@ -38,6 +38,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "ui/menudef.h"			// for the voice chats
 #include <stdint.h>
+#include "anims.h"
 
 extern qboolean in_camera;
 //rww - for getting bot commands...

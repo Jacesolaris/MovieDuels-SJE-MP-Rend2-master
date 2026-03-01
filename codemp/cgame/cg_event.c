@@ -4119,7 +4119,8 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					doit = 0;
 				}
 			}
-			if (doit) {
+			if (doit) 
+			{
 				if (es->emplacedOwner)
 				{
 					//hack: this is an index to a custom effect to use

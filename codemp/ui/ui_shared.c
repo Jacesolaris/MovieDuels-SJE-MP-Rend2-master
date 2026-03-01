@@ -37,6 +37,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "ghoul2/G2.h"
 #include <qcommon\q_color.h>
 #include <string.h>
+#include "menudef.h"
 
 extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
 extern void UI_UpdateCharacterSkin(void);
@@ -722,7 +723,7 @@ void Fade(int* flags, float* f, const float clamp, int* nextTime, const int offs
 
 static void Window_Paint(windowDef_t* w, const float fadeAmount, const float fadeClamp, const float fadeCycle)
 {
-	vec4_t color;
+	vec4_t color = { 0 };
 	rectDef_t fillRect;
 
 	if (w == NULL)
@@ -7449,7 +7450,7 @@ void Menu_Paint(menuDef_t* menu, const qboolean forcePaint)
 Item_ValidateTypeData
 ===============
 */
-void Item_ValidateTypeData(itemDef_t* item)
+static void Item_ValidateTypeData(itemDef_t* item)
 {
 	if (item->typeData.data)
 	{
@@ -7460,10 +7461,16 @@ void Item_ValidateTypeData(itemDef_t* item)
 	{
 	case ITEM_TYPE_LISTBOX:
 	{
-		item->typeData.listbox = (listBoxDef_t*)UI_Alloc(sizeof(listBoxDef_t));
-		memset(item->typeData.listbox, 0, sizeof(listBoxDef_t));
+		listBoxDef_t* ptr = (listBoxDef_t*)UI_Alloc(sizeof(listBoxDef_t));
+		if (!ptr)
+		{
+			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for LISTBOX");
+		}
+		memset(ptr, 0, sizeof(listBoxDef_t));
+		item->typeData.listbox = ptr;
 		break;
 	}
+
 	case ITEM_TYPE_TEXT:
 	case ITEM_TYPE_EDITFIELD:
 	case ITEM_TYPE_NUMERICFIELD:
@@ -7473,32 +7480,58 @@ void Item_ValidateTypeData(itemDef_t* item)
 	case ITEM_TYPE_INTSLIDER:
 	case ITEM_TYPE_SLIDER_ROTATE:
 	{
-		item->typeData.edit = (editFieldDef_t*)UI_Alloc(sizeof(editFieldDef_t));
-		memset(item->typeData.edit, 0, sizeof(editFieldDef_t));
+		editFieldDef_t* ptr = (editFieldDef_t*)UI_Alloc(sizeof(editFieldDef_t));
+		if (!ptr)
+		{
+			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for EDITFIELD");
+		}
+		memset(ptr, 0, sizeof(editFieldDef_t));
+		item->typeData.edit = ptr;
 
 		if (item->type == ITEM_TYPE_EDITFIELD || item->type == ITEM_TYPE_NUMERICFIELD)
+		{
 			item->typeData.edit->maxPaintChars = MAX_EDITFIELD;
+		}
 		break;
 	}
+
 	case ITEM_TYPE_MULTI:
 	{
-		item->typeData.multi = (multiDef_t*)UI_Alloc(sizeof(multiDef_t));
-		memset(item->typeData.multi, 0, sizeof(multiDef_t));
+		multiDef_t* ptr = (multiDef_t*)UI_Alloc(sizeof(multiDef_t));
+		if (!ptr)
+		{
+			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for MULTI");
+		}
+		memset(ptr, 0, sizeof(multiDef_t));
+		item->typeData.multi = ptr;
 		break;
 	}
+
 	case ITEM_TYPE_MODEL:
 	case ITEM_TYPE_MODEL_ITEM:
 	{
-		item->typeData.model = (modelDef_t*)UI_Alloc(sizeof(modelDef_t));
-		memset(item->typeData.model, 0, sizeof(modelDef_t));
+		modelDef_t* ptr = (modelDef_t*)UI_Alloc(sizeof(modelDef_t));
+		if (!ptr)
+		{
+			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for MODEL");
+		}
+		memset(ptr, 0, sizeof(modelDef_t));
+		item->typeData.model = ptr;
 		break;
 	}
+
 	case ITEM_TYPE_TEXTSCROLL:
 	{
-		item->typeData.textscroll = (textScrollDef_t*)UI_Alloc(sizeof(textScrollDef_t));
-		memset(item->typeData.textscroll, 0, sizeof(textScrollDef_t));
+		textScrollDef_t* ptr = (textScrollDef_t*)UI_Alloc(sizeof(textScrollDef_t));
+		if (!ptr)
+		{
+			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for TEXTSCROLL");
+		}
+		memset(ptr, 0, sizeof(textScrollDef_t));
+		item->typeData.textscroll = ptr;
 		break;
 	}
+
 	default:
 		break;
 	}
@@ -8166,7 +8199,6 @@ ItemParse_flag
 */
 static qboolean ItemParse_flag(itemDef_t* item, const int handle)
 {
-	int i;
 	pc_token_t token;
 
 	if (!trap->PC_ReadToken(handle, &token))
@@ -8174,16 +8206,19 @@ static qboolean ItemParse_flag(itemDef_t* item, const int handle)
 		return qfalse;
 	}
 
-	for (i = 0; itemFlags[i].string; i++)
+	qboolean found = qfalse;
+
+	for (int i = 0; itemFlags[i].string; i++)
 	{
 		if (Q_stricmp(token.string, itemFlags[i].string) == 0)
 		{
 			item->window.flags |= itemFlags[i].value;
+			found = qtrue;
 			break;
 		}
 	}
 
-	if (itemFlags[i].string == NULL)
+	if (!found)
 	{
 		Com_Printf(S_COLOR_YELLOW "Unknown item style value '%s'\n", token.string);
 	}

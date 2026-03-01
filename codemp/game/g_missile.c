@@ -100,6 +100,19 @@ static float vector_bolt_distance(vec3_t v1, vec3_t v2)
 }
 
 /*
+ * Safety helper: validate entity index before indexing g_entities.
+ * Prevents crashes if an entity's ownerNum is invalid/out of range.
+ */
+static gentity_t* G_GetEntitySafe(int idx)
+{
+    if (idx >= 0 && idx < MAX_GENTITIES)
+    {
+        return &g_entities[idx];
+    }
+    return NULL;
+}
+
+/*
 ================
 G_ReflectMissile
 
@@ -108,104 +121,61 @@ G_ReflectMissile
 */
 
 //////////////////// Boltblock new ////////////////////////////////
+
 static void g_manual_block_missile(const gentity_t* ent, gentity_t* missile, vec3_t forward)
 {
+	// Safety: validate pointers (bug fix)
+	if (!ent || !missile)
+	{
+		return;
+	}
+
 	vec3_t bounce_dir;
 
-	//save the original speed
+	// Save original speed
 	const float speed = VectorNormalize(missile->s.pos.trDelta);
 
 	if (ent->client)
 	{
 		vec3_t missile_dir;
-		AngleVectors(ent->client->ps.viewangles, missile_dir, 0, 0);
+
+		// Use blocker view direction
+		AngleVectors(ent->client->ps.viewangles, missile_dir, NULL, NULL);
+
+		// Project missile_dir onto forward
 		VectorCopy(missile_dir, bounce_dir);
 		VectorScale(bounce_dir, DotProduct(forward, missile_dir), bounce_dir);
 		VectorNormalize(bounce_dir);
 	}
 	else
 	{
+		// Fallback: use forward direction
 		VectorCopy(forward, bounce_dir);
 		VectorNormalize(bounce_dir);
 	}
 
+	// Add random slop
 	for (int i = 0; i < 3; i++)
 	{
 		bounce_dir[i] += Q_flrand(-1.0f, 1.0f);
 	}
 
 	VectorNormalize(bounce_dir);
-	VectorScale(bounce_dir, speed, missile->s.pos.trDelta);
-	missile->s.pos.trTime = level.time; // move a bit on the very first frame
-	VectorCopy(missile->r.currentOrigin, missile->s.pos.trBase);
-	if (missile->s.weapon != WP_SABER && missile->s.weapon != G2_MODEL_PART)
-	{
-		//you are mine, now!
-		missile->r.ownerNum = ent->s.number;
-	}
-	if (missile->s.weapon == WP_ROCKET_LAUNCHER)
-	{
-		//stop homing
-		missile->think = 0;
-		missile->nextthink = 0;
-	}
-}
 
-static void g_missile_bouncedoff_saber(const gentity_t* ent, gentity_t* missile, vec3_t forward)
-{
-	vec3_t bounce_dir;
-
-	// Preserve original speed
-	const float speed = VectorNormalize(missile->s.pos.trDelta);
-
-	//
-	// Determine base bounce direction
-	//
-	if (ent->client)
-	{
-		vec3_t missile_dir;
-		AngleVectors(ent->client->ps.viewangles, missile_dir, NULL, NULL);
-
-		// Project missile_dir onto 'forward'
-		float dot = DotProduct(forward, missile_dir);
-		VectorScale(missile_dir, dot, bounce_dir);
-	}
-	else
-	{
-		VectorCopy(forward, bounce_dir);
-	}
-
-	VectorNormalize(bounce_dir);
-
-	//
-	// Add large random slop (±6)
-	//
-	for (int i = 0; i < 3; i++)
-	{
-		bounce_dir[i] += Q_flrand(-6.0f, 6.0f);
-	}
-
-	VectorNormalize(bounce_dir);
-
-	//
-	// Apply final velocity
-	//
+	// Reapply original speed
 	VectorScale(bounce_dir, speed, missile->s.pos.trDelta);
 
-	missile->s.pos.trTime = level.time; // move a bit on the first frame
+	// Update trajectory
+	missile->s.pos.trTime = level.time;
 	VectorCopy(missile->r.currentOrigin, missile->s.pos.trBase);
 
-	//
-	// Transfer ownership unless it's a saber or model part
-	//
+	// Transfer ownership (except sabers and G2 parts)
 	if (missile->s.weapon != WP_SABER && missile->s.weapon != G2_MODEL_PART)
 	{
 		missile->r.ownerNum = ent->s.number;
 	}
 
-	//
-	// Stop homing rockets
-	//
+	// Stop homing on rockets
 	if (missile->s.weapon == WP_ROCKET_LAUNCHER)
 	{
 		missile->think = NULL;
@@ -213,61 +183,121 @@ static void g_missile_bouncedoff_saber(const gentity_t* ent, gentity_t* missile,
 	}
 }
 
-static void g_deflect_missile_to_attacker(const gentity_t* ent, gentity_t* missile, vec3_t forward)
+static void g_missile_bouncedoff_saber(const gentity_t* ent, gentity_t* missile, vec3_t forward)
 {
+	// Safety: validate pointers (bug fix)
+	if (!ent || !missile)
+	{
+		return;
+	}
+
 	vec3_t bounce_dir;
 
-	// Preserve original speed
+	// Save the original speed
 	const float speed = VectorNormalize(missile->s.pos.trDelta);
 
-	//
-	// Determine base bounce direction
-	//
 	if (ent->client)
 	{
 		vec3_t missile_dir;
+
+		// Use the blocker’s view direction
 		AngleVectors(ent->client->ps.viewangles, missile_dir, NULL, NULL);
 
-		// Project missile_dir onto 'forward'
-		float dot = DotProduct(forward, missile_dir);
-		VectorScale(missile_dir, dot, bounce_dir);
+		// Project missile_dir onto forward
+		VectorCopy(missile_dir, bounce_dir);
+		VectorScale(bounce_dir, DotProduct(forward, missile_dir), bounce_dir);
+		VectorNormalize(bounce_dir);
 	}
 	else
 	{
+		// Fallback: use forward direction
 		VectorCopy(forward, bounce_dir);
+		VectorNormalize(bounce_dir);
 	}
 
-	VectorNormalize(bounce_dir);
-
-	//
-	// Add small random slop (±1)
-	//
+	// Add heavy random slop (±6)
 	for (int i = 0; i < 3; i++)
 	{
-		bounce_dir[i] += Q_flrand(-1.0f, 1.0f);
+		bounce_dir[i] += Q_flrand(-6.0f, 6.0f);
 	}
 
 	VectorNormalize(bounce_dir);
 
-	//
-	// Apply final velocity
-	//
+	// Reapply original speed
 	VectorScale(bounce_dir, speed, missile->s.pos.trDelta);
 
-	missile->s.pos.trTime = level.time; // move a bit on the first frame
+	// Update trajectory
+	missile->s.pos.trTime = level.time;
 	VectorCopy(missile->r.currentOrigin, missile->s.pos.trBase);
 
-	//
-	// Transfer ownership unless it's a saber or model part
-	//
+	// Transfer ownership (except sabers and G2 parts)
 	if (missile->s.weapon != WP_SABER && missile->s.weapon != G2_MODEL_PART)
 	{
 		missile->r.ownerNum = ent->s.number;
 	}
 
-	//
-	// Stop homing rockets
-	//
+	// Stop homing on rockets
+	if (missile->s.weapon == WP_ROCKET_LAUNCHER)
+	{
+		missile->think = NULL;
+		missile->nextthink = 0;
+	}
+}
+
+
+
+static void g_deflect_missile_to_attacker(const gentity_t* ent, gentity_t* missile, vec3_t forward)
+{
+	// Safety: validate pointers (prevents crashes if caller passes NULL)
+	if (!ent || !missile)
+	{
+		return;
+	}
+
+	vec3_t bounce_dir;
+
+	// Save original speed (VectorNormalize returns length and normalizes the vector)
+	const float speed = VectorNormalize(missile->s.pos.trDelta);
+
+	if (ent->client)
+	{
+		vec3_t missile_dir;
+		// Use the blocker's view direction for aiming the deflection
+		AngleVectors(ent->client->ps.viewangles, missile_dir, NULL, NULL);
+
+		VectorCopy(missile_dir, bounce_dir);
+		const float proj = DotProduct(forward, missile_dir);
+		VectorScale(bounce_dir, proj, bounce_dir);
+		VectorNormalize(bounce_dir);
+	}
+	else
+	{
+		// Fallback: use provided forward vector
+		VectorCopy(forward, bounce_dir);
+		VectorNormalize(bounce_dir);
+	}
+
+	// Add some random slop to the deflection
+	const float slop = 1.0f;
+	for (int i = 0; i < 3; i++)
+	{
+		bounce_dir[i] += Q_flrand(-slop, slop);
+	}
+
+	VectorNormalize(bounce_dir);
+
+	// Reapply original speed and update trajectory
+	VectorScale(bounce_dir, speed, missile->s.pos.trDelta);
+	missile->s.pos.trTime = level.time; // move a bit on the very first frame
+	VectorCopy(missile->r.currentOrigin, missile->s.pos.trBase);
+
+	// Transfer ownership (except sabers and G2 parts)
+	if (missile->s.weapon != WP_SABER && missile->s.weapon != G2_MODEL_PART)
+	{
+		missile->r.ownerNum = ent->s.number;
+	}
+
+	// Stop homing on rockets
 	if (missile->s.weapon == WP_ROCKET_LAUNCHER)
 	{
 		missile->think = NULL;
@@ -288,16 +318,26 @@ static void g_reflect_missile_to_attacker(const gentity_t* ent, gentity_t* missi
 	//
 	// Determine base bounce direction
 	//
-	if (!is_owner &&
-		missile->s.weapon != WP_SABER &&
-		missile->s.weapon != G2_MODEL_PART)
-	{
-		// Bounce back toward the original shooter
-		VectorSubtract(g_entities[missile->r.ownerNum].r.currentOrigin,
-			missile->r.currentOrigin,
-			bounce_dir);
-		VectorNormalize(bounce_dir);
-	}
+    if (!is_owner &&
+        missile->s.weapon != WP_SABER &&
+        missile->s.weapon != G2_MODEL_PART)
+    {
+        // Bounce back toward the original shooter (safe lookup)
+        gentity_t* origOwner = G_GetEntitySafe(missile->r.ownerNum);
+        if (origOwner)
+        {
+            VectorSubtract(origOwner->r.currentOrigin,
+                missile->r.currentOrigin,
+                bounce_dir);
+            VectorNormalize(bounce_dir);
+        }
+        else
+        {
+            // Fallback: push forward
+            VectorCopy(forward, bounce_dir);
+            VectorNormalize(bounce_dir);
+        }
+    }
 	else if (is_owner)
 	{
 		// Push the missile away from the owner, with extra speed
@@ -398,16 +438,26 @@ void g_reflect_missile_auto(const gentity_t* ent, gentity_t* missile, vec3_t for
 	//
 	// Determine base bounce direction
 	//
-	if (!is_owner &&
-		missile->s.weapon != WP_SABER &&
-		missile->s.weapon != G2_MODEL_PART)
-	{
-		// Bounce back toward the original shooter
-		VectorSubtract(g_entities[missile->r.ownerNum].r.currentOrigin,
-			missile->r.currentOrigin,
-			bounce_dir);
-		VectorNormalize(bounce_dir);
-	}
+    if (!is_owner &&
+        missile->s.weapon != WP_SABER &&
+        missile->s.weapon != G2_MODEL_PART)
+    {
+        // Bounce back toward the original shooter (safe lookup)
+        gentity_t* origOwner = G_GetEntitySafe(missile->r.ownerNum);
+        if (origOwner)
+        {
+            VectorSubtract(origOwner->r.currentOrigin,
+                missile->r.currentOrigin,
+                bounce_dir);
+            VectorNormalize(bounce_dir);
+        }
+        else
+        {
+            // Fallback: push forward
+            VectorCopy(forward, bounce_dir);
+            VectorNormalize(bounce_dir);
+        }
+    }
 	else if (is_owner)
 	{
 		// Push the missile away from the owner, with extra speed
@@ -623,14 +673,15 @@ void g_reflect_missile_bot(const gentity_t* ent, gentity_t* missile, vec3_t forw
 
 	//save the original speed
 	float speed = VectorNormalize(missile->s.pos.trDelta);
-
-	if (&g_entities[missile->r.ownerNum] && missile->s.weapon != WP_SABER && missile->s.weapon != G2_MODEL_PART && !
-		isowner)
-	{
-		//bounce back at them if you can
-		VectorSubtract(g_entities[missile->r.ownerNum].r.currentOrigin, missile->r.currentOrigin, bounce_dir);
-		VectorNormalize(bounce_dir);
-	}
+    /* Use safe owner lookup; the original code checked the address of g_entities which
+     * is always true and could read out-of-range owner indices. */
+    gentity_t* origOwner = G_GetEntitySafe(missile->r.ownerNum);
+    if (origOwner && missile->s.weapon != WP_SABER && missile->s.weapon != G2_MODEL_PART && !isowner)
+    {
+        //bounce back at them if you can
+        VectorSubtract(origOwner->r.currentOrigin, missile->r.currentOrigin, bounce_dir);
+        VectorNormalize(bounce_dir);
+    }
 	else if (isowner)
 	{
 		//in this case, actually push the missile away from me, and since we're giving boost to our own missile by pushing it, up the velocity
@@ -748,7 +799,7 @@ Explode a missile without an impact
 */
 void g_explode_missile(gentity_t* ent)
 {
-	vec3_t dir;
+	vec3_t dir = { 0 };
 	vec3_t origin;
 
 	BG_EvaluateTrajectory(&ent->s.pos, level.time, origin);
@@ -1037,18 +1088,19 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 	//
 	// Duel protection: projectiles cannot affect non‑duel opponents
 	//
-	if ((other->r.contents & CONTENTS_LIGHTSABER) && !is_knocked_saber)
-	{
-		const gentity_t* other_owner = &g_entities[other->r.ownerNum];
+    if ((other->r.contents & CONTENTS_LIGHTSABER) && !is_knocked_saber)
+    {
+        const gentity_t* other_owner = G_GetEntitySafe(other->r.ownerNum);
 
-		if (other_owner->takedamage &&
-			other_owner->client &&
-			other_owner->client->ps.duelInProgress &&
-			other_owner->client->ps.duelIndex != ent->r.ownerNum)
-		{
-			goto killProj;
-		}
-	}
+        if (other_owner &&
+            other_owner->takedamage &&
+            other_owner->client &&
+            other_owner->client->ps.duelInProgress &&
+            other_owner->client->ps.duelIndex != ent->r.ownerNum)
+        {
+            goto killProj;
+        }
+    }
 	else if (!is_knocked_saber)
 	{
 		if (other->takedamage &&
@@ -1346,11 +1398,12 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 			vec3_t velocity;
 			qboolean did_dmg = qfalse;
 
-			if (LogAccuracyHit(other, &g_entities[ent->r.ownerNum]))
-			{
-				g_entities[ent->r.ownerNum].client->accuracy_hits++;
-				hit_client = qtrue;
-			}
+            gentity_t* ownerEnt = G_GetEntitySafe(ent->r.ownerNum);
+            if (ownerEnt && ownerEnt->client && LogAccuracyHit(other, ownerEnt))
+            {
+                ownerEnt->client->accuracy_hits++;
+                hit_client = qtrue;
+            }
 
 			BG_EvaluateTrajectoryDelta(&ent->s.pos, level.time, velocity);
 
@@ -1389,9 +1442,9 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 			}
 			else
 			{
-				gentity_t* owner = &g_entities[ent->r.ownerNum];
-				float distance = VectorDistance(owner->r.currentOrigin,
-					other->r.currentOrigin);
+                gentity_t* owner = G_GetEntitySafe(ent->r.ownerNum);
+                float distance = owner ? VectorDistance(owner->r.currentOrigin,
+                    other->r.currentOrigin) : 999999.0f;
 
 				if (distance <= 100.0f)
 				{
@@ -1409,11 +1462,11 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 				}
 				else
 				{
-					G_Damage(other, ent,
-						&g_entities[ent->r.ownerNum],
-						velocity, ent->r.currentOrigin,
-						missile_dmg, 0,
-						ent->methodOfDeath);
+                    G_Damage(other, ent,
+                        (owner ? owner : ent),
+                        velocity, ent->r.currentOrigin,
+                        missile_dmg, 0,
+                        ent->methodOfDeath);
 				}
 
 				did_dmg = qtrue;
@@ -1690,23 +1743,23 @@ killProj:
 	//
 	// Splash damage
 	//
-	if (ent->splashDamage)
-	{
-		if (g_radius_damage(trace->endpos,
-			ent->parent,
-			ent->splashDamage,
-			ent->splashRadius,
-			other,
-			ent,
-			ent->splashMethodOfDeath))
-		{
-			if (!hit_client &&
-				g_entities[ent->r.ownerNum].client)
-			{
-				g_entities[ent->r.ownerNum].client->accuracy_hits++;
-			}
-		}
-	}
+    if (ent->splashDamage)
+    {
+        if (g_radius_damage(trace->endpos,
+            ent->parent,
+            ent->splashDamage,
+            ent->splashRadius,
+            other,
+            ent,
+            ent->splashMethodOfDeath))
+        {
+            gentity_t* splashOwner = G_GetEntitySafe(ent->r.ownerNum);
+            if (!hit_client && splashOwner && splashOwner->client)
+            {
+                splashOwner->client->accuracy_hits++;
+            }
+        }
+    }
 
 	//
 	// G2 model parts free themselves
@@ -1943,7 +1996,6 @@ passthrough:
 }
 
 //===========================grapplemod===============================
-#define MISSILE_PRESTEP_TIME 50
 /*
 =================
 fire_grapple
@@ -2009,34 +2061,55 @@ gentity_t* fire_stun(gentity_t* self, vec3_t start, vec3_t dir)
 
 static int ReflectionLevel(const gentity_t* player)
 {
-	//determine reflection level.
-	const qboolean manual_blocking = player->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;
-	const int np_cis_blocking = manual_npc_saberblocking(player);
+	// Determine reflection level.
 
-	if (manual_blocking || np_cis_blocking)
+	// Manual blocking flag (safe bit test)
+	const qboolean manual_blocking =
+		(player->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse;
+
+	// NPCs may block manually depending on AI logic
+	const int npc_is_blocking = manual_npc_saberblocking(player);
+
+	if (manual_blocking || npc_is_blocking)
 	{
-		//manual reflection, bounce to the crosshair, roughly
+		// Manual reflection: bounce toward crosshair / attacker
 		return FORCE_LEVEL_3;
 	}
-	//just deflect the attack
+
+	// Default: weak deflection
 	return FORCE_LEVEL_1;
 }
 
 void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec3_t fwd)
 {
+	// Safety: validate pointers (bug fix – previously could crash on NULL)
+	if (!bolt || !blocker || !blocker->client || !trace)
+	{
+		return;
+	}
+
 	// Handles all the behavior needed to saber block a blaster bolt.
 	const int   other_def_level = ReflectionLevel(blocker);
-	float       slop_factor = (MISHAP_MAXINACCURACY - 6) * (FORCE_LEVEL_3 - blocker->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE]) / FORCE_LEVEL_3;
-	gentity_t* prev_owner = &g_entities[bolt->r.ownerNum];
-	const float distance = vector_bolt_distance(blocker->r.currentOrigin, prev_owner->r.currentOrigin);
-	const qboolean manual_proj_blocking = (blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
-	const qboolean accurate_missile_block = (blocker->client->ps.ManualBlockingFlags & (1 << MBF_ACCURATEMISSILEBLOCKING)) ? qtrue : qfalse;
-	const int   manual_run_blocking = manual_running_and_saberblocking(blocker);
-	const int   npc_is_blocking = manual_npc_saberblocking(blocker);
+	float slop_factor =
+		(float)(MISHAP_MAXINACCURACY - 6) *
+		(float)(FORCE_LEVEL_3 - blocker->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE]) /
+		(float)FORCE_LEVEL_3;
 
-	// Create the bolt saber block effect
+    gentity_t* prev_owner = G_GetEntitySafe(bolt->r.ownerNum);
+    const float distance = prev_owner ? vector_bolt_distance(blocker->r.currentOrigin, prev_owner->r.currentOrigin) : 99999.0f;
+
+	const qboolean manual_proj_blocking =
+		(blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
+	const qboolean accurate_missile_block =
+		(blocker->client->ps.ManualBlockingFlags & (1 << MBF_ACCURATEMISSILEBLOCKING)) ? qtrue : qfalse;
+
+	const int manual_run_blocking = manual_running_and_saberblocking(blocker);
+	const int npc_is_blocking = manual_npc_saberblocking(blocker);
+
+	// Visual effect for the bolt being blocked
 	g_missile_reflect_effect(blocker, trace->plane.normal);
 
+	// Base forward direction from blocker view
 	AngleVectors(blocker->client->ps.viewangles, fwd, NULL, NULL);
 
 	//
@@ -2095,6 +2168,7 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 				WP_SaberBlockBolt(blocker, bolt->r.currentOrigin, qtrue);
 			}
 
+			// Block‑point cost
 			if (accurate_missile_block)
 			{
 				block_points_used = 2.0f;
@@ -2264,8 +2338,9 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 	// For Jedi AI
 	blocker->client->ps.saberEventFlags |= SEF_DEFLECTED;
 
-	bolt->activator = prev_owner;
+    // Remember original owner for damage credit (may be NULL)
+    bolt->activator = prev_owner;
 
-	blocker->client->ps.ManualMBlockingTime =
-		level.time + (600 - blocker->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] * 200);
+	// Manual missile‑blocking cooldown
+	blocker->client->ps.ManualMBlockingTime = level.time + (600 - blocker->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] * 200);
 }

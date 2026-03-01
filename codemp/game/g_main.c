@@ -28,7 +28,25 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_saga.h"
 #include "b_local.h"
 #include "g_dynmusic.h"
-#include "g_roff.h"
+#include "anims.h"
+#include <qcommon\q_color.h>
+#include <corecrt.h>
+#include <time.h>
+#include <stdarg.h>
+#include <search.h>
+#include "b_public.h"
+#include "g_public.h"
+#include <qcommon\q_shared.h>
+#include <qcommon\q_math.h>
+#include "surfaceflags.h"
+#include <ctype.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+#include "bg_public.h"
+#include "g_team.h"
+#include <qcommon\q_platform.h>
+#include <qcommon\q_string.h>
 
 level_locals_t level;
 

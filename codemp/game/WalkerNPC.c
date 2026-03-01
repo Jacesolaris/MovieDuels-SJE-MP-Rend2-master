@@ -31,6 +31,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "anims.h"
 #include <qcommon\q_math.h>
 #include "bg_weapons.h"
+#include <string.h>
 
 #ifdef _GAME //we only want a few of these functions for BG
 extern vec3_t player_mins;
@@ -83,23 +84,35 @@ static void ProcessMoveCommands(Vehicle_t* p_veh)
 	/*	BEGIN	Here is where we move the vehicle (forward or back or whatever). BEGIN	*/
 	/************************************************************************************/
 
-	//Client sets ucmds and such for speed alterations
-	float speedInc;
+	// -------------------------------------------------------------------------
+	// SAFETY CHECKS (Fixes C6011)
+	// -------------------------------------------------------------------------
+	if (!p_veh || !p_veh->m_pParentEntity || !p_veh->m_pParentEntity->playerState)
+	{
+		return; // Cannot process movement safely
+	}
+
 	const bgEntity_t* parent = p_veh->m_pParentEntity;
 	playerState_t* parent_ps = parent->playerState;
 
+	// -------------------------------------------------------------------------
+	// Movement parameters
+	// -------------------------------------------------------------------------
+	float speedInc;
 	const float speedIdleDec = p_veh->m_pVehicleInfo->decelIdle * p_veh->m_fTimeModifier;
 	float speedMax = p_veh->m_pVehicleInfo->speedMax;
 
 	const float speedIdle = p_veh->m_pVehicleInfo->speedIdle;
 	const float speedMin = p_veh->m_pVehicleInfo->speedMin;
 
+	// -------------------------------------------------------------------------
+	// Acceleration logic
+	// -------------------------------------------------------------------------
 	if (!parent_ps->m_iVehicleNum)
 	{
-		//drifts to a stop
+		// Drifts to a stop
 		speedInc = speedIdle * p_veh->m_fTimeModifier;
 		VectorClear(parent_ps->moveDir);
-		//m_ucmd.forwardmove = 127;
 		parent_ps->speed = 0;
 	}
 	else
@@ -107,8 +120,13 @@ static void ProcessMoveCommands(Vehicle_t* p_veh)
 		speedInc = p_veh->m_pVehicleInfo->acceleration * p_veh->m_fTimeModifier;
 	}
 
-	if (parent_ps->speed || parent_ps->groundEntityNum == ENTITYNUM_NONE ||
-		p_veh->m_ucmd.forwardmove || p_veh->m_ucmd.upmove > 0)
+	// -------------------------------------------------------------------------
+	// Movement input handling
+	// -------------------------------------------------------------------------
+	if (parent_ps->speed ||
+		parent_ps->groundEntityNum == ENTITYNUM_NONE ||
+		p_veh->m_ucmd.forwardmove ||
+		p_veh->m_ucmd.upmove > 0)
 	{
 		if (p_veh->m_ucmd.forwardmove > 0 && speedInc)
 		{
@@ -125,7 +143,6 @@ static void ProcessMoveCommands(Vehicle_t* p_veh)
 				parent_ps->speed -= speedIdleDec;
 			}
 		}
-		// No input, so coast to stop.
 		else if (parent_ps->speed > 0.0f)
 		{
 			parent_ps->speed -= speedIdleDec;
@@ -145,6 +162,7 @@ static void ProcessMoveCommands(Vehicle_t* p_veh)
 	}
 	else
 	{
+		// No movement input → clamp negative movement
 		if (p_veh->m_ucmd.forwardmove < 0)
 		{
 			p_veh->m_ucmd.forwardmove = 0;
@@ -155,26 +173,22 @@ static void ProcessMoveCommands(Vehicle_t* p_veh)
 		}
 
 		p_veh->m_ucmd.rightmove = 0;
-
-		/*if ( !p_veh->m_pVehicleInfo->strafePerc
-			|| (!g_speederControlScheme->value && !parent->s.number) )
-		{//if in a strafe-capable vehicle, clear strafing unless using alternate control scheme
-			p_veh->m_ucmd.rightmove = 0;
-		}*/
 	}
 
-	if (parent_ps && parent_ps
-
-		->
-		electrifyTime > pm->cmd.serverTime
-		)
+	// -------------------------------------------------------------------------
+	// Electrified slowdown
+	// -------------------------------------------------------------------------
+	if (parent_ps->electrifyTime > pm->cmd.serverTime)
 	{
 		speedMax *= 0.5f;
 	}
 
+	// -------------------------------------------------------------------------
+	// Walking speed cap
+	// -------------------------------------------------------------------------
 	const float fWalkSpeedMax = speedMax * 0.275f;
 
-	if (p_veh->m_ucmd.buttons & BUTTON_WALKING && parent_ps->speed > fWalkSpeedMax)
+	if ((p_veh->m_ucmd.buttons & BUTTON_WALKING) && parent_ps->speed > fWalkSpeedMax)
 	{
 		parent_ps->speed = fWalkSpeedMax;
 	}
@@ -187,9 +201,11 @@ static void ProcessMoveCommands(Vehicle_t* p_veh)
 		parent_ps->speed = speedMin;
 	}
 
+	// -------------------------------------------------------------------------
+	// Dead players cannot move
+	// -------------------------------------------------------------------------
 	if (parent_ps->stats[STAT_HEALTH] <= 0)
 	{
-		//don't keep moving while you're dying!
 		parent_ps->speed = 0;
 	}
 

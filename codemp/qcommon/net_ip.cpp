@@ -37,6 +37,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #ifdef _WIN32
 #include <winsock.h>
+#include <Windows.h>
+#include <qcommon\q_platform.h>
 
 using socklen_t = int;
 
@@ -81,6 +83,20 @@ static qboolean winsockInitialized = qfalse;
 #ifdef __sun
 #include <sys/filio.h>
 #endif
+#include <qcommon\q_string.h>
+#include <cstdlib>
+#include "q_shared.h"
+#include <string.h>
+#include <cassert>
+#include <cstdint>
+#include <cstdlib>
+#include "q_shared.h"
+#include <string.h>
+#include <cassert>
+#include <cstdint>
+#include <qcommon\q_string.h>
+#include <cstdlib>
+#include <cstdlib>
 
 typedef int SOCKET;
 #define INVALID_SOCKET                -1
@@ -113,7 +129,7 @@ static sockaddr_in socksRelayAddr;
 static SOCKET ip_socket = INVALID_SOCKET;
 static SOCKET socks_socket = INVALID_SOCKET;
 
-#define	MAX_IPS		16
+constexpr auto MAX_IPS = 16;
 static int numIP;
 static byte localIP[MAX_IPS][4];
 
@@ -479,8 +495,8 @@ static SOCKET NET_IPSocket(char* net_interface, const int port, int* err)
 	Com_Printf("----------------------- MovieDuels-SJE-SP -----------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Update 7.0 ---------------------------\n");
-	Com_Printf("--------------------- Build Date 27/02/2026 ---------------------\n");// build date
-	Com_Printf("---------------------------Build 09------------------------------\n");
+	Com_Printf("--------------------- Build Date 01/03/2026 ---------------------\n");// build date
+	Com_Printf("---------------------------Build 01------------------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Lightsaber ---------------------------\n");
 	Com_Printf("---------- An elegant weapon for a more civilized age -----------\n");
@@ -1108,30 +1124,45 @@ Called from NET_Sleep which uses select() to determine which sockets have seen a
 static void NET_Event(fd_set* fdr)
 {
 	netadr_t from;
-	msg_t netmsg;
 
-	while (true)
+	// Allocate the large buffer ONCE, not inside the loop.
+	byte    bufData[MAX_MSGLEN + 1];
+	msg_t   netmsg;
+
+	MSG_Init(&netmsg, bufData, sizeof(bufData));
+
+	while (qtrue)
 	{
-		byte bufData[MAX_MSGLEN + 1];
-		MSG_Init(&netmsg, bufData, sizeof bufData);
+		// Reset message for each packet
+		netmsg.cursize = 0;
+		netmsg.readcount = 0;
 
 		if (NET_GetPacket(&from, &netmsg, fdr))
 		{
+			// Drop simulation
 			if (net_dropsim->value > 0.0f && net_dropsim->value <= 100.0f)
 			{
-				// com_dropsim->value percent of incoming packets get dropped.
-				if (rand() < static_cast<int>(static_cast<double>(RAND_MAX) / 100.0 * static_cast<double>(net_dropsim->
-					value)))
+				int dropThreshold = (int)((double)RAND_MAX / 100.0 * (double)net_dropsim->value);
+
+				if (rand() < dropThreshold)
+				{
 					continue; // drop this packet
+				}
 			}
 
 			if (com_sv_running->integer)
+			{
 				Com_RunAndTimeServerPacket(&from, &netmsg);
+			}
 			else
+			{
 				CL_PacketEvent(from, &netmsg);
+			}
 		}
 		else
+		{
 			break;
+		}
 	}
 }
 

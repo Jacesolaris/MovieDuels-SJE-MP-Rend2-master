@@ -6711,15 +6711,12 @@ CG_DrawCenterString
 
 static void CG_DrawCenterString(void)
 {
-	int l;
-
 	if (!cg.centerPrintTime)
 	{
 		return;
 	}
 
 	float* color = CG_FadeColor(cg.centerPrintTime, 1000 * cg_centerTime.value);
-
 	if (!color)
 	{
 		return;
@@ -6728,7 +6725,6 @@ static void CG_DrawCenterString(void)
 	trap->R_SetColor(color);
 
 	char* start = cg.centerPrint;
-
 	int y = cg.centerPrintY - cg.centerPrintLines * BIGCHAR_HEIGHT / 2;
 
 	while (1)
@@ -6736,7 +6732,8 @@ static void CG_DrawCenterString(void)
 		const float scale = Q_max(cg_textprintscale.value, 0.0f);
 		char linebuffer[1024];
 
-		for (l = 0; l < 50; l++)
+		int l = 0;
+		for (; l < 50; l++)
 		{
 			if (!start[l] || start[l] == '\n')
 			{
@@ -6746,9 +6743,11 @@ static void CG_DrawCenterString(void)
 		}
 		linebuffer[l] = 0;
 
-		if (!BG_IsWhiteSpace(start[l]) && !BG_IsWhiteSpace(linebuffer[l - 1]))
+		// ---------------------------------------------------------------------
+		// FIX: Prevent out-of-bounds read when l == 0
+		// ---------------------------------------------------------------------
+		if (l > 0 && !BG_IsWhiteSpace(start[l]) && !BG_IsWhiteSpace(linebuffer[l - 1]))
 		{
-			//we might have cut a word off, attempt to find a spot where we won't cut words off at.
 			const int saved_l = l;
 			int counter = l - 2;
 
@@ -6756,15 +6755,14 @@ static void CG_DrawCenterString(void)
 			{
 				if (BG_IsWhiteSpace(start[counter]))
 				{
-					//this location is whitespace, line break from this position
 					linebuffer[counter] = 0;
 					l = counter + 1;
 					break;
 				}
 			}
+
 			if (counter < 0)
 			{
-				//couldn't find a break in the text, just go ahead and cut off the word mid-word.
 				l = saved_l;
 			}
 		}
@@ -6772,24 +6770,20 @@ static void CG_DrawCenterString(void)
 		const int w = CG_Text_Width(linebuffer, scale, FONT_MEDIUM);
 		const int h = CG_Text_Height(linebuffer, scale, FONT_MEDIUM);
 		const int x = (SCREEN_WIDTH - w) / 2;
+
 		CG_Text_Paint(x, y + h, scale, color, linebuffer, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE, FONT_MEDIUM);
 		y += h + 6;
 
-		//this method of advancing to new line from the start of the array was causing long lines without
-		//new lines to be totally truncated.
 		if (start[l] && start[l] == '\n')
 		{
-			//next char is a newline, advance past
 			l++;
 		}
 
 		if (!start[l])
 		{
-			//end of string, we're done.
 			break;
 		}
 
-		//advance pointer to the last character that we didn't read in.
 		start = &start[l];
 	}
 
@@ -8506,58 +8500,59 @@ void CG_TraceItem(trace_t* result, const vec3_t start, const vec3_t mins, const 
 
 static void CG_ScanForCrosshairEntity(void)
 {
-	trace_t trace;
-	vec3_t start, end;
+	trace_t  trace;
+	vec3_t   start, end;
 	qboolean b_veh_check_trace_from_cam_pos = qfalse;
+
+	// cg.snap is used heavily below; if it's NULL, we can't do anything safely
+	if (!cg.snap)
+	{
+		return;
+	}
 
 	int ignore = cg.predictedPlayerState.clientNum;
 
 	if (cg_dynamicCrosshair.integer)
 	{
 		vec3_t d_f, d_rt, d_up;
-		//For now we still want to draw the crosshair in relation to the player's world coordinates
-		//even if we have a melee weapon/no weapon.
-		if (cg.predictedPlayerState.m_iVehicleNum && cg.predictedPlayerState.eFlags & EF_NODRAW)
-		{
-			//we're *inside* a vehicle
-			//do the vehicle's crosshair instead
-			const centity_t* veh = &cg_entities[cg.predictedPlayerState.m_iVehicleNum];
-			qboolean gunner;
 
-			//if (veh->currentState.owner == cg.predictedPlayerState.clientNum)
+		// For now we still want to draw the crosshair in relation to the player's world coordinates
+		if (cg.predictedPlayerState.m_iVehicleNum &&
+			(cg.predictedPlayerState.eFlags & EF_NODRAW))
+		{
+			// we're *inside* a vehicle
+			const centity_t* veh = &cg_entities[cg.predictedPlayerState.m_iVehicleNum];
+			qboolean gunner = qfalse;
+
+			// pilot
+			ignore = cg.predictedPlayerState.m_iVehicleNum;
+			gunner = CG_CalcVehiclemuzzlePoint(cg.predictedPlayerState.m_iVehicleNum, start, d_f, d_rt, d_up);
+
+			if (veh->m_pVehicle &&
+				veh->m_pVehicle->m_pVehicleInfo &&
+				veh->m_pVehicle->m_pVehicleInfo->type == VH_FIGHTER &&
+				cg.distanceCull > MAX_XHAIR_DIST_ACCURACY &&
+				!gunner)
 			{
-				//the pilot
-				ignore = cg.predictedPlayerState.m_iVehicleNum;
-				gunner = CG_CalcVehiclemuzzlePoint(cg.predictedPlayerState.m_iVehicleNum, start, d_f, d_rt, d_up);
-			}
-			if (veh->m_pVehicle
-				&& veh->m_pVehicle->m_pVehicleInfo
-				&& veh->m_pVehicle->m_pVehicleInfo->type == VH_FIGHTER
-				&& cg.distanceCull > MAX_XHAIR_DIST_ACCURACY
-				&& !gunner)
-			{
-				//NOTE: on huge maps, the crosshair gets inaccurate at close range,
-				//		so we'll do an extra G2 trace from the cg.refdef.vieworg
-				//		to see if we hit anything closer and auto-aim at it if so
+				// extra G2 trace from camera for close‑range accuracy on huge maps
 				b_veh_check_trace_from_cam_pos = qtrue;
 			}
 		}
-		else if (cg.snap && cg.snap->ps.weapon == WP_EMPLACED_GUN && cg.snap->ps.emplacedIndex &&
-			cg_entities[cg.snap->ps.emplacedIndex].ghoul2 && cg_entities[cg.snap->ps.emplacedIndex].currentState.weapon
-			== WP_NONE)
+		else if (cg.snap->ps.weapon == WP_EMPLACED_GUN &&
+			cg.snap->ps.emplacedIndex &&
+			cg_entities[cg.snap->ps.emplacedIndex].ghoul2 &&
+			cg_entities[cg.snap->ps.emplacedIndex].currentState.weapon == WP_NONE)
 		{
-			//locked into our e-web, calc the muzzle from it
+			// locked into an e‑web, calc muzzle from it
 			CG_CalcEWebmuzzlePoint(&cg_entities[cg.snap->ps.emplacedIndex], start, d_f, d_rt, d_up);
 		}
 		else
 		{
-			if (cg.snap && cg.snap->ps.weapon == WP_EMPLACED_GUN && cg.snap->ps.emplacedIndex)
+			if (cg.snap->ps.weapon == WP_EMPLACED_GUN && cg.snap->ps.emplacedIndex)
 			{
 				vec3_t pitch_constraint;
 
 				ignore = cg.snap->ps.emplacedIndex;
-
-				VectorCopy(cg.refdef.viewangles, pitch_constraint);
 
 				if (cg.renderingThirdPerson)
 				{
@@ -8590,6 +8585,7 @@ static void CG_ScanForCrosshairEntity(void)
 
 				AngleVectors(pitchConstraint, d_f, d_rt, d_up);
 			}
+
 			CG_CalcmuzzlePoint(cg.snap->ps.clientNum, start);
 		}
 
@@ -8603,35 +8599,35 @@ static void CG_ScanForCrosshairEntity(void)
 
 	if (cg_dynamicCrosshair.integer && cg_dynamicCrosshairPrecision.integer)
 	{
-		//then do a trace with ghoul2 models in mind
 		CG_G2Trace(&trace, start, vec3_origin, vec3_origin, end, ignore, CONTENTS_SOLID | CONTENTS_BODY);
+
 		if (b_veh_check_trace_from_cam_pos)
 		{
-			//NOTE: this MUST stay up to date with the method used in WP_VehCheckTraceFromCamPos
 			const centity_t* veh = &cg_entities[cg.predictedPlayerState.m_iVehicleNum];
 			trace_t extra_trace;
 			vec3_t view_dir2_end, extra_end;
-			const float min_auto_aim_dist = Distance(veh->lerpOrigin, cg.refdef.vieworg) + veh->m_pVehicle->
-				m_pVehicleInfo
-				->length / 2.0f + 200.0f;
+			const float min_auto_aim_dist =
+				Distance(veh->lerpOrigin, cg.refdef.vieworg) +
+				veh->m_pVehicle->m_pVehicleInfo->length / 2.0f +
+				200.0f;
 
 			VectorSubtract(end, cg.refdef.vieworg, view_dir2_end);
 			VectorNormalize(view_dir2_end);
 			VectorMA(cg.refdef.vieworg, MAX_XHAIR_DIST_ACCURACY, view_dir2_end, extra_end);
+
 			CG_G2Trace(&extra_trace, cg.refdef.vieworg, vec3_origin, vec3_origin, extra_end,
 				ignore, CONTENTS_SOLID | CONTENTS_BODY);
-			if (!extra_trace.allsolid
-				&& !extra_trace.startsolid)
+
+			if (!extra_trace.allsolid && !extra_trace.startsolid)
 			{
 				if (extra_trace.fraction < 1.0f)
 				{
 					if (extra_trace.fraction * MAX_XHAIR_DIST_ACCURACY > min_auto_aim_dist)
 					{
-						if (extra_trace.fraction * MAX_XHAIR_DIST_ACCURACY - Distance(
-							veh->lerpOrigin, cg.refdef.vieworg)
-							< trace.fraction * cg.distanceCull)
+						if (extra_trace.fraction * MAX_XHAIR_DIST_ACCURACY -
+							Distance(veh->lerpOrigin, cg.refdef.vieworg) <
+							trace.fraction * cg.distanceCull)
 						{
-							//this trace hit *something* that's closer than the thing the main trace hit, so use this result instead
 							memcpy(&trace, &extra_trace, sizeof(trace_t));
 						}
 					}
@@ -8659,16 +8655,16 @@ static void CG_ScanForCrosshairEntity(void)
 			}
 
 			CG_DrawCrosshair(trace.endpos, 0);
-
-			return; //this entity is mind-tricking the current client, so don't render it
+			return;
 		}
 	}
 
 	if (cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR)
 	{
-		if (trace.entityNum < /*MAX_CLIENTS*/ENTITYNUM_WORLD)
+		if (trace.entityNum < ENTITYNUM_WORLD)
 		{
 			const centity_t* veh = &cg_entities[trace.entityNum];
+
 			cg.crosshairclientNum = trace.entityNum;
 			cg.crosshairClientTime = cg.time;
 
@@ -8676,7 +8672,6 @@ static void CG_ScanForCrosshairEntity(void)
 				veh->currentState.NPC_class == CLASS_VEHICLE &&
 				veh->currentState.owner < MAX_CLIENTS)
 			{
-				//draw the name of the pilot then
 				cg.crosshairclientNum = veh->currentState.owner;
 				cg.crosshairVehNum = veh->currentState.number;
 				cg.crosshairVehTime = cg.time;
@@ -8695,14 +8690,12 @@ static void CG_ScanForCrosshairEntity(void)
 		return;
 	}
 
-	// if the player is in fog, don't show it
 	const int content = CG_PointContents(trace.endpos, 0);
 	if (content & CONTENTS_FOG)
 	{
 		return;
 	}
 
-	// update the fade timer
 	cg.crosshairclientNum = trace.entityNum;
 	cg.crosshairClientTime = cg.time;
 }

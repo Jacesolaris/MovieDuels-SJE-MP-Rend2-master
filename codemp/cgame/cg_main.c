@@ -26,6 +26,17 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "cg_local.h"
 
 #include "ui/ui_shared.h"
+#include <game\bg_weapons.h>
+#include "cg_public.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
+#include <qcommon\q_shared.h>
+#include <game\bg_vehicles.h>
+#include <game\bg_public.h>
+#include <qcommon\qfiles.h>
+#include <qcommon\q_color.h>
+#include <ui\menudef.h>
+#include <assert.h>
 // display context for new ui stuff
 displayContextDef_t cgDC;
 
@@ -67,7 +78,7 @@ void CG_MiscEnt(void);
 void CG_DoCameraShake(vec3_t origin, float intensity, int radius, int time);
 
 //do we have any force powers that we would normally need to cycle to?
-qboolean CG_NoUseableForce(void)
+static qboolean CG_NoUseableForce(void)
 {
 	int i = FP_HEAL;
 	while (i < NUM_FORCE_POWERS)
@@ -177,7 +188,7 @@ static void C_G2Mark(void)
 
 static void CG_DebugBoxLines(vec3_t mins, vec3_t maxs, const int duration)
 {
-	vec3_t start, end, vert;
+	vec3_t start = { 0 }, end, vert = { 0 };
 	const float x = maxs[0] - mins[0];
 	const float y = maxs[1] - mins[1];
 
@@ -444,7 +455,7 @@ The server says this item is used on this level
 */
 static void CG_RegisterItemSounds(const int itemNum)
 {
-	char data[MAX_QPATH];
+	char data[MAX_QPATH] = { 0 };
 	char* start;
 	int len;
 
@@ -573,7 +584,7 @@ void CG_ParseSiegeState(const char* str)
 	int i = 0;
 	int j = 0;
 	//	int prevState = cgSiegeRoundState;
-	char b[1024];
+	char b[1024] = { 0 };
 
 	while (str[i] && str[i] != '|')
 	{
@@ -885,6 +896,7 @@ static void CG_RegisterSounds(void)
 	trap->S_RegisterSound("sound/weapons/force/pushyoda.mp3");
 	trap->S_RegisterSound("sound/weapons/force/destruction.mp3");
 	trap->S_RegisterSound("sound/weapons/force/repulsepush.wav");
+	trap->S_RegisterSound("sound/weapons/force/force_stasis.mp3");
 	trap->S_RegisterSound("sound/flamethrower/flamethrower");
 
 	for (i = 1; i < 3; i++)
@@ -1813,7 +1825,7 @@ int CG_GetTeamNonScoreCount(team_t team);
 
 static void CG_SiegeCountCvars(void)
 {
-	int classGfx[6];
+	int classGfx[6] = { 0 };
 
 	trap->Cvar_Set("ui_tm1_cnt", va("%d", CG_GetTeamNonScoreCount(TEAM_RED)));
 	trap->Cvar_Set("ui_tm2_cnt", va("%d", CG_GetTeamNonScoreCount(TEAM_BLUE)));

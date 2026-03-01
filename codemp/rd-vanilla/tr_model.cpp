@@ -774,7 +774,7 @@ static qboolean ServerLoadMDXA(model_t* mod, void* buffer, const char* mod_name,
 static const char* humanoid_prefixes[] =
 {
 	"models/players/_humanoid",
-	"models/players/JK2anims/",
+	"models/players/JK2anims",
 	"models/players/_humanoid_ani",
 	"models/players/_humanoid_bdroid",
 	"models/players/_humanoid_ben",

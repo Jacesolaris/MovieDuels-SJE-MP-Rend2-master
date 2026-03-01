@@ -280,7 +280,7 @@ models/players/visor/animation.cfg, etc
 static const char* humanoid_prefixes[] =
 {
 	"models/players/_humanoid",
-	"models/players/JK2anims/",
+	"models/players/JK2anims",
 	"models/players/_humanoid_ani",
 	"models/players/_humanoid_bdroid",
 	"models/players/_humanoid_ben",
@@ -5025,12 +5025,13 @@ static void InitLoadDemoContext(loadDemoContext_t* ctx)
 
 static void UI_LoadDemos(void)
 {
-	loadDemoContext_t loadDemoContext;
+	static loadDemoContext_t loadDemoContext;   // FIXED: no stack usage
 	InitLoadDemoContext(&loadDemoContext);
 
 	uiInfo.demoCount = 0;
 	uiInfo.loadedDemos = 0;
 	memset(uiInfo.demoList, 0, sizeof uiInfo.demoList);
+
 	UI_LoadDemosInDirectory(&loadDemoContext, DEMO_DIRECTORY);
 }
 
@@ -10596,7 +10597,8 @@ void UI_FreeAllSpecies(void)
 =================
 UI_BuildPlayerModel_List
 =================
-*/static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
+*/
+static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 {
 	static const size_t DIR_LIST_SIZE = 16384;
 

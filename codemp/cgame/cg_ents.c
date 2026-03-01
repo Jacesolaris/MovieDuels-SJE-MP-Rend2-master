@@ -4378,47 +4378,64 @@ functionend:
 void CG_Cube(vec3_t mins, vec3_t maxs, vec3_t color, const float alpha)
 {
 	const vec3_t rot = { 0, 0, 0 };
-	int vec[3];
-	int axis;
-	addpolyArgStruct_t apArgs = { 0 };
+	addpolyArgStruct_t apArgs;
 
-	for (axis = 0, vec[0] = 0, vec[1] = 1, vec[2] = 2; axis < 3; axis++, vec[0]++, vec[1]++, vec[2]++)
+	memset(&apArgs, 0, sizeof(apArgs));
+
+	VectorCopy(color, apArgs.rgb1);
+	VectorCopy(color, apArgs.rgb2);
+	VectorCopy(rot, apArgs.rotationDelta);
+
+	apArgs.numVerts = 4;
+	apArgs.alpha1 = apArgs.alpha2 = alpha;
+	apArgs.killTime = cg.frametime;
+	apArgs.shader = cgs.media.solidWhite;
+
+	// Six faces of the cube
+	const vec3_t faces[6][4] = {
+		// -X face
+		{ { mins[0], mins[1], mins[2] },
+		  { mins[0], mins[1], maxs[2] },
+		  { mins[0], maxs[1], maxs[2] },
+		  { mins[0], maxs[1], mins[2] } },
+
+		  // +X face
+		  { { maxs[0], mins[1], mins[2] },
+			{ maxs[0], mins[1], maxs[2] },
+			{ maxs[0], maxs[1], maxs[2] },
+			{ maxs[0], maxs[1], mins[2] } },
+
+			// -Y face
+			{ { mins[0], mins[1], mins[2] },
+			  { maxs[0], mins[1], mins[2] },
+			  { maxs[0], mins[1], maxs[2] },
+			  { mins[0], mins[1], maxs[2] } },
+
+			  // +Y face
+			  { { mins[0], maxs[1], mins[2] },
+				{ maxs[0], maxs[1], mins[2] },
+				{ maxs[0], maxs[1], maxs[2] },
+				{ mins[0], maxs[1], maxs[2] } },
+
+				// -Z face
+				{ { mins[0], mins[1], mins[2] },
+				  { maxs[0], mins[1], mins[2] },
+				  { maxs[0], maxs[1], mins[2] },
+				  { mins[0], maxs[1], mins[2] } },
+
+				  // +Z face
+				  { { mins[0], mins[1], maxs[2] },
+					{ maxs[0], mins[1], maxs[2] },
+					{ maxs[0], maxs[1], maxs[2] },
+					{ mins[0], maxs[1], maxs[2] } }
+	};
+
+	for (int f = 0; f < 6; f++)
 	{
-		for (int i = 0; i < 3; i++)
+		for (int v = 0; v < 4; v++)
 		{
-			if (vec[i] > 2)
-			{
-				vec[i] = 0;
-			}
+			VectorCopy(faces[f][v], apArgs.p[v]);
 		}
-
-		apArgs.p[0][vec[1]] = mins[vec[1]];
-		apArgs.p[0][vec[2]] = mins[vec[2]];
-
-		apArgs.p[1][vec[1]] = mins[vec[1]];
-		apArgs.p[1][vec[2]] = maxs[vec[2]];
-
-		apArgs.p[2][vec[1]] = maxs[vec[1]];
-		apArgs.p[2][vec[2]] = maxs[vec[2]];
-
-		apArgs.p[3][vec[1]] = maxs[vec[1]];
-		apArgs.p[3][vec[2]] = mins[vec[2]];
-
-		//- face
-		apArgs.p[0][vec[0]] = apArgs.p[1][vec[0]] = apArgs.p[2][vec[0]] = apArgs.p[3][vec[0]] = mins[vec[0]];
-
-		apArgs.numVerts = 4;
-		apArgs.alpha1 = apArgs.alpha2 = alpha;
-		VectorCopy(color, apArgs.rgb1);
-		VectorCopy(color, apArgs.rgb2);
-		VectorCopy(rot, apArgs.rotationDelta);
-		apArgs.killTime = cg.frametime;
-		apArgs.shader = cgs.media.solidWhite;
-
-		trap->FX_AddPoly(&apArgs);
-
-		//+ face
-		apArgs.p[0][vec[0]] = apArgs.p[1][vec[0]] = apArgs.p[2][vec[0]] = apArgs.p[3][vec[0]] = maxs[vec[0]];
 
 		trap->FX_AddPoly(&apArgs);
 	}

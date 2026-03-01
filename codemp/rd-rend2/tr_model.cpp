@@ -485,7 +485,7 @@ static qboolean R_LoadMDXA_Server(model_t* mod, void* buffer, const char* mod_na
 static const char* humanoid_prefixes[] =
 {
 	"models/players/_humanoid",
-	"models/players/JK2anims/",
+	"models/players/JK2anims",
 	"models/players/_humanoid_ani",
 	"models/players/_humanoid_bdroid",
 	"models/players/_humanoid_ben",

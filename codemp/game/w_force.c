@@ -37,6 +37,18 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "teams.h"
 #include "g_public.h"
 #include "anims.h"
+#include <math.h>
+#include "g_team.h"
+#include "b_public.h"
+#include "surfaceflags.h"
+#include "bg_vehicles.h"
+#include "bg_weapons.h"
+#include <string.h>
+#include "g_local.h"
+#include <qcommon\q_platform.h>
+#include <qcommon\q_shared.h>
+#include <qcommon\q_math.h>
+#include <assert.h>
 
 #define METROID_JUMP 1
 
@@ -136,7 +148,7 @@ gentity_t* G_PreDefSound(vec3_t org, const int pdSound)
 	return te;
 }
 
-qboolean CheckPushItem(const gentity_t* ent)
+static qboolean CheckPushItem(const gentity_t* ent)
 {
 	if (!ent->item)
 		return qfalse;
@@ -1304,7 +1316,7 @@ qboolean WP_ForcePowerUsable(const gentity_t* self, const forcePowers_t forcePow
 	return WP_ForcePowerAvailable(self, forcePower, 0); // OVERRIDEFIXME
 }
 
-int wp_absorb_conversion(const gentity_t* attacked, const int atd_abs_level, const int at_power,
+static int wp_absorb_conversion(const gentity_t* attacked, const int atd_abs_level, const int at_power,
 	const int at_power_level, const int at_force_spent)
 {
 	if (at_power != FP_DRAIN &&
@@ -1795,7 +1807,7 @@ void ForceTeamHeal(const gentity_t* self)
 	float radius = 256;
 	int i = 0;
 	int numpl = 0;
-	int pl[MAX_CLIENTS];
+	int pl[MAX_CLIENTS] = { 0 };
 	int healthadd;
 	gentity_t* te = NULL;
 
@@ -1907,7 +1919,7 @@ void ForceTeamForceReplenish(const gentity_t* self)
 	float radius = 256;
 	int i = 0;
 	int numpl = 0;
-	int pl[MAX_CLIENTS];
+	int pl[MAX_CLIENTS] = { 0 };
 	int poweradd;
 	gentity_t* te = NULL;
 
@@ -2245,7 +2257,7 @@ static qboolean WP_CounterForce(const gentity_t* attacker, const gentity_t* defe
 void ForceGrip(const gentity_t* self)
 {
 	trace_t tr;
-	vec3_t tfrom, tto, fwd;
+	vec3_t tfrom, tto = { 0 }, fwd;
 
 	if (self->health <= 0)
 	{
@@ -3457,9 +3469,9 @@ static void force_shoot_lightning(gentity_t* self)
 	if (self->client->ps.fd.forcePowerLevel[FP_LIGHTNING] > FORCE_LEVEL_2)
 	{
 		vec3_t center;
-		vec3_t mins;
-		vec3_t maxs;
-		vec3_t v;
+		vec3_t mins = { 0 };
+		vec3_t maxs = { 0 };
+		vec3_t v = { 0 };
 		const float radius = FORCE_LIGHTNING_RADIUS;
 		float dot;
 		static gentity_t* entity_list[MAX_GENTITIES];
@@ -3834,9 +3846,9 @@ int ForceShootDrain(gentity_t* self)
 		if (self->client->ps.fd.forcePowerLevel[FP_DRAIN] > FORCE_LEVEL_2) // level 3 only
 		{
 			vec3_t center;
-			vec3_t mins;
-			vec3_t maxs;
-			vec3_t v;
+			vec3_t mins = { 0 };
+			vec3_t maxs = { 0 };
+			vec3_t v = { 0 };
 			const float radius = MAX_DRAIN_DISTANCE;
 			static gentity_t* entity_list[MAX_GENTITIES];
 			static int iEntityList[MAX_GENTITIES];
@@ -3994,9 +4006,9 @@ static int ForceShootDestruction(gentity_t* self)
 	if (self->client->ps.fd.forcePowerLevel[FP_DRAIN] > FORCE_LEVEL_2)
 	{
 		vec3_t center;
-		vec3_t mins;
-		vec3_t maxs;
-		vec3_t v;
+		vec3_t mins = { 0 };
+		vec3_t maxs = { 0 };
+		vec3_t v = { 0 };
 		const float radius = MAX_DRAIN_DISTANCE;
 		static gentity_t* entity_list[MAX_GENTITIES];
 		static int iEntityList[MAX_GENTITIES];
@@ -4368,7 +4380,7 @@ static void WP_AddAsMindtricked(forcedata_t* fd, const int entNum)
 static qboolean ForceTelepathyCheckDirectNPCTarget(gentity_t* self, trace_t* tr, qboolean* tookPower)
 {
 	qboolean targetLive = qfalse;
-	vec3_t tfrom, tto, fwd;
+	vec3_t tfrom, tto = { 0 }, fwd;
 	const float radius = MAX_TRICK_DISTANCE;
 
 	//Check for a direct usage on NPCs first
@@ -4574,7 +4586,7 @@ void ForceTelepathy(gentity_t* self)
 {
 	trace_t tr;
 	vec3_t tto;
-	vec3_t mins, maxs, fwdangles, forward, right, center;
+	vec3_t mins = { 0 }, maxs ={0}, fwdangles, forward, right, center;
 	float vision_arc = 0;
 	float radius = MAX_TRICK_DISTANCE;
 	qboolean took_power = qfalse;
@@ -4629,7 +4641,15 @@ void ForceTelepathy(gentity_t* self)
 	{
 		//hit an NPC directly
 		self->client->ps.forceAllowDeactivateTime = level.time + 1500;
-		G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/distract.wav"));
+
+		if (self->client->ps.fd.forcePowerLevel[FP_TELEPATHY] > FORCE_LEVEL_2)
+		{
+			G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/force_stasis.mp3"));
+		}
+		else
+		{
+			G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/distract.wav"));
+		}
 		self->client->ps.forceHandExtend = HANDEXTEND_FORCEPUSH;
 		self->client->ps.forceHandExtendTime = level.time + 1000;
 		return;
@@ -4670,7 +4690,14 @@ void ForceTelepathy(gentity_t* self)
 				WP_ForcePowerStart(self, FP_TELEPATHY, 0);
 			}
 
-			G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/distract.wav"));
+			if (self->client->ps.fd.forcePowerLevel[FP_TELEPATHY] > FORCE_LEVEL_2)
+			{
+				G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/force_stasis.mp3"));
+			}
+			else
+			{
+				G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/distract.wav"));
+			}
 
 			self->client->ps.forceHandExtend = HANDEXTEND_FORCEPUSH;
 			self->client->ps.forceHandExtendTime = level.time + 1000;
@@ -4756,7 +4783,6 @@ void ForceTelepathy(gentity_t* self)
 				ent->client->ps.legsTimer = ent->client->ps.torsoTimer = level.time + STASIS_TIME;
 				G_SetAnim(ent, NULL, SETANIM_BOTH, WeaponReadyAnim[ent->client->ps.weapon], SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 500);
 				//G_AddEvent(ent, EV_STASIS, DirToByte(dir));
-				G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/stasis.wav"));
 				ent->client->ps.saber_move = ent->client->ps.saberBounceMove = LS_READY;
 				//don't finish whatever saber anim you may have been in
 				ent->client->ps.saberBlocked = BLOCKED_NONE;
@@ -4775,7 +4801,6 @@ void ForceTelepathy(gentity_t* self)
 				ent->client->ps.legsTimer = ent->client->ps.torsoTimer = level.time + STASISJEDI_TIME;
 				G_SetAnim(ent, NULL, SETANIM_BOTH, WeaponReadyAnim[ent->client->ps.weapon], SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 300);
 				G_AddEvent(ent, EV_STASIS, DirToByte(dir));
-				G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/stasis.wav"));
 				ent->client->ps.saber_move = ent->client->ps.saberBounceMove = LS_READY;
 				//don't finish whatever saber anim you may have been in
 				ent->client->ps.saberBlocked = BLOCKED_NONE;
@@ -4803,8 +4828,14 @@ void ForceTelepathy(gentity_t* self)
 			WP_ForcePowerStart(self, FP_TELEPATHY, 0);
 		}
 	}
-
-	G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/distract.wav"));
+	if (self->client->ps.fd.forcePowerLevel[FP_TELEPATHY] > FORCE_LEVEL_2)
+	{
+		G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/force_stasis.mp3"));
+	}
+	else
+	{
+		G_Sound(self, CHAN_AUTO, G_SoundIndex("sound/weapons/force/distract.wav"));
+	}
 
 	self->client->ps.forceHandExtend = HANDEXTEND_FORCEPUSH;
 	self->client->ps.forceHandExtendTime = level.time + 1000;
@@ -7254,7 +7285,7 @@ static void DoGripAction(gentity_t* self, const forcePowers_t forcePower)
 		{
 			vec3_t nvel;
 			vec3_t start_o;
-			vec3_t fwd_o;
+			vec3_t fwd_o = { 0 };
 			vec3_t fwd;
 
 			VectorCopy(gripEnt->client->ps.origin, start_o);
