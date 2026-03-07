@@ -3998,8 +3998,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_spanki6a_jka")
 			|| Class_Model(model, "jedi_spanki6b_jka")
 			|| Class_Model(model, "jedi_spanki_jka")
-			|| Class_Model(model, "jaro_tapal_mp")
-			|| Class_Model(model, "jaro_tapal")
 			|| Class_Model(model, "spiderman")
 			|| Class_Model(model, "Wolverine")
 			|| Class_Model(model, "SD_tmnt")
@@ -4043,7 +4041,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "cal_kestis_mp/default2")
 			|| Class_Model(model, "cal_kestis_jedi_mp")
 			|| Class_Model(model, "cal_survivor_mp")
-
 			|| Class_Model(model, "cal_inquisitor")
 			|| Class_Model(model, "cal_kestis_jedi")
 			|| Class_Model(model, "cal_kestis")
@@ -4544,6 +4541,9 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "lukejka/red")
 			|| Class_Model(model, "lukejka/blue")
 			|| Class_Model(model, "t_luke_rotj")
+			|| Class_Model(model, "luuke")
+			|| Class_Model(model, "luke_sote")
+			|| Class_Model(model, "luke_de")
 			|| Class_Model(model, "jedi_luke")
 			|| Class_Model(model, "t_anakin")
 			|| Class_Model(model, "jedi_anakint")
@@ -5768,6 +5768,23 @@ qboolean client_userinfo_changed(const int clientNum)
 				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
 			}
 		}
+		else if (Class_Model(model, "jaro_tapal_mp")
+			|| Class_Model(model, "jaro_tapal"))
+			{
+				client->pers.nextbotclass = BCLASS_JEDIMASTER;
+				client->pers.botmodelscale = BOTZIZE_TALL;
+				if (!(ent->r.svFlags & SVF_BOT))
+				{
+					if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
+						GT_SIEGE)
+					{
+						client->ps.stats[STAT_HEALTH] = ent->health = 0;
+						player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
+						trap->UnlinkEntity((sharedEntity_t*)ent);
+					}
+					Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
+				}
+				}
 		else if (Class_Model(model, "gr")
 			|| Class_Model(model, "gr/")
 			|| Class_Model(model, "gr/main")

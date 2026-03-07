@@ -4119,7 +4119,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					doit = 0;
 				}
 			}
-			if (doit) 
+			if (doit)
 			{
 				if (es->emplacedOwner)
 				{
@@ -4363,21 +4363,53 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 
 				e_id = 0;
 
-				//if the effect is already registered go ahead grab it
+				// if the effect is already registered go ahead grab it
 				if (cgs.gameEffects[es->eventParm])
 					e_id = cgs.gameEffects[es->eventParm];
 				else
 				{
-					//else it must be registered before using it
+					// else it must be registered before using it
 					s = CG_ConfigString(CS_EFFECTS + es->eventParm);
 					if (s && s[0])
 						e_id = trap->FX_RegisterEffect(s);
 				}
 
-				if (es->bolt1 == -1 || !e_id) //we don't have this particular bone or effect so can't play it
-					break;
+				// Validate bolt index in C (avoid C++ types/constructs)
+				const int boltIdx = es->generic1;
+				qboolean haveBolt = qfalse;
 
-				//attach the effect on the entity
+				if (boltIdx >= 0)
+				{
+					mdxaBone_t boltMatrix;
+
+					// Try model 0 first. If the bolt isn't found there, try model indices 1..3 as a best-effort fallback.
+					// G2API_GetBoltMatrix_NoRecNoRot returns a qboolean indicating success for a given model/bolt.
+					if (trap->G2API_GetBoltMatrix_NoRecNoRot(effect_on->ghoul2, 0, boltIdx, &boltMatrix,
+						effect_on->lerpAngles, effect_on->lerpOrigin, cg.time, NULL, effect_on->modelScale))
+					{
+						haveBolt = qtrue;
+					}
+					else
+					{
+						for (int mi = 1; mi <= 3 && !haveBolt; ++mi)
+						{
+							if (trap->G2API_GetBoltMatrix_NoRecNoRot(effect_on->ghoul2, mi, boltIdx, &boltMatrix,
+								effect_on->lerpAngles, effect_on->lerpOrigin, cg.time, NULL, effect_on->modelScale))
+							{
+								haveBolt = qtrue;
+								break;
+							}
+						}
+					}
+				}
+
+				if (!haveBolt || !e_id) // we don't have this particular bone or effect so can't play it
+				{
+					Com_Printf("EV_PLAY_EFFECT_BOLTED: invalid bolt index %d for entity %d, effect %d\n", boltIdx, es->owner, es->eventParm);
+					break;
+				}
+
+				// attach the effect on the entity
 				trap->FX_PlayBoltedEffectID(e_id, es->origin, effect_on->ghoul2,
 					es->generic1, es->owner, 0, 0, qtrue);
 			}

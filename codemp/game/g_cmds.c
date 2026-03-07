@@ -36,9 +36,24 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_local.h"
 #include "bg_saga.h"
 
-#include "ui/menudef.h"			// for the voice chats
 #include <stdint.h>
 #include "anims.h"
+#include "surfaceflags.h"
+#include "bg_vehicles.h"
+#include <assert.h>
+#include "teams.h"
+#include "g_team.h"
+#include <qcommon\q_color.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <qcommon\q_string.h>
+#include <string.h>
+#include "g_public.h"
+#include <qcommon\q_math.h>
+#include "bg_weapons.h"
+#include "bg_public.h"
+#include <qcommon\q_platform.h>
+#include <qcommon\q_shared.h>
 
 extern qboolean in_camera;
 //rww - for getting bot commands...
@@ -46,7 +61,6 @@ int AcceptBotCommand(const char* cmd, const gentity_t* pl);
 //end rww
 
 void WP_SetSaber(int entNum, saberInfo_t* sabers, int saberNum, const char* saber_name);
-
 void Cmd_NPC_f(gentity_t* ent);
 void Cmd_AdminNPC_f(gentity_t* ent);
 void SetTeamQuick(const gentity_t* ent, int team, qboolean doBegin);
@@ -115,7 +129,7 @@ DeathmatchScoreboardMessage
 */
 void DeathmatchScoreboardMessage(const gentity_t* ent)
 {
-	char string[1400];
+	char string[1400] = { 0 };
 	int i;
 	int accuracy;
 
@@ -961,7 +975,7 @@ void SetTeam(gentity_t* ent, const char* s)
 
 		if (g_teamForceBalance.integer && !g_jediVmerc.integer)
 		{
-			int counts[TEAM_NUM_TEAMS];
+			int counts[TEAM_NUM_TEAMS] = { 0 };
 
 			//JAC: Invalid clientNum was being used
 			counts[TEAM_BLUE] = TeamCount(ent - g_entities, TEAM_BLUE);
@@ -3222,7 +3236,7 @@ Cmd_SetViewpos_f
 */
 static void Cmd_SetViewpos_f(gentity_t* ent)
 {
-	vec3_t origin, angles;
+	vec3_t origin = { 0 }, angles;
 	char buffer[MAX_TOKEN_CHARS];
 
 	if (trap->Argc() != 5)
@@ -3274,10 +3288,10 @@ void G_LeaveVehicle(gentity_t* ent, const qboolean con_check)
 
 int G_ItemUsable(const playerState_t* ps, int forcedUse)
 {
-	vec3_t fwd, fwdorg, dest;
-	vec3_t yawonly;
-	vec3_t mins, maxs;
-	vec3_t trtest;
+	vec3_t fwd, fwdorg = { 0 }, dest;
+	vec3_t yawonly = { 0 };
+	vec3_t mins = { 0 }, maxs = { 0 };
+	vec3_t trtest = { 0 };
 	trace_t tr;
 
 	// fix: dead players shouldn't use items
@@ -3813,11 +3827,6 @@ void Cmd_SaberAttackCycle_f(gentity_t* ent)
 			select_level++;
 		}
 
-		/*if (select_level > ent->client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE])
-		{
-			select_level = FORCE_LEVEL_1;
-		}*/
-
 		if (d_saberStanceDebug.integer)
 		{
 			trap->SendServerCommand(ent - g_entities, va("print \"SABERSTANCEDEBUG: Attempted to cycle stance normally.\n\""));
@@ -3873,7 +3882,7 @@ void Cmd_SaberAttackCycle_f(gentity_t* ent)
 void Cmd_EngageDuel_f(gentity_t* ent)
 {
 	trace_t tr;
-	vec3_t forward, fwd_org;
+	vec3_t forward, fwd_org = { 0 };
 
 	if (!g_privateDuel.integer)
 	{

@@ -198,45 +198,6 @@ typedef enum
 #define		MAX_OBJECTIVES			6
 #define		MAX_OBJECTIVEDEPENDANCY	6
 
-typedef enum
-{
-	BOTORDER_NONE,
-	//no order
-	BOTORDER_SEARCHANDDESTROY,
-	//Attack mode.  If given an entity the bot will search for
-	//and then attack that entity.  If NULL, the bot will just
-	//hunt around and attack enemies.
-	BOTORDER_OBJECTIVE,
-	//Do objective play for seige.  Bot will defend or attack objective
-	//based on who's objective it is.
-	BOTORDER_DEFEND,
-	//Basic defend order.  Used for CoOp Bots automatically for CoOp.
-	BOTORDER_JEDIMASTER,
-	//jedimaster tactics.
-	BOTORDER_RESUPPLY,
-	//Go grab/use the tactic entity (used for making the bots pick up ammo).
-	BOTORDER_MAX
-} Botorder_t;
-
-typedef enum
-{
-	OT_NONE,
-	//no OT selected or bad OT
-	OT_ATTACK,
-	//Attack this objective, for destroyable stationary objectives
-	OT_DEFEND,
-	//Defend this objective, for destroyable stationary objectives
-	//or touch objectives
-	OT_CAPTURE,
-	//Capture this objective
-	OT_DEFENDCAPTURE,
-	//prevent capture of this objective
-	OT_TOUCH,
-	OT_VEHICLE,
-	//get this vehicle to the related trigger_once.
-	OT_WAIT //This is used by the bots to while they are waiting for a vehicle to respawn
-} Botorderobjective_t;
-
 #define MAX_GEN_NPCTYPES 32
 #define MAX_GEN_COUNT 32
 #define MAX_GEN_FIRSTGOALS 8

@@ -546,7 +546,7 @@ qboolean BG_LegalizedForcePowers(char* power_out, const size_t power_out_size, c
 	const int gametype, const int fp_disabled)
 {
 	char power_buf[128];
-	char read_buf[128]={ 0 };
+	char read_buf[128] = { 0 };
 	qboolean maintains_validity = qtrue;
 	const int power_len = strlen(power_out);
 	int i = 0;

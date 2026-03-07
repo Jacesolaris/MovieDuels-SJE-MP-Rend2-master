@@ -22,6 +22,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include <qcommon\q_math.h>
+#include <qcommon\q_shared.h>
+#include <stdio.h>
+#include <qcommon\q_platform.h>
 
 /*****************************************************************************
  * name:		botlib.h
@@ -118,6 +122,7 @@ typedef struct bot_input_s
 	int actionflags;		//one of the ACTION_? flags
 	int weapon;				//weapon to use
 	int forcesel;			//the force power the the bot is currently trying to select/use
+	int clientNum;
 } bot_input_t;
 
 #ifndef BSPTRACE

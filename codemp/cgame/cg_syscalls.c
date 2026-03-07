@@ -24,6 +24,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 // cg_syscalls.c -- this file is only included when building a dll
 #include "cg_local.h"
+#include "cg_public.h"
+#include <stdlib.h>
 
 static intptr_t(QDECL* Q_syscall)(intptr_t arg, ...) = (intptr_t(QDECL*)(intptr_t, ...)) - 1;
 
@@ -48,18 +50,18 @@ static void trap_Print(const char* fmt)
 	Q_syscall(CG_PRINT, fmt);
 }
 
-void trap_Error(const char* fmt)
+static void trap_Error(const char* fmt)
 {
 	Q_syscall(CG_ERROR, fmt);
 	exit(1);
 }
 
-int trap_Milliseconds(void)
+static int trap_Milliseconds(void)
 {
 	return Q_syscall(CG_MILLISECONDS);
 }
 
-void trap_PrecisionTimer_Start(void** theNewTimer)
+static void trap_PrecisionTimer_Start(void** theNewTimer)
 {
 	Q_syscall(CG_PRECISIONTIMER_START, theNewTimer);
 }

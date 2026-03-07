@@ -49,6 +49,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <qcommon\q_shared.h>
 #include <qcommon\q_math.h>
 #include <assert.h>
+#include <qcommon\q_color.h>
+#include "bg_saga.h"
+#include <qcommon\q_string.h>
+#include "bg_public.h"
 
 #define METROID_JUMP 1
 
@@ -365,7 +369,7 @@ void WP_InitForcePowers(gentity_t* ent)
 	int i, last_fp_known = -1;
 	qboolean warn_client, did_event = qfalse;
 
-	char userinfo[MAX_INFO_STRING], forcePowers[DEFAULT_FORCEPOWERS_LEN + 1], readBuf[DEFAULT_FORCEPOWERS_LEN + 1];
+	char userinfo[MAX_INFO_STRING], forcePowers[DEFAULT_FORCEPOWERS_LEN + 1], readBuf[DEFAULT_FORCEPOWERS_LEN + 1] = { 0 };
 
 	// if server has no max rank, default to max (50)
 	if (g_maxForceRank.integer <= 0 || g_maxForceRank.integer >= NUM_FORCE_MASTERY_LEVELS)
@@ -1734,7 +1738,6 @@ void ForceHeal(gentity_t* self)
 		WP_ForcePowerDrain(&self->client->ps, FP_HEAL, 0);
 	}
 
-
 	// ------------------------------------------------------------
 	// BOT: Change saber style after healing
 	// ------------------------------------------------------------
@@ -2465,7 +2468,7 @@ void ForceSpeed(gentity_t* self, const int forceDuration)
 	G_PlayBoltedEffect(G_EffectIndex("misc/breath.efx"), self, "*head_front");
 }
 
-static void ForceDashAnim(gentity_t* self)
+static void ForceHopAnim(gentity_t* self)
 {
 	const int setAnimOverride = SETANIM_AFLAG_PACE;
 
@@ -2582,7 +2585,7 @@ static void ForceSpeedDash(gentity_t* self)
 	{
 		if (PM_RunningAnim(self->client->ps.legsAnim))
 		{
-			ForceDashAnim(self);
+			ForceHopAnim(self);
 			WP_ForcePowerStop(self, FP_SPEED);
 		}
 		else
@@ -2621,14 +2624,13 @@ static void ForceSpeedDash(gentity_t* self)
 		self->client->ps.velocity[1] = self->client->ps.velocity[1] * 4;
 
 		ForceDashAnimDash(self);
+
+		G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/dash.mp3"));
 	}
 	else if (self->client->ps.groundEntityNum == ENTITYNUM_NONE)
 	{
 		G_SetAnim(self, &self->client->pers.cmd, SETANIM_BOTH, BOTH_FORCEINAIR1, SETANIM_AFLAG_PACE, 0);
 	}
-
-	G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/dash.mp3"));
-	G_PlayBoltedEffect(G_EffectIndex("misc/breath.efx"), self, "*head_front");
 }
 
 void ForceSeeing(gentity_t* self)
@@ -2957,17 +2959,15 @@ void ForceLightning(gentity_t* self)
 	self->client->ps.forceHandExtend = HANDEXTEND_FORCE_HOLD;
 	self->client->ps.forceHandExtendTime = level.time + 20000;
 
-	G_SoundOnEnt(self, CHAN_BODY, "sound/weapons/force/lightning2.wav");
-
 	if (self->client->ps.fd.forcePowerLevel[FP_LIGHTNING] < FORCE_LEVEL_2)
 	{
 		//short burst
-		//G_SoundOnEnt(self, CHAN_BODY, "sound/weapons/force/lightning3.mp3");
+		G_SoundOnEnt(self, CHAN_BODY, "sound/weapons/force/lightning2.wav");
 	}
 	else
 	{
 		//holding it
-		self->s.loopSound = G_SoundIndex("sound/weapons/force/lightning.mp3");
+		self->s.loopSound = G_SoundIndex("sound/weapons/force/lightning3.mp3");
 	}
 
 	WP_ForcePowerStart(self, FP_LIGHTNING, 500);
@@ -4586,7 +4586,7 @@ void ForceTelepathy(gentity_t* self)
 {
 	trace_t tr;
 	vec3_t tto;
-	vec3_t mins = { 0 }, maxs ={0}, fwdangles, forward, right, center;
+	vec3_t mins = { 0 }, maxs = { 0 }, fwdangles, forward, right, center;
 	float vision_arc = 0;
 	float radius = MAX_TRICK_DISTANCE;
 	qboolean took_power = qfalse;
@@ -7959,7 +7959,7 @@ static void FindGenericEnemyIndex(const gentity_t* self)
 
 static void SeekerDroneUpdate(gentity_t* self)
 {
-	vec3_t org, elevated, dir, a;
+	vec3_t org, elevated, dir = { 0 }, a = { 0 };
 	float angle;
 	trace_t tr;
 

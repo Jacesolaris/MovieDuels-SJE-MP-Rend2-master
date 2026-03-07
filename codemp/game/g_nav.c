@@ -22,6 +22,19 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "b_local.h"
 #include "g_nav.h"
+#include <assert.h>
+#include <math.h>
+#include "bg_public.h"
+#include "bg_weapons.h"
+#include "b_public.h"
+#include "g_local.h"
+#include "g_public.h"
+#include "surfaceflags.h"
+#include <qcommon\q_shared.h>
+#include <qcommon\q_color.h>
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
+#include <qcommon\q_string.h>
 
 extern qboolean G_EntIsUnlockedDoor(int entityNum);
 extern qboolean G_EntIsDoor(int entityNum);
@@ -78,42 +91,73 @@ NPC_Blocked
 -------------------------
 */
 
-void NPC_Blocked(gentity_t* self, gentity_t* blocker)
+static void NPC_Blocked(gentity_t* self, gentity_t* blocker)
 {
-	if (self->NPC == NULL)
+	//===========================
+	// Safety checks
+	//===========================
+	if (!self || !self->NPC || !self->client)
+	{
 		return;
+	}
 
-	//Don't do this too often
+	// Don't do this too often
 	if (self->NPC->blockedSpeechDebounceTime > level.time)
+	{
 		return;
+	}
 
-	//Attempt to run any blocked scripts
+	//===========================
+	// Run blocked script if present
+	//===========================
 	if (G_ActivateBehavior(self, BSET_BLOCKED))
 	{
 		return;
 	}
 
-	//If this is one of our enemies, then just attack him
-	if (blocker->client && blocker->client->playerTeam == self->client->enemyTeam)
+	//===========================
+	// If blocker is NULL, we cannot proceed
+	//===========================
+	if (!blocker)
+	{
+		// Still set debounce so we don't spam
+		self->NPC->blockedSpeechDebounceTime =
+			level.time + MIN_BLOCKED_SPEECH_TIME + Q_flrand(0.0f, 1.0f) * 4000.0f;
+		self->NPC->blockingEntNum = ENTITYNUM_NONE;
+		return;
+	}
+
+	//===========================
+	// If this is an enemy, attack them
+	//===========================
+	if (blocker->client &&
+		blocker->client->playerTeam == self->client->enemyTeam)
 	{
 		G_SetEnemy(self, blocker);
 		return;
 	}
 
-	//Debutrap->Print( d_npcai, DEBUG_LEVEL_WARNING, "%s: Excuse me, %s %s!\n", self->targetname, blocker->classname, blocker->targetname );
+	//===========================
+	// If blocked by a teammate player, speak
+	//===========================
+	const qboolean blocker_is_player =
+		(blocker->s.number >= 0 && blocker->s.number < MAX_CLIENTS) ? qtrue : qfalse;
 
-	//If we're being blocked by the player, say something to them
-	if (blocker && (blocker->s.number >= 0 && blocker->s.number < MAX_CLIENTS) && blocker->client->playerTeam == self->
-		client->playerTeam)
+	if (blocker_is_player == qtrue &&
+		blocker->client &&
+		blocker->client->playerTeam == self->client->playerTeam)
 	{
-		//guys in formation are not trying to get to a critical point,
-		//don't make them yell at the player (unless they have an enemy and
-		//are in combat because BP thinks it sounds cool during battle)
-		//NOTE: only imperials, misc crewmen and hazard team have these wav files now
+		// Formation logic removed in original, so we keep behaviour identical:
+		// NPC politely complains to the player
 		G_AddVoiceEvent(self, Q_irand(EV_JDETECTED1, EV_JDETECTED3), 0);
 	}
 
-	self->NPC->blockedSpeechDebounceTime = level.time + MIN_BLOCKED_SPEECH_TIME + Q_flrand(0.0f, 1.0f) * 4000;
+	//===========================
+	// Set debounce + record blocker
+	//===========================
+	self->NPC->blockedSpeechDebounceTime =
+		level.time + MIN_BLOCKED_SPEECH_TIME + Q_flrand(0.0f, 1.0f) * 4000.0f;
+
 	self->NPC->blockingEntNum = blocker->s.number;
 }
 
@@ -231,27 +275,37 @@ NAV_ClearPathToPoint
 -------------------------
 */
 
-qboolean NAV_ClearPathToPoint(gentity_t* self, vec3_t pmins, vec3_t pmaxs, vec3_t point, int clipmask,
-	const int ok_to_hit_ent_num)
+qboolean NAV_ClearPathToPoint(gentity_t* self, vec3_t pmins, vec3_t pmaxs,
+	vec3_t point, int clipmask, const int ok_to_hit_ent_num)
 {
-	//	trace_t	trace;
-	//	return NAV_CheckAhead( self, point, trace, clipmask|CONTENTS_BOTCLIP );
+	//===========================
+	// Safety checks
+	//===========================
+	if (!self || !point)
+	{
+		return qfalse;
+	}
+
+	// Must be in PVS at all
+	if (!trap->InPVS(self->r.currentOrigin, point))
+	{
+		return qfalse;
+	}
 
 	vec3_t mins, maxs;
 	trace_t trace;
 
-	//Test if they're even conceivably close to one another
-	if (!trap->InPVS(self->r.currentOrigin, point))
-		return qfalse;
-
+	//===========================
+	// Determine bounding box
+	//===========================
 	if (self->flags & FL_NAVGOAL)
 	{
 		if (!self->parent)
 		{
-			//SHOULD NEVER HAPPEN!!!
 			assert(self->parent);
 			return qfalse;
 		}
+
 		VectorCopy(self->parent->r.mins, mins);
 		VectorCopy(self->parent->r.maxs, maxs);
 	}
@@ -261,29 +315,38 @@ qboolean NAV_ClearPathToPoint(gentity_t* self, vec3_t pmins, vec3_t pmaxs, vec3_
 		VectorCopy(pmaxs, maxs);
 	}
 
-	if (self->client || self->flags & FL_NAVGOAL)
+	//===========================
+	// Step-up allowance for clients/navgoals
+	//===========================
+	if (self->client || (self->flags & FL_NAVGOAL))
 	{
-		//Clients can step up things, or if this is a navgoal check, a client will be using this info
 		mins[2] += STEPSIZE;
 
-		//don't let box get inverted
 		if (mins[2] > maxs[2])
 		{
 			mins[2] = maxs[2];
 		}
 	}
 
+	//===========================
+	// NAVGOAL → trace from point to self
+	//===========================
 	if (self->flags & FL_NAVGOAL)
 	{
-		//Trace from point to navgoal
-		trap->Trace(&trace, point, mins, maxs, self->r.currentOrigin, self->parent->s.number,
-			(clipmask | CONTENTS_MONSTERCLIP | CONTENTS_BOTCLIP) & ~CONTENTS_BODY, qfalse, 0, 0);
-		if (trace.startsolid && trace.contents & CONTENTS_BOTCLIP)
+		trap->Trace(&trace, point, mins, maxs, self->r.currentOrigin,
+			self->parent->s.number,
+			(clipmask | CONTENTS_MONSTERCLIP | CONTENTS_BOTCLIP) & ~CONTENTS_BODY,
+			qfalse, 0, 0);
+
+		// If starting inside BOTCLIP, ignore BOTCLIP and retry
+		if (trace.startsolid && (trace.contents & CONTENTS_BOTCLIP))
 		{
-			//started inside do not enter, so ignore them
 			clipmask &= ~CONTENTS_BOTCLIP;
-			trap->Trace(&trace, point, mins, maxs, self->r.currentOrigin, self->parent->s.number,
-				(clipmask | CONTENTS_MONSTERCLIP) & ~CONTENTS_BODY, qfalse, 0, 0);
+
+			trap->Trace(&trace, point, mins, maxs, self->r.currentOrigin,
+				self->parent->s.number,
+				(clipmask | CONTENTS_MONSTERCLIP) & ~CONTENTS_BODY,
+				qfalse, 0, 0);
 		}
 
 		if (trace.startsolid || trace.allsolid)
@@ -291,72 +354,100 @@ qboolean NAV_ClearPathToPoint(gentity_t* self, vec3_t pmins, vec3_t pmaxs, vec3_
 			return qfalse;
 		}
 
-		//Made it
-		if (trace.fraction == 1.0)
+		// Clear path
+		if (trace.fraction == 1.0f)
 		{
 			return qtrue;
 		}
 
-		if (ok_to_hit_ent_num != ENTITYNUM_NONE && trace.entityNum == ok_to_hit_ent_num)
+		// Allowed to hit a specific entity
+		if (ok_to_hit_ent_num != ENTITYNUM_NONE &&
+			trace.entityNum == ok_to_hit_ent_num)
 		{
 			return qtrue;
 		}
 
-		//Okay, didn't get all the way there, let's see if we got close enough:
-		if (NAV_HitNavGoal(self->r.currentOrigin, self->parent->r.mins, self->parent->r.maxs, trace.endpos,
-			NPCS.NPCInfo->goalRadius, FlyingCreature(self->parent)))
+		// Close enough to navgoal?
+		if (NAV_HitNavGoal(self->r.currentOrigin,
+			self->parent->r.mins,
+			self->parent->r.maxs,
+			trace.endpos,
+			NPCS.NPCInfo->goalRadius,
+			FlyingCreature(self->parent)))
 		{
 			return qtrue;
 		}
+
+		// Debug drawing
 		if (NAVDEBUG_showCollision)
 		{
-			if (trace.entityNum < ENTITYNUM_WORLD && &g_entities[trace.entityNum] != NULL && g_entities[trace.entityNum]
-				.s.eType != ET_MOVER)
+			if (trace.entityNum < ENTITYNUM_WORLD &&
+				g_entities[trace.entityNum].s.eType != ET_MOVER)
 			{
 				vec3_t p1, p2;
+
 				G_DrawEdge(point, trace.endpos, EDGE_PATH);
-				VectorAdd(g_entities[trace.entityNum].r.mins, g_entities[trace.entityNum].r.currentOrigin, p1);
-				VectorAdd(g_entities[trace.entityNum].r.maxs, g_entities[trace.entityNum].r.currentOrigin, p2);
-				G_CubeOutline(p1, p2, FRAMETIME, 0x0000ff, 0.5);
+
+				VectorAdd(g_entities[trace.entityNum].r.mins,
+					g_entities[trace.entityNum].r.currentOrigin, p1);
+				VectorAdd(g_entities[trace.entityNum].r.maxs,
+					g_entities[trace.entityNum].r.currentOrigin, p2);
+
+				G_CubeOutline(p1, p2, FRAMETIME, 0x0000ff, 0.5f);
 			}
-			//FIXME: if it is a bmodel, light up the surf?
 		}
+
+		return qfalse;
 	}
-	else
+
+	//===========================
+	// Normal entity → trace from self to point
+	//===========================
+	trap->Trace(&trace, self->r.currentOrigin, mins, maxs, point,
+		self->s.number,
+		clipmask | CONTENTS_MONSTERCLIP | CONTENTS_BOTCLIP,
+		qfalse, 0, 0);
+
+	// If starting inside BOTCLIP, retry without BOTCLIP
+	if (trace.startsolid && (trace.contents & CONTENTS_BOTCLIP))
 	{
-		trap->Trace(&trace, self->r.currentOrigin, mins, maxs, point, self->s.number,
-			clipmask | CONTENTS_MONSTERCLIP | CONTENTS_BOTCLIP, qfalse, 0, 0);
-		if (trace.startsolid && trace.contents & CONTENTS_BOTCLIP)
-		{
-			//started inside do not enter, so ignore them
-			clipmask &= ~CONTENTS_BOTCLIP;
-			trap->Trace(&trace, self->r.currentOrigin, mins, maxs, point, self->s.number,
-				clipmask | CONTENTS_MONSTERCLIP, qfalse, 0, 0);
-		}
+		clipmask &= ~CONTENTS_BOTCLIP;
 
-		if (trace.startsolid == qfalse && trace.allsolid == qfalse && trace.fraction == 1.0f)
-		{
-			//FIXME: check for drops
-			return qtrue;
-		}
+		trap->Trace(&trace, self->r.currentOrigin, mins, maxs, point,
+			self->s.number,
+			clipmask | CONTENTS_MONSTERCLIP,
+			qfalse, 0, 0);
+	}
 
-		if (ok_to_hit_ent_num != ENTITYNUM_NONE && trace.entityNum == ok_to_hit_ent_num)
-		{
-			return qtrue;
-		}
+	// Clear path
+	if (!trace.startsolid && !trace.allsolid && trace.fraction == 1.0f)
+	{
+		return qtrue;
+	}
 
-		if (NAVDEBUG_showCollision)
+	// Allowed to hit a specific entity
+	if (ok_to_hit_ent_num != ENTITYNUM_NONE &&
+		trace.entityNum == ok_to_hit_ent_num)
+	{
+		return qtrue;
+	}
+
+	// Debug drawing
+	if (NAVDEBUG_showCollision)
+	{
+		if (trace.entityNum < ENTITYNUM_WORLD &&
+			g_entities[trace.entityNum].s.eType != ET_MOVER)
 		{
-			if (trace.entityNum < ENTITYNUM_WORLD && &g_entities[trace.entityNum] != NULL && g_entities[trace.entityNum]
-				.s.eType != ET_MOVER)
-			{
-				vec3_t p1, p2;
-				G_DrawEdge(self->r.currentOrigin, trace.endpos, EDGE_PATH);
-				VectorAdd(g_entities[trace.entityNum].r.mins, g_entities[trace.entityNum].r.currentOrigin, p1);
-				VectorAdd(g_entities[trace.entityNum].r.maxs, g_entities[trace.entityNum].r.currentOrigin, p2);
-				G_CubeOutline(p1, p2, FRAMETIME, 0x0000ff, 0.5);
-			}
-			//FIXME: if it is a bmodel, light up the surf?
+			vec3_t p1, p2;
+
+			G_DrawEdge(self->r.currentOrigin, trace.endpos, EDGE_PATH);
+
+			VectorAdd(g_entities[trace.entityNum].r.mins,
+				g_entities[trace.entityNum].r.currentOrigin, p1);
+			VectorAdd(g_entities[trace.entityNum].r.maxs,
+				g_entities[trace.entityNum].r.currentOrigin, p2);
+
+			G_CubeOutline(p1, p2, FRAMETIME, 0x0000ff, 0.5f);
 		}
 	}
 
@@ -433,7 +524,7 @@ NAV_ClearBlockedInfo
 -------------------------
 */
 
-void NAV_ClearBlockedInfo(const gentity_t* self)
+static void NAV_ClearBlockedInfo(const gentity_t* self)
 {
 	self->NPC->aiFlags &= ~NPCAI_BLOCKED;
 	self->NPC->blockingEntNum = ENTITYNUM_WORLD;
@@ -445,7 +536,7 @@ NAV_SetBlockedInfo
 -------------------------
 */
 
-void NAV_SetBlockedInfo(const gentity_t* self, const int entId)
+static void NAV_SetBlockedInfo(const gentity_t* self, const int entId)
 {
 	self->NPC->aiFlags |= NPCAI_BLOCKED;
 	self->NPC->blockingEntNum = entId;
@@ -602,7 +693,7 @@ NAV_Bypass
 -------------------------
 */
 
-qboolean NAV_Bypass(gentity_t* self, gentity_t* blocker, vec3_t blocked_dir, const float blocked_dist, vec3_t movedir)
+static qboolean NAV_Bypass(gentity_t* self, gentity_t* blocker, vec3_t blocked_dir, const float blocked_dist, vec3_t movedir)
 {
 	float dot;
 	vec3_t right;
@@ -683,7 +774,7 @@ NAV_MoveBlocker
 -------------------------
 */
 
-qboolean NAV_MoveBlocker(const gentity_t* self, vec3_t shove_dir)
+static qboolean NAV_MoveBlocker(const gentity_t* self, vec3_t shove_dir)
 {
 	//FIXME: This is a temporary method for making blockers move
 
@@ -710,7 +801,7 @@ NAV_ResolveBlock
 -------------------------
 */
 
-qboolean NAV_ResolveBlock(gentity_t* self, gentity_t* blocker, vec3_t blocked_dir)
+static qboolean NAV_ResolveBlock(gentity_t* self, gentity_t* blocker, vec3_t blocked_dir)
 {
 	//Stop double waiting
 	if (blocker->NPC && blocker->NPC->blockingEntNum == self->s.number)
@@ -729,7 +820,7 @@ NAV_TrueCollision
 -------------------------
 */
 
-qboolean NAV_TrueCollision(const gentity_t* self, const gentity_t* blocker, vec3_t movedir, vec3_t blocked_dir)
+static qboolean NAV_TrueCollision(const gentity_t* self, const gentity_t* blocker, vec3_t movedir, vec3_t blocked_dir)
 {
 	vec3_t velocityDir;
 	vec3_t testPos;
@@ -771,7 +862,7 @@ NAV_StackedCanyon
 -------------------------
 */
 
-qboolean NAV_StackedCanyon(const gentity_t* self, const gentity_t* blocker, vec3_t pathDir)
+static qboolean NAV_StackedCanyon(const gentity_t* self, const gentity_t* blocker, vec3_t pathDir)
 {
 	vec3_t perp, cross, test;
 	int extraClip = CONTENTS_BOTCLIP;
@@ -840,7 +931,7 @@ NAV_ResolveEntityCollision
 -------------------------
 */
 
-qboolean NAV_ResolveEntityCollision(gentity_t* self, gentity_t* blocker, vec3_t movedir, vec3_t pathDir)
+static qboolean NAV_ResolveEntityCollision(gentity_t* self, gentity_t* blocker, vec3_t movedir, vec3_t pathDir)
 {
 	vec3_t blocked_dir;
 
@@ -919,60 +1010,85 @@ NAV_AvoidCollsion
 
 qboolean NAV_AvoidCollision(gentity_t* self, gentity_t* goal, navInfo_t* info)
 {
-	vec3_t movedir;
-	vec3_t movepos;
+	//===========================
+	// Safety checks
+	//===========================
+	if (!self || !info)
+	{
+		return qfalse;
+	}
 
-	//Clear our block info for this frame
+	// Clear block info for this frame
 	NAV_ClearBlockedInfo(NPCS.NPC);
 
-	//Cap our distance
+	// Cap distance
 	if (info->distance > MAX_COLL_AVOID_DIST)
 	{
 		info->distance = MAX_COLL_AVOID_DIST;
 	}
 
-	//Get an end position
+	// Compute movement target
+	vec3_t movepos;
+	vec3_t movedir;
+
 	VectorMA(self->r.currentOrigin, info->distance, info->direction, movepos);
 	VectorCopy(info->direction, movedir);
 
-	if (self && self->NPC && self->NPC->aiFlags & NPCAI_NO_COLL_AVOID)
+	//===========================
+	// NPCs allowed to ignore collision avoidance
+	//===========================
+	if (self->NPC &&
+		(self->NPC->aiFlags & NPCAI_NO_COLL_AVOID))
 	{
-		//pretend there's no-one in the way
 		return qtrue;
 	}
-	//Now test against entities
+
+	//===========================
+	// Collision test
+	//===========================
 	if (NAV_CheckAhead(self, movepos, &info->trace, CONTENTS_BODY) == qfalse)
 	{
-		//Get the blocker
+		// We hit something
 		info->blocker = &g_entities[info->trace.entityNum];
 		info->flags |= NIF_COLLISION;
 
-		//Ok to hit our goal entity
+		// Hitting our goal is allowed
 		if (goal == info->blocker)
+		{
 			return qtrue;
+		}
 
-		//See if we're moving along with them
-		//if ( NAV_TrueCollision( self, info.blocker, movedir, info.direction ) == qfalse )
-		//	return qtrue;
-
-		//Test for blocking by standing on goal
+		//===========================
+		// Standing-on-goal blocking test
+		//===========================
 		if (NAV_TestForBlocked(self, goal, info->blocker, info->distance, &info->flags) == qtrue)
+		{
 			return qfalse;
+		}
 
-		//If the above function said we're blocked, don't do the extra checks
+		// If flagged as blocked, skip extra checks
 		if (info->flags & NIF_BLOCKED)
+		{
 			return qtrue;
+		}
 
-		//See if we can get that entity to move out of our way
+		//===========================
+		// Try to get the blocker to move
+		//===========================
 		if (NAV_ResolveEntityCollision(self, info->blocker, movedir, info->pathDirection) == qfalse)
+		{
 			return qfalse;
+		}
 
+		// Update direction after resolution
 		VectorCopy(movedir, info->direction);
 
 		return qtrue;
 	}
 
-	//Our path is clear, just move there
+	//===========================
+	// Path is clear
+	//===========================
 	if (NAVDEBUG_showCollision)
 	{
 		G_DrawEdge(self->r.currentOrigin, movepos, EDGE_PATH);
@@ -1122,7 +1238,7 @@ NAV_MicroError
 -------------------------
 */
 
-qboolean NAV_MicroError(vec3_t start, vec3_t end)
+static qboolean NAV_MicroError(vec3_t start, vec3_t end)
 {
 	if (VectorCompare(start, end))
 	{
@@ -1248,7 +1364,7 @@ waypoint_testDirection
 -------------------------
 */
 
-unsigned int waypoint_testDirection(vec3_t origin, const float yaw, const unsigned int minDist)
+static unsigned int waypoint_testDirection(vec3_t origin, const float yaw, const unsigned int minDist)
 {
 	vec3_t trace_dir, test_pos;
 	vec3_t maxs, mins;
@@ -1280,7 +1396,7 @@ waypoint_getRadius
 -------------------------
 */
 
-unsigned int waypoint_getRadius(gentity_t* ent)
+static unsigned int waypoint_getRadius(gentity_t* ent)
 {
 	unsigned int minDist = MAX_RADIUS_CHECK + 1; // (unsigned int) -1;
 
@@ -1554,7 +1670,7 @@ Svcmd_Nav_f
 -------------------------
 */
 
-void Svcmd_Nav_f()
+static void Svcmd_Nav_f()
 {
 	char cmd[1024];
 	trap->Argv(1, cmd, 1024);
@@ -1655,7 +1771,7 @@ NAV_CalculatePaths
 int fatalErrors = 0;
 char* fatalErrorPointer = NULL;
 char	fatalErrorString[4096];
-qboolean NAV_WaypointsTooFar(gentity_t* wp1, gentity_t* wp2)
+static qboolean NAV_WaypointsTooFar(gentity_t* wp1, gentity_t* wp2)
 {
 	if (Distance(wp1->r.currentOrigin, wp2->r.currentOrigin) > 1024)
 	{
@@ -1699,7 +1815,7 @@ static int numStoredWaypoints = 0;
 //static waypointData_t *tempWaypointList=0;
 static waypointData_t tempWaypointList[MAX_STORED_WAYPOINTS]; //rwwFIXMEFIXME: Need.. dynamic.. memory
 
-void NAV_ClearStoredWaypoints(void)
+static void NAV_ClearStoredWaypoints(void)
 {
 	numStoredWaypoints = 0;
 }
@@ -1748,7 +1864,7 @@ void NAV_StoreWaypoint(const gentity_t* ent)
 	numStoredWaypoints++;
 }
 
-int NAV_GetStoredWaypoint(const char* targetname)
+static int NAV_GetStoredWaypoint(const char* targetname)
 {
 	if (!targetname || !targetname[0])
 	{

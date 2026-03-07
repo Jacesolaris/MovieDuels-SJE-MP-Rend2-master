@@ -6225,7 +6225,7 @@ weapChecks:
 		}
 
 		if (curmove >= LS_PARRY_UP && curmove <= LS_REFLECT_LL)
-		{//from a parry or reflection, can go directly into an attack			
+		{//from a parry or reflection, can go directly into an attack
 #ifdef _GAME
 			qboolean  bot = (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT);
 			qboolean  npc = (pm_entSelf->s.eType == ET_NPC);
@@ -6676,7 +6676,7 @@ static void PM_NPCFatigue(playerState_t* ps, const int new_move)
 void PM_SaberFakeFlagUpdate(int new_move);
 void PM_SaberPerfectBlockUpdate(int new_move);
 
-void PM_SetJumped(const float height, const qboolean force)
+static void PM_SetJumped(const float height, const qboolean force)
 {
 	pm->ps->velocity[2] = height;
 	pml.groundPlane = qfalse;

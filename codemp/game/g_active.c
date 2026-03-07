@@ -5456,7 +5456,7 @@ static void ClientThink_real(gentity_t* ent)
 		}
 	}
 
-	// Activate the surrenderingTime flags
+	// Activate the Time flags
 	if (!(ent->r.svFlags & SVF_BOT))
 	{
 		if (IsPressingDashButton(ent)

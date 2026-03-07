@@ -6519,7 +6519,7 @@ void CG_DoSaberLight(const saberInfo_t* saber, const int cnum, const int bnum)
 	}
 }
 
-void CG_DoCustomSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, vec3_t trail_muz, float length_max,
+static void CG_DoCustomSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, vec3_t trail_muz, float length_max,
 	float radius, saber_colors_t color, int rfx, qboolean do_light, int cnum,
 	int bnum)
 {
@@ -8767,7 +8767,7 @@ void CG_DoBattlefrontSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip,
 	}
 }
 
-void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, vec3_t trail_muz, float length_max,
+static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, vec3_t trail_muz, float length_max,
 	float radius, saber_colors_t color, int rfx, qboolean do_light, int cnum, int bnum)
 {
 	vec3_t dif, mid, blade_dir, end_dir, trail_dir, base_dir;

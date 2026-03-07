@@ -1418,16 +1418,17 @@ static void CG_RegisterGraphics(void)
 
 	cgs.effects.mSparks = trap->FX_RegisterEffect("sparks/spark_nosnd.efx"); //sparks/spark.efx
 	cgs.effects.mboil = trap->FX_RegisterEffect("saber/boil.efx");
-	cgs.effects.mSaberCut = trap->FX_RegisterEffect("saber/saber_cut.efx");
+	cgs.effects.mSaberCut = trap->FX_RegisterEffect("saber/saber_cut_AMD.efx");
 	cgs.effects.mDroidCut = trap->FX_RegisterEffect("saber/saber_cut_droid.efx");
 	cgs.effects.mDroidtouch = trap->FX_RegisterEffect("saber/saber_touch_droid.efx");
-	cgs.effects.mSaberBlock = trap->FX_RegisterEffect("saber/saber_block.efx");
+	cgs.effects.mSaberBlock = trap->FX_RegisterEffect("saber/saber_block_AMD.efx");
 	cgs.effects.mSaberprfectBlock = trap->FX_RegisterEffect("saber/saber_goodparry.efx");
 	cgs.effects.mSaberBodyHit = trap->FX_RegisterEffect("saber/saber_bodyhit.efx");
 	cgs.effects.mSaberlimb_Bolton = trap->FX_RegisterEffect("saber/limb_bolton.efx");
-	cgs.effects.mSaberBloodSparks = trap->FX_RegisterEffect("saber/blood_sparks_mp.efx");
-	cgs.effects.mSaberBloodSparksSmall = trap->FX_RegisterEffect("saber/blood_sparks_25_mp.efx");
-	cgs.effects.mSaberBloodSparksMid = trap->FX_RegisterEffect("saber/blood_sparks_50_mp.efx");
+	cgs.effects.mSaberBloodSparks = trap->FX_RegisterEffect("saber/blood_sparks.efx");
+	cgs.effects.mSaberBloodSparksSmall = trap->FX_RegisterEffect("saber/blood_sparks_MD.efx");
+	cgs.effects.mSaberBloodSparksMid = trap->FX_RegisterEffect("saber/blood_sparks_AMD.efx");
+
 	cgs.effects.mSpawn = trap->FX_RegisterEffect("mp/spawn.efx");
 	cgs.effects.mJediSpawn = trap->FX_RegisterEffect("mp/jedispawn.efx");
 	cgs.effects.mBlasterDeflect = trap->FX_RegisterEffect("blaster/deflect.efx");

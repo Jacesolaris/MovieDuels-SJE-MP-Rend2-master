@@ -24,6 +24,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 // this file is only included when building a dll
 #include "g_local.h"
+#include <stdlib.h>
+#include "g_public.h"
 
 static void TranslateSyscalls(void);
 
@@ -44,56 +46,60 @@ static int PASSFLOAT(const float x)
 
 static void trap_Print(const char* fmt)
 {
-	Q_syscall(G_PRINT, fmt);
+	if (trap && trap->Print)
+		trap->Print(fmt);
 }
 
-void trap_Error(const char* fmt)
+static void trap_Error(const char* fmt)
 {
-	Q_syscall(G_ERROR, fmt);
+	if (trap && trap->Error)
+		trap->Error(ERR_DROP, "%s", fmt); // match engine signature
 	exit(1);
 }
 
-int trap_Milliseconds(void)
+static int trap_Milliseconds(void)
 {
-	return Q_syscall(G_MILLISECONDS);
+	if (trap && trap->Milliseconds)
+		return trap->Milliseconds();
+	return 0;
 }
 
-void trap_PrecisionTimer_Start(void** theNewTimer)
+static void trap_PrecisionTimer_Start(void** theNewTimer)
 {
 	Q_syscall(G_PRECISIONTIMER_START, theNewTimer);
 }
 
-int trap_PrecisionTimer_End(void* theTimer)
+static int trap_PrecisionTimer_End(void* theTimer)
 {
 	return Q_syscall(G_PRECISIONTIMER_END, theTimer);
 }
 
-void trap_Cvar_Register(vmCvar_t* cvar, const char* var_name, const char* value, const uint32_t flags)
+static void trap_Cvar_Register(vmCvar_t* cvar, const char* var_name, const char* value, const uint32_t flags)
 {
 	Q_syscall(G_CVAR_REGISTER, cvar, var_name, value, flags);
 }
 
-void trap_Cvar_Update(vmCvar_t* cvar)
+static void trap_Cvar_Update(vmCvar_t* cvar)
 {
 	Q_syscall(G_CVAR_UPDATE, cvar);
 }
 
-void trap_Cvar_Set(const char* var_name, const char* value)
+static void trap_Cvar_Set(const char* var_name, const char* value)
 {
 	Q_syscall(G_CVAR_SET, var_name, value);
 }
 
-int trap_Cvar_VariableIntegerValue(const char* var_name)
+static int trap_Cvar_VariableIntegerValue(const char* var_name)
 {
 	return Q_syscall(G_CVAR_VARIABLE_INTEGER_VALUE, var_name);
 }
 
-void trap_Cvar_VariableStringBuffer(const char* var_name, char* buffer, const int bufsize)
+static void trap_Cvar_VariableStringBuffer(const char* var_name, char* buffer, const int bufsize)
 {
 	Q_syscall(G_CVAR_VARIABLE_STRING_BUFFER, var_name, buffer, bufsize);
 }
 
-int trap_Argc(void)
+static int trap_Argc(void)
 {
 	return Q_syscall(G_ARGC);
 }

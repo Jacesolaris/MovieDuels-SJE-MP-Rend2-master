@@ -41,6 +41,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_public.h"
 #include "bg_weapons.h"
 #include "teams.h"
+#include <stdlib.h>
 
 extern int G_ShipSurfaceForSurfName(const char* surfaceName);
 extern qboolean G_FlyVehicleDestroySurface(gentity_t* veh, int surface);
@@ -4485,7 +4486,7 @@ static void G_GetDismemberBolt(gentity_t* self, vec3_t bolt_point, const int lim
 	if (self->client && limbType == G2_MODELPART_RHAND)
 	{
 		//Make some saber hit sparks over the severed wrist area
-		vec3_t boltAngles;
+		vec3_t boltAngles = { 0 };
 
 		boltAngles[0] = -boltMatrix.matrix[0][1];
 		boltAngles[1] = -boltMatrix.matrix[1][1];
@@ -4727,7 +4728,7 @@ void G_Dismember(const gentity_t* ent, const gentity_t* enemy, vec3_t point, con
 		}
 	}
 
-	if (ent->client && ent->s.eType == ET_NPC && ent->ghoul2 && limb_name[0] && stub_cap_name[0])
+	if (ent && ent->client && ent->s.eType == ET_NPC && ent->ghoul2 && limb_name[0] && stub_cap_name[0])
 	{
 		//if it's an npc remove these surfs on the server too. For players we don't even care cause there's no further dismemberment after death.
 		trap->G2API_SetSurfaceOnOff(ent->ghoul2, limb_name, 0x00000100);
@@ -5104,7 +5105,7 @@ qboolean G_GetHitLocFromSurfName(gentity_t* ent, const char* surfName, int* hit_
 
 			if (ent->client->renderInfo.boltValidityTime != level.time)
 			{
-				vec3_t renderAng;
+				vec3_t renderAng = { 0 };
 
 				renderAng[0] = 0;
 				renderAng[1] = ent->client->ps.viewangles[YAW];
@@ -7888,10 +7889,10 @@ G_RadiusDamage
 */
 qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t impactPoint, int hit_loc, int* dmg, int mod);
 
-void Do_DustFallNear(const vec3_t origin, const int dustcount)
+static void Do_DustFallNear(const vec3_t origin, const int dustcount)
 {
 	trace_t test_trace;
-	vec3_t test_direction;
+	vec3_t test_direction = { 0 };
 	vec3_t test_start_pos;
 
 	VectorCopy(origin, test_start_pos);
@@ -7919,10 +7920,10 @@ void Do_DustFallNear(const vec3_t origin, const int dustcount)
 qboolean g_radius_damage(vec3_t origin, gentity_t* attacker, const float damage, float radius, const gentity_t* ignore,
 	gentity_t* missile, const int mod)
 {
-	int entity_list[MAX_GENTITIES];
-	vec3_t mins;
-	vec3_t maxs;
-	vec3_t v;
+	static int entity_list[MAX_GENTITIES];
+	vec3_t mins = { 0 };
+	vec3_t maxs = { 0 };
+	vec3_t v = { 0 };
 	vec3_t dir;
 	int i;
 	qboolean hit_client = qfalse;
@@ -8020,46 +8021,55 @@ qboolean g_radius_damage(vec3_t origin, gentity_t* attacker, const float damage,
 
 	return hit_client;
 }
+#define FATIGUE_KILLBONUS 10 //the bonus you get for killing another player;
+#define FATIGUE_DAMAGEBONUS 5 //the FP bonus you get for killing another player
+#define FATIGUE_HURTBONUSMAX 5 //the FP bonus you get for killing another player
+#define FATIGUE_HURTBONUS 3 //the FP bonus you get for killing another player
+#define FATIGUE_SMALLBONUS 2 //the FP bonus you get for killing another player
 
-#define FATIGUE_SMALLBONUS 5 //the FP bonus you get for killing another player
-#define FATIGUE_DAMAGEBONUS 10 //the FP bonus you get for killing another player
-#define FATIGUE_HURTBONUS 15 //the FP bonus you get for killing another player
-#define FATIGUE_HURTBONUSMAX 20 //the FP bonus you get for killing another player
-#define FATIGUE_KILLBONUS 25 //the FP bonus you get for killing another player
-
-void AddFatigueKillBonus(const gentity_t* attacker, const gentity_t* victim, const int means_of_death)
+void AddFatigueKillBonus(const gentity_t* attacker,
+	const gentity_t* victim,
+	const int means_of_death)
 {
-	//get a small bonus for killing an enemy
-	if (!attacker || !attacker->client || !victim || !victim->client)
+	// Validate attacker and victim
+	if (attacker == NULL ||
+		attacker->client == NULL ||
+		victim == NULL ||
+		victim->client == NULL)
 	{
 		return;
 	}
 
+	// Ignore turret/vehicle weapons
 	if (victim->s.weapon == WP_TURRET ||
 		victim->s.weapon == WP_EMPLACED_GUN)
 	{
 		return;
 	}
 
-	if (means_of_death == MOD_CRUSH || means_of_death == MOD_FORCE_DARK)
+	// Ignore non‑saber kills
+	if (means_of_death == MOD_CRUSH ||
+		means_of_death == MOD_FORCE_DARK)
 	{
 		return;
 	}
 
-	if (manual_saberblocking(attacker) && (attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker)))
-		//DONT GET THIS BONUS IF YOUR A BLOCK SPAMMER
+	// BLOCK‑SPAMMER CHECK
+	if (manual_saberblocking(attacker) != 0 &&
+		(attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker) != 0))
 	{
-		//add bonus
-		wp_block_points_regenerate(attacker, FATIGUE_SMALLBONUS);
+		// Reduced bonus
+		wp_block_points_regenerate(attacker, FATIGUE_HURTBONUSMAX);
 		wp_force_power_regenerate(attacker, FATIGUE_HURTBONUSMAX);
 	}
 	else
 	{
-		//add bonus
+		// Full kill bonus
 		wp_block_points_regenerate(attacker, FATIGUE_KILLBONUS);
 		wp_force_power_regenerate(attacker, FATIGUE_KILLBONUS);
 	}
 
+	// Reset fatigue chain if too high
 	if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
 	{
 		attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_MIN;
@@ -8068,100 +8078,125 @@ void AddFatigueKillBonus(const gentity_t* attacker, const gentity_t* victim, con
 
 void AddFatigueMeleeBonus(const gentity_t* attacker, const gentity_t* victim)
 {
-	//get a small bonus for killing an enemy
-	if (!attacker || !attacker->client || !victim || !victim->client)
+	// Validate attacker and victim
+	if (attacker == NULL ||
+		attacker->client == NULL ||
+		victim == NULL ||
+		victim->client == NULL)
 	{
 		return;
 	}
 
+	// Ignore turret/vehicle weapons
 	if (victim->s.weapon == WP_TURRET ||
 		victim->s.weapon == WP_EMPLACED_GUN)
 	{
 		return;
 	}
 
-	//add bonus
-	wp_block_points_regenerate(attacker, FATIGUE_DAMAGEBONUS);
-	wp_force_power_regenerate(attacker, FATIGUE_DAMAGEBONUS);
+	// Apply melee bonus
+	wp_block_points_regenerate(attacker, FATIGUE_HURTBONUS);
+	wp_force_power_regenerate(attacker, FATIGUE_HURTBONUS);
 
+	// Reset fatigue chain if too high
 	if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
 	{
 		attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_MIN;
 	}
 }
 
-void AddFatigueHurtBonus(const gentity_t* attacker, const gentity_t* victim, const int mod)
+void AddFatigueHurtBonus(const gentity_t* attacker,
+	const gentity_t* victim,
+	const int mod)
 {
-	//get a small bonus for killing an enemy
-	if (!attacker || !attacker->client || !victim || !victim->client)
+	// Validate attacker and victim
+	if (attacker == NULL ||
+		attacker->client == NULL ||
+		victim == NULL ||
+		victim->client == NULL)
 	{
 		return;
 	}
 
-	if (mod == MOD_CRUSH || mod == MOD_FORCE_DARK)
+	// Ignore non‑saber damage types
+	if (mod == MOD_CRUSH ||
+		mod == MOD_FORCE_DARK)
 	{
 		return;
 	}
 
+	// Ignore turret/vehicle weapons
 	if (victim->s.weapon == WP_TURRET ||
 		victim->s.weapon == WP_EMPLACED_GUN)
 	{
 		return;
 	}
 
-	if (manual_saberblocking(attacker) && (attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker)))
-		//DONT GET THIS BONUS IF YOUR A BLOCK SPAMMER
+	// BLOCK‑SPAMMER CHECK
+	if (manual_saberblocking(attacker) != 0 &&
+		(attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker) != 0))
 	{
-		//add bonus
-		wp_block_points_regenerate(attacker, FATIGUE_SMALLBONUS);
-		wp_force_power_regenerate(attacker, FATIGUE_DAMAGEBONUS);
-	}
-	else
-	{
-		//add bonus
-		wp_block_points_regenerate(attacker, FATIGUE_HURTBONUS);
-		wp_force_power_regenerate(attacker, FATIGUE_HURTBONUS);
-	}
-
-	if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
-	{
-		attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_MIN;
-	}
-}
-
-void AddFatigueHurtBonusMax(const gentity_t* attacker, const gentity_t* victim, const int mod)
-{
-	//get a small bonus for killing an enemy
-	if (!attacker || !attacker->client || !victim || !victim->client)
-	{
-		return;
-	}
-
-	if (mod == MOD_CRUSH || mod == MOD_FORCE_DARK)
-	{
-		return;
-	}
-
-	if (victim->s.weapon == WP_TURRET ||
-		victim->s.weapon == WP_EMPLACED_GUN)
-	{
-		return;
-	}
-
-	if (manual_saberblocking(attacker) && (attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker)))
-		//DONT GET THIS BONUS IF YOUR A BLOCK SPAMMER
-	{
-		//add bonus
+		// Reduced bonus
 		wp_block_points_regenerate(attacker, FATIGUE_SMALLBONUS);
 		wp_force_power_regenerate(attacker, FATIGUE_SMALLBONUS);
 	}
 	else
 	{
-		//add bonus
+		// Full hurt bonus
+		wp_block_points_regenerate(attacker, FATIGUE_HURTBONUS);
+		wp_force_power_regenerate(attacker, FATIGUE_HURTBONUS);
+	}
+
+	// Reset fatigue chain if too high
+	if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
+	{
+		attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_MIN;
+	}
+}
+
+void AddFatigueHurtBonusMax(const gentity_t* attacker,
+	const gentity_t* victim,
+	const int mod)
+{
+	// Validate attacker and victim
+	if (attacker == NULL ||
+		attacker->client == NULL ||
+		victim == NULL ||
+		victim->client == NULL)
+	{
+		return;
+	}
+
+	// Ignore non‑saber damage types
+	if (mod == MOD_CRUSH ||
+		mod == MOD_FORCE_DARK)
+	{
+		return;
+	}
+
+	// Ignore turret/vehicle weapons
+	if (victim->s.weapon == WP_TURRET ||
+		victim->s.weapon == WP_EMPLACED_GUN)
+	{
+		return;
+	}
+
+	// BLOCK‑SPAMMER CHECK
+	if (manual_saberblocking(attacker) != 0 &&
+		(attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker) != 0))
+	{
+		// Reduced bonus
+		wp_block_points_regenerate(attacker, FATIGUE_SMALLBONUS);
+		wp_force_power_regenerate(attacker, FATIGUE_SMALLBONUS);
+	}
+	else
+	{
+		// Full max hurt bonus
 		wp_block_points_regenerate(attacker, FATIGUE_HURTBONUSMAX);
 		wp_force_power_regenerate(attacker, FATIGUE_HURTBONUSMAX);
 	}
 
+	// Reset fatigue chain if too high
 	if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
 	{
 		attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_MIN;

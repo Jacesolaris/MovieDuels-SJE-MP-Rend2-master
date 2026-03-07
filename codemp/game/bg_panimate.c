@@ -1066,6 +1066,28 @@ qboolean PM_InKataAnim(const int anim)
 	return qfalse;
 }
 
+qboolean PM_InKataBotDashDodgeAnim(const int anim)
+{
+	switch (anim)
+	{
+	case BOTH_A6_SABERPROTECT:
+	case BOTH_A7_SOULCAL:
+	case BOTH_A1_SPECIAL:
+	case BOTH_A2_SPECIAL:
+	case BOTH_A3_SPECIAL:
+	case BOTH_A4_SPECIAL:
+	case BOTH_A5_SPECIAL:
+	case BOTH_YODA_SPECIAL:
+	case BOTH_GRIEVOUS_SPIN:
+	case BOTH_GRIEVOUS_PROTECT:
+	case BOTH_SPINATTACK6:
+	case BOTH_SPINATTACK7:
+		return qtrue;
+	default:;
+	}
+	return qfalse;
+}
+
 qboolean PM_KnockDownAnim(const int anim)
 {
 	switch (anim)

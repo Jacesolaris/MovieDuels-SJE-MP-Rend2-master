@@ -23,6 +23,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #include "anims.h"
+#include "bg_public.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
+#include <qcommon\q_shared.h>
 
 // bg_local.h -- local definitions for the bg (both games) files
 

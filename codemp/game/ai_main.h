@@ -554,7 +554,9 @@ typedef struct bot_state_s
 	qboolean inSaberFallback;
 	int nextStyleSwitchTime;
 	int landingReleaseTime;
-
+	int kataDashSoundTime;
+	int kataRetreatChangeTime;
+	qboolean forceNoWalk;
 	//end rww
 } bot_state_t;
 

@@ -27,6 +27,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "anims.h"
 #include "say.h"
 #include "icarus/Q3_Interface.h"
+#include "ai.h"
+#include "bg_weapons.h"
+#include <math.h>
 
 extern vec3_t player_mins;
 extern vec3_t player_maxs;
@@ -1156,7 +1159,7 @@ void NPC_BehaviorSet_Stormtrooper(const int b_state)
 NPC_BehaviorSet_Trooper
 -------------------------
 */
-void NPC_BehaviorSet_Trooper(const int b_state)
+static void NPC_BehaviorSet_Trooper(const int b_state)
 {
 	switch (b_state)
 	{

@@ -1687,22 +1687,45 @@ qboolean G2API_DetachG2Model(CGhoul2Info* ghlInfo)
 
 qboolean G2API_AttachEnt(int* boltInfo, CGhoul2Info_v& ghoul2, const int modelIndex, int toBoltIndex, int entNum, int toModelNum)
 {
+	// defensive validation: ensure callers cannot pass invalid model or bolt indices
+	if (!boltInfo)
+	{
+		return qfalse;
+	}
+
+	if (modelIndex < 0 || modelIndex >= static_cast<int>(ghoul2.size()))
+	{
+		Com_Printf("G2API_AttachEnt: invalid modelIndex %d (ghoul2 size %zu)\n", modelIndex, ghoul2.size());
+		return qfalse;
+	}
+
 	CGhoul2Info* ghlInfoTo = &ghoul2[modelIndex];
 
-	if (boltInfo && G2_SetupModelPointers(ghlInfoTo))
+	if (!G2_SetupModelPointers(ghlInfoTo))
 	{
-		// make sure we have a model to attach, a model to attach to, and a bolt on that model
-		if (ghlInfoTo->mBltlist.size() && (ghlInfoTo->mBltlist[toBoltIndex].boneNumber != -1 || ghlInfoTo->mBltlist[
-			toBoltIndex].surfaceNumber != -1))
-		{
-			// encode the bolt address into the model bolt link
-			toModelNum &= MODEL_AND;
-			toBoltIndex &= BOLT_AND;
-			entNum &= ENTITY_AND;
-			*boltInfo = toBoltIndex << BOLT_SHIFT | toModelNum << MODEL_SHIFT | entNum << ENTITY_SHIFT;
-			return qtrue;
-		}
+		return qfalse;
 	}
+
+	// validate bolt index bounds
+	if (toBoltIndex < 0 || static_cast<size_t>(toBoltIndex) >= ghlInfoTo->mBltlist.size())
+	{
+		Com_Printf("G2API_AttachEnt: invalid toBoltIndex %d for model %s (num bolts %zu), entNum %d\n",
+			toBoltIndex, ghlInfoTo->mFileName && ghlInfoTo->mFileName[0] ? ghlInfoTo->mFileName : "<unknown>", ghlInfoTo->mBltlist.size(), entNum);
+		return qfalse;
+	}
+
+	// make sure we have a model to attach, a model to attach to, and a bolt on that model
+	const auto& bolt = ghlInfoTo->mBltlist[toBoltIndex];
+	if (bolt.boneNumber != -1 || bolt.surfaceNumber != -1)
+	{
+		// encode the bolt address into the model bolt link
+		toModelNum &= MODEL_AND;
+		toBoltIndex &= BOLT_AND;
+		entNum &= ENTITY_AND;
+		*boltInfo = toBoltIndex << BOLT_SHIFT | toModelNum << MODEL_SHIFT | entNum << ENTITY_SHIFT;
+		return qtrue;
+	}
+
 	return qfalse;
 }
 
@@ -2063,7 +2086,6 @@ void G2API_CollisionDetectCache(CollisionRecord_t* collRecMap, CGhoul2Info_v& gh
 		// pre generate the world matrix - used to transform the incoming ray
 		G2_GenerateWorldMatrix(angles, position);
 
-		// model is built. Lets check to see if any triangles are actually hit.
 		// first up, translate the ray to model space
 		TransformAndTranslatePoint(rayStart, transRayStart, &worldMatrixInv);
 		TransformAndTranslatePoint(rayEnd, transRayEnd, &worldMatrixInv);

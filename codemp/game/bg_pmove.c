@@ -2135,7 +2135,7 @@ static void PM_HoverTrace(void)
 	}
 	else
 	{
-		vec3_t point;
+		vec3_t point = { 0 };
 		const float minNormal = p_veh->m_pVehicleInfo->maxSlope;
 
 		point[0] = pm->ps->origin[0];
@@ -16023,8 +16023,8 @@ void BG_IK_MoveArm(void* ghoul2, const int lHandBolt, const int time, const enti
 		vec3_t torg;
 		vec3_t lHand = { 0 };
 		//actively update our ik state.
-		sharedIKMoveParams_t ikM;
-		sharedRagDollUpdateParams_t tuParms;
+		sharedIKMoveParams_t ikM = { 0 };
+		sharedRagDollUpdateParams_t tuParms = { 0 };
 		vec3_t tAngles;
 
 		//set the argument struct up
@@ -17810,7 +17810,7 @@ void bg_vehicle_adjust_b_box_for_orientation(const Vehicle_t* veh, vec3_t origin
 		return;
 	}
 	matrix3_t axis;
-	vec3_t point[8] = {0}, newMins, newMaxs;
+	vec3_t point[8] = { 0 }, newMins, newMaxs;
 	trace_t trace;
 
 	AnglesToAxis(veh->m_vOrientation, axis);
