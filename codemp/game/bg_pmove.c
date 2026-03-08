@@ -6950,6 +6950,7 @@ static void PM_CrashLandEffect(void)
 	}
 }
 #endif
+
 /*
 =================
 PM_CrashLand
@@ -7061,6 +7062,14 @@ static void PM_CrashLand(void)
 			break;
 		}
 		PM_SetAnim(SETANIM_BOTH, fjAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+#ifdef _GAME
+		if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT) &&
+			fjAnim == BOTH_LAND1)
+		{
+			pm->ps->userInt1 |= BOT_SABER_PENDING_MASK;
+			pm->ps->userInt2 = pm->cmd.serverTime + BOT_SABER_PENDING_DELAY_MS;
+		}
+#endif
 	}
 	// decide which landing animation to use
 	else if (!BG_InRoll(pm->ps, pm->ps->legsAnim) && pm->ps->inAirAnim && !pm->ps->m_iVehicleNum)
@@ -7076,6 +7085,20 @@ static void PM_CrashLand(void)
 			{
 				PM_ForceLegsAnim(BOTH_LAND1);
 			}
+#ifdef _GAME
+			int landingAnim = (pm->ps->pm_flags & PMF_BACKWARDS_JUMP)
+				? BOTH_LANDBACK1
+				: BOTH_LAND1;
+
+			PM_ForceLegsAnim(landingAnim);
+
+			if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT) &&
+				landingAnim == BOTH_LAND1)
+			{
+				pm->ps->userInt1 |= BOT_SABER_PENDING_MASK;
+				pm->ps->userInt2 = pm->cmd.serverTime + BOT_SABER_PENDING_DELAY_MS;
+			}
+#endif
 		}
 	}
 

@@ -79,25 +79,47 @@ CG_AllocLocalEntity
 Will allways succeed, even if it requires freeing an old active entity
 ===================
 */
+/*
+==========================
+CG_AllocLocalEntity
+
+Allocates a new localEntity_t from the free list.
+If the free list is empty, frees the oldest active entity.
+Fully safe against NULL dereference.
+==========================
+*/
 localEntity_t* CG_AllocLocalEntity(void)
 {
-	if (!cg_freeLocalEntities)
+	/* If no free entities, free the oldest active one */
+	if (cg_freeLocalEntities == NULL)
 	{
-		// no free entities, so free the one at the end of the chain
-		// remove the oldest active entity
+		/* Free the last active entity (oldest) */
 		CG_FreeLocalEntity(cg_activeLocalEntities.prev);
 	}
 
+	/* Re-check: free list may STILL be empty */
+	if (cg_freeLocalEntities == NULL)
+	{
+		/* This should never happen, but prevents a crash */
+		trap->Print(S_COLOR_RED
+			"CG_AllocLocalEntity: ERROR - free list empty after forced free\n");
+		return NULL;
+	}
+
+	/* Pop from free list */
 	localEntity_t* le = cg_freeLocalEntities;
 	cg_freeLocalEntities = cg_freeLocalEntities->next;
 
-	memset(le, 0, sizeof * le);
+	/* Safe to memset now */
+	memset(le, 0, sizeof(*le));
 
-	// link into the active list
+	/* Link into active list */
 	le->next = cg_activeLocalEntities.next;
 	le->prev = &cg_activeLocalEntities;
+
 	cg_activeLocalEntities.next->prev = le;
 	cg_activeLocalEntities.next = le;
+
 	return le;
 }
 

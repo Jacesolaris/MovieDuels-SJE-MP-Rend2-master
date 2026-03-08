@@ -53,6 +53,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <qcommon\q_math.h>
 #include <qcommon\q_color.h>
 #include "bg_public.h"
+#include <qcommon\q_string.h>
 //
 
 #define BOT_THINK_TIME	1000/bot_fps.integer
@@ -1243,13 +1244,11 @@ static void bot_change_view_angles(bot_state_t* bs, float thinktime)
 BotInputToUserCommand
 ==============
 */
-static void BotInputToUserCommand(bot_input_t* bi, usercmd_t* ucmd, int delta_angles[3], const int time,
+static void BotInputToUserCommand(bot_state_t* caller_bs, bot_input_t* bi, usercmd_t* ucmd, int delta_angles[3], const int time,
 	const int use_time)
 {
+	bot_state_t* bs = caller_bs;
 	vec3_t angles = { 0 }, forward, right;
-
-	// Get bot state (needed for forceNoWalk and retreat timers)
-	bot_state_t* bs = botstates[bi->clientNum];
 
 	// Reset walk override when retreat ends
 	if (bs && level.time >= bs->kataRetreatChangeTime)
@@ -1290,8 +1289,6 @@ static void BotInputToUserCommand(bot_input_t* bi, usercmd_t* ucmd, int delta_an
 	{
 		bi->weapon = WP_BRYAR_PISTOL;
 	}
-
-	ucmd->weapon = bi->weapon;
 
 	//set the view angles
 	ucmd->angles[PITCH] = ANGLE2SHORT(bi->viewangles[PITCH]);
@@ -1473,7 +1470,11 @@ static qboolean bot_should_walk_saber(bot_state_t* bs, bot_input_t* bi)
 
 		// Auto‑unholster saber
 		if (bs->cur_ps.saberHolstered)
+		{
 			bs->cur_ps.saberHolstered = 0;
+		}
+		// schedule a style switch 1.2 seconds after walking
+		bs->nextStyleSwitchTime = level.time + 1200;
 
 		return qtrue;
 	}
@@ -1596,8 +1597,13 @@ static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_
 				bot_should_walk_saber(bs, &bi);
 				walktime[client] = level.time + 2000;
 
+				// Auto‑unholster saber
 				if (bs->cur_ps.saberHolstered)
+				{
 					bs->cur_ps.saberHolstered = 0;
+				}
+				// schedule a style switch 1.2 seconds after walking
+				bs->nextStyleSwitchTime = level.time + 1200;
 			}
 			else
 			{
@@ -1623,7 +1629,7 @@ static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_
 	bi.forcesel = level.clients[bs->client].ps.fd.forcePowerSelected;
 
 	// Convert to usercmd
-	BotInputToUserCommand(&bi, &bs->lastucmd, bs->cur_ps.delta_angles, time, bs->noUseTime);
+	BotInputToUserCommand(bs, &bi, &bs->lastucmd, bs->cur_ps.delta_angles, time, bs->noUseTime);
 
 	// Unapply delta angles
 	bot_unapply_delta_angles(bs);
@@ -2659,7 +2665,7 @@ END A* Pathfinding Code
 int get_nearest_visible_wp(vec3_t org, const int ignore)
 {
 	float bestdist;
-	vec3_t mins, maxs;
+	vec3_t mins = { 0 }, maxs = { 0 };
 
 	int i = 0;
 	if (RMG.integer)
@@ -2723,7 +2729,7 @@ static void bot_be_still(bot_state_t* bs)
 static int get_nearest_visible_wpsje(const bot_state_t* bs, vec3_t org, const int ignore, const int badwp)
 {
 	float bestdist;
-	vec3_t mins, maxs;
+	vec3_t mins = { 0 }, maxs = { 0 };
 
 	if (RMG.integer)
 	{
@@ -4903,7 +4909,6 @@ static void move_toward_ideal_angles(bot_state_t* bs)
 }
 
 #define BOT_STRAFE_AVOIDANCE
-
 #ifdef BOT_STRAFE_AVOIDANCE
 #define STRAFEAROUND_RIGHT			1
 #define STRAFEAROUND_LEFT			2
@@ -4996,7 +5001,7 @@ static int bot_trace_strafe(const bot_state_t* bs, vec3_t traceto)
 //if there's anything we can jump over.
 static int bot_trace_jump(bot_state_t* bs, vec3_t traceto)
 {
-	vec3_t mins, maxs, a, fwd, traceto_mod, tracefrom_mod;
+	vec3_t mins = { 0 }, maxs = { 0 }, a, fwd, traceto_mod = { 0 }, tracefrom_mod;
 	trace_t tr;
 
 	VectorSubtract(traceto, bs->origin, a);
@@ -5080,7 +5085,7 @@ static int bot_trace_jump(bot_state_t* bs, vec3_t traceto)
 //And yet another check to duck under any obstacles.
 static int bot_trace_duck(const bot_state_t* bs, vec3_t traceto)
 {
-	vec3_t mins, maxs, a, fwd, traceto_mod, tracefrom_mod;
+	vec3_t mins = { 0 }, maxs = { 0 }, a, fwd, traceto_mod = { 0 }, tracefrom_mod;
 	trace_t tr;
 
 	VectorSubtract(traceto, bs->origin, a);
@@ -6550,7 +6555,7 @@ static void get_new_flag_point(const wpobject_t* wp, const gentity_t* flag_ent, 
 {
 	//get the nearest possible waypoint to the flag since it's not in its original position
 	int i = 0;
-	vec3_t a, mins, maxs;
+	vec3_t a, mins = { 0 }, maxs = { 0 };
 	int bestindex = 0;
 	int foundindex = 0;
 	trace_t tr;
@@ -6868,8 +6873,8 @@ static int siege_target_closest_objective(bot_state_t* bs, const int flag)
 	int bestindex = -1;
 	float testdistance;
 	float bestdistance = 999999999.9f;
-	vec3_t a, dif;
-	vec3_t mins, maxs;
+	vec3_t a, dif = { 0 };
+	vec3_t mins = { 0 }, maxs = { 0 };
 	gentity_t* goalent = &g_entities[bs->wpDestination->associated_entity];
 
 	mins[0] = -1;
@@ -7064,7 +7069,7 @@ static int siege_takes_priority(bot_state_t* bs)
 	int flag_for_attackable_objective;
 	wpobject_t* dest_sw = NULL;
 	int dosw = 0;
-	vec3_t dif;
+	vec3_t dif = { 0 };
 	trace_t tr;
 
 	if (level.gametype != GT_SIEGE)
@@ -7704,7 +7709,7 @@ static void commander_bot_ctfai(const bot_state_t* bs)
 	int i = 0;
 	gentity_t* ent;
 	int squadmates = 0;
-	gentity_t* squad[MAX_CLIENTS];
+	gentity_t* squad[MAX_CLIENTS] = { 0 };
 	int defend_attack_priority = 0; //0 == attack, 1 == defend
 	int guard_defend_priority = 0; //0 == defend, 1 == guard
 	int attack_retrieve_priority = 0; //0 == retrieve, 1 == attack
@@ -7961,7 +7966,7 @@ static void commander_bot_teamplay_ai(bot_state_t* bs)
 	int teammate_helped = 0;
 	int foundsquadleader = 0;
 	int worsthealth = 50;
-	gentity_t* squad[MAX_CLIENTS];
+	gentity_t* squad[MAX_CLIENTS] = { 0 };
 	bot_state_t* bst;
 
 	while (i < MAX_CLIENTS)
@@ -8671,6 +8676,8 @@ static void JediDirectionalDashDodge(bot_state_t* bs, const vec3_t enemyPos)
 		// ensure saber state is restored to "ready"
 		// set both current and next to avoid races with other logic
 		bs->cur_ps.saber_move = bs->cur_ps.saber_move = LS_READY;
+		Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
+		bs->nextStyleSwitchTime = level.time + Q_irand(1200, 1800);
 	}
 }
 // ---------------------------------------------------------
@@ -9541,7 +9548,7 @@ static int gunner_bot_fallback_navigation(bot_state_t* bs)
 {
 	const int client = bs->cur_ps.clientNum;
 
-	vec3_t b_angle, fwd, trto, mins, maxs;
+	vec3_t b_angle, fwd, trto = { 0 }, mins = { 0 }, maxs = { 0 };
 	trace_t tr;
 
 	// If we see an enemy, just push forward aggressively
@@ -10053,8 +10060,8 @@ static void bot_death_notify(const bot_state_t* bs)
 //perform strafe trace checks
 static void strafe_tracing(bot_state_t* bs)
 {
-	vec3_t mins, maxs;
-	vec3_t right, rorg, drorg;
+	vec3_t mins = { 0 }, maxs = { 0 };
+	vec3_t right, rorg = { 0 }, drorg;
 	trace_t tr;
 
 	mins[0] = -15;
@@ -10175,8 +10182,8 @@ static int keep_alt_from_firing(bot_state_t* bs)
 static gentity_t* check_for_friend_in_lof(const bot_state_t* bs)
 {
 	vec3_t fwd;
-	vec3_t trfrom, trto;
-	vec3_t mins, maxs;
+	vec3_t trfrom, trto = { 0 };
+	vec3_t mins = { 0 }, maxs = { 0 };
 	trace_t tr;
 
 	mins[0] = -3;
@@ -10285,7 +10292,7 @@ static void bot_reply_greetings(const bot_state_t* bs)
 static void ctf_flag_movement(bot_state_t* bs)
 {
 	const gentity_t* desired_drop = NULL;
-	vec3_t a, mins, maxs;
+	vec3_t a, mins = { 0 }, maxs = { 0 };
 	trace_t tr;
 
 	mins[0] = -15;
@@ -11828,7 +11835,7 @@ void standard_bot_ai(bot_state_t* bs)
 		if (RMG.integer)
 		{
 			//this is somewhat hacky, but in RMG we don't really care about vertical placement because points are scattered across only the terrain.
-			vec3_t vec_b, vec_c;
+			vec3_t vec_b = { 0 }, vec_c = { 0 };
 
 			vec_b[0] = bs->origin[0];
 			vec_b[1] = bs->origin[1];
@@ -12596,7 +12603,7 @@ void standard_bot_ai(bot_state_t* bs)
 	if (bs->shootGoal &&
 		bs->shootGoal->health > 0 && bs->shootGoal->takedamage)
 	{
-		vec3_t dif;
+		vec3_t dif = { 0 };
 		dif[0] = (bs->shootGoal->r.absmax[0] + bs->shootGoal->r.absmin[0]) / 2;
 		dif[1] = (bs->shootGoal->r.absmax[1] + bs->shootGoal->r.absmin[1]) / 2;
 		dif[2] = (bs->shootGoal->r.absmax[2] + bs->shootGoal->r.absmin[2]) / 2;

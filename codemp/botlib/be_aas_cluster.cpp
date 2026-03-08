@@ -767,123 +767,238 @@ int AAS_GetAdjacentAreasWithLessPresenceTypes_r(int* areanums, int numareas, con
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int AAS_CheckAreaForPossiblePortals(const int areanum)
+// Local helper storage for AAS_CheckAreaForPossiblePortals.
+// Made static to avoid large per-call stack usage (C6262).
+// These are cleared on every call before use, so behaviour is unchanged.
+static int s_areanums[MAX_PORTALAREAS];
+static int s_numareafrontfaces[MAX_PORTALAREAS];
+static int s_numareabackfaces[MAX_PORTALAREAS];
+static int s_frontfacenums[MAX_PORTALAREAS];
+static int s_backfacenums[MAX_PORTALAREAS];
+static int s_frontareanums[MAX_PORTALAREAS];
+static int s_backareanums[MAX_PORTALAREAS];
+
+static int AAS_CheckAreaForPossiblePortals(const int areanum)
 {
 	int i, j, k, fen, ben;
-	int areanums[MAX_PORTALAREAS], otherareanum;
-	int numareafrontfaces[MAX_PORTALAREAS], numareabackfaces[MAX_PORTALAREAS];
-	int frontfacenums[MAX_PORTALAREAS], backfacenums[MAX_PORTALAREAS];
+	int otherareanum;
 	int numfrontfaces, numbackfaces;
-	int frontareanums[MAX_PORTALAREAS], backareanums[MAX_PORTALAREAS];
-	int numbackareas;
-	int backplanenum;
+	int numareas, numfrontareas, numbackareas;
+	int frontplanenum, backplanenum;
 
-	//if it isn't already a portal
-	if (aasworld.areasettings[areanum].contents & AREACONTENTS_CLUSTERPORTAL) return 0;
-	//it must be a grounded area
-	if (!(aasworld.areasettings[areanum].areaflags & AREA_GROUNDED)) return 0;
-	//
-	Com_Memset(numareafrontfaces, 0, sizeof numareafrontfaces);
-	Com_Memset(numareabackfaces, 0, sizeof numareabackfaces);
-	int numareas = numfrontfaces = numbackfaces = 0;
-	int numfrontareas = numbackareas = 0;
-	int frontplanenum = backplanenum = -1;
-	//add any adjacent areas with less presence types
-	numareas = AAS_GetAdjacentAreasWithLessPresenceTypes_r(areanums, 0, areanum);
-	//
+	// If it is already a cluster portal, nothing to do.
+	if (aasworld.areasettings[areanum].contents & AREACONTENTS_CLUSTERPORTAL)
+	{
+		return 0;
+	}
+
+	// Area must be grounded to be considered.
+	if (!(aasworld.areasettings[areanum].areaflags & AREA_GROUNDED))
+	{
+		return 0;
+	}
+
+	// Clear per-call bookkeeping arrays.
+	Com_Memset(s_numareafrontfaces, 0, sizeof(s_numareafrontfaces));
+	Com_Memset(s_numareabackfaces, 0, sizeof(s_numareabackfaces));
+	Com_Memset(s_frontfacenums, 0, sizeof(s_frontfacenums));
+	Com_Memset(s_backfacenums, 0, sizeof(s_backfacenums));
+	Com_Memset(s_frontareanums, 0, sizeof(s_frontareanums));
+	Com_Memset(s_backareanums, 0, sizeof(s_backareanums));
+	Com_Memset(s_areanums, 0, sizeof(s_areanums));
+
+	numareas = 0;
+	numfrontfaces = 0;
+	numbackfaces = 0;
+	numfrontareas = 0;
+	numbackareas = 0;
+	frontplanenum = -1;
+	backplanenum = -1;
+
+	// Collect this area and any adjacent areas with fewer presence types.
+	numareas = AAS_GetAdjacentAreasWithLessPresenceTypes_r(s_areanums, 0, areanum);
+
+	// Classify faces of all collected areas into front/back sets.
 	for (i = 0; i < numareas; i++)
 	{
-		const aas_area_t* area = &aasworld.areas[areanums[i]];
+		const aas_area_t* area = &aasworld.areas[s_areanums[i]];
+
 		for (j = 0; j < area->numfaces; j++)
 		{
 			const int facenum = abs(aasworld.faceindex[area->firstface + j]);
 			const aas_face_t* face = &aasworld.faces[facenum];
-			//if the face is solid
-			if (face->faceflags & FACE_SOLID) continue;
-			//check if the face is shared with one of the other areas
+
+			// Skip solid faces.
+			if (face->faceflags & FACE_SOLID)
+			{
+				continue;
+			}
+
+			// Check if the face is shared with any other area in this set.
 			for (k = 0; k < numareas; k++)
 			{
-				if (k == i) continue;
-				if (face->frontarea == areanums[k] || face->backarea == areanums[k]) break;
-			} //end for
-			//if the face is shared
-			if (k != numareas) continue;
-			//the number of the area at the other side of the face
-			if (face->frontarea == areanums[i]) otherareanum = face->backarea;
-			else otherareanum = face->frontarea;
-			//if the other area already is a cluter portal
-			if (aasworld.areasettings[otherareanum].contents & AREACONTENTS_CLUSTERPORTAL) return 0;
-			//number of the plane of the area
+				if (k == i)
+				{
+					continue;
+				}
+
+				if (face->frontarea == s_areanums[k] || face->backarea == s_areanums[k])
+				{
+					break;
+				}
+			}
+
+			// If the face is shared, skip it.
+			if (k != numareas)
+			{
+				continue;
+			}
+
+			// Determine the area on the other side of this face.
+			if (face->frontarea == s_areanums[i])
+			{
+				otherareanum = face->backarea;
+			}
+			else
+			{
+				otherareanum = face->frontarea;
+			}
+
+			// If the other area is already a cluster portal, abort.
+			if (aasworld.areasettings[otherareanum].contents & AREACONTENTS_CLUSTERPORTAL)
+			{
+				return 0;
+			}
+
+			// Plane number for this face (strip side bit).
 			const int faceplanenum = face->planenum & ~1;
-			//
+
+			// Classify into front or back plane group.
 			if (frontplanenum < 0 || faceplanenum == frontplanenum)
 			{
 				frontplanenum = faceplanenum;
-				frontfacenums[numfrontfaces++] = facenum;
+				s_frontfacenums[numfrontfaces++] = facenum;
+
+				// Track unique front areas.
 				for (k = 0; k < numfrontareas; k++)
 				{
-					if (frontareanums[k] == otherareanum) break;
-				} //end for
-				if (k == numfrontareas) frontareanums[numfrontareas++] = otherareanum;
-				numareafrontfaces[i]++;
-			} //end if
+					if (s_frontareanums[k] == otherareanum)
+					{
+						break;
+					}
+				}
+				if (k == numfrontareas)
+				{
+					s_frontareanums[numfrontareas++] = otherareanum;
+				}
+
+				s_numareafrontfaces[i]++;
+			}
 			else if (backplanenum < 0 || faceplanenum == backplanenum)
 			{
 				backplanenum = faceplanenum;
-				backfacenums[numbackfaces++] = facenum;
+				s_backfacenums[numbackfaces++] = facenum;
+
+				// Track unique back areas.
 				for (k = 0; k < numbackareas; k++)
 				{
-					if (backareanums[k] == otherareanum) break;
-				} //end for
-				if (k == numbackareas) backareanums[numbackareas++] = otherareanum;
-				numareabackfaces[i]++;
-			} //end else
+					if (s_backareanums[k] == otherareanum)
+					{
+						break;
+					}
+				}
+				if (k == numbackareas)
+				{
+					s_backareanums[numbackareas++] = otherareanum;
+				}
+
+				s_numareabackfaces[i]++;
+			}
 			else
 			{
+				// Faces span more than two planes → cannot form a clean portal.
 				return 0;
-			} //end else
-		} //end for
-	} //end for
-	//every area should have at least one front face and one back face
+			}
+		}
+	}
+
+	// Every area must have at least one front and one back face.
 	for (i = 0; i < numareas; i++)
 	{
-		if (!numareafrontfaces[i] || !numareabackfaces[i]) return 0;
-	} //end for
-	//the front areas should all be connected
-	if (!AAS_ConnectedAreas(frontareanums, numfrontareas)) return 0;
-	//the back areas should all be connected
-	if (!AAS_ConnectedAreas(backareanums, numbackareas)) return 0;
-	//none of the front faces should have a shared edge with a back face
+		if (!s_numareafrontfaces[i] || !s_numareabackfaces[i])
+		{
+			return 0;
+		}
+	}
+
+	// Front areas must form a connected set.
+	if (!AAS_ConnectedAreas(s_frontareanums, numfrontareas))
+	{
+		return 0;
+	}
+
+	// Back areas must form a connected set.
+	if (!AAS_ConnectedAreas(s_backareanums, numbackareas))
+	{
+		return 0;
+	}
+
+	// Ensure no front face shares an edge with any back face.
 	for (i = 0; i < numfrontfaces; i++)
 	{
-		const aas_face_t* frontface = &aasworld.faces[frontfacenums[i]];
+		const aas_face_t* frontface = &aasworld.faces[s_frontfacenums[i]];
+
 		for (fen = 0; fen < frontface->numedges; fen++)
 		{
 			const int frontedgenum = abs(aasworld.edgeindex[frontface->firstedge + fen]);
+
 			for (j = 0; j < numbackfaces; j++)
 			{
-				const aas_face_t* backface = &aasworld.faces[backfacenums[j]];
+				const aas_face_t* backface = &aasworld.faces[s_backfacenums[j]];
+
 				for (ben = 0; ben < backface->numedges; ben++)
 				{
 					const int backedgenum = abs(aasworld.edgeindex[backface->firstedge + ben]);
-					if (frontedgenum == backedgenum) break;
-				} //end for
-				if (ben != backface->numedges) break;
-			} //end for
-			if (j != numbackfaces) break;
-		} //end for
-		if (fen != frontface->numedges) break;
-	} //end for
-	if (i != numfrontfaces) return 0;
-	//set the cluster portal contents
+
+					if (frontedgenum == backedgenum)
+					{
+						break;
+					}
+				}
+
+				if (ben != backface->numedges)
+				{
+					break;
+				}
+			}
+
+			if (j != numbackfaces)
+			{
+				break;
+			}
+		}
+
+		if (fen != frontface->numedges)
+		{
+			break;
+		}
+	}
+
+	// If any shared edge was found between front and back faces, abort.
+	if (i != numfrontfaces)
+	{
+		return 0;
+	}
+
+	// Mark all involved areas as cluster and route portals.
 	for (i = 0; i < numareas; i++)
 	{
-		aasworld.areasettings[areanums[i]].contents |= AREACONTENTS_CLUSTERPORTAL;
-		//this area can be used as a route portal
-		aasworld.areasettings[areanums[i]].contents |= AREACONTENTS_ROUTEPORTAL;
-		Log_Write("possible portal: %d\r\n", areanums[i]);
-	} //end for
-	//
+		aasworld.areasettings[s_areanums[i]].contents |= AREACONTENTS_CLUSTERPORTAL;
+		aasworld.areasettings[s_areanums[i]].contents |= AREACONTENTS_ROUTEPORTAL;
+
+		Log_Write("possible portal: %d\r\n", s_areanums[i]);
+	}
+
 	return numareas;
 } //end of the function AAS_CheckAreaForPossiblePortals
 //===========================================================================

@@ -24,6 +24,16 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "cl_cgameapi.h"
 #include "FxScheduler.h"
 #include "ghoul2/G2.h"
+#include "FxSystem.h"
+#include <rd-common\tr_types.h>
+#include <qcommon\q_shared.h>
+#include <cstdarg>
+#include <qcommon\q_string.h>
+#include <qcommon\qcommon.h>
+#include <cgame\cg_public.h>
+#include <qcommon\q_math.h>
+#include <ghoul2\ghoul2_shared.h>
+#include <qcommon\q_platform.h>
 
 cvar_t* fx_debug;
 #ifdef _DEBUG
@@ -37,13 +47,16 @@ constexpr auto DEFAULT_EXPLOSION_RADIUS = 512;
 
 // Stuff for the FxHelper
 //------------------------------------------------------
-SFxHelper::SFxHelper() :
-	mTime(0),
-	mOldTime(0),
-	mFrameTime(0),
-	mTimeFrozen(false), mRealTime(0),
-	refdef(nullptr)
+SFxHelper::SFxHelper()
+	: mTime(0)
+	, mOldTime(0)
+	, mFrameTime(0)
+	, mTimeFrozen(false)
+	, mRealTime(0)
+	, refdef(nullptr)
 {
+	// Nothing else required here.
+	// All members are now explicitly initialized.
 }
 
 void SFxHelper::ReInit(refdef_t* pRefdef)

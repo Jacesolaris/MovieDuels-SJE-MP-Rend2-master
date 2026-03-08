@@ -30,6 +30,20 @@ Ghoul2 Insert Start
 */
 #include "qcommon/q_shared.h"
 #include "ghoul2/G2.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
+#include <rd-common\tr_types.h>
+#include <game\bg_public.h>
+#include <assert.h>
+#include <game\bg_weapons.h>
+#include <qcommon\qfiles.h>
+#include <qcommon\q_string.h>
+#include <game\anims.h>
+#include <game\teams.h>
+#include <string.h>
+#include <math.h>
+#include <stdlib.h>
+#include <game\bg_vehicles.h>
 /*
 Ghoul2 Insert end
 */
@@ -867,7 +881,7 @@ static void CG_General(centity_t* cent)
 
 		vec3_t start;
 		vec3_t end;
-		vec3_t r_hand_pos;
+		vec3_t r_hand_pos = { 0 };
 
 		centity_t* parent;
 		mdxaBone_t mat;
@@ -1750,7 +1764,7 @@ static void CG_General(centity_t* cent)
 	{
 		//this is an in-flight saber being rendered manually
 		float wv;
-		addspriteArgStruct_t fx_s_args;
+		addspriteArgStruct_t fx_s_args = { 0 };
 
 		ent.customShader = cgs.media.solidWhite;
 		ent.renderfx = RF_RGB_TINT;
@@ -1786,7 +1800,7 @@ static void CG_General(centity_t* cent)
 		//holocron special effects
 		vec3_t org;
 		float wv;
-		addspriteArgStruct_t fx_s_args;
+		addspriteArgStruct_t fx_s_args = { 0 };
 
 		ent.customShader = cgs.media.solidWhite;
 		ent.renderfx = RF_RGB_TINT;
@@ -2761,7 +2775,7 @@ extern void CG_DoSaberLight(const saberInfo_t* saber, int cnum, int bnum);
 
 static void CG_Missile(centity_t* cent)
 {
-	refEntity_t ent;
+	refEntity_t ent = { 0 };
 	entityState_t* s1;
 	const weaponInfo_t* weapon;
 
@@ -2876,7 +2890,7 @@ static void CG_Missile(centity_t* cent)
 
 		vec3_t start;
 		vec3_t end;
-		vec3_t r_hand_pos;
+		vec3_t r_hand_pos = { 0 };
 
 		centity_t* parent;
 		mdxaBone_t mat;
@@ -3211,7 +3225,7 @@ static void CG_Missile(centity_t* cent)
 		// always make the saber glow when on the ground
 		float wv;
 		int i;
-		addspriteArgStruct_t fx_s_args;
+		addspriteArgStruct_t fx_s_args = { 0 };
 
 		ent.customShader = cgs.media.solidWhite;
 		ent.renderfx = RF_RGB_TINT;
@@ -4158,9 +4172,9 @@ void CG_AddPacketEntities(const qboolean is_portal)
 void CG_ROFF_NotetrackCallback(const centity_t* cent, const char* notetrack)
 {
 	int i = 0, r = 0, object_id;
-	char type[256];
-	char argument[512];
-	char addl_arg[512];
+	char type[256] = { 0 };
+	char argument[512] = { 0 };
+	char addl_arg[512] = { 0 };
 	char err_msg[256];
 	int addl_args = 0;
 
@@ -4218,7 +4232,7 @@ void CG_ROFF_NotetrackCallback(const centity_t* cent, const char* notetrack)
 
 	if (strcmp(type, "effect") == 0)
 	{
-		char t[64];
+		char t[64] = { 0 };
 		vec3_t parsed_offset;
 		int posoffset_gathered = 0;
 		if (!addl_args)
@@ -4281,7 +4295,7 @@ void CG_ROFF_NotetrackCallback(const centity_t* cent, const char* notetrack)
 			vec3_t use_angles;
 			if (addl_args)
 			{
-				vec3_t parsed_angles;
+				vec3_t parsed_angles = { 0 };
 				int angles_gathered = 0;
 				//if there is an additional argument for an effect it is expected to be XANGLE-YANGLE-ZANGLE
 				i++;
@@ -4443,11 +4457,11 @@ void CG_Cube(vec3_t mins, vec3_t maxs, vec3_t color, const float alpha)
 
 void CG_CubeOutline(vec3_t mins, vec3_t maxs, const int time, const unsigned int color)
 {
-	vec3_t point1;
-	vec3_t point2;
-	vec3_t point3;
-	vec3_t point4;
-	int vec[3];
+	vec3_t point1 = { 0 };
+	vec3_t point2 = { 0 };
+	vec3_t point3 = { 0 };
+	vec3_t point4 = { 0 };
+	int vec[3] = { 0 };
 	int axis;
 
 	for (axis = 0, vec[0] = 0, vec[1] = 1, vec[2] = 2; axis < 3; axis++, vec[0]++, vec[1]++, vec[2]++)
@@ -4460,28 +4474,33 @@ void CG_CubeOutline(vec3_t mins, vec3_t maxs, const int time, const unsigned int
 			}
 		}
 
-		point1[vec[1]] = mins[vec[1]];
-		point1[vec[2]] = mins[vec[2]];
+		// FIX: clamp indices to silence analyzer
+		int a = vec[0] % 3;
+		int b = vec[1] % 3;
+		int c = vec[2] % 3;
 
-		point2[vec[1]] = mins[vec[1]];
-		point2[vec[2]] = maxs[vec[2]];
+		point1[b] = mins[b];
+		point1[c] = mins[c];
 
-		point3[vec[1]] = maxs[vec[1]];
-		point3[vec[2]] = maxs[vec[2]];
+		point2[b] = mins[b];
+		point2[c] = maxs[c];
 
-		point4[vec[1]] = maxs[vec[1]];
-		point4[vec[2]] = mins[vec[2]];
+		point3[b] = maxs[b];
+		point3[c] = maxs[c];
 
-		//- face
-		point1[vec[0]] = point2[vec[0]] = point3[vec[0]] = point4[vec[0]] = mins[vec[0]];
+		point4[b] = maxs[b];
+		point4[c] = mins[c];
+
+		// - face
+		point1[a] = point2[a] = point3[a] = point4[a] = mins[a];
 
 		CG_TestLine(point1, point2, time, color, 1);
 		CG_TestLine(point2, point3, time, color, 1);
 		CG_TestLine(point1, point4, time, color, 1);
 		CG_TestLine(point4, point3, time, color, 1);
 
-		//+ face
-		point1[vec[0]] = point2[vec[0]] = point3[vec[0]] = point4[vec[0]] = maxs[vec[0]];
+		// + face
+		point1[a] = point2[a] = point3[a] = point4[a] = maxs[a];
 
 		CG_TestLine(point1, point2, time, color, 1);
 		CG_TestLine(point2, point3, time, color, 1);

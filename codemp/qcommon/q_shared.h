@@ -1437,7 +1437,9 @@ typedef struct playerState_s {
 	int	    grapplelaststartTime;
 
 	int	    communicatingflags;
-	int     frozenTime;
+	int     frozenTime; 
+	int     botPendingStandTime;
+	int     botPendingStyleTime;
 } playerState_t;
 
 typedef struct siegePers_s
@@ -1516,7 +1518,7 @@ typedef struct siegePers_s
 #define FLAG_PERFECTBLOCK   21
 #define FLAG_SLIGHTFATIGUE  22
 
-#define DODGE_BOLTBLOCK			2	//standard DP cost to block a missile bolt
+#define DODGE_BOLTBLOCK			3	//standard DP cost to block a missile bolt
 #define DODGE_BOWCASTERBLOCK	5
 #define DODGE_TUSKENBLOCK	    4
 #define DODGE_REPEATERBLOCK		2  //the cost of blocking repeater shots is lower since the repeater shoots much faster.

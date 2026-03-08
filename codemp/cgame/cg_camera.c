@@ -24,6 +24,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "cg_local.h"
 #include "cg_camera.h"
+#include <stdio.h>
 
 // this line must stay at top so the whole PCH thing works...
 
@@ -1991,7 +1992,7 @@ static void CGCam_Roff(void)
 	//}
 }
 
-void CMD_CGCam_Disable(void)
+static void CMD_CGCam_Disable(void)
 {
 	vec4_t fade = { 0, 0, 0, 0 };
 
@@ -2002,38 +2003,57 @@ void CMD_CGCam_Disable(void)
 void CG_CameraParse(void)
 {
 	int int_data;
-	vec3_t vector_data;
+	vec3_t vector_data = { 0 };
 	float float_data, float2_data;
 
 	const char* o = CG_ConfigString(CS_CAMERA);
+
 	if (strncmp("enable", o, 6) == 0)
 	{
 		CGCam_Enable();
 	}
 	else if (strncmp("move", o, 4) == 0)
 	{
-		sscanf(o, "%*s %f %f %f %f", &vector_data[0], &vector_data[1], &vector_data[2], &float_data);
+		// FIX: capture return value
+		int parsed = sscanf(o, "%*s %f %f %f %f",
+			&vector_data[0], &vector_data[1], &vector_data[2], &float_data);
+		(void)parsed;
+
 		CGCam_Move(vector_data, float_data);
 	}
 	else if (strncmp("pan", o, 3) == 0)
 	{
-		vec3_t vector2_data;
-		sscanf(o, "%*s %f %f %f %f %f %f %f", &vector_data[0], &vector_data[1],
-			&vector_data[2], &vector2_data[0], &vector2_data[1], &vector2_data[2], &float_data);
+		vec3_t vector2_data = { 0 };
+
+		// FIX: capture return value
+		int parsed = sscanf(o, "%*s %f %f %f %f %f %f %f",
+			&vector_data[0], &vector_data[1], &vector_data[2],
+			&vector2_data[0], &vector2_data[1], &vector2_data[2],
+			&float_data);
+		(void)parsed;
+
 		CGCam_Pan(vector_data, vector2_data, float_data);
 	}
 	else if (strncmp("fade", o, 4) == 0)
 	{
-		vec4_t color2;
-		vec4_t color;
-		sscanf(o, "%*s %f %f %f %f %f %f %f %f %f", &color[0],
-			&color[1], &color[2], &color[3], &color2[0], &color2[1], &color2[2], &color2[3],
+		vec4_t color2 = { 0 };
+		vec4_t color = { 0 };
+
+		// FIX: capture return value
+		int parsed = sscanf(o, "%*s %f %f %f %f %f %f %f %f %f",
+			&color[0], &color[1], &color[2], &color[3],
+			&color2[0], &color2[1], &color2[2], &color2[3],
 			&float_data);
+		(void)parsed;
+
 		CGCam_Fade(color, color2, float_data);
 	}
 	else if (strncmp("zoom", o, 4) == 0)
 	{
-		sscanf(o, "%*s %f %f", &float_data, &float2_data);
+		// FIX: capture return value
+		int parsed = sscanf(o, "%*s %f %f", &float_data, &float2_data);
+		(void)parsed;
+
 		CGCam_Zoom(float_data, float2_data);
 	}
 	else if (strncmp("disable", o, 7) == 0)
@@ -2042,16 +2062,26 @@ void CG_CameraParse(void)
 	}
 	else if (strncmp("shake", o, 5) == 0)
 	{
-		sscanf(o, "%*s %f %i", &float_data, &int_data);
+		// FIX: capture return value
+		int parsed = sscanf(o, "%*s %f %i", &float_data, &int_data);
+		(void)parsed;
+
 		CGCam_Shake(float_data, int_data);
 	}
 	else if (strncmp("follow", o, 6) == 0)
 	{
-		int CGroup[16];
-		sscanf(o, "%*s %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %f %f", &CGroup[0],
-			&CGroup[1], &CGroup[2], &CGroup[3], &CGroup[4], &CGroup[5], &CGroup[6],
-			&CGroup[7], &CGroup[8], &CGroup[9], &CGroup[10], &CGroup[11], &CGroup[12], &CGroup[13],
-			&CGroup[14], &CGroup[15], &float_data, &float2_data);
+		int CGroup[16] = { 0 };
+
+		// FIX: capture return value
+		int parsed = sscanf(o,
+			"%*s %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %f %f",
+			&CGroup[0], &CGroup[1], &CGroup[2], &CGroup[3],
+			&CGroup[4], &CGroup[5], &CGroup[6], &CGroup[7],
+			&CGroup[8], &CGroup[9], &CGroup[10], &CGroup[11],
+			&CGroup[12], &CGroup[13], &CGroup[14], &CGroup[15],
+			&float_data, &float2_data);
+		(void)parsed;
+
 		CGCam_Follow(CGroup, float_data, float2_data);
 	}
 	else

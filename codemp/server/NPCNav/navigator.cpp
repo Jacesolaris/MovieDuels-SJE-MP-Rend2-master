@@ -32,6 +32,10 @@ unsigned int timeGetTime(void);
 #endif
 
 #include "../sv_gameapi.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
+#include <game\bg_public.h>
+#include <qcommon\qcommon.h>
 
 //Global navigator
 CNavigator navigator;
@@ -99,10 +103,15 @@ CNode
 */
 
 CNode::CNode(void)
+	: m_numEdges(0)        // No edges initially
+	, m_radius(0)          // Default radius
+	, m_ranks(nullptr)     // No rank data yet
+	, m_ID(0)              // Safe default node ID
+	, m_flags(0)           // FIX: Explicitly initialize flags
+	, m_position{ 0.0f, 0.0f, 0.0f } // FIX: Initialize position vector
 {
-	m_numEdges = 0;
-	m_radius = 0;
-	m_ranks = nullptr;
+	// All members are now explicitly initialized.
+	// No additional setup required here.
 }
 
 CNode::~CNode(void)

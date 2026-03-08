@@ -7450,27 +7450,50 @@ void Menu_Paint(menuDef_t* menu, const qboolean forcePaint)
 Item_ValidateTypeData
 ===============
 */
+/*
+==========================
+Item_ValidateTypeData
+
+Ensures that item->typeData.* is allocated and initialized
+for the item's specific type.
+
+- Prevents NULL dereferences
+- Uses safe allocation patterns
+- Keeps original behaviour
+==========================
+*/
 static void Item_ValidateTypeData(itemDef_t* item)
 {
-	if (item->typeData.data)
+	/* If already allocated, nothing to do */
+	if (item->typeData.data != NULL)
 	{
 		return;
 	}
 
 	switch (item->type)
 	{
+		/* ----------------------------------------------------
+		   LISTBOX
+		   ---------------------------------------------------- */
 	case ITEM_TYPE_LISTBOX:
 	{
 		listBoxDef_t* ptr = (listBoxDef_t*)UI_Alloc(sizeof(listBoxDef_t));
-		if (!ptr)
+
+		if (ptr == NULL)
 		{
 			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for LISTBOX");
+			return; /* static analyzer safety */
 		}
+
 		memset(ptr, 0, sizeof(listBoxDef_t));
 		item->typeData.listbox = ptr;
 		break;
 	}
 
+	/* ----------------------------------------------------
+	   TEXT / EDITFIELD / NUMERICFIELD / YESNO / BIND /
+	   SLIDER / INTSLIDER / SLIDER_ROTATE
+	   ---------------------------------------------------- */
 	case ITEM_TYPE_TEXT:
 	case ITEM_TYPE_EDITFIELD:
 	case ITEM_TYPE_NUMERICFIELD:
@@ -7481,57 +7504,84 @@ static void Item_ValidateTypeData(itemDef_t* item)
 	case ITEM_TYPE_SLIDER_ROTATE:
 	{
 		editFieldDef_t* ptr = (editFieldDef_t*)UI_Alloc(sizeof(editFieldDef_t));
-		if (!ptr)
+
+		if (ptr == NULL)
 		{
 			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for EDITFIELD");
+			return;
 		}
+
 		memset(ptr, 0, sizeof(editFieldDef_t));
 		item->typeData.edit = ptr;
 
-		if (item->type == ITEM_TYPE_EDITFIELD || item->type == ITEM_TYPE_NUMERICFIELD)
+		/* Only EDITFIELD and NUMERICFIELD use maxPaintChars */
+		if (item->type == ITEM_TYPE_EDITFIELD ||
+			item->type == ITEM_TYPE_NUMERICFIELD)
 		{
 			item->typeData.edit->maxPaintChars = MAX_EDITFIELD;
 		}
+
 		break;
 	}
 
+	/* ----------------------------------------------------
+	   MULTI
+	   ---------------------------------------------------- */
 	case ITEM_TYPE_MULTI:
 	{
 		multiDef_t* ptr = (multiDef_t*)UI_Alloc(sizeof(multiDef_t));
-		if (!ptr)
+
+		if (ptr == NULL)
 		{
 			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for MULTI");
+			return;
 		}
+
 		memset(ptr, 0, sizeof(multiDef_t));
 		item->typeData.multi = ptr;
 		break;
 	}
 
+	/* ----------------------------------------------------
+	   MODEL / MODEL_ITEM
+	   ---------------------------------------------------- */
 	case ITEM_TYPE_MODEL:
 	case ITEM_TYPE_MODEL_ITEM:
 	{
 		modelDef_t* ptr = (modelDef_t*)UI_Alloc(sizeof(modelDef_t));
-		if (!ptr)
+
+		if (ptr == NULL)
 		{
 			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for MODEL");
+			return;
 		}
+
 		memset(ptr, 0, sizeof(modelDef_t));
 		item->typeData.model = ptr;
 		break;
 	}
 
+	/* ----------------------------------------------------
+	   TEXTSCROLL
+	   ---------------------------------------------------- */
 	case ITEM_TYPE_TEXTSCROLL:
 	{
 		textScrollDef_t* ptr = (textScrollDef_t*)UI_Alloc(sizeof(textScrollDef_t));
-		if (!ptr)
+
+		if (ptr == NULL)
 		{
 			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for TEXTSCROLL");
+			return;
 		}
+
 		memset(ptr, 0, sizeof(textScrollDef_t));
 		item->typeData.textscroll = ptr;
 		break;
 	}
 
+	/* ----------------------------------------------------
+	   DEFAULT: no typeData required
+	   ---------------------------------------------------- */
 	default:
 		break;
 	}
@@ -8197,10 +8247,23 @@ ItemParse_flag
 	flag <flag string>
 ===============
 */
+/*
+==========================
+ItemParse_flag
+
+Parses a single flag token and applies the corresponding
+window flag to the item.
+
+- Safe bounds checking for itemFlags[]
+- No implicit bool→qboolean conversions
+- Clean, modern structure
+==========================
+*/
 static qboolean ItemParse_flag(itemDef_t* item, const int handle)
 {
 	pc_token_t token;
 
+	/* Read next token */
 	if (!trap->PC_ReadToken(handle, &token))
 	{
 		return qfalse;
@@ -8208,8 +8271,18 @@ static qboolean ItemParse_flag(itemDef_t* item, const int handle)
 
 	qboolean found = qfalse;
 
-	for (int i = 0; itemFlags[i].string; i++)
+	/* Explicit maximum to satisfy static analysis */
+	const int maxFlags = (int)(sizeof(itemFlags) / sizeof(itemFlags[0]));
+
+	for (int i = 0; i < maxFlags; i++)
 	{
+		/* Stop if we hit the NULL terminator */
+		if (itemFlags[i].string == NULL)
+		{
+			break;
+		}
+
+		/* Case‑insensitive match */
 		if (Q_stricmp(token.string, itemFlags[i].string) == 0)
 		{
 			item->window.flags |= itemFlags[i].value;
@@ -8218,7 +8291,8 @@ static qboolean ItemParse_flag(itemDef_t* item, const int handle)
 		}
 	}
 
-	if (!found)
+	/* Warn if no match found */
+	if ((found ? qfalse : qtrue) == qtrue)
 	{
 		Com_Printf(S_COLOR_YELLOW "Unknown item style value '%s'\n", token.string);
 	}

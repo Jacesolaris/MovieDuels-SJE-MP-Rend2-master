@@ -2896,7 +2896,7 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 		}
 		if (walk_check(defender) && IsMoving(defender))
 		{
-			saber_block_cost += 1.0f;
+			saber_block_cost += 2.0f;
 		}
 		if (defender->client->ps.groundEntityNum == ENTITYNUM_NONE)
 		{
@@ -9191,22 +9191,28 @@ void WP_saberBackToOwner(gentity_t* saberent)
 			// fatigue + regen
 			if (saber_owner->r.svFlags & SVF_BOT)
 			{
+				// Reset extreme fatigue
 				if (saber_owner->client->ps.saberFatigueChainCount >= MISHAPLEVEL_TEN)
+				{
 					saber_owner->client->ps.saberFatigueChainCount = MISHAPLEVEL_LIGHT;
+				}
 
+				// Regenerate block and force
 				wp_block_points_regenerate(saber_owner, BLOCKPOINTS_TWENTYFIVE);
 				wp_force_power_regenerate(saber_owner, BLOCKPOINTS_TWENTYFIVE);
 
-				bot_state_t* bs = botstates[saber_owner->s.number];
-				if (bs)
-				{
-					bs->nextStyleSwitchTime = level.time + 1500; // 1.5 seconds
-				}
 
+				// Schedule BOTH_STAND1TO2 to play 1.2 seconds later
+				saber_owner->client->ps.userInt1 |= BOT_PENDING_STAND_ANIM;
+				saber_owner->client->ps.botPendingStandTime = level.time + 1200;
+
+				// Reset saber state
 				saber_owner->client->ps.saber_move = LS_READY;
 				saber_owner->client->ps.saberBlocked = BLOCKED_NONE;
 
-				G_SetAnim(saber_owner, NULL, SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+				// Schedule delayed saber-style switch (2.5 seconds)
+				saber_owner->client->ps.userInt1 |= BOT_SABER_PENDING_MASK;
+				saber_owner->client->ps.botPendingStyleTime = level.time + 2500;
 			}
 			else
 			{

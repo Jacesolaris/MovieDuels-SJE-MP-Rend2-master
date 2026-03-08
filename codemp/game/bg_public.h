@@ -2100,3 +2100,7 @@ extern int force_power_dark_light[NUM_FORCE_POWERS];
 extern const char* gametypeStringShort[GT_MAX_GAME_TYPE];
 const char* BG_GetGametypeString(int gametype);
 int BG_GetGametypeForString(const char* gametype);
+
+#define BOT_SABER_PENDING_MASK     0x1
+#define BOT_PENDING_STAND_ANIM     0x2
+#define BOT_SABER_PENDING_DELAY_MS 400 // milliseconds delay before cycling saber style

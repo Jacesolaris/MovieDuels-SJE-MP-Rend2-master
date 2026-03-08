@@ -2427,7 +2427,9 @@ void G_SetOrigin(gentity_t* ent, vec3_t origin)
 		ent->waypoint = WAYPOINT_NONE;
 		ent->lastWaypoint = WAYPOINT_NONE;
 	}
-}qboolean G_CheckInSolid(gentity_t* self, const qboolean fix)
+}
+
+qboolean G_CheckInSolid(gentity_t* self, const qboolean fix)
 {
 	if (!self)
 	{

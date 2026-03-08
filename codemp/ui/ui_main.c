@@ -10598,74 +10598,121 @@ void UI_FreeAllSpecies(void)
 UI_BuildPlayerModel_List
 =================
 */
+/*
+==========================
+UI_BuildPlayerModel_List
+
+Builds the list of available player species and their skins by scanning
+models/players/* and parsing playerchoice_mp.txt plus .skin files.
+
+- Uses a heap buffer for directory listing, with a safe stack fallback.
+- Grows species and skin arrays with realloc in a safe pattern.
+- Keeps original behaviour, only fixing real safety issues.
+==========================
+*/
 static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 {
+	/* Preferred directory list size on the heap */
 	static const size_t DIR_LIST_SIZE = 16384;
 
+	char  stackDirList[8192] = { 0 }; /* Fallback buffer on the stack */
+	char* dirlist = NULL;
 	size_t dirListSize = DIR_LIST_SIZE;
-	char stackDirList[8192];
-	int dirlen;
+	int   dirlen = 0;
 
-	char* dirlist = malloc(DIR_LIST_SIZE);
+	/* Try to allocate directory list on the heap */
+	dirlist = (char*)malloc(DIR_LIST_SIZE);
 	if (!dirlist)
 	{
-		Com_Printf(S_COLOR_YELLOW "WARNING: Failed to allocate %u bytes of memory for player model "
-			"directory list. Using stack allocated buffer of %u bytes instead.",
-			DIR_LIST_SIZE, sizeof stackDirList);
+		/* Fallback to stack buffer if heap allocation fails */
+		Com_Printf(S_COLOR_YELLOW
+			"WARNING: Failed to allocate %u bytes of memory for player model "
+			"directory list. Using stack allocated buffer of %u bytes instead.\n",
+			(unsigned int)DIR_LIST_SIZE,
+			(unsigned int)sizeof(stackDirList));
 
 		dirlist = stackDirList;
-		dirListSize = sizeof stackDirList;
+		dirListSize = sizeof(stackDirList);
 	}
 
+	/* Initialise species list */
 	uiInfo.playerSpeciesCount = 0;
 	uiInfo.playerSpeciesIndex = 0;
 	uiInfo.playerSpeciesMax = 8;
-	uiInfo.playerSpecies = (playerSpeciesInfo_t*)malloc(uiInfo.playerSpeciesMax * sizeof(playerSpeciesInfo_t));
 
-	const int numdirs = trap->FS_GetFileList("models/players", "/", dirlist, dirListSize);
+	uiInfo.playerSpecies = (playerSpeciesInfo_t*)malloc(
+		uiInfo.playerSpeciesMax * sizeof(playerSpeciesInfo_t));
+
+	if (!uiInfo.playerSpecies)
+	{
+		if (dirlist != stackDirList)
+		{
+			free(dirlist);
+		}
+		Com_Error(ERR_FATAL, "UI_BuildPlayerModel_List: malloc failed for playerSpecies");
+		return;
+	}
+
+	/* Get list of subdirectories under models/players */
+	const int numdirs = trap->FS_GetFileList("models/players", "/", dirlist, (int)dirListSize);
 	char* dirptr = dirlist;
 
 	for (int i = 0; i < numdirs; i++, dirptr += dirlen + 1)
 	{
-		int f = 0;
+		int  f = 0;
 		char fpath[MAX_QPATH];
 
-		dirlen = strlen(dirptr);
+		dirlen = (int)strlen(dirptr);
 
-		if (dirlen)
+		if (dirlen > 0)
 		{
+			/* Strip trailing slash if present */
 			if (dirptr[dirlen - 1] == '/')
+			{
 				dirptr[dirlen - 1] = '\0';
+				dirlen--;
+			}
 		}
 		else
 		{
 			continue;
 		}
 
+		/* Skip "." and ".." */
 		if (strcmp(dirptr, ".") == 0 || strcmp(dirptr, "..") == 0)
+		{
 			continue;
+		}
 
-		Com_sprintf(fpath, sizeof fpath, "models/players/%s/playerchoice_mp.txt", dirptr);
+		/* Build path to playerchoice_mp.txt */
+		Com_sprintf(fpath, sizeof(fpath), "models/players/%s/playerchoice_mp.txt", dirptr);
 
 		int filelen = trap->FS_Open(fpath, &f, FS_READ);
 
 		if (f)
 		{
 			char filelist[2048];
-			int iSkinParts = 0;
+			int  iSkinParts = 0;
 
-			char* buffer = malloc(filelen + 1);
+			/* Read playerchoice_mp.txt into buffer */
+			char* buffer = (char*)malloc(filelen + 1);
 			if (!buffer)
 			{
 				trap->FS_Close(f);
-				Com_Error(ERR_FATAL, "Could not allocate buffer to read %s", fpath);
+				if (dirlist != stackDirList)
+				{
+					free(dirlist);
+				}
+				Com_Error(ERR_FATAL, "UI_BuildPlayerModel_List: Could not allocate buffer to read %s", fpath);
+				return;
 			}
 
 			trap->FS_Read(buffer, filelen, f);
 			trap->FS_Close(f);
 
-			buffer[filelen] = 0;
+			buffer[filelen] = '\0';
 
+			/* Grow species array if needed */
 			if (uiInfo.playerSpeciesCount >= uiInfo.playerSpeciesMax)
 			{
 				uiInfo.playerSpeciesMax *= 2;
@@ -10675,21 +10722,29 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 
 				if (!newPtr)
 				{
+					free(buffer);
+					if (dirlist != stackDirList)
+					{
+						free(dirlist);
+					}
 					Com_Error(ERR_FATAL, "UI_BuildPlayerModel_List: realloc failed for playerSpecies");
+					return;
 				}
 
 				uiInfo.playerSpecies = newPtr;
 			}
 
+			/* Initialise new species entry */
 			playerSpeciesInfo_t* species = &uiInfo.playerSpecies[uiInfo.playerSpeciesCount];
 			memset(species, 0, sizeof(playerSpeciesInfo_t));
 			Q_strncpyz(species->Name, dirptr, MAX_QPATH);
 
 			if (!UI_ParseColorData(buffer, species, fpath))
 			{
-				Com_Printf(S_COLOR_RED"UI_BuildPlayerModel_List: Errors parsing '%s'\n", fpath);
+				Com_Printf(S_COLOR_RED "UI_BuildPlayerModel_List: Errors parsing '%s'\n", fpath);
 			}
 
+			/* Initial skin array capacities */
 			species->SkinHeadMax = 8;
 			species->SkinTorsoMax = 8;
 			species->SkinLegMax = 8;
@@ -10698,27 +10753,45 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 			species->SkinTorso = (skinName_t*)malloc(species->SkinTorsoMax * sizeof(skinName_t));
 			species->SkinLeg = (skinName_t*)malloc(species->SkinLegMax * sizeof(skinName_t));
 
+			if (!species->SkinHead || !species->SkinTorso || !species->SkinLeg)
+			{
+				free(buffer);
+				UI_FreeSpecies(species);
+				if (dirlist != stackDirList)
+				{
+					free(dirlist);
+				}
+				Com_Error(ERR_FATAL, "UI_BuildPlayerModel_List: malloc failed for skin arrays");
+				return;
+			}
+
 			free(buffer);
 
-			const int numfiles = trap->FS_GetFileList(va("models/players/%s", dirptr), ".skin", filelist,
-				sizeof filelist);
+			/* Enumerate .skin files for this model */
+			const int numfiles = trap->FS_GetFileList(va("models/players/%s", dirptr),
+				".skin", filelist, sizeof(filelist));
 			char* fileptr = filelist;
 
 			for (int j = 0; j < numfiles; j++, fileptr += filelen + 1)
 			{
 				char skinname[64];
-				if (trap->Cvar_VariableValue("fs_copyfiles") > 0)
+
+				/* Optional copyfiles behaviour */
+				if (trap->Cvar_VariableValue("fs_copyfiles") > 0.0f)
 				{
 					trap->FS_Open(va("models/players/%s/%s", dirptr, fileptr), &f, FS_READ);
 					if (f)
+					{
 						trap->FS_Close(f);
+					}
 				}
 
-				filelen = strlen(fileptr);
-				COM_StripExtension(fileptr, skinname, sizeof skinname);
+				filelen = (int)strlen(fileptr);
+				COM_StripExtension(fileptr, skinname, sizeof(skinname));
 
 				if (bIsImageFile(dirptr, skinname))
 				{
+					/* Head skins */
 					if (Q_stricmpn(skinname, "head_", 5) == 0)
 					{
 						if (species->SkinHeadCount >= species->SkinHeadMax)
@@ -10730,15 +10803,23 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 
 							if (!newPtr)
 							{
+								UI_FreeSpecies(species);
+								if (dirlist != stackDirList)
+								{
+									free(dirlist);
+								}
 								Com_Error(ERR_FATAL, "UI_BuildPlayerModel_List: realloc failed for SkinHead");
+								return;
 							}
 
 							species->SkinHead = newPtr;
 						}
 
-						Q_strncpyz(species->SkinHead[species->SkinHeadCount++].name, skinname, SKIN_LENGTH);
-						iSkinParts |= 1 << 0;
+						Q_strncpyz(species->SkinHead[species->SkinHeadCount++].name,
+							skinname, SKIN_LENGTH);
+						iSkinParts |= (1 << 0);
 					}
+					/* Torso skins */
 					else if (Q_stricmpn(skinname, "torso_", 6) == 0)
 					{
 						if (species->SkinTorsoCount >= species->SkinTorsoMax)
@@ -10750,15 +10831,23 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 
 							if (!newPtr)
 							{
+								UI_FreeSpecies(species);
+								if (dirlist != stackDirList)
+								{
+									free(dirlist);
+								}
 								Com_Error(ERR_FATAL, "UI_BuildPlayerModel_List: realloc failed for SkinTorso");
+								return;
 							}
 
 							species->SkinTorso = newPtr;
 						}
 
-						Q_strncpyz(species->SkinTorso[species->SkinTorsoCount++].name, skinname, SKIN_LENGTH);
-						iSkinParts |= 1 << 1;
+						Q_strncpyz(species->SkinTorso[species->SkinTorsoCount++].name,
+							skinname, SKIN_LENGTH);
+						iSkinParts |= (1 << 1);
 					}
+					/* Leg skins */
 					else if (Q_stricmpn(skinname, "lower_", 6) == 0)
 					{
 						if (species->SkinLegCount >= species->SkinLegMax)
@@ -10770,18 +10859,26 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 
 							if (!newPtr)
 							{
+								UI_FreeSpecies(species);
+								if (dirlist != stackDirList)
+								{
+									free(dirlist);
+								}
 								Com_Error(ERR_FATAL, "UI_BuildPlayerModel_List: realloc failed for SkinLeg");
+								return;
 							}
 
 							species->SkinLeg = newPtr;
 						}
 
-						Q_strncpyz(species->SkinLeg[species->SkinLegCount++].name, skinname, SKIN_LENGTH);
-						iSkinParts |= 1 << 2;
+						Q_strncpyz(species->SkinLeg[species->SkinLegCount++].name,
+							skinname, SKIN_LENGTH);
+						iSkinParts |= (1 << 2);
 					}
 				}
 			}
 
+			/* Require head, torso, and leg skins (bits 0,1,2 set) */
 			if (iSkinParts < 7)
 			{
 				UI_FreeSpecies(species);
@@ -10790,12 +10887,13 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 
 			uiInfo.playerSpeciesCount++;
 
+			/* Optional precache of Ghoul2 models (vanilla renderer only) */
 			if (com_rend2.integer == 0)
 			{
 				if (!inGameLoad && ui_PrecacheModels.integer)
 				{
-					void* ghoul2 = 0;
-					Com_sprintf(fpath, sizeof fpath, "models/players/%s/model.glm", dirptr);
+					void* ghoul2 = NULL;
+					Com_sprintf(fpath, sizeof(fpath), "models/players/%s/model.glm", dirptr);
 					const int g2Model = trap->G2API_InitGhoul2Model(&ghoul2, fpath, 0, 0, 0, 0, 0);
 					if (g2Model >= 0)
 					{
@@ -10806,6 +10904,7 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 		}
 	}
 
+	/* Free heap directory list if used */
 	if (dirlist != stackDirList)
 	{
 		free(dirlist);

@@ -1296,7 +1296,7 @@ static void BotCheckBlocked(bot_movestate_t* ms, vec3_t dir, const int checkbott
 static bot_moveresult_t BotTravel_Walk(bot_movestate_t* ms, aas_reachability_t* reach)
 {
 	float speed;
-	vec3_t hordir;
+	vec3_t hordir{};
 	bot_moveresult_t_cleared(result);
 
 	//first walk straight to the reachability start
@@ -1562,7 +1562,7 @@ static bot_moveresult_t BotFinishTravel_WaterJump(bot_movestate_t* ms, aas_reach
 //===========================================================================
 static bot_moveresult_t BotTravel_WalkOffLedge(bot_movestate_t* ms, aas_reachability_t* reach)
 {
-	vec3_t hordir, dir;
+	vec3_t hordir{}, dir;
 	float speed;
 	bot_moveresult_t_cleared(result);
 
@@ -2780,7 +2780,7 @@ static int BotReachabilityTime(aas_reachability_t* reach)
 static bot_moveresult_t BotMoveInGoalArea(bot_movestate_t* ms, bot_goal_t* goal)
 {
 	bot_moveresult_t_cleared(result);
-	vec3_t dir;
+	vec3_t dir{};
 	float dist, speed;
 
 #ifdef DEBUG

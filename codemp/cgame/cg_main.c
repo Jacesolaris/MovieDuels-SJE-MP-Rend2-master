@@ -1425,9 +1425,10 @@ static void CG_RegisterGraphics(void)
 	cgs.effects.mSaberprfectBlock = trap->FX_RegisterEffect("saber/saber_goodparry.efx");
 	cgs.effects.mSaberBodyHit = trap->FX_RegisterEffect("saber/saber_bodyhit.efx");
 	cgs.effects.mSaberlimb_Bolton = trap->FX_RegisterEffect("saber/limb_bolton.efx");
-	cgs.effects.mSaberBloodSparks = trap->FX_RegisterEffect("saber/blood_sparks.efx");
-	cgs.effects.mSaberBloodSparksSmall = trap->FX_RegisterEffect("saber/blood_sparks_MD.efx");
-	cgs.effects.mSaberBloodSparksMid = trap->FX_RegisterEffect("saber/blood_sparks_AMD.efx");
+
+	cgs.effects.mSaberBloodSparks = trap->FX_RegisterEffect("saber/blood_sparks_mp.efx");
+	cgs.effects.mSaberBloodSparksSmall = trap->FX_RegisterEffect("saber/blood_sparks_25_mp.efx");
+	cgs.effects.mSaberBloodSparksMid = trap->FX_RegisterEffect("saber/blood_sparks_50_mp.efx");
 
 	cgs.effects.mSpawn = trap->FX_RegisterEffect("mp/spawn.efx");
 	cgs.effects.mJediSpawn = trap->FX_RegisterEffect("mp/jedispawn.efx");
@@ -1919,12 +1920,45 @@ static void CG_RegisterClients(void)
 CG_ConfigString
 =================
 */
+/*
+==============================
+CG_ConfigString
+
+Returns a pointer to a configstring by index.
+Performs full bounds validation and ensures the
+returned pointer is always safe to use.
+==============================
+*/
 const char* CG_ConfigString(const int index)
 {
+	/* Validate index */
 	if (index < 0 || index >= MAX_CONFIGSTRINGS)
 	{
-		trap->Error(ERR_DROP, "CG_ConfigString: bad index: %i", index);
+		trap->Error(ERR_DROP,
+			"CG_ConfigString: bad index: %i", index);
+
+		/* Static analysis safety: execution never reaches here,
+		   but MSVC cannot see that Error() is noreturn. */
+		return "";
 	}
+
+	/* Validate offset table */
+	if (cgs.gameState.stringOffsets[index] < 0)
+	{
+		trap->Error(ERR_DROP,
+			"CG_ConfigString: negative offset for index %i", index);
+		return "";
+	}
+
+	/* Validate stringData pointer */
+	if (cgs.gameState.stringData == NULL)
+	{
+		trap->Error(ERR_DROP,
+			"CG_ConfigString: stringData is NULL");
+		return "";
+	}
+
+	/* Safe to index */
 	return cgs.gameState.stringData + cgs.gameState.stringOffsets[index];
 }
 
@@ -2599,15 +2633,23 @@ void CG_LoadMenus(const char* menuFile)
 		}
 	}
 
-	if (len >= MAX_MENUDEFFILE)
+	// FIX: ensure len is valid
+	if (len <= 0 || len >= MAX_MENUDEFFILE - 1)
 	{
 		trap->FS_Close(f);
-		trap->Error(ERR_DROP, S_COLOR_RED "menu file too large: %s is %i, max allowed is %i", menuFile, len,
-			MAX_MENUDEFFILE);
+		trap->Error(ERR_DROP, S_COLOR_RED "menu file too large or invalid: %s is %i, max allowed is %i",
+			menuFile, len, MAX_MENUDEFFILE);
 	}
 
-	trap->FS_Read(buf, len, f);
-	buf[len] = 0.0f;
+	// FIX: ensure FS_Read actually reads len bytes
+	int readBytes = trap->FS_Read(buf, len, f);
+	if (readBytes != len)
+	{
+		trap->FS_Close(f);
+		trap->Error(ERR_DROP, S_COLOR_RED "menu file read error: %s", menuFile);
+	}
+
+	buf[len] = '\0';   // FIX: safe null‑termination
 	trap->FS_Close(f);
 
 	p = buf;

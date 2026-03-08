@@ -25,6 +25,25 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "cg_local.h"
 #include "ghoul2/G2.h"
 #include "game/bg_saga.h"
+#include <assert.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "cg_holster.h"
+#include <game\anims.h>
+#include <game\bg_public.h>
+#include <game\bg_vehicles.h>
+#include <game\bg_weapons.h>
+#include <game\surfaceflags.h>
+#include <game\teams.h>
+#include <qcommon\qfiles.h>
+#include <qcommon\q_shared.h>
+#include <rd-common\tr_types.h>
+#include <qcommon\q_color.h>
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
+#include <qcommon\q_string.h>
 
 extern void CheckCameraLocation(vec3_t oldeye_origin);
 extern vmCvar_t cg_thirdPersonAlpha;
@@ -2163,126 +2182,177 @@ void CG_NewClientInfo(int clientNum, qboolean entities_initialized)
 	}
 
 	// Check if the ghoul2 model changed in any way.  This is safer than assuming we have a legal cent shile loading info.
-	if (entities_initialized && ci->ghoul2Model && old_ghoul2 != ci->ghoul2Model)
+	// Handle client Ghoul2 model change and re-apply animations / weapons safely.
+	if (entities_initialized == qtrue &&
+		ci &&
+		ci->ghoul2Model &&
+		old_ghoul2 != ci->ghoul2Model)
 	{
-		// Copy the new ghoul2 model to the centity.
-		animation_t* anim;
+		// Sanity check client index before touching cg_entities.
+		if (clientNum < 0 || clientNum >= MAX_CLIENTS)
+		{
+			return;
+		}
+
 		centity_t* cent = &cg_entities[clientNum];
 
-		anim = &bgHumanoidAnimations[cg_entities[clientNum].currentState.legsAnim];
-
-		if (anim)
+		// -------------------------
+		// Re-apply legs animation
+		// -------------------------
 		{
-			int flags = BONE_ANIM_OVERRIDE_FREEZE;
-			int first_frame = anim->firstFrame;
-			int setFrame = -1;
-			float animSpeed = 50.0f / anim->frameLerp;
+			const int legsAnimIndex = cent->currentState.legsAnim;
 
-			if (anim->loopFrames != -1)
+			// Ensure animation index is valid before indexing bgHumanoidAnimations.
+			if (legsAnimIndex >= 0 && legsAnimIndex < MAX_ANIMATIONS)
 			{
-				flags = BONE_ANIM_OVERRIDE_LOOP;
+				animation_t* anim = &bgHumanoidAnimations[legsAnimIndex];
+				int flags = BONE_ANIM_OVERRIDE_FREEZE;
+				const int first_frame = anim->firstFrame;
+				int setFrame = -1;
+				const float animSpeed = 50.0f / anim->frameLerp;
+
+				if (anim->loopFrames != -1)
+				{
+					flags = BONE_ANIM_OVERRIDE_LOOP;
+				}
+
+				// Preserve current legs frame if it lies within this animation.
+				if (cent->pe.legs.frame >= anim->firstFrame &&
+					cent->pe.legs.frame <= anim->firstFrame + anim->numFrames)
+				{
+					setFrame = cent->pe.legs.frame;
+				}
+
+				// Set the animation again because it just got reset due to the model change.
+				trap->G2API_SetBoneAnim(
+					ci->ghoul2Model,
+					0,
+					"model_root",
+					first_frame,
+					anim->firstFrame + anim->numFrames,
+					flags,
+					animSpeed,
+					cg.time,
+					setFrame,
+					150);
+
+				// Original code used 0.0f; this is equivalent but type-correct.
+				cent->currentState.legsAnim = 0;
 			}
-
-			if (cent->pe.legs.frame >= anim->firstFrame && cent->pe.legs.frame <= anim->firstFrame + anim->numFrames)
-			{
-				setFrame = cent->pe.legs.frame;
-			}
-
-			//rww - Set the animation again because it just got reset due to the model change
-			trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "model_root", first_frame, anim->firstFrame + anim->numFrames,
-				flags, animSpeed, cg.time, setFrame, 150);
-
-			cg_entities[clientNum].currentState.legsAnim = 0.0f;
 		}
 
-		anim = &bgHumanoidAnimations[cg_entities[clientNum].currentState.torsoAnim];
-
-		if (anim)
+		// -------------------------
+		// Re-apply torso animation
+		// -------------------------
 		{
-			int flags = BONE_ANIM_OVERRIDE_FREEZE;
-			int first_frame = anim->firstFrame;
-			int setFrame = -1;
-			float animSpeed = 50.0f / anim->frameLerp;
+			const int torsoAnimIndex = cent->currentState.torsoAnim;
 
-			if (anim->loopFrames != -1)
+			// Ensure animation index is valid before indexing bgHumanoidAnimations.
+			if (torsoAnimIndex >= 0 && torsoAnimIndex < MAX_ANIMATIONS)
 			{
-				flags = BONE_ANIM_OVERRIDE_LOOP;
+				animation_t* anim = &bgHumanoidAnimations[torsoAnimIndex];
+				int flags = BONE_ANIM_OVERRIDE_FREEZE;
+				const int first_frame = anim->firstFrame;
+				int setFrame = -1;
+				const float animSpeed = 50.0f / anim->frameLerp;
+
+				if (anim->loopFrames != -1)
+				{
+					flags = BONE_ANIM_OVERRIDE_LOOP;
+				}
+
+				// Preserve current torso frame if it lies within this animation.
+				if (cent->pe.torso.frame >= anim->firstFrame &&
+					cent->pe.torso.frame <= anim->firstFrame + anim->numFrames)
+				{
+					setFrame = cent->pe.torso.frame;
+				}
+
+				// Set the animation again because it just got reset due to the model change.
+				trap->G2API_SetBoneAnim(
+					ci->ghoul2Model,
+					0,
+					"lower_lumbar",
+					first_frame,
+					anim->firstFrame + anim->numFrames,
+					flags,
+					animSpeed,
+					cg.time,
+					setFrame,
+					150);
+
+				cent->currentState.torsoAnim = 0;
 			}
-
-			if (cent->pe.torso.frame >= anim->firstFrame && cent->pe.torso.frame <= anim->firstFrame + anim->numFrames)
-			{
-				setFrame = cent->pe.torso.frame;
-			}
-
-			//rww - Set the animation again because it just got reset due to the model change
-			trap->G2API_SetBoneAnim(ci->ghoul2Model, 0, "lower_lumbar", first_frame, anim->firstFrame + anim->numFrames,
-				flags, animSpeed, cg.time, setFrame, 150);
-
-			cg_entities[clientNum].currentState.torsoAnim = 0;
 		}
 
-		if (cg_entities[clientNum].ghoul2 && trap->G2_HaveWeGhoul2Models(cg_entities[clientNum].ghoul2))
+		// -------------------------
+		// Replace the Ghoul2 instance
+		// -------------------------
+		if (cent->ghoul2 && trap->G2_HaveWeGhoul2Models(cent->ghoul2) == qtrue)
 		{
-			trap->G2API_CleanGhoul2Models(&cg_entities[clientNum].ghoul2);
+			trap->G2API_CleanGhoul2Models(&cent->ghoul2);
 		}
-		trap->G2API_DuplicateGhoul2Instance(ci->ghoul2Model, &cg_entities[clientNum].ghoul2);
+
+		trap->G2API_DuplicateGhoul2Instance(ci->ghoul2Model, &cent->ghoul2);
 
 		if (clientNum != -1)
 		{
-			//Attach the instance to this entity num so we can make use of client-server
-			//shared operations if possible.
-			trap->G2API_AttachInstanceToEntNum(cg_entities[clientNum].ghoul2, clientNum, qfalse);
+			// Attach the instance to this entity num so we can make use of client-server shared operations.
+			trap->G2API_AttachInstanceToEntNum(cent->ghoul2, clientNum, qfalse);
 		}
 
-		if (trap->G2API_AddBolt(cg_entities[clientNum].ghoul2, 0, "face") == -1)
+		// Check now to see if we have this bone for setting anims and such.
+		if (trap->G2API_AddBolt(cent->ghoul2, 0, "face") == -1)
 		{
-			//check now to see if we have this bone for setting anims and such
-			cg_entities[clientNum].noFace = qtrue;
+			cent->noFace = qtrue;
 		}
 
-		cg_entities[clientNum].localAnimIndex = CG_G2SkelForModel(cg_entities[clientNum].ghoul2);
-		cg_entities[clientNum].eventAnimIndex = CG_G2EvIndexForModel(cg_entities[clientNum].ghoul2,
-			cg_entities[clientNum].localAnimIndex);
+		cent->localAnimIndex = CG_G2SkelForModel(cent->ghoul2);
+		cent->eventAnimIndex = CG_G2EvIndexForModel(cent->ghoul2, cent->localAnimIndex);
 
-		if (cg_entities[clientNum].currentState.number != cg.predictedPlayerState.clientNum &&
-			cg_entities[clientNum].currentState.weapon == WP_SABER)
+		// -------------------------
+		// Weapon / saber handling
+		// -------------------------
+		if (cent->currentState.number != cg.predictedPlayerState.clientNum &&
+			cent->currentState.weapon == WP_SABER)
 		{
-			cg_entities[clientNum].weapon = cg_entities[clientNum].currentState.weapon;
-			if (cg_entities[clientNum].ghoul2 && ci->ghoul2Model)
+			cent->weapon = cent->currentState.weapon;
+
+			if (cent->ghoul2 && ci->ghoul2Model)
 			{
-				CG_CopyG2WeaponInstance(&cg_entities[clientNum], cg_entities[clientNum].currentState.weapon,
-					cg_entities[clientNum].ghoul2);
-				cg_entities[clientNum].ghoul2weapon = CG_G2WeaponInstance(
-					&cg_entities[clientNum], cg_entities[clientNum].currentState.weapon);
+				CG_CopyG2WeaponInstance(cent, cent->currentState.weapon, cent->ghoul2);
+				cent->ghoul2weapon = CG_G2WeaponInstance(cent, cent->currentState.weapon);
 
-				if (cg_entities[clientNum].currentState.eFlags & EF3_DUAL_WEAPONS &&
-					cg_entities[clientNum].currentState.weapon == WP_BRYAR_PISTOL)
+				if ((cent->currentState.eFlags & EF3_DUAL_WEAPONS) &&
+					cent->currentState.weapon == WP_BRYAR_PISTOL)
 				{
-					cg_entities[clientNum].ghoul2weapon2 = CG_G2WeaponInstance2(
-						&cg_entities[clientNum], cg_entities[clientNum].currentState.weapon);
+					cent->ghoul2weapon2 = CG_G2WeaponInstance2(cent, cent->currentState.weapon);
 				}
 				else
 				{
-					cg_entities[clientNum].ghoul2weapon2 = NULL;
+					cent->ghoul2weapon2 = NULL;
 				}
 			}
-			if (!cg_entities[clientNum].currentState.saberHolstered)
+
+			if (cent->currentState.saberHolstered == qfalse)
 			{
-				//if not holstered set length and desired length for both blades to full right now.
+				// If not holstered set length and desired length for both blades to full right now.
+				int i_local;
 				int j;
+
 				BG_SI_SetDesiredLength(&ci->saber[0], 0, -1);
 				BG_SI_SetDesiredLength(&ci->saber[1], 0, -1);
 
-				i = 0;
-				while (i < MAX_SABERS)
+				i_local = 0;
+				while (i_local < MAX_SABERS)
 				{
 					j = 0;
-					while (j < ci->saber[i].numBlades)
+					while (j < ci->saber[i_local].numBlades)
 					{
-						ci->saber[i].blade[j].length = ci->saber[i].blade[j].lengthMax;
+						ci->saber[i_local].blade[j].length = ci->saber[i_local].blade[j].lengthMax;
 						j++;
 					}
-					i++;
+					i_local++;
 				}
 			}
 		}
@@ -2340,7 +2410,8 @@ PLAYER ANIMATION
 static void player_foot_step(const vec3_t origin,
 	const float orientation,
 	const float radius,
-	const centity_t* cent, const footstepType_t foot_step_type)
+	const centity_t* cent,
+	const footstepType_t foot_step_type)
 {
 	vec3_t end;
 	const vec3_t maxs = { 7, 7, 2 };
@@ -2350,20 +2421,20 @@ static void player_foot_step(const vec3_t origin,
 	qboolean b_mark = qfalse;
 	qhandle_t foot_mark_shader;
 	int effect_id = -1;
-	//float		alpha;
 
-	// send a trace down from the player to the ground
+	// Trace downward to find the ground surface
 	VectorCopy(origin, end);
 	end[2] -= FOOTSTEP_DISTANCE;
 
 	trap->CM_Trace(&trace, origin, end, mins, maxs, 0, MASK_PLAYERSOLID, 0);
 
-	// no shadow if too high
+	// No ground hit → no footstep
 	if (trace.fraction >= 1.0f)
 	{
 		return;
 	}
 
+	// Special SBD footsteps
 	if (foot_step_type == FOOTSTEP_HEAVY_SBD_R || foot_step_type == FOOTSTEP_HEAVY_SBD_L)
 	{
 		sound_type = FOOTSTEP_SBDRUN;
@@ -2374,138 +2445,83 @@ static void player_foot_step(const vec3_t origin,
 	}
 	else
 	{
-		//check for foot-steppable surface flag
+		// Determine material type
 		switch (trace.surfaceFlags & MATERIAL_MASK)
 		{
 		case MATERIAL_MUD:
 			b_mark = qtrue;
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_MUDRUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_MUDWALK;
-			}
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_MUDRUN : FOOTSTEP_MUDWALK;
 			effect_id = cgs.effects.footstepMud;
 			break;
+
 		case MATERIAL_DIRT:
 			b_mark = qtrue;
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_DIRTRUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_DIRTWALK;
-			}
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_DIRTRUN : FOOTSTEP_DIRTWALK;
 			effect_id = cgs.effects.footstepSand;
 			break;
+
 		case MATERIAL_SAND:
 			b_mark = qtrue;
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_SANDRUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_SANDWALK;
-			}
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_SANDRUN : FOOTSTEP_SANDWALK;
 			effect_id = cgs.effects.footstepSand;
 			break;
+
 		case MATERIAL_SNOW:
 			b_mark = qtrue;
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_SNOWRUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_SNOWWALK;
-			}
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_SNOWRUN : FOOTSTEP_SNOWWALK;
 			effect_id = cgs.effects.footstepSnow;
 			break;
+
 		case MATERIAL_SHORTGRASS:
 		case MATERIAL_LONGGRASS:
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_GRASSRUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_GRASSWALK;
-			}
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_GRASSRUN : FOOTSTEP_GRASSWALK;
 			break;
+
 		case MATERIAL_SOLIDMETAL:
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_METALRUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_METALWALK;
-			}
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_METALRUN : FOOTSTEP_METALWALK;
 			break;
+
 		case MATERIAL_HOLLOWMETAL:
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_PIPERUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_PIPEWALK;
-			}
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_PIPERUN : FOOTSTEP_PIPEWALK;
 			break;
+
 		case MATERIAL_GRAVEL:
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_GRAVELRUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_GRAVELWALK;
-			}
+			b_mark = qtrue;
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_GRAVELRUN : FOOTSTEP_GRAVELWALK;
 			effect_id = cgs.effects.footstepGravel;
 			break;
+
 		case MATERIAL_LAVA:
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_DIRTRUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_DIRTWALK;
-			}
+			// Lava uses dirt footsteps
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_DIRTRUN : FOOTSTEP_DIRTWALK;
 			effect_id = cgs.effects.footstepSand;
 			break;
+
 		case MATERIAL_CARPET:
 		case MATERIAL_FABRIC:
 		case MATERIAL_CANVAS:
 		case MATERIAL_RUBBER:
 		case MATERIAL_PLASTIC:
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_RUGRUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_RUGWALK;
-			}
-			break;
-		case MATERIAL_SOLIDWOOD:
-		case MATERIAL_HOLLOWWOOD:
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_WOODRUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_WOODWALK;
-			}
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_RUGRUN : FOOTSTEP_RUGWALK;
 			break;
 
-		default:
-			//fall through
+		case MATERIAL_SOLIDWOOD:
+		case MATERIAL_HOLLOWWOOD:
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_WOODRUN : FOOTSTEP_WOODWALK;
+			break;
+
+			// *** FIXED C6259: default moved to end of group ***
 		case MATERIAL_GLASS:
 		case MATERIAL_WATER:
 		case MATERIAL_FLESH:
@@ -2521,59 +2537,60 @@ static void player_foot_step(const vec3_t origin,
 		case MATERIAL_ROCK:
 		case MATERIAL_ICE:
 		case MATERIAL_MARBLE:
-			if (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
-			{
-				sound_type = FOOTSTEP_STONERUN;
-			}
-			else
-			{
-				sound_type = FOOTSTEP_STONEWALK;
-			}
+		default:
+			sound_type = (foot_step_type == FOOTSTEP_HEAVY_R || foot_step_type == FOOTSTEP_HEAVY_L)
+				? FOOTSTEP_STONERUN : FOOTSTEP_STONEWALK;
 			break;
 		}
 	}
+
+	// Play footstep sound
 	if (sound_type < FOOTSTEP_TOTAL)
 	{
-		trap->S_StartSound(NULL, cent->currentState.clientNum, CHAN_BODY, cgs.media.footsteps[sound_type][rand() & 3]);
+		trap->S_StartSound(
+			NULL,
+			cent->currentState.clientNum,
+			CHAN_BODY,
+			cgs.media.footsteps[sound_type][rand() & 3]
+		);
 	}
 
-	if (cg_footsteps.integer < 4)
+	// Footstep effects disabled?
+	if (cg_footsteps.integer < 2)
 	{
-		//debugging - 4 always does footstep effect
-		if (cg_footsteps.integer < 2) //1 for sounds, 2 for effects, 3 for marks
-		{
-			return;
-		}
+		return;
 	}
 
+	// Play particle effect
 	if (effect_id != -1)
 	{
 		trap->FX_PlayEffectID(effect_id, trace.endpos, trace.plane.normal, -1, -1, qfalse);
 	}
 
-	if (cg_footsteps.integer < 4)
+	// Footstep marks disabled?
+	if (!b_mark || cg_footsteps.integer < 3)
 	{
-		//debugging - 4 always does footstep effect
-		if (!b_mark || cg_footsteps.integer < 3) //1 for sounds, 2 for effects, 3 for marks
-		{
-			return;
-		}
+		return;
 	}
 
+	// Select correct foot mark shader
 	switch (foot_step_type)
 	{
 	case FOOTSTEP_HEAVY_R:
 	case FOOTSTEP_HEAVY_SBD_R:
 		foot_mark_shader = cgs.media.fshrMarkShader;
 		break;
+
 	case FOOTSTEP_HEAVY_L:
 	case FOOTSTEP_HEAVY_SBD_L:
 		foot_mark_shader = cgs.media.fshlMarkShader;
 		break;
+
 	case FOOTSTEP_R:
 	case FOOTSTEP_SBD_R:
 		foot_mark_shader = cgs.media.fsrMarkShader;
 		break;
+
 	default:
 	case FOOTSTEP_L:
 	case FOOTSTEP_SBD_L:
@@ -2581,15 +2598,21 @@ static void player_foot_step(const vec3_t origin,
 		break;
 	}
 
-	// fade the shadow out with height
-	//	alpha = 1.0 - trace.fraction;
-
-	// add the mark as a temporary, so it goes directly to the renderer
-	// without taking a spot in the cg_marks array
-	if (trace.plane.normal[0] || trace.plane.normal[1] || trace.plane.normal[2])
+	// Add temporary impact mark directly to renderer
+	if (trace.plane.normal[0] != 0.0f ||
+		trace.plane.normal[1] != 0.0f ||
+		trace.plane.normal[2] != 0.0f)
 	{
-		CG_ImpactMark(foot_mark_shader, trace.endpos, trace.plane.normal,
-			orientation, 1, 1, 1, 1.0f, qfalse, radius, qfalse);
+		CG_ImpactMark(
+			foot_mark_shader,
+			trace.endpos,
+			trace.plane.normal,
+			orientation,
+			1, 1, 1, 1.0f,
+			qfalse,
+			radius,
+			qfalse
+		);
 	}
 }
 
@@ -11740,7 +11763,7 @@ qboolean CG_G2TraceCollide(trace_t* tr, const vec3_t mins, const vec3_t maxs, co
 	return qfalse;
 }
 
-void CG_G2SaberEffects(vec3_t start, vec3_t end, const centity_t* owner)
+static void CG_G2SaberEffects(vec3_t start, vec3_t end, const centity_t* owner)
 {
 	trace_t trace;
 	qboolean back_wards = qfalse;
@@ -11771,7 +11794,7 @@ void CG_G2SaberEffects(vec3_t start, vec3_t end, const centity_t* owner)
 			if (trace.entityNum != ENTITYNUM_NONE)
 			{
 				//it succeeded with the ghoul2 trace
-				trap->FX_PlayEffectID(cgs.effects.mSaberBloodSparks, trace.endpos, trace.plane.normal, -1, -1, qfalse);
+				trap->FX_PlayEffectID(cgs.effects.mSaberCut, trace.endpos, trace.plane.normal, -1, -1, qfalse);
 				trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_AUTO, trap->S_RegisterSound(va("sound/weapons/saber/saberhit%i.mp3", Q_irand(1, 15))));
 			}
 		}
@@ -11988,7 +12011,7 @@ static void CG_SaberCompWork(vec3_t start, vec3_t end, centity_t* owner,
 							// Blood sparks + hit sound
 							if (client && client->infoValid)
 							{
-								trap->FX_PlayEffectID(cgs.effects.mSaberBloodSparks,
+								trap->FX_PlayEffectID(cgs.effects.mSaberCut,
 									trace.endpos,
 									trace.plane.normal,
 									-1, -1, qfalse);
@@ -12015,7 +12038,7 @@ static void CG_SaberCompWork(vec3_t start, vec3_t end, centity_t* owner,
 	// Apply hit effects (sparks, body hit, etc.)
 	if (doEffect)
 	{
-		int hitPersonFX = cgs.effects.mSaberBloodSparks;
+		int hitPersonFX = cgs.effects.mSaberCut;
 		int hitOtherFX = cgs.effects.mSaberBodyHit;
 
 		// Resolve client info
@@ -15801,13 +15824,13 @@ void SmoothTrueView(vec3_t eye_angles)
 extern void* g2HolsterWeaponInstances[MAX_WEAPONS];
 void* CG_G2HolsterWeaponInstance(const centity_t* cent, int weapon, qboolean second_saber);
 
-void ApplyAxisRotation(vec3_t axis[3], const int rot_type, const float value)
+static void ApplyAxisRotation(vec3_t axis[3], const int rot_type, const float value)
 {
 	//apply matrix rotation to this axis.
 	//rotType = type of rotation (PITCH, YAW, ROLL)
 	//value = size of rotation in degrees, no action if == 0
-	vec3_t result[3]; //The resulting axis
-	vec3_t rotation[3]; //rotation matrix
+	vec3_t result[3] = { 0 }; //The resulting axis
+	vec3_t rotation[3] = { 0 }; //rotation matrix
 
 	if (value == 0)
 	{
@@ -15880,163 +15903,196 @@ void ApplyAxisRotation(vec3_t axis[3], const int rot_type, const float value)
 
 extern stringID_table_t holsterTypeTable[];
 
-void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, const int holster_type)
+static void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, const int holster_type)
 {
 	refEntity_t ent;
-	vec3_t axis[3];
+	vec3_t axis[3] = { 0 };
 	vec3_t bolt_org;
 	mdxaBone_t boltMatrix;
-	vec3_t pos_offset;
-	vec3_t ang_offset;
-	qhandle_t offset_bolt;
-	int weapon_type;
+	vec3_t pos_offset = { 0 };
+	vec3_t ang_offset = { 0 };
+	qhandle_t offset_bolt = 0;
+	int weapon_type = WP_NONE;
 	qboolean second_weap = qfalse;
-	int boneIndex;
+	int boneIndex = HOLSTER_NONE;
 
+	// Do not render holstered weapons in first-person unless TrueView is active
 	if (cent->currentState.number == cg.snap->ps.clientNum &&
-		!cg.renderingThirdPerson && !cg_trueguns.integer && cg.snap->ps.weapon != WP_SABER)
+		!cg.renderingThirdPerson &&
+		!cg_trueguns.integer &&
+		cg.snap->ps.weapon != WP_SABER)
 	{
-		//don't render when in first person and not in True View.
 		return;
 	}
 
+	// No ghoul2 instance → cannot render holstered weapons
 	if (!cent->ghoul2)
 	{
-		//no ghoul2 instance on player
 		return;
 	}
 
-	//debugger override for editting the holster positions
+	// Debug override for editing holster positions
 	if (cg_holsterdebug.integer == holster_type)
 	{
-		//debug has been set for this holsterType, use the debug overrides
 		boneIndex = cg_holsterdebug_boneindex.integer;
-		sscanf(cg_holsterdebug_posoffset.string, "%f %f %f", &pos_offset[0], &pos_offset[1], &pos_offset[2]);
-		sscanf(cg_holsterdebug_angoffset.string, "%f %f %f", &ang_offset[0], &ang_offset[1], &ang_offset[2]);
+
+		sscanf(cg_holsterdebug_posoffset.string, "%f %f %f",
+			&pos_offset[0], &pos_offset[1], &pos_offset[2]);
+
+		sscanf(cg_holsterdebug_angoffset.string, "%f %f %f",
+			&ang_offset[0], &ang_offset[1], &ang_offset[2]);
 	}
 	else
 	{
-		//use the model's loaded data for this holsterType
+		// Use model-defined holster data
 		boneIndex = ci->holsterData[holster_type].boneIndex;
 		VectorCopy(ci->holsterData[holster_type].posOffset, pos_offset);
 		VectorCopy(ci->holsterData[holster_type].angOffset, ang_offset);
 	}
 
+	// If the model does not support this holster type
 	if (boneIndex == HOLSTER_NONE)
 	{
-		//this weapon isn't set up to be rendered on this player model.
 		return;
 	}
 
+	// Determine weapon type for this holster slot
 	switch (holster_type)
 	{
 	case HLR_SINGLESABER_1:
 		weapon_type = WP_SABER;
 		break;
+
 	case HLR_SINGLESABER_2:
 		weapon_type = WP_SABER;
 		second_weap = qtrue;
 		break;
+
 	case HLR_STAFFSABER:
 		weapon_type = WP_SABER;
 		break;
+
 	case HLR_PISTOL_L:
 	case HLR_PISTOL_R:
 		weapon_type = WP_BRYAR_PISTOL;
 		break;
+
 	case HLR_BLASTER_L:
 	case HLR_BLASTER_R:
 		weapon_type = WP_BLASTER;
 		break;
+
 	case HLR_BRYARPISTOL_L:
 	case HLR_BRYARPISTOL_R:
 		weapon_type = WP_BRYAR_OLD;
 		break;
+
 	case HLR_BOWCASTER:
 		weapon_type = WP_BOWCASTER;
 		break;
+
 	case HLR_ROCKET_LAUNCHER:
 		weapon_type = WP_ROCKET_LAUNCHER;
 		break;
+
 	case HLR_DEMP2:
 		weapon_type = WP_DEMP2;
 		break;
+
 	case HLR_CONCUSSION:
 		weapon_type = WP_CONCUSSION;
 		break;
+
 	case HLR_REPEATER:
 		weapon_type = WP_REPEATER;
 		break;
+
 	case HLR_FLECHETTE:
 		weapon_type = WP_FLECHETTE;
 		break;
+
 	case HLR_DISRUPTOR:
 		weapon_type = WP_DISRUPTOR;
 		break;
+
 	default:
 		Com_Printf("Unknown weaponType for holsterType %i in CG_HolsteredWeaponRender.\n", holster_type);
 		return;
 	}
 
-	//set offsetBolt
+	// Determine which bolt to attach to
 	switch (boneIndex)
 	{
 	case HOLSTER_UPPERBACK:
-		offset_bolt = 2; //2 = jetpack tag position
+		offset_bolt = 2; // Jetpack tag position
 		break;
+
 	case HOLSTER_LOWERBACK:
-		offset_bolt = ci->bolt_llumbar; //use lower lumbar bone
+		offset_bolt = ci->bolt_llumbar;
 		break;
+
 	case HOLSTER_LEFTHIP:
-		offset_bolt = ci->bolt_lfemurYZ; //use left hip bone
+		offset_bolt = ci->bolt_lfemurYZ;
 		break;
+
 	case HOLSTER_RIGHTHIP:
-		offset_bolt = ci->bolt_rfemurYZ; //use right hip bone
+		offset_bolt = ci->bolt_rfemurYZ;
 		break;
+
 	default:
 		Com_Printf("Unknown offsetBolt for boneIndex %i in CG_HolsteredWeaponRender.\n", boneIndex);
 		return;
 	}
 
-	trap->G2API_GetBoltMatrix(cent->ghoul2, 0, offset_bolt, &boltMatrix, cent->turAngles, cent->lerpOrigin, cg.time,
-		cgs.game_models, cent->modelScale);
+	// Retrieve bolt matrix from ghoul2
+	trap->G2API_GetBoltMatrix(
+		cent->ghoul2,
+		0,
+		offset_bolt,
+		&boltMatrix,
+		cent->turAngles,
+		cent->lerpOrigin,
+		cg.time,
+		cgs.game_models,
+		cent->modelScale
+	);
+
+	// Extract bolt origin
 	BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, bolt_org);
 
-	//find bolt rotation unit vectors
-	BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, axis[0]); //left/right
-	BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Z, axis[1]); //fwd/back
-	BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Y, axis[2]); //up/down?!
+	// Extract orientation axes
+	BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, axis[0]); // left/right
+	BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Z, axis[1]); // forward/back
+	BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Y, axis[2]); // up/down
 
-	memset(&ent, 0, sizeof ent);
+	memset(&ent, 0, sizeof(ent));
 
-	//positional transitions
+	// Apply positional offsets
 	VectorMA(bolt_org, pos_offset[0], axis[0], bolt_org);
 	VectorMA(bolt_org, pos_offset[1], axis[1], bolt_org);
 	VectorMA(bolt_org, pos_offset[2], axis[2], bolt_org);
 
-	//rotational transitions
-	//configure the initial rotational axis
+	// Apply rotational offsets
 	VectorCopy(axis[1], ent.axis[0]);
-	VectorScale(axis[0], -1, ent.axis[1]); //reversed since this is a right hand rule system.
+	VectorScale(axis[0], -1, ent.axis[1]); // Right-hand rule correction
 	VectorCopy(axis[2], ent.axis[2]);
-
-	//debug/config rotation statement.
 
 	ApplyAxisRotation(ent.axis, PITCH, ang_offset[PITCH]);
 	ApplyAxisRotation(ent.axis, YAW, ang_offset[YAW]);
 	ApplyAxisRotation(ent.axis, ROLL, ang_offset[ROLL]);
 
 	VectorCopy(bolt_org, ent.origin);
-	//AnglesToAxis( angles, ent.axis );
 
-	//attach the ghoul2 weapon instance to the render entity.
+	// Attach ghoul2 weapon instance
 	ent.ghoul2 = CG_G2HolsterWeaponInstance(cent, weapon_type, second_weap);
 
-	if (cent->currentState.powerups & 1 << PW_CLOAKED)
+	// Cloaking shader
+	if (cent->currentState.powerups & (1 << PW_CLOAKED))
 	{
 		ent.customShader = cgs.media.cloakedShader;
 	}
 
+	// Submit to renderer
 	trap->R_AddRefEntityToScene(&ent);
 }
 

@@ -3174,11 +3174,6 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					trap->FX_PlayEffectID(hit_other_fx_id2, es->origin, fx_dir, -1, -1, qfalse);
 				}
 			}
-
-			//rww - this means we have the number of the ent being hit and the ent that owns the saber doing
-			//the hit. This being the case, we can store these indecies and the current time in order to do
-			//some visual tricks on the client between frames to make it look like we're actually continuing
-			//to hit between server frames.
 			if (es->otherentity_num != ENTITYNUM_NONE && es->otherentity_num2 != ENTITYNUM_NONE)
 			{
 				centity_t* saber_owner;

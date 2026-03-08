@@ -8800,12 +8800,10 @@ CG_DrawCrosshairNames
 static void CG_DrawCrosshairNames(void)
 {
 	char sanitized[1024];
-	//int baseColor;
 	qboolean is_veh = qfalse;
 
 	if (in_camera)
 	{
-		//no crosshair while in cutscenes
 		return;
 	}
 
@@ -8816,6 +8814,7 @@ static void CG_DrawCrosshairNames(void)
 
 	CG_ScanForCrosshairEntity();
 
+	// Vehicle pilot redirect
 	if (cg.crosshairclientNum < ENTITYNUM_WORLD)
 	{
 		const centity_t* veh = &cg_entities[cg.crosshairclientNum];
@@ -8824,20 +8823,26 @@ static void CG_DrawCrosshairNames(void)
 			veh->currentState.NPC_class == CLASS_VEHICLE &&
 			veh->currentState.owner < MAX_CLIENTS)
 		{
-			//draw the name of the pilot then
 			cg.crosshairclientNum = veh->currentState.owner;
 			cg.crosshairVehNum = veh->currentState.number;
 			cg.crosshairVehTime = cg.time;
-			is_veh = qtrue; //so we know we're drawing the pilot's name
+			is_veh = qtrue;
 		}
 	}
 
-	if (cg_entities[cg.crosshairclientNum].currentState.powerups & 1 << PW_CLOAKED)
+	// Cloaked check
+	if (cg_entities[cg.crosshairclientNum].currentState.powerups & (1 << PW_CLOAKED))
 	{
 		return;
 	}
 
-	// draw the name of the player being looked at
+	// FIX: ensure index is valid before accessing cgs.clientinfo[]
+	if (cg.crosshairclientNum < 0 || cg.crosshairclientNum >= MAX_CLIENTS)
+	{
+		trap->R_SetColor(NULL);
+		return;
+	}
+
 	const float* color = CG_FadeColor(cg.crosshairClientTime, 1000);
 
 	if (!color)
@@ -8850,20 +8855,7 @@ static void CG_DrawCrosshairNames(void)
 
 	const float w = CG_DrawStrlen(va("Civilian")) * TINYCHAR_WIDTH;
 
-	if (cg.snap->ps.duelInProgress)
-	{
-		if (cg.crosshairclientNum != cg.snap->ps.duelIndex)
-		{
-			//grey out crosshair for everyone but your foe if you're in a duel
-			//baseColor = CT_BLACK;
-		}
-	}
-	else if (cg_entities[cg.crosshairclientNum].currentState.bolt1)
-	{
-		//this fellow is in a duel. We just checked if we were in a duel above, so
-		//this means we aren't and he is. Which of course means our crosshair greys out over him.
-		//baseColor = CT_BLACK;
-	}
+	// Duel greying logic unchanged...
 
 	CG_SanitizeString(name, sanitized);
 

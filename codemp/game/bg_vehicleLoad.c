@@ -1392,63 +1392,106 @@ int BG_VehicleGetIndex(const char* vehicleName)
 	return VEH_VehicleIndexForName(vehicleName);
 }
 
+/*
+==============================
+BG_GetVehicleModelName
+
+Retrieves the model name for a vehicle by index.
+Ensures:
+
+- vehicleName begins with '$'
+- index is validated before use
+- static analysis sees all paths as safe
+==============================
+*/
 void BG_GetVehicleModelName(char* modelName, const char* vehicleName, const size_t len)
 {
-	assert(vehicleName);
-	assert(modelName);
+	assert(modelName != NULL);
+	assert(vehicleName != NULL);
 	assert(len > 0);
 
-	// Must start with '$'
+	/* Must start with '$' */
 	assert(vehicleName[0] == '$');
 
 	const char* vehName = &vehicleName[1];
+
+	/* Lookup index */
 	const int vIndex = BG_VehicleGetIndex(vehName);
 
-	// Explicit bounds check to satisfy static analysis
+	/* Explicit bounds check */
 	if (vIndex < 0 || vIndex >= MAX_VEHICLES)
 	{
 		Com_Error(ERR_DROP,
 			"BG_GetVehicleModelName: invalid vehicle index %d for '%s'",
 			vIndex, vehName);
+
+		/* Static analysis safety: execution never reaches here,
+		   but MSVC cannot see that Com_Error() is noreturn. */
+		return;
 	}
 
-	// Now safe to index
+	/* Additional assert for analyzers */
+	assert(vIndex >= 0 && vIndex < MAX_VEHICLES);
+
+	/* Safe to index */
 	Q_strncpyz(modelName, g_vehicleInfo[vIndex].model, len);
 }
 
+/*
+==============================
+BG_GetVehicleSkinName
+
+Retrieves the skin name for a vehicle. The input string must begin
+with '$', and the function replaces it with the resolved skin name.
+
+- Validates index
+- Prevents static-analysis false positives
+- Preserves original behaviour
+==============================
+*/
 void BG_GetVehicleSkinName(char* skinname, const int len)
 {
-	assert(skinname);
+	assert(skinname != NULL);
 	assert(len > 0);
 
-	// Must start with '$'
+	/* Must start with '$' */
 	assert(skinname[0] == '$');
 
 	char* vehName = &skinname[1];
+
+	/* Lookup index */
 	const int vIndex = BG_VehicleGetIndex(vehName);
 
-	// Explicit bounds check to satisfy static analysis
+	/* Explicit bounds check */
 	if (vIndex < 0 || vIndex >= MAX_VEHICLES)
 	{
 		Com_Error(ERR_DROP,
 			"BG_GetVehicleSkinName: invalid vehicle index %d for '%s'",
 			vIndex, vehName);
-	}
 
-	// Now safe to index g_vehicleInfo
-	if (!VALIDSTRING(g_vehicleInfo[vIndex].skin))
-	{
-		skinname[0] = 0;
+		/* Static analysis safety: execution never reaches here,
+		   but MSVC cannot see that Com_Error() is noreturn. */
 		return;
 	}
 
-	// Special case: swoop uses golden skin
+	/* Additional assert for analyzers */
+	assert(vIndex >= 0 && vIndex < MAX_VEHICLES);
+
+	/* If no skin defined, clear the output */
+	if (!VALIDSTRING(g_vehicleInfo[vIndex].skin))
+	{
+		skinname[0] = '\0';
+		return;
+	}
+
+	/* Special case: swoop uses golden skin */
 	if (Q_stricmp(g_vehicleInfo[vIndex].name, "swoop") == 0)
 	{
-		// This is safe because we validated vIndex above
+		/* Safe because vIndex is validated */
 		strcpy(g_vehicleInfo[vIndex].skin, "gold");
 	}
 
+	/* Copy resolved skin name back into caller buffer */
 	Q_strncpyz(skinname, g_vehicleInfo[vIndex].skin, len);
 }
 

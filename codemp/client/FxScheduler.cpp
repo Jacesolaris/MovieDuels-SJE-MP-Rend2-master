@@ -28,6 +28,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <qcommon\GenericParser2.h>
+#include <qcommon\qcommon.h>
+#include <cctype>
+#include <vector>
 
 CFxScheduler theFxScheduler;
 
@@ -268,23 +272,17 @@ void CFxScheduler::Clean(const bool bRemoveTemplates /*= true*/, const int idToP
 //------------------------------------------------------
 int CFxScheduler::RegisterEffect(const char* path, bool bHasCorrectPath /*= false*/)
 {
-	// Dealing with file names:
-	// File names can come from two places - the editor, in which case we should use the given
-	// path as is, and the effect file, in which case we should add the correct path and extension.
-	// In either case we create a stripped file name to use for naming effects.
-	//
-
+	// Strip extension for effect naming.
 	char sfile[MAX_QPATH];
-
-	COM_StripExtension(path, sfile, sizeof sfile);
+	COM_StripExtension(path, sfile, sizeof(sfile));
 
 	std::string s = sfile;
 	std::transform(s.begin(), s.end(), s.begin(), tolower);
 
 	Com_DPrintf("Registering effect : %s\n", sfile);
 
+	// Check if already registered.
 	const auto itr = mEffectIDs.find(sfile);
-
 	if (itr != mEffectIDs.end())
 	{
 		return (*itr).second;
@@ -292,43 +290,32 @@ int CFxScheduler::RegisterEffect(const char* path, bool bHasCorrectPath /*= fals
 
 	CGenericParser2 parser;
 	fileHandle_t fh;
-	char data[65536];
-	char* bufParse;
 
-	// if our file doesn't have an extension, add one
+	// Allocate large buffer on the heap instead of stack (fixes C6262).
+	std::vector<char> data;
+	data.resize(65536);
+
+	char* bufParse = NULL;
+
+	// Build final filename.
 	std::string finalFilename = path;
-	const std::string effectsSubstr = finalFilename.substr(0, 7);
 
+	// Add extension if missing.
 	if (finalFilename.find('.') == std::string::npos)
 	{
-		// didn't find an extension so add one
 		finalFilename += ".efx";
 	}
 
-	// kef - grr. this angers me. every filename everywhere should start from the base dir
-	if (effectsSubstr.compare("effects") != 0)
+	// Ensure path starts with "effects/"
+	if (finalFilename.substr(0, 7).compare("effects") != 0)
 	{
-		//theFxHelper.Print("Hey!!! '%s' should be pathed from the base directory!!!\n", finalFilename.c_str());
-		const std::string strTemp = finalFilename;
+		const std::string temp = finalFilename;
 		finalFilename = "effects/";
-		finalFilename += strTemp;
+		finalFilename += temp;
 	}
 
+	// Load file.
 	const int len = theFxHelper.OpenFile(finalFilename.c_str(), &fh, FS_READ);
-
-	/*
-	if (bHasCorrectPath)
-	{
-		pfile = file;
-	}
-	else
-	{
-		// Add on our extension and prepend the file with the default path
-		sprintf( temp, "%s/%s.efx", FX_FILE_PATH, sfile );
-		pfile = temp;
-	}
-	len = theFxHelper.OpenFile( pfile, &fh, FS_READ );
-	*/
 
 	if (len < 0)
 	{
@@ -343,24 +330,25 @@ int CFxScheduler::RegisterEffect(const char* path, bool bHasCorrectPath /*= fals
 		return 0;
 	}
 
-	// If we'll overflow our buffer, bail out--not a particularly elegant solution
-	if (static_cast<unsigned>(len) >= sizeof data - 1)
+	// Prevent overflow.
+	if (static_cast<unsigned>(len) >= (data.size() - 1))
 	{
 		theFxHelper.CloseFile(fh);
 		return 0;
 	}
 
-	// Get the goods and ensure Null termination
-	theFxHelper.ReadFile(data, len, fh);
+	// Read file into heap buffer.
+	theFxHelper.ReadFile(data.data(), len, fh);
 	data[len] = '\0';
-	bufParse = data;
 
-	// Let the generic parser process the whole file
+	bufParse = data.data();
+
+	// Parse the effect file.
 	parser.Parse(&bufParse);
 
 	theFxHelper.CloseFile(fh);
 
-	// Lets convert the effect file into something that we can work with
+	// Convert parsed data into an effect.
 	return ParseEffect(sfile, parser.GetBaseParseGroup());
 }
 

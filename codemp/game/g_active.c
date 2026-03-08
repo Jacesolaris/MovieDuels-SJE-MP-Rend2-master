@@ -4180,6 +4180,7 @@ static void ClientThink_real(gentity_t* ent)
 	qboolean controlledByPlayer = qfalse;
 	qboolean killJetFlags = qtrue;
 	qboolean isFollowing;
+	playerState_t* ps = &ent->client->ps;
 
 	client = ent->client;
 
@@ -4224,6 +4225,28 @@ static void ClientThink_real(gentity_t* ent)
 	{
 		ent->client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
 		ent->forceFieldThink = 0;
+	}
+
+	// Delayed BOTH_STAND1TO2 animation
+	if (ps->userInt1 & BOT_PENDING_STAND_ANIM)
+	{
+		if (level.time >= ps->botPendingStandTime)
+		{
+			G_SetAnim(ent, NULL, SETANIM_TORSO, BOTH_STAND1TO2,
+				SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+
+			ps->userInt1 &= ~BOT_PENDING_STAND_ANIM;
+		}
+	}
+
+	// Delayed saber-style switch
+	if (ps->userInt1 & BOT_SABER_PENDING_MASK)
+	{
+		if (level.time >= ps->botPendingStyleTime)
+		{
+			Cmd_SaberAttackCycle_f(ent);
+			ps->userInt1 &= ~BOT_SABER_PENDING_MASK;
+		}
 	}
 
 	// This code was moved here from clientThink to fix a problem with g_synchronousClients

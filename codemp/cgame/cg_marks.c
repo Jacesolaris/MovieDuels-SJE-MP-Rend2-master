@@ -24,6 +24,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // cg_marks.c -- wall marks
 
 #include "cg_local.h"
+#include <qcommon\q_shared.h>
 
 /*
 ===================================================================
@@ -65,9 +66,18 @@ CG_FreeMarkPoly
 */
 static void CG_FreeMarkPoly(markPoly_t* le)
 {
+	// FIX: ensure prevMark is valid
 	if (!le->prevMark)
 	{
 		trap->Error(ERR_DROP, "CG_FreeLocalEntity: not active");
+		return; // prevent null dereference
+	}
+
+	// FIX: ensure nextMark is valid before dereferencing
+	if (!le->nextMark)
+	{
+		trap->Error(ERR_DROP, "CG_FreeLocalEntity: corrupted nextMark");
+		return;
 	}
 
 	// remove from the doubly linked active list
@@ -92,11 +102,23 @@ markPoly_t* CG_AllocMark(void)
 	{
 		// no free entities, so free the one at the end of the chain
 		// remove the oldest active entity
+		if (!cg_activeMarkPolys.prevMark)
+		{
+			// nothing to free, pool exhausted/corrupted
+			return NULL;
+		}
+
 		const int time = cg_activeMarkPolys.prevMark->time;
 		while (cg_activeMarkPolys.prevMark && time == cg_activeMarkPolys.prevMark->time)
 		{
 			CG_FreeMarkPoly(cg_activeMarkPolys.prevMark);
 		}
+	}
+
+	// FIX: ensure we actually have a free mark now
+	if (!cg_freeMarkPolys)
+	{
+		return NULL;
 	}
 
 	markPoly_t* le = cg_freeMarkPolys;
@@ -109,6 +131,7 @@ markPoly_t* CG_AllocMark(void)
 	le->prevMark = &cg_activeMarkPolys;
 	cg_activeMarkPolys.nextMark->prevMark = le;
 	cg_activeMarkPolys.nextMark = le;
+
 	return le;
 }
 
