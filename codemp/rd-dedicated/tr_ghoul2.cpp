@@ -2,11 +2,11 @@
 ===========================================================================
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
 
-This file is part of the MovieDuels source code.
+This file is part of the SerenityJediEngine2026 source code.
 
-MovieDuels is free software; you can redistribute it and/or modify it
+SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -96,9 +96,6 @@ void G2Time_ReportTimers(void)
 #else
 #include <cfloat>
 #endif
-#include <string.h>
-#include <qcommon\q_string.h>
-#include <qcommon\q_color.h>
 
 //rww - RAGDOLL_END
 
@@ -165,8 +162,7 @@ public:
 		rootSList(initrootSList),
 		currentModel(initcurrentModel),
 		boneList(initboneList)
-	{
-	}
+	{}
 };
 
 class CTransformBone
@@ -205,8 +201,7 @@ void G2_TransformBone(int index, CBoneCache& cb);
 class CBoneCache
 {
 	static void SetRenderMatrix(CTransformBone* bone)
-	{
-	}
+	{}
 
 	void EvalLow(const int index)
 	{
@@ -617,50 +612,101 @@ char* G2_GetBoneNameFromSkel(const CGhoul2Info& ghoul2, const int boneNum)
 	return skel->name;
 }
 
-void G2_RagGetBoneBasePoseMatrixLow(const CGhoul2Info& ghoul2, const int boneNum, const mdxaBone_t& boneMatrix, mdxaBone_t& retMatrix, vec3_t scale)
+void G2_RagGetBoneBasePoseMatrixLow(
+	const CGhoul2Info& ghoul2,
+	const int boneNum,
+	const mdxaBone_t& boneMatrix,
+	mdxaBone_t& retMatrix,
+	vec3_t scale)
 {
-	// Validate bone cache
+	// Defensive: validate bone cache pointer
 	if (!ghoul2.mBoneCache)
 	{
-		Com_Printf("rd-dedicated G2_RagGetBoneBasePoseMatrixLow: ERROR: mBoneCache is NULL\n");
-		MDXA_Identity(retMatrix);
+		retMatrix = boneMatrix; // fallback: preserve incoming matrix
 		return;
 	}
 
 	const CBoneCache& boneCache = *ghoul2.mBoneCache;
 
-	if (!boneCache.mod)
+	// Validate mod + header
+	if (!boneCache.mod || !boneCache.header)
 	{
-		Com_Printf("rd-dedicated G2_RagGetBoneBasePoseMatrixLow: ERROR: boneCache.mod is NULL\n");
-		MDXA_Identity(retMatrix);
+		retMatrix = boneMatrix;
 		return;
 	}
 
+	// Validate bone index
 	if (boneNum < 0 || boneNum >= boneCache.header->numBones)
 	{
-		Com_Printf("rd-dedicated G2_RagGetBoneBasePoseMatrixLow: ERROR: boneNum %d out of range (max %d)\n",
-			boneNum, boneCache.header->numBones);
-		MDXA_Identity(retMatrix);
+		ri->Printf(
+			PRINT_DEVELOPER,
+			"G2_RagGetBoneBasePoseMatrixLow: invalid boneNum %d (numBones=%d)\n",
+			boneNum,
+			boneCache.header->numBones
+		);
+		retMatrix = boneMatrix;
 		return;
 	}
 
-	// Normal path
+	// Offsets table
 	const mdxaSkelOffsets_t* offsets =
 		reinterpret_cast<const mdxaSkelOffsets_t*>(
 			(byte*)boneCache.header + sizeof(mdxaHeader_t));
 
+	const int ofs = offsets->offsets[boneNum];
+
+	// Validate offset range
+	if (ofs < 0 ||
+		ofs < boneCache.header->ofsSkel ||
+		ofs >= boneCache.header->ofsEnd)
+	{
+		ri->Printf(
+			PRINT_DEVELOPER,
+			"G2_RagGetBoneBasePoseMatrixLow: bad offset for bone %d: %d (ofsSkel=%d ofsEnd=%d)\n",
+			boneNum,
+			ofs,
+			boneCache.header->ofsSkel,
+			boneCache.header->ofsEnd
+		);
+		retMatrix = boneMatrix;
+		return;
+	}
+
+	// Resolve skeleton pointer
 	const mdxaSkel_t* skel =
 		reinterpret_cast<const mdxaSkel_t*>(
-			(byte*)boneCache.header +
-			sizeof(mdxaHeader_t) +
-			offsets->offsets[boneNum]);
+			(byte*)boneCache.header + sizeof(mdxaHeader_t) + ofs);
 
+	// Validate skeleton structure
+	if (!skel ||
+		skel->numChildren < 0 ||
+		skel->numChildren > boneCache.header->numBones)
+	{
+		ri->Printf(
+			PRINT_DEVELOPER,
+			"G2_RagGetBoneBasePoseMatrixLow: malformed skel for bone %d\n",
+			boneNum
+		);
+		retMatrix = boneMatrix;
+		return;
+	}
+
+	// Multiply matrices
 	Multiply_3x4Matrix(&retMatrix, &boneMatrix, &skel->BasePoseMat);
 
 	// Apply scale
-	if (scale[0]) retMatrix.matrix[0][3] *= scale[0];
-	if (scale[1]) retMatrix.matrix[1][3] *= scale[1];
-	if (scale[2]) retMatrix.matrix[2][3] *= scale[2];
+	if (scale[0] != 0.0f)
+	{
+		retMatrix.matrix[0][3] *= scale[0];
+	}
+	if (scale[1] != 0.0f)
+	{
+		retMatrix.matrix[1][3] *= scale[1];
+	}
+	if (scale[2] != 0.0f)
+	{
+		retMatrix.matrix[2][3] *= scale[2];
+	}
 
 	// Normalize axes
 	VectorNormalize(reinterpret_cast<float*>(&retMatrix.matrix[0]));
@@ -668,66 +714,85 @@ void G2_RagGetBoneBasePoseMatrixLow(const CGhoul2Info& ghoul2, const int boneNum
 	VectorNormalize(reinterpret_cast<float*>(&retMatrix.matrix[2]));
 }
 
-void G2_GetBoneMatrixLow(const CGhoul2Info& ghoul2, const int boneNum, const vec3_t scale,
-	mdxaBone_t& retMatrix, mdxaBone_t*& retBasepose, mdxaBone_t*& retBaseposeInv)
+void G2_GetBoneMatrixLow(const CGhoul2Info& ghoul2,
+	const int boneNum,
+	const vec3_t scale,
+	mdxaBone_t& retMatrix,
+	mdxaBone_t*& retBasepose,
+	mdxaBone_t*& retBaseposeInv)
 {
+	// No bone cache: return identity and bail.
 	if (!ghoul2.mBoneCache)
 	{
-		Com_Printf("^1G2_GetBoneMatrixLow: mBoneCache NULL, using identity\n");
 		retMatrix = identityMatrix;
 		retBasepose = const_cast<mdxaBone_t*>(&identityMatrix);
 		retBaseposeInv = const_cast<mdxaBone_t*>(&identityMatrix);
 		return;
 	}
 
+	mdxaBone_t  bolt;
 	CBoneCache& boneCache = *ghoul2.mBoneCache;
 
-	if (!boneCache.mod)
+	// Basic sanity: model and header must exist.
+	if (!boneCache.mod || !boneCache.header)
 	{
-		Com_Printf("^1G2_GetBoneMatrixLow: boneCache.mod NULL, using identity\n");
 		retMatrix = identityMatrix;
 		retBasepose = const_cast<mdxaBone_t*>(&identityMatrix);
 		retBaseposeInv = const_cast<mdxaBone_t*>(&identityMatrix);
 		return;
 	}
 
+	// Runtime guard: never trust boneNum blindly.
 	if (boneNum < 0 || boneNum >= boneCache.header->numBones)
 	{
-		Com_Printf("^1G2_GetBoneMatrixLow: invalid bone index %d (max %d) in model %s\n",
-			boneNum, boneCache.header->numBones, boneCache.mod->name);
+#ifdef _DEBUG
+		assert(boneNum >= 0 && boneNum < boneCache.header->numBones);
+#endif
 		retMatrix = identityMatrix;
 		retBasepose = const_cast<mdxaBone_t*>(&identityMatrix);
 		retBaseposeInv = const_cast<mdxaBone_t*>(&identityMatrix);
 		return;
 	}
 
-	mdxaBone_t bolt;
-
 	const mdxaSkelOffsets_t* offsets =
-		reinterpret_cast<const mdxaSkelOffsets_t*>((byte*)boneCache.header + sizeof(mdxaHeader_t));
+		reinterpret_cast<const mdxaSkelOffsets_t*>(
+			reinterpret_cast<const byte*>(boneCache.header) + sizeof(mdxaHeader_t));
 
 	const mdxaSkel_t* skel =
-		reinterpret_cast<const mdxaSkel_t*>((byte*)boneCache.header +
+		reinterpret_cast<const mdxaSkel_t*>(
+			reinterpret_cast<const byte*>(boneCache.header) +
 			sizeof(mdxaHeader_t) +
 			offsets->offsets[boneNum]);
 
+	// DEST FIRST ARG
 	Multiply_3x4Matrix(&bolt,
-		const_cast<mdxaBone_t*>(&boneCache.Eval(boneNum)),
+		const_cast<mdxaBone_t*>(
+			reinterpret_cast<const mdxaBone_t*>(&boneCache.Eval(boneNum))),
 		&skel->BasePoseMat);
 
 	retBasepose = const_cast<mdxaBone_t*>(&skel->BasePoseMat);
 	retBaseposeInv = const_cast<mdxaBone_t*>(&skel->BasePoseMatInv);
 
-	// Apply scale
-	if (scale[0]) bolt.matrix[0][3] *= scale[0];
-	if (scale[1]) bolt.matrix[1][3] *= scale[1];
-	if (scale[2]) bolt.matrix[2][3] *= scale[2];
+	// Apply scale to translation only.
+	if (scale[0])
+	{
+		bolt.matrix[0][3] *= scale[0];
+	}
+	if (scale[1])
+	{
+		bolt.matrix[1][3] *= scale[1];
+	}
+	if (scale[2])
+	{
+		bolt.matrix[2][3] *= scale[2];
+	}
 
-	// Normalize axes
+	// Renormalize basis vectors.
 	VectorNormalize(reinterpret_cast<float*>(&bolt.matrix[0]));
 	VectorNormalize(reinterpret_cast<float*>(&bolt.matrix[1]));
 	VectorNormalize(reinterpret_cast<float*>(&bolt.matrix[2]));
 
+	// Transform into world space.
 	Multiply_3x4Matrix(&retMatrix, &worldMatrix, &bolt);
 
 #ifdef _DEBUG
@@ -735,14 +800,10 @@ void G2_GetBoneMatrixLow(const CGhoul2Info& ghoul2, const int boneNum, const vec
 	{
 		for (int j = 0; j < 4; j++)
 		{
-			if (Q_isnan(retMatrix.matrix[i][j]))
-			{
-				Com_Printf("^1G2_GetBoneMatrixLow: NAN detected in retMatrix[%d][%d] for bone %d (%s)\n",
-					i, j, boneNum, boneCache.mod->name);
-			}
+			assert(!Q_isnan(retMatrix.matrix[i][j]));
 		}
 	}
-#endif
+#endif // _DEBUG
 }
 
 int G2_GetParentBoneMatrixLow(const CGhoul2Info& ghoul2, const int boneNum, const vec3_t scale, mdxaBone_t& retMatrix, mdxaBone_t*& retBasepose, mdxaBone_t*& retBaseposeInv)
@@ -827,8 +888,7 @@ public:
 #else
 		boltList(initboltList)
 #endif
-	{
-	}
+	{}
 };
 
 #ifdef _G2_GORE
@@ -2917,8 +2977,7 @@ R_AddGHOULSurfaces
 ==============
 */
 void R_AddGhoulSurfaces(trRefEntity_t* ent)
-{
-}
+{}
 
 #ifdef _G2_LISTEN_SERVER_OPT
 qboolean G2API_OverrideServerWithClientData(CGhoul2Info_v& ghoul2, int modelIndex);

@@ -1437,7 +1437,7 @@ typedef struct playerState_s {
 	int	    grapplelaststartTime;
 
 	int	    communicatingflags;
-	int     frozenTime; 
+	int     frozenTime;
 	int     botPendingStandTime;
 	int     botPendingStyleTime;
 } playerState_t;

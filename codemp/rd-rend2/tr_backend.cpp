@@ -699,8 +699,7 @@ UniformDataWriter::UniformDataWriter()
 	: failed(false)
 	, shaderProgram(nullptr)
 	, scratch(scratchBuffer, sizeof(scratchBuffer), 1)
-{
-}
+{}
 
 void UniformDataWriter::Start(shaderProgram_t* sp)
 {
@@ -899,8 +898,7 @@ UniformData* UniformDataWriter::Finish(Allocator& destHeap)
 SamplerBindingsWriter::SamplerBindingsWriter()
 	: failed(false)
 	, count(0)
-{
-}
+{}
 
 SamplerBindingsWriter& SamplerBindingsWriter::AddStaticImage(image_t* image, int unit)
 {
@@ -1652,7 +1650,6 @@ static const void* RB_StretchPic(const void* data) {
 	RB_SetGL2D();
 
 	shader = cmd->shader;
-	shader = (shader->remappedShader) ? shader->remappedShader : shader;
 	if (shader != tess.shader) {
 		if (tess.numIndexes) {
 			RB_EndSurface();
@@ -1736,7 +1733,6 @@ static const void* RB_RotatePic(const void* data)
 	RB_SetGL2D();
 
 	shader = cmd->shader;
-	shader = (shader->remappedShader) ? shader->remappedShader : shader;
 	if (shader != tess.shader) {
 		if (tess.numIndexes) {
 			RB_EndSurface();
@@ -1830,7 +1826,6 @@ static const void* RB_RotatePic2(const void* data)
 	RB_SetGL2D();
 
 	shader = cmd->shader;
-	shader = (shader->remappedShader) ? shader->remappedShader : shader;
 	if (shader != tess.shader) {
 		if (tess.numIndexes) {
 			RB_EndSurface();

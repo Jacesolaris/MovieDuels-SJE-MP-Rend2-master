@@ -64,7 +64,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-07,Month-03,Year-26,BuildNum-02" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-14,Month-03,Year-26,BuildNum-03" // build date
 
 #define	STEPSIZE		18
 
@@ -271,7 +271,7 @@ typedef enum
 } brokenLimb_t;
 
 //for supplier class items
-#define TOSS_DEBOUNCE_TIME				5000
+#define TOSS_DEBOUNCE_TIME				15000
 
 typedef enum {
 	GT_FFA,				// free for all

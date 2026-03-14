@@ -611,7 +611,7 @@ static qboolean CG_RegisterClientModelname(
 	const int clientNum)
 {
 	char afilename[MAX_QPATH];
-	char gla_name[MAX_QPATH];
+	char gla_name[MAX_QPATH] = { 0 };
 	char resolvedGLA[MAX_QPATH];
 	const vec3_t temp_vec = { 0, 0, 0 };
 	qboolean bad_model = qfalse;
@@ -942,10 +942,10 @@ static void CG_ColorFromInt(const int val, vec3_t color)
 }
 
 //load anim info
-int CG_G2SkelForModel(void* g2)
+static int CG_G2SkelForModel(void* g2)
 {
 	int anim_index = -1;
-	char gla_name[MAX_QPATH];
+	char gla_name[MAX_QPATH] = { 0 };
 
 	gla_name[0] = 0;
 	trap->G2API_GetGLAName(g2, 0, gla_name);
@@ -962,10 +962,10 @@ int CG_G2SkelForModel(void* g2)
 }
 
 //get the appropriate anim events file index
-int CG_G2EvIndexForModel(void* g2, const int anim_index)
+static int CG_G2EvIndexForModel(void* g2, const int anim_index)
 {
 	int evt_index = -1;
-	char gla_name[MAX_QPATH];
+	char gla_name[MAX_QPATH] = { 0 };
 
 	if (anim_index == -1)
 	{
@@ -997,7 +997,7 @@ void CG_LoadCISounds(clientInfo_t* ci, const qboolean modelloaded)
 	qboolean is_female = qfalse;
 	int i;
 	int f_len;
-	char sound_path[MAX_QPATH];
+	char sound_path[MAX_QPATH] = { 0 };
 	char sound_name[1024];
 	const char* s;
 
@@ -1217,7 +1217,7 @@ void CG_LoadHolsterData(clientInfo_t* ci);
 
 static void CG_LoadClientInfo(clientInfo_t* ci)
 {
-	char teamname[MAX_QPATH];
+	char teamname[MAX_QPATH] = { 0 };
 	char* fallback_model = DEFAULT_MODEL;
 
 	if (ci->gender == GENDER_FEMALE)
@@ -1761,11 +1761,11 @@ void CG_NewClientInfo(int clientNum, qboolean entities_initialized)
 	char* slash;
 	char* yo, * yo2;
 	void* old_ghoul2;
-	void* old_g2_weapons[MAX_SABERS];
-	void* old_g2_holstered_weapons[MAX_SABERS];
+	void* old_g2_weapons[MAX_SABERS] = { 0 };
+	void* old_g2_holstered_weapons[MAX_SABERS] = { 0 };
 	int i = 0;
 	int k = 0;
-	qboolean saber_update[MAX_SABERS];
+	qboolean saber_update[MAX_SABERS] = { 0 };
 
 	ci = &cgs.clientinfo[clientNum];
 
@@ -2413,14 +2413,14 @@ static void player_foot_step(const vec3_t origin,
 	const centity_t* cent,
 	const footstepType_t foot_step_type)
 {
-	vec3_t end;
+	vec3_t      end;
 	const vec3_t maxs = { 7, 7, 2 };
 	const vec3_t mins = { -7, -7, 0 };
-	trace_t trace;
-	footstep_t sound_type;
-	qboolean b_mark = qfalse;
-	qhandle_t foot_mark_shader;
-	int effect_id = -1;
+	trace_t     trace;
+	footstep_t  sound_type = FOOTSTEP_STONEWALK; // safe default, will be overridden
+	qboolean    b_mark = qfalse;
+	qhandle_t   foot_mark_shader;
+	int         effect_id = -1;
 
 	// Trace downward to find the ground surface
 	VectorCopy(origin, end);
@@ -2434,7 +2434,7 @@ static void player_foot_step(const vec3_t origin,
 		return;
 	}
 
-	// Special SBD footsteps
+	// Special SBD footsteps (ignore material, use SBD-specific sounds)
 	if (foot_step_type == FOOTSTEP_HEAVY_SBD_R || foot_step_type == FOOTSTEP_HEAVY_SBD_L)
 	{
 		sound_type = FOOTSTEP_SBDRUN;
@@ -2445,7 +2445,7 @@ static void player_foot_step(const vec3_t origin,
 	}
 	else
 	{
-		// Determine material type
+		// Determine material type for normal footsteps
 		switch (trace.surfaceFlags & MATERIAL_MASK)
 		{
 		case MATERIAL_MUD:
@@ -2521,7 +2521,7 @@ static void player_foot_step(const vec3_t origin,
 				? FOOTSTEP_WOODRUN : FOOTSTEP_WOODWALK;
 			break;
 
-			// *** FIXED C6259: default moved to end of group ***
+			// Default and all remaining materials fall back to stone
 		case MATERIAL_GLASS:
 		case MATERIAL_WATER:
 		case MATERIAL_FLESH:
@@ -2544,7 +2544,7 @@ static void player_foot_step(const vec3_t origin,
 		}
 	}
 
-	// Play footstep sound
+	// Play footstep sound (safety check against out-of-range enum)
 	if (sound_type < FOOTSTEP_TOTAL)
 	{
 		trap->S_StartSound(
@@ -2561,14 +2561,14 @@ static void player_foot_step(const vec3_t origin,
 		return;
 	}
 
-	// Play particle effect
+	// Play particle effect if one was selected
 	if (effect_id != -1)
 	{
 		trap->FX_PlayEffectID(effect_id, trace.endpos, trace.plane.normal, -1, -1, qfalse);
 	}
 
-	// Footstep marks disabled?
-	if (!b_mark || cg_footsteps.integer < 3)
+	// Footstep marks disabled or material doesn't leave marks?
+	if ((b_mark == qfalse) || cg_footsteps.integer < 3)
 	{
 		return;
 	}
@@ -2598,7 +2598,7 @@ static void player_foot_step(const vec3_t origin,
 		break;
 	}
 
-	// Add temporary impact mark directly to renderer
+	// Add temporary impact mark directly to renderer if we have a valid plane normal
 	if (trace.plane.normal[0] != 0.0f ||
 		trace.plane.normal[1] != 0.0f ||
 		trace.plane.normal[2] != 0.0f)
@@ -2608,7 +2608,7 @@ static void player_foot_step(const vec3_t origin,
 			trace.endpos,
 			trace.plane.normal,
 			orientation,
-			1, 1, 1, 1.0f,
+			1.0f, 1.0f, 1.0f, 1.0f,
 			qfalse,
 			radius,
 			qfalse
@@ -2640,7 +2640,7 @@ static void CG_PlayerFootsteps(centity_t* cent, const footstepType_t foot_step_t
 		&& cent->currentState.NPC_class != CLASS_SWAMP)
 	{
 		mdxaBone_t boltMatrix;
-		vec3_t temp_angles, side_origin;
+		vec3_t temp_angles = { 0 }, side_origin;
 		int foot_bolt;
 
 		temp_angles[PITCH] = 0;
@@ -3166,7 +3166,7 @@ static void CG_PlayerAmbientEvents(centity_t* cent)
 	}
 }
 
-void CG_TriggerAnimSounds(centity_t* cent)
+static void CG_TriggerAnimSounds(centity_t* cent)
 {
 	//this also sets the lerp frames, so I suggest you keep calling it regardless of if you want anim sounds.
 	int cur_frame = 0;
@@ -3211,53 +3211,6 @@ void CG_TriggerAnimSounds(centity_t* cent)
 	cent->pe.torso.backlerp = 1.0f - (currentFrame - (float)cur_frame);
 	CG_PlayerAmbientEvents(cent);
 }
-
-static qboolean CG_FirstAnimFrame(const lerpFrame_t* lf, qboolean torso_only, float speed_scale);
-
-qboolean CG_InRoll(const centity_t* cent)
-{
-	switch (cent->currentState.legsAnim)
-	{
-	case BOTH_GETUP_BROLL_B:
-	case BOTH_GETUP_BROLL_F:
-	case BOTH_GETUP_BROLL_L:
-	case BOTH_GETUP_BROLL_R:
-	case BOTH_GETUP_FROLL_B:
-	case BOTH_GETUP_FROLL_F:
-	case BOTH_GETUP_FROLL_L:
-	case BOTH_GETUP_FROLL_R:
-	case BOTH_ROLL_F:
-	case BOTH_ROLL_F1:
-	case BOTH_ROLL_F2:
-	case BOTH_ROLL_B:
-	case BOTH_ROLL_R:
-	case BOTH_ROLL_L:
-		if (cent->pe.legs.animationTime > cg.time)
-		{
-			return qtrue;
-		}
-		break;
-	default:;
-	}
-	return qfalse;
-}
-
-qboolean CG_InRollAnim(const centity_t* cent)
-{
-	switch (cent->currentState.legsAnim)
-	{
-	case BOTH_ROLL_F:
-	case BOTH_ROLL_F1:
-	case BOTH_ROLL_F2:
-	case BOTH_ROLL_B:
-	case BOTH_ROLL_R:
-	case BOTH_ROLL_L:
-		return qtrue;
-	default:;
-	}
-	return qfalse;
-}
-
 /*
 ===============
 CG_SetLerpFrameAnimation
@@ -3910,7 +3863,7 @@ typedef struct boneAngleParms_s {
 boneAngleParms_t cgBoneAnglePostSet;
 #endif
 
-void CG_G2SetBoneAngles(void* ghoul2, int modelIndex, const char* boneName, const vec3_t angles, const int flags,
+static void CG_G2SetBoneAngles(void* ghoul2, int modelIndex, const char* boneName, const vec3_t angles, const int flags,
 	const int up, const int right, const int forward, qhandle_t* modelList,
 	const int blendTime, const int currentTime)
 {
@@ -3953,7 +3906,7 @@ trace access. Maybe correct this sometime, so bmodel col. at least works with ra
 But I don't want to slow it down..
 ================
 */
-void CG_Rag_Trace(trace_t* result, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end,
+static void CG_Rag_Trace(trace_t* result, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end,
 	const int mask)
 {
 	trap->CM_Trace(result, start, end, mins, maxs, 0, mask, 0);
@@ -3963,7 +3916,7 @@ void CG_Rag_Trace(trace_t* result, const vec3_t start, const vec3_t mins, const 
 //#define _RAG_BOLT_TESTING
 
 #ifdef _RAG_BOLT_TESTING
-void CG_TempTestFunction(centity_t* cent, vec3_t forcedAngles)
+static void CG_TempTestFunction(centity_t* cent, vec3_t forcedAngles)
 {
 	mdxaBone_t boltMatrix;
 	vec3_t tAngles;
@@ -4094,8 +4047,8 @@ qboolean CG_RagDoll(centity_t* cent, vec3_t forced_angles)
 			int dur = (bgAllAnims[cent->localAnimIndex].anims[anim].numFrames - 1) * fabs(
 				bgAllAnims[cent->localAnimIndex].anims[anim].frameLerp);
 			int i = 0;
-			int bolt_checks[5];
-			vec3_t bolt_points[5];
+			int bolt_checks[5] = { 0 };
+			vec3_t bolt_points[5] = { 0 };
 			vec3_t t_ang;
 			qboolean death_done = qfalse;
 			trace_t tr;
@@ -4643,7 +4596,7 @@ static void CG_G2SetHeadAnim(const centity_t* cent, const int anim)
 	}
 }
 
-qboolean CG_G2PlayerHeadAnims(const centity_t* cent)
+static qboolean CG_G2PlayerHeadAnims(const centity_t* cent)
 {
 	clientInfo_t* ci;
 	int anim = -1;
@@ -5460,87 +5413,120 @@ CG_PlayerSplash
 Draw a mark at the water surface
 ===============
 */
+/*
+==========================
+CG_PlayerSplash
+
+Creates a water‑surface wake mark when a player’s feet enter water
+but their head remains above it.
+
+Behaviour preserved exactly.
+==========================
+*/
 static void CG_PlayerSplash(const centity_t* cent)
 {
-	vec3_t start, end;
-	trace_t trace;
-	polyVert_t verts[4];
+	vec3_t      start;
+	vec3_t      end;
+	trace_t     trace;
+	polyVert_t  verts[4];
 
-	if (!cg_shadows.integer)
+	// Explicitly zero-initialize verts to avoid uninitialized memory warnings.
+	memset(verts, 0, sizeof(verts));
+
+	// Splash marks require shadows to be enabled.
+	if (cg_shadows.integer == 0)
 	{
 		return;
 	}
 
+	// Check feet position (24 units below origin)
 	VectorCopy(cent->lerpOrigin, end);
-	end[2] -= 24;
+	end[2] -= 24.0f;
 
-	// if the feet aren't in liquid, don't make a mark
-	// this won't handle moving water brushes, but they wouldn't draw right anyway...
+	// If feet are not in liquid, no splash.
 	int contents = CG_PointContents(end, 0);
-	if (!(contents & (CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA)))
+	if ((contents & (CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA)) == 0)
 	{
 		return;
 	}
 
+	// Check head position (32 units above origin)
 	VectorCopy(cent->lerpOrigin, start);
-	start[2] += 32;
+	start[2] += 32.0f;
 
-	// if the head isn't out of liquid, don't make a mark
+	// If head is still submerged, no splash.
 	contents = CG_PointContents(start, 0);
-	if (contents & (CONTENTS_SOLID | CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA))
+	if ((contents & (CONTENTS_SOLID | CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA)) != 0)
 	{
 		return;
 	}
 
-	// trace down to find the surface
-	trap->CM_Trace(&trace, start, end, NULL, NULL, 0, CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA, 0);
+	// Trace downward to find the liquid surface.
+	trap->CM_Trace(
+		&trace,
+		start,
+		end,
+		NULL,
+		NULL,
+		0,
+		CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA,
+		0);
 
-	if (trace.fraction == 1.0)
+	if (trace.fraction == 1.0f)
 	{
 		return;
 	}
 
-	// create a mark polygon
+	// -----------------------------
+	// Build a 64×64 quad on surface
+	// -----------------------------
+	const float halfSize = 32.0f;
+
+	// Vertex 0
 	VectorCopy(trace.endpos, verts[0].xyz);
-	verts[0].xyz[0] -= 32;
-	verts[0].xyz[1] -= 32;
-	verts[0].st[0] = 0;
-	verts[0].st[1] = 0;
+	verts[0].xyz[0] -= halfSize;
+	verts[0].xyz[1] -= halfSize;
+	verts[0].st[0] = 0.0f;
+	verts[0].st[1] = 0.0f;
 	verts[0].modulate[0] = 255;
 	verts[0].modulate[1] = 255;
 	verts[0].modulate[2] = 255;
 	verts[0].modulate[3] = 255;
 
+	// Vertex 1
 	VectorCopy(trace.endpos, verts[1].xyz);
-	verts[1].xyz[0] -= 32;
-	verts[1].xyz[1] += 32;
-	verts[1].st[0] = 0;
-	verts[1].st[1] = 1;
+	verts[1].xyz[0] -= halfSize;
+	verts[1].xyz[1] += halfSize;
+	verts[1].st[0] = 0.0f;
+	verts[1].st[1] = 1.0f;
 	verts[1].modulate[0] = 255;
 	verts[1].modulate[1] = 255;
 	verts[1].modulate[2] = 255;
 	verts[1].modulate[3] = 255;
 
+	// Vertex 2
 	VectorCopy(trace.endpos, verts[2].xyz);
-	verts[2].xyz[0] += 32;
-	verts[2].xyz[1] += 32;
-	verts[2].st[0] = 1;
-	verts[2].st[1] = 1;
+	verts[2].xyz[0] += halfSize;
+	verts[2].xyz[1] += halfSize;
+	verts[2].st[0] = 1.0f;
+	verts[2].st[1] = 1.0f;
 	verts[2].modulate[0] = 255;
 	verts[2].modulate[1] = 255;
 	verts[2].modulate[2] = 255;
 	verts[2].modulate[3] = 255;
 
+	// Vertex 3
 	VectorCopy(trace.endpos, verts[3].xyz);
-	verts[3].xyz[0] += 32;
-	verts[3].xyz[1] -= 32;
-	verts[3].st[0] = 1;
-	verts[3].st[1] = 0;
+	verts[3].xyz[0] += halfSize;
+	verts[3].xyz[1] -= halfSize;
+	verts[3].st[0] = 1.0f;
+	verts[3].st[1] = 0.0f;
 	verts[3].modulate[0] = 255;
 	verts[3].modulate[1] = 255;
 	verts[3].modulate[2] = 255;
 	verts[3].modulate[3] = 255;
 
+	// Submit the quad to the renderer.
 	trap->R_AddPolysToScene(cgs.media.wakeMarkShader, 4, verts, 1);
 }
 
@@ -12011,7 +11997,7 @@ static void CG_SaberCompWork(vec3_t start, vec3_t end, centity_t* owner,
 							// Blood sparks + hit sound
 							if (client && client->infoValid)
 							{
-								trap->FX_PlayEffectID(cgs.effects.mSaberCut,
+								trap->FX_PlayEffectID(cgs.effects.mSaberBloodSparksMid,
 									trace.endpos,
 									trace.plane.normal,
 									-1, -1, qfalse);
@@ -12038,7 +12024,7 @@ static void CG_SaberCompWork(vec3_t start, vec3_t end, centity_t* owner,
 	// Apply hit effects (sparks, body hit, etc.)
 	if (doEffect)
 	{
-		int hitPersonFX = cgs.effects.mSaberCut;
+		int hitPersonFX = cgs.effects.mSaberBloodSparksSmall;
 		int hitOtherFX = cgs.effects.mSaberBodyHit;
 
 		// Resolve client info
@@ -12113,8 +12099,8 @@ void CG_AddSaberBlade(centity_t* cent, centity_t* scent, int renderfx, int saber
 	centity_t* saberEnt;
 	saberTrail_t* saber_trail;
 	mdxaBone_t boltMatrix;
-	vec3_t future_angles;
-	effectTrailArgStruct_t fx;
+	vec3_t future_angles = { 0 };
+	effectTrailArgStruct_t fx = { 0 };
 	int scolor = 0;
 	int use_model_index = 0;
 
@@ -19105,8 +19091,8 @@ stillDoSaber:
 
 				if (add_bolts)
 				{
-					int m = 0;
-					int tag_bolt;
+					int   m = 0;
+					int   tag_bolt;
 					char* tag_name;
 
 					while (m < ci->saber[0].numBlades)
@@ -19118,20 +19104,29 @@ stillDoSaber:
 						{
 							if (m == 0)
 							{
-								// Try old JK2-style tag
+								// Try JK2 fallback
 								tag_bolt = trap->G2API_AddBolt(saberEnt->ghoul2, 0, "*flash");
 
 								if (tag_bolt == -1)
 								{
-									Com_Printf("^1WARNING: Saber model '%s' missing bolt '%s' and fallback '*flash'.\n",
+#ifdef _DEBUG
+									Com_Printf("^1WARNING:^7 Saber model '%s' missing '%s' and '*flash'. Using runtime fallback bolt.\n",
 										ci->saber[0].model, tag_name);
+#endif
+									// --- Runtime fallback bolt ---
+									// Attach a bolt at the model origin so the blade still renders.
+									tag_bolt = trap->G2API_AddBolt(saberEnt->ghoul2, 0, "*origin");
 								}
+
 								break;
 							}
 
-							// Blade index > 0 but bolt missing
-							Com_Printf("^1WARNING: Saber model '%s' missing bolt '%s'.\n",
+#ifdef _DEBUG
+							Com_Printf("^1WARNING:^7 Saber model '%s' missing '%s'. Using runtime fallback bolt.\n",
 								ci->saber[0].model, tag_name);
+#endif
+							// --- Runtime fallback bolt for secondary blades ---
+							tag_bolt = trap->G2API_AddBolt(saberEnt->ghoul2, 0, "*origin");
 							break;
 						}
 

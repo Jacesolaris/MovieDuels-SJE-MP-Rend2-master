@@ -31,8 +31,6 @@ stringID_table_t holsterTypeTable[] =
 	ENUM2STRING(MAX_HOLSTER),
 
 	{ NULL, 0 }   // <-- REQUIRED TERMINATOR
-
-
 };
 
 stringID_table_t holsterBoneTable[] =

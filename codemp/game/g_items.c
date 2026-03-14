@@ -615,8 +615,7 @@ void ItemUse_Shield(gentity_t* ent)
 #define PAS_DAMAGE	2
 
 static void SentryTouch(gentity_t* ent, gentity_t* other, trace_t* trace)
-{
-}
+{}
 
 extern qboolean PM_CrouchAnim(int anim);
 extern qboolean PM_InKnockDown(const playerState_t* ps);
@@ -1384,7 +1383,7 @@ void ItemUse_Decca(gentity_t* ent)
 
 void ItemUse_Swoop(gentity_t* ent)
 {
-	gentity_t* swoop = NPC_SpawnType(ent, "swoop", NULL, qtrue);
+	gentity_t* swoop = NPC_SpawnType(ent, "swoop_mp", NULL, qtrue);
 
 	if (swoop && swoop->client)
 	{

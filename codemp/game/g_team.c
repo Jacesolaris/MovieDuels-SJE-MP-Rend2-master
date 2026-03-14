@@ -23,6 +23,19 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "g_local.h"
 #include "bg_saga.h"
+#include <qcommon\q_string.h>
+#include <search.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#include "bg_public.h"
+#include "g_public.h"
+#include "g_team.h"
+#include "teams.h"
+#include <qcommon\q_shared.h>
+#include <qcommon\q_color.h>
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
 
 teamgame_t teamgame;
 
@@ -90,7 +103,7 @@ const char* TeamColorString(const int team)
 
 //plIndex used to print pl->client->pers.netname
 //teamIndex used to print team name
-void PrintCTFMessage(int plIndex, int teamIndex, const int ctfMessage)
+static void PrintCTFMessage(int plIndex, int teamIndex, const int ctfMessage)
 {
 	if (plIndex == -1)
 	{
@@ -283,7 +296,7 @@ void Team_SetFlagStatus(const int team, const flagStatus_t status)
 
 	if (modified)
 	{
-		char st[4];
+		char st[4] = { 0 };
 
 		if (level.gametype == GT_CTF || level.gametype == GT_CTY)
 		{
@@ -512,7 +525,7 @@ void Team_CheckHurtCarrier(const gentity_t* targ, const gentity_t* attacker)
 		attacker->client->pers.teamState.lasthurtcarrier = level.time;
 }
 
-gentity_t* Team_ResetFlag(const int team)
+static gentity_t* Team_ResetFlag(const int team)
 {
 	char* c;
 	gentity_t* rent = NULL;
@@ -549,7 +562,7 @@ gentity_t* Team_ResetFlag(const int team)
 	return rent;
 }
 
-void Team_ResetFlags(void)
+static void Team_ResetFlags(void)
 {
 	if (level.gametype == GT_CTF || level.gametype == GT_CTY)
 	{
@@ -558,7 +571,7 @@ void Team_ResetFlags(void)
 	}
 }
 
-void Team_ReturnFlagSound(gentity_t* ent, const int team)
+static void Team_ReturnFlagSound(gentity_t* ent, const int team)
 {
 	if (ent == NULL)
 	{
@@ -578,7 +591,7 @@ void Team_ReturnFlagSound(gentity_t* ent, const int team)
 	te->r.svFlags |= SVF_BROADCAST;
 }
 
-void Team_TakeFlagSound(gentity_t* ent, const int team)
+static void Team_TakeFlagSound(gentity_t* ent, const int team)
 {
 	if (ent == NULL)
 	{
@@ -622,7 +635,7 @@ void Team_TakeFlagSound(gentity_t* ent, const int team)
 	te->r.svFlags |= SVF_BROADCAST;
 }
 
-void Team_CaptureFlagSound(gentity_t* ent, const int team)
+static void Team_CaptureFlagSound(gentity_t* ent, const int team)
 {
 	if (ent == NULL)
 	{
@@ -1054,10 +1067,10 @@ go to a random point that doesn't telefrag
 */
 #define	MAX_TEAM_SPAWN_POINTS	32
 
-gentity_t* SelectRandomTeamSpawnPoint(const int teamstate, const team_t team, const int siegeClass)
+static gentity_t* SelectRandomTeamSpawnPoint(const int teamstate, const team_t team, const int siegeClass)
 {
 	int selection;
-	gentity_t* spots[MAX_TEAM_SPAWN_POINTS];
+	gentity_t* spots[MAX_TEAM_SPAWN_POINTS] = { 0 };
 	char* classname;
 	qboolean mustBeEnabled = qfalse;
 
@@ -1157,7 +1170,7 @@ gentity_t* SelectRandomTeamSpawnPoint(const int teamstate, const team_t team, co
 		bgSiegeClasses[siegeClass].name[0])
 	{
 		//out of the spots found, see if any have an idealclass to match our class name
-		gentity_t* classSpots[MAX_TEAM_SPAWN_POINTS];
+		gentity_t* classSpots[MAX_TEAM_SPAWN_POINTS] = { 0 };
 		int classCount = 0;
 		int i = 0;
 
@@ -1399,12 +1412,12 @@ teamOverLay_t oldOverLayData[MAX_CLIENTS];
 
 void TeamplayInfoMessage(const gentity_t* ent)
 {
-	char string[8192];
+	char string[8192] = { 0 };
 	int i;
 	gentity_t* player;
 	int cnt;
 	int h, a;
-	int clients[TEAM_MAXOVERLAY];
+	int clients[TEAM_MAXOVERLAY] = { 0 };
 	int team;
 
 	if (!ent->client->pers.teamInfo)
@@ -1566,28 +1579,24 @@ void CheckTeamStatus(void)
 Only in CTF games.  Red players spawn here at game start.
 */
 void SP_team_CTF_redplayer(gentity_t* ent)
-{
-}
+{}
 
 /*QUAKED team_CTF_blueplayer (0 0 1) (-16 -16 -16) (16 16 32)
 Only in CTF games.  Blue players spawn here at game start.
 */
 void SP_team_CTF_blueplayer(gentity_t* ent)
-{
-}
+{}
 
 /*QUAKED team_CTF_redspawn (1 0 0) (-16 -16 -24) (16 16 32)
 potential spawning position for red team in CTF games.
 Targets will be fired when someone spawns in on them.
 */
 void SP_team_CTF_redspawn(gentity_t* ent)
-{
-}
+{}
 
 /*QUAKED team_CTF_bluespawn (0 0 1) (-16 -16 -24) (16 16 32)
 potential spawning position for blue team in CTF games.
 Targets will be fired when someone spawns in on them.
 */
 void SP_team_CTF_bluespawn(gentity_t* ent)
-{
-}
+{}

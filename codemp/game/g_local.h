@@ -1712,7 +1712,7 @@ const char* G_GetStringEdString(char* refSection, char* refName);
 char* ClientConnect(int clientNum, qboolean firstTime, qboolean isBot);
 qboolean client_userinfo_changed(int clientNum);
 void ClientDisconnect(int clientNum);
-void ClientBegin(int clientNum, qboolean allowTeamReset);
+void ClientBegin(const int clientNum, const qboolean allowTeamReset);
 void G_BreakArm(gentity_t* ent, int arm);
 void G_UpdateClientAnims(gentity_t* self, float animSpeedScale);
 void ClientCommand(int clientNum);

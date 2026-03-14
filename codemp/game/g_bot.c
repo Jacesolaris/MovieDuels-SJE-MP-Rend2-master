@@ -28,6 +28,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_public.h"
 #include <qcommon\q_color.h>
 #include <string.h>
+#include <qcommon\q_string.h>
+#include "bg_public.h"
+#include <qcommon\q_shared.h>
+#include <stdlib.h>
 
 #define BOT_BEGIN_DELAY_BASE		2000
 #define BOT_BEGIN_DELAY_INCREMENT	1500
@@ -42,7 +46,7 @@ static struct botSpawnQueue_s
 
 vmCvar_t bot_minplayers;
 
-float trap_Cvar_VariableValue(const char* var_name)
+static float trap_Cvar_VariableValue(const char* var_name)
 {
 	char buf[MAX_CVAR_VALUE_STRING];
 
@@ -57,7 +61,7 @@ G_ParseInfos
 */
 static int G_ParseInfos(const char* buf, const int max, char* infos[])
 {
-	char info[MAX_INFO_STRING];
+	char info[MAX_INFO_STRING] = { 0 };
 
 	int count = 0;
 
@@ -853,7 +857,7 @@ G_BotConnect
 */
 qboolean G_BotConnect(const int clientNum, const qboolean restart)
 {
-	bot_settings_t settings;
+	bot_settings_t settings = { 0 };
 	char userinfo[MAX_INFO_STRING];
 
 	trap->GetUserinfo(clientNum, userinfo, sizeof userinfo);
@@ -1346,7 +1350,7 @@ static void G_LoadBots(void)
 	vmCvar_t	md_bots_old_republic;
 
 	char dirlist[2048];
-	int dirlen;
+	int dirlen = 0;
 
 	if (!trap->Cvar_VariableIntegerValue("bot_enable"))
 	{
@@ -1369,8 +1373,7 @@ static void G_LoadBots(void)
 
 	trap->Cvar_Register(&md_bots_republic, "g_botsFile7", "", CVAR_INIT | CVAR_ROM);
 
-	trap->Cvar_Register(&md_bots_old_republic, "g_botsFile7", "", CVAR_INIT | CVAR_ROM);
-
+	trap->Cvar_Register(&md_bots_old_republic, "g_botsFile8", "", CVAR_INIT | CVAR_ROM);
 
 	if (*md_bots_rebels.string)
 	{

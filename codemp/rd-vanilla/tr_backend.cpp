@@ -3,11 +3,11 @@
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
 
-This file is part of the MovieDuels source code.
+This file is part of the SerenityJediEngine2026 source code.
 
-MovieDuels is free software; you can redistribute it and/or modify it
+SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -24,9 +24,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "tr_local.h"
 #include "glext.h"
 #include "tr_WorldEffects.h"
-#include <qcommon\q_color.h>
-#include <rd-common\tr_common.h>
-#include <qcommon\q_shared.h>
 
 backEndData_t* backEndData;
 backEndState_t	backEnd;
@@ -1186,7 +1183,6 @@ static const void* RB_StretchPic(const void* data) {
 	}
 
 	shader_t* shader = cmd->shader;
-	shader = (shader->remappedShader) ? shader->remappedShader : shader;
 	if (shader != tess.shader) {
 		if (tess.numIndexes) {
 			RB_EndSurface();
@@ -1264,7 +1260,6 @@ static const void* RB_RotatePic(const void* data)
 		}
 
 		shader = cmd->shader;
-		shader = (shader->remappedShader) ? shader->remappedShader : shader;
 		if (shader != tess.shader) {
 			if (tess.numIndexes) {
 				RB_EndSurface();
@@ -1359,7 +1354,6 @@ static const void* RB_RotatePic2(const void* data)
 			}
 
 			shader = cmd->shader;
-			shader = (shader->remappedShader) ? shader->remappedShader : shader;
 			if (shader != tess.shader) {
 				if (tess.numIndexes) {
 					RB_EndSurface();

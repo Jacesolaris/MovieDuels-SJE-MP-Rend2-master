@@ -596,7 +596,6 @@ local void gen_bitlen(deflate_state* s, tree_desc* desc)
 			s->bl_count[max_length]--;
 
 		overflow -= 2;
-
 	} while (overflow > 0);
 
 	/* ---------------------------------------------------------

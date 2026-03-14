@@ -25,6 +25,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/q_shared.h"
 #include "botlib/botlib.h"
 #include "ai_main.h"
+#include "bg_weapons.h"
+#include <qcommon\q_color.h>
+#include <qcommon\q_math.h>
+#include <string.h>
+#include "bg_public.h"
+#include <stdlib.h>
 
 #ifdef BOT_ZMALLOC
 #define MAX_BALLOC 8192
@@ -522,7 +528,7 @@ int BotDoChat(bot_state_t* bs, const char* section, const int always)
 static void ParseEmotionalAttachments(bot_state_t* bs, const char* buf)
 {
 	int i = 0;
-	char tbuf[16];
+	char tbuf[16] = { 0 };
 
 	while (buf[i] && buf[i] != '}')
 	{
@@ -614,7 +620,6 @@ static int ReadChatGroups(const bot_state_t* bs, const char* buf)
 void BotUtilizePersonality(bot_state_t* bs)
 {
 	fileHandle_t f;
-	//char buf[131072];
 	char* buf = B_TempAlloc(131072);
 
 	int len = trap->FS_Open(bs->settings.personalityfile, &f, FS_READ);
@@ -892,28 +897,53 @@ void BotUtilizePersonality(bot_state_t* bs)
 			case WP_BRYAR_PISTOL:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_PISTOL + 4] = '0' + skillLevel;
 				break;
+
+			case WP_BRYAR_OLD: // shares pistol skill
+				bs->forceinfo[NUM_FORCE_POWERS + SK_PISTOL + 4] = '0' + skillLevel;
+				break;
+
 			case WP_BLASTER:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_BLASTER + 4] = '0' + skillLevel;
 				break;
+
 			case WP_DISRUPTOR:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_DISRUPTOR + 4] = '0' + skillLevel;
 				break;
+
 			case WP_BOWCASTER:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_BOWCASTER + 4] = '0' + skillLevel;
 				break;
+
 			case WP_REPEATER:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_REPEATER + 4] = '0' + skillLevel;
 				break;
+
+			case WP_DEMP2:
+				//bs->forceinfo[NUM_FORCE_POWERS + SK_DEMP2 + 4] = '0' + skillLevel;
+				break;
+
+			case WP_FLECHETTE:
+				bs->forceinfo[NUM_FORCE_POWERS + SK_FLECHETTE + 4] = '0' + skillLevel;
+				break;
+
+			case WP_CONCUSSION:
+				bs->forceinfo[NUM_FORCE_POWERS + SK_CONCUSSION + 4] = '0' + skillLevel;
+				break;
+
 			case WP_ROCKET_LAUNCHER:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_ROCKET + 4] = '0' + skillLevel;
 				break;
+
 			case WP_THERMAL:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_THERMAL + 4] = '0' + skillLevel;
 				break;
+
 			case WP_DET_PACK:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_DETPACK + 4] = '0' + skillLevel;
 				break;
-			default:;
+
+			default:
+				break;
 			}
 		}
 	}

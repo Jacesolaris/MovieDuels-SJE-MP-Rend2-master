@@ -3,11 +3,11 @@
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
 
-This file is part of the MovieDuels source code.
+This file is part of the SerenityJediEngine2026 source code.
 
-MovieDuels is free software; you can redistribute it and/or modify it
+SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -346,8 +346,7 @@ to overflow.
 */
 void RB_BeginSurface(shader_t* shader, const int fogNum)
 {
-	//	shader_t *state = (shader->remappedShader) ? shader->remappedShader : shader;
-	shader_t* state = shader;
+	shader_t* state = shader->remappedShader ? shader->remappedShader : shader;
 
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;

@@ -53,7 +53,7 @@ SFxHelper::SFxHelper()
 	, mFrameTime(0)
 	, mTimeFrozen(false)
 	, mRealTime(0)
-	, refdef(nullptr)
+	, refdef(nullptr)     // FIX: initialize to known safe value
 {
 	// Nothing else required here.
 	// All members are now explicitly initialized.

@@ -40,6 +40,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <qcommon\q_string.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <qcommon\q_color.h>
 
 extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
 
@@ -156,7 +158,7 @@ static int vfieldcmp(const void* a, const void* b)
 
 static qboolean BG_ParseVehWeaponParm(vehWeaponInfo_t* vehWeapon, const char* parmName, const char* pValue)
 {
-	vec3_t vec;
+	vec3_t vec = { 0 };
 	byte* b = (byte*)vehWeapon;
 	int i_fields_read;
 	vehicleType_t vehType;
@@ -732,7 +734,7 @@ static void BG_VehicleClampData(vehicleInfo_t* vehicle)
 
 static qboolean BG_ParseVehicleParm(vehicleInfo_t* vehicle, const char* parmName, const char* pValue)
 {
-	vec3_t vec;
+	vec3_t vec = { 0 };
 	byte* b = (byte*)vehicle;
 	int i_fields_read;
 	vehicleType_t vehType;
@@ -1251,7 +1253,7 @@ static int VEH_VehicleIndexForName(const char* vehicleName)
 
 static void BG_VehWeaponLoadParms(void)
 {
-	int vehExtFNLen;
+	int vehExtFNLen = 0;
 	char vehWeaponExtensionListBuf[2048]; //	The list of file names read in
 	fileHandle_t f;
 
@@ -1263,7 +1265,7 @@ static void BG_VehWeaponLoadParms(void)
 	*marker = 0;
 
 	//now load in the extra .veh extensions
-	const int fileCnt = trap->FS_GetFileList("ext_data/MD_MP_VEHICLES/weapons", ".vwp", vehWeaponExtensionListBuf,
+	const int fileCnt = trap->FS_GetFileList("ext_data/vehicles/weapons", ".vwp", vehWeaponExtensionListBuf,
 		sizeof vehWeaponExtensionListBuf);
 
 	char* holdChar = vehWeaponExtensionListBuf;
@@ -1278,7 +1280,7 @@ static void BG_VehWeaponLoadParms(void)
 	{
 		vehExtFNLen = strlen(holdChar);
 
-		len = trap->FS_Open(va("ext_data/MD_MP_VEHICLES/weapons/%s", holdChar), &f, FS_READ);
+		len = trap->FS_Open(va("ext_data/vehicles/weapons/%s", holdChar), &f, FS_READ);
 
 		if (len == -1)
 		{
@@ -1315,7 +1317,7 @@ static void BG_VehWeaponLoadParms(void)
 void BG_VehicleLoadParms(void)
 {
 	//HMM... only do this if there's a vehicle on the level?
-	int vehExtFNLen;
+	int vehExtFNLen = 0;
 	char vehExtensionListBuf[2048]; //	The list of file names read in
 	fileHandle_t f;
 
@@ -1327,7 +1329,7 @@ void BG_VehicleLoadParms(void)
 	*marker = 0;
 
 	//now load in the extra .veh extensions
-	const int fileCnt = trap->FS_GetFileList("ext_data/MD_MP_VEHICLES", ".veh", vehExtensionListBuf,
+	const int fileCnt = trap->FS_GetFileList("ext_data/vehicles", ".veh", vehExtensionListBuf,
 		sizeof vehExtensionListBuf);
 
 	char* holdChar = vehExtensionListBuf;
@@ -1342,7 +1344,7 @@ void BG_VehicleLoadParms(void)
 	{
 		vehExtFNLen = strlen(holdChar);
 
-		len = trap->FS_Open(va("ext_data/MD_MP_VEHICLES/%s", holdChar), &f, FS_READ);
+		len = trap->FS_Open(va("ext_data/vehicles/%s", holdChar), &f, FS_READ);
 
 		if (len == -1)
 		{

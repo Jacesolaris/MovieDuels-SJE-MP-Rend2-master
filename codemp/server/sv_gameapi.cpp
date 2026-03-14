@@ -1580,9 +1580,9 @@ static int SV_AAS_PredictClientMovement(void* move, const int entnum, vec3_t ori
 		frametime, stopevent, stopareanum, visualize);
 }
 
-static int SV_AAS_AlternativeRouteGoals(vec3_t start, const int startareanum, vec3_t goal, const int goalareanum,const int travelflags, void* altroutegoals, const int maxaltroutegoals,const int type)
+static int SV_AAS_AlternativeRouteGoals(vec3_t start, const int startareanum, vec3_t goal, const int goalareanum, const int travelflags, void* altroutegoals, const int maxaltroutegoals, const int type)
 {
-	return botlib_export->aas.AAS_AlternativeRouteGoals(start, startareanum, goal, goalareanum, travelflags,static_cast<aas_altroutegoal_s*>(altroutegoals),maxaltroutegoals, type);
+	return botlib_export->aas.AAS_AlternativeRouteGoals(start, startareanum, goal, goalareanum, travelflags, static_cast<aas_altroutegoal_s*>(altroutegoals), maxaltroutegoals, type);
 }
 
 static int SV_AAS_PredictRoute(void* route, const int areanum, vec3_t origin, const int goalareanum,
@@ -1760,8 +1760,7 @@ static int SV_CM_RegisterTerrain(const char* config)
 }
 
 static void SV_RMG_Init(void)
-{
-}
+{}
 
 static void SV_G2API_ListModelSurfaces(void* ghlInfo)
 {

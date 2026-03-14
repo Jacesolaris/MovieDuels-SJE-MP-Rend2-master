@@ -2,11 +2,11 @@
 ===========================================================================
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
 
-This file is part of the MovieDuels source code.
+This file is part of the SerenityJediEngine2026 source code.
 
-MovieDuels is free software; you can redistribute it and/or modify it
+SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -384,32 +384,40 @@ public:
 		return mIds[idx];
 	}
 
-	//bool IsValid(const int handle) const override
-	//{
-	//	if (!handle)
-	//	{
-	//		return false;
-	//	}
-	//	assert(handle > 0); //negative handle???
-	//	assert((handle & G2_INDEX_MASK) >= 0 && (handle & G2_INDEX_MASK) < MAX_G2_MODELS); //junk handle
-	//	if (mIds[handle & G2_INDEX_MASK] != handle) // not a valid handle, could be old
-	//	{
-	//		return false;
-	//	}
-	//	return true;
-	//}
-
-	// This fucker has been grinding my gears for days because ghoul2 can be null here.
 	bool IsValid(const int handle) const override
 	{
-		if (handle <= 0) {
+		if (!handle)
+		{
 			return false;
 		}
-		const int idx = handle & G2_INDEX_MASK;
-		if (idx < 0 || idx >= MAX_G2_MODELS) {
+
+		if (handle <= 0)
+		{
+#ifndef FINAL_BUILD
+			Com_Printf(S_COLOR_RED "G2 WARNING: negative or zero handle (%d)\n", handle);
+#endif
 			return false;
 		}
-		return mIds[idx] == handle;
+
+		const int index = (handle & G2_INDEX_MASK);
+
+		if (index < 0 || index >= MAX_G2_MODELS)
+		{
+#ifndef FINAL_BUILD
+			Com_Printf(S_COLOR_RED "G2 WARNING: handle index out of range (%d)\n", index);
+#endif
+			return false;
+		}
+
+		if (mIds[index] != handle)
+		{
+#ifndef FINAL_BUILD
+			Com_Printf(S_COLOR_RED "G2 WARNING: stale or invalid handle (%d)\n", handle);
+#endif
+			return false;
+		}
+
+		return true;
 	}
 
 	void Delete(const int handle) override
@@ -1687,45 +1695,22 @@ qboolean G2API_DetachG2Model(CGhoul2Info* ghlInfo)
 
 qboolean G2API_AttachEnt(int* boltInfo, CGhoul2Info_v& ghoul2, const int modelIndex, int toBoltIndex, int entNum, int toModelNum)
 {
-	// defensive validation: ensure callers cannot pass invalid model or bolt indices
-	if (!boltInfo)
-	{
-		return qfalse;
-	}
-
-	if (modelIndex < 0 || modelIndex >= static_cast<int>(ghoul2.size()))
-	{
-		Com_Printf("G2API_AttachEnt: invalid modelIndex %d (ghoul2 size %zu)\n", modelIndex, ghoul2.size());
-		return qfalse;
-	}
-
 	CGhoul2Info* ghlInfoTo = &ghoul2[modelIndex];
 
-	if (!G2_SetupModelPointers(ghlInfoTo))
+	if (boltInfo && G2_SetupModelPointers(ghlInfoTo))
 	{
-		return qfalse;
+		// make sure we have a model to attach, a model to attach to, and a bolt on that model
+		if (ghlInfoTo->mBltlist.size() && (ghlInfoTo->mBltlist[toBoltIndex].boneNumber != -1 || ghlInfoTo->mBltlist[
+			toBoltIndex].surfaceNumber != -1))
+		{
+			// encode the bolt address into the model bolt link
+			toModelNum &= MODEL_AND;
+			toBoltIndex &= BOLT_AND;
+			entNum &= ENTITY_AND;
+			*boltInfo = toBoltIndex << BOLT_SHIFT | toModelNum << MODEL_SHIFT | entNum << ENTITY_SHIFT;
+			return qtrue;
+		}
 	}
-
-	// validate bolt index bounds
-	if (toBoltIndex < 0 || static_cast<size_t>(toBoltIndex) >= ghlInfoTo->mBltlist.size())
-	{
-		Com_Printf("G2API_AttachEnt: invalid toBoltIndex %d for model %s (num bolts %zu), entNum %d\n",
-			toBoltIndex, ghlInfoTo->mFileName && ghlInfoTo->mFileName[0] ? ghlInfoTo->mFileName : "<unknown>", ghlInfoTo->mBltlist.size(), entNum);
-		return qfalse;
-	}
-
-	// make sure we have a model to attach, a model to attach to, and a bolt on that model
-	const auto& bolt = ghlInfoTo->mBltlist[toBoltIndex];
-	if (bolt.boneNumber != -1 || bolt.surfaceNumber != -1)
-	{
-		// encode the bolt address into the model bolt link
-		toModelNum &= MODEL_AND;
-		toBoltIndex &= BOLT_AND;
-		entNum &= ENTITY_AND;
-		*boltInfo = toBoltIndex << BOLT_SHIFT | toModelNum << MODEL_SHIFT | entNum << ENTITY_SHIFT;
-		return qtrue;
-	}
-
 	return qfalse;
 }
 
@@ -1934,8 +1919,7 @@ qboolean G2API_HaveWeGhoul2Models(CGhoul2Info_v& ghoul2)
 
 // run through the Ghoul2 models and set each of the mModel values to the correct one from the cgs.gameModel offset lsit
 void G2API_SetGhoul2model_indexes(CGhoul2Info_v& ghoul2, qhandle_t* modelList, qhandle_t* skinList)
-{
-}
+{}
 
 char* G2API_GetAnimFileNameIndex(const qhandle_t modelIndex)
 {
@@ -2086,6 +2070,7 @@ void G2API_CollisionDetectCache(CollisionRecord_t* collRecMap, CGhoul2Info_v& gh
 		// pre generate the world matrix - used to transform the incoming ray
 		G2_GenerateWorldMatrix(angles, position);
 
+		// model is built. Lets check to see if any triangles are actually hit.
 		// first up, translate the ray to model space
 		TransformAndTranslatePoint(rayStart, transRayStart, &worldMatrixInv);
 		TransformAndTranslatePoint(rayEnd, transRayEnd, &worldMatrixInv);

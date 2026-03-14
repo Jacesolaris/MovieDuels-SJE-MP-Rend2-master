@@ -2810,16 +2810,15 @@ static void CG_Missile(centity_t* cent)
 
 	if (s1->weapon == WP_SABER)
 	{
-		if ((cent->currentState.modelIndex != cent->serverSaberHitIndex || !cent->ghoul2) && !(s1->eFlags & EF_NODRAW))
+		if ((cent->currentState.modelIndex != cent->serverSaberHitIndex || !cent->ghoul2) &&
+			!(s1->eFlags & EF_NODRAW))
 		{
-			//no g2, or server changed the model we are using
 			const char* saber_model = CG_ConfigString(CS_MODELS + cent->currentState.modelIndex);
 
 			cent->serverSaberHitIndex = cent->currentState.modelIndex;
 
 			if (cent->ghoul2)
 			{
-				//clean if we already have one (because server changed model string index)
 				trap->G2API_CleanGhoul2Models(&cent->ghoul2);
 				cent->ghoul2 = 0;
 			}
@@ -2833,10 +2832,9 @@ static void CG_Missile(centity_t* cent)
 				trap->G2API_InitGhoul2Model(&cent->ghoul2, DEFAULT_SABER_MODEL, 0, 0, 0, 0, 0);
 			}
 
-			//add blade bolts to saber hilt model so we can draw the saber blade on dropped/ballistic sabers
+			// Add blade bolts to saber hilt model so we can draw the saber blade
 			if (cent->ghoul2 && s1->owner != ENTITYNUM_NONE)
 			{
-				//get the our owner's information.
 				clientInfo_t* saber_owner_info = &cgs.clientinfo[s1->owner];
 				int m = 0;
 				int tag_bolt;
@@ -2851,26 +2849,34 @@ static void CG_Missile(centity_t* cent)
 					{
 						if (m == 0)
 						{
+							// Try *flash as fallback for blade 1
 							tag_bolt = trap->G2API_AddBolt(cent->ghoul2, 0, "*flash");
 
 							if (tag_bolt == -1)
 							{
-								assert(0);
+#ifdef _DEBUG
+								Com_Printf("^3WARNING:^7 Saber model '%s' missing tag '%s' and '*flash'\n",
+									saber_model ? saber_model : "<NULL>", tag_name);
+#endif
 							}
+
 							break;
 						}
 
-						if (tag_bolt == -1)
-						{
-							assert(0);
-							break;
-						}
+#ifdef _DEBUG
+						Com_Printf("^3WARNING:^7 Saber model '%s' missing tag '%s'\n",
+							saber_model ? saber_model : "<NULL>", tag_name);
+#endif
+						break;
 					}
+
 					m++;
 				}
-			}    
+			}
+
 			return;
 		}
+
 		if (s1->eFlags & EF_NODRAW)
 		{
 			return;

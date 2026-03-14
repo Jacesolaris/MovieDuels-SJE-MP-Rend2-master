@@ -63,7 +63,7 @@ int AcceptBotCommand(const char* cmd, const gentity_t* pl);
 void WP_SetSaber(int entNum, saberInfo_t* sabers, int saberNum, const char* saber_name);
 void Cmd_NPC_f(gentity_t* ent);
 void Cmd_AdminNPC_f(gentity_t* ent);
-void SetTeamQuick(const gentity_t* ent, int team, qboolean doBegin);
+void SetTeamQuick(const gentity_t* ent, const int team, const qboolean doBegin);
 extern void G_RemoveWeather(void);
 extern void G_SetTauntAnim(gentity_t* ent, int taunt);
 
@@ -84,9 +84,9 @@ typedef enum
 
 const gbuyable_t bg_buylist[] =
 {
-	// text				giTag				giType			quantity    price	wc
+	// text		giTag	giType	quantity    price	wc
 	{"melee", WP_MELEE, IT_WEAPON, 0, 0, WC_MELEE}, // weaponless
-	{"pistol", WP_BRYAR_PISTOL, IT_WEAPON, 0, 2, WC_PISTOL}, // pistol
+	{"pistol", WP_BRYAR_PISTOL, IT_WEAPON, 0, 1, WC_PISTOL}, // pistol
 	{"blaster", WP_BLASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
 	{"disruptor", WP_DISRUPTOR, IT_WEAPON, 300, 2, WC_RIFLE}, // sniper rifle
 	{"bowcaster", WP_BOWCASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
@@ -96,17 +96,17 @@ const gbuyable_t bg_buylist[] =
 	{"launcher", WP_ROCKET_LAUNCHER, IT_WEAPON, 3, 2, WC_HEAVY}, // rocket
 	{"concussion", WP_CONCUSSION, IT_WEAPON, 300, 2, WC_HEAVY}, // mega rifle
 
-	{"energy", AMMO_BLASTER, IT_AMMO, 500, 1, WC_AMMO},
-	{"powercells", AMMO_POWERCELL, IT_AMMO, 300, 1, WC_AMMO},
-	{"bolts", AMMO_METAL_BOLTS, IT_AMMO, 375, 1, WC_AMMO},
-	{"rockets", AMMO_ROCKETS, IT_AMMO, 3, 1, WC_AMMO},
-	{"thermal", AMMO_THERMAL, IT_WEAPON, 3, 1, WC_GRENADE},
-	{"mine", AMMO_TRIPMINE, IT_AMMO, 5, 1, WC_GRENADE},
-	{"detpack", AMMO_DETPACK, IT_AMMO, 5, 1, WC_GRENADE},
+	{"energy", AMMO_BLASTER, IT_AMMO, 999, 0, WC_AMMO},
+	{"powercells", AMMO_POWERCELL, IT_AMMO, 999, 0, WC_AMMO},
+	{"bolts", AMMO_METAL_BOLTS, IT_AMMO, 999, 0, WC_AMMO},
+	{"rockets", AMMO_ROCKETS, IT_AMMO, 3, 0, WC_AMMO},
+	{"thermal", AMMO_THERMAL, IT_AMMO, 3, 0, WC_GRENADE},
+	{"mine", AMMO_TRIPMINE, IT_AMMO, 3, 0, WC_GRENADE},
+	{"detpack", AMMO_DETPACK, IT_AMMO, 3, 0, WC_GRENADE},
 	{"ammo", AMMO_NONE, IT_AMMO, 0, 0, WC_AMMO},
 
-	{"health", 4, IT_HEALTH, 25, 5, WC_ARMOR}, // heath boost
-	{"shield", 2, IT_ARMOR, 50, 5, WC_ARMOR}, // armor
+	{"health", 4, IT_HEALTH, 25, 1, WC_ARMOR}, // heath boost
+	{"shield", 2, IT_ARMOR, 50, 1, WC_ARMOR}, // armor
 
 	{"binoculars", HI_BINOCULARS, IT_HOLDABLE, 1, 2, WC_ITEM}, // binoculars!
 	{"jetpack", HI_JETPACK, IT_HOLDABLE, 1, 5, WC_ITEM}, // jetpack!
@@ -949,7 +949,7 @@ void SetTeam(gentity_t* ent, const char* s)
 	else if (!Q_stricmp(s, "spectator") || !Q_stricmp(s, "s") || !Q_stricmp(s, "spectate"))
 	{
 		team = TEAM_SPECTATOR;
-		spec_state = SPECTATOR_FOLLOW; // SPECTATOR_FREE;
+		spec_state = SPECTATOR_FREE;
 	}
 	else if (g_gametype.integer == GT_SINGLE_PLAYER)
 	{

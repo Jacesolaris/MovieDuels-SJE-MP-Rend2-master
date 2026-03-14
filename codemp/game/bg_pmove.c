@@ -15639,7 +15639,7 @@ static void PM_CmdForRoll(playerState_t* ps, const int anim, usercmd_t* p_Cmd)
 	p_Cmd->upmove = 0;
 }
 
-qboolean PM_SaberInTransition(int move);
+extern qboolean PM_SaberInTransition(int move);
 
 static void BG_AdjustClientSpeed(playerState_t* ps, const usercmd_t* cmd, const int svTime)
 {

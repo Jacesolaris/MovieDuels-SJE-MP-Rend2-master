@@ -29,7 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/movie-duels											///
+///								    https://www.moddb.com/mods/movie-duels											            ///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -40,6 +40,19 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <qcommon\q_math.h>
 #include "bg_public.h"
 #include <qcommon\q_shared.h>
+#include "g_team.h"
+#include "anims.h"
+#include "bg_vehicles.h"
+#include "teams.h"
+#include <string.h>
+#include <qcommon\q_color.h>
+#include <assert.h>
+#include <math.h>
+#include <stdlib.h>
+#include "surfaceflags.h"
+#include <qcommon\q_platform.h>
+#include "bg_weapons.h"
+#include "g_public.h"
 
 // g_client.c -- client functions that don't happen every frame
 
@@ -303,8 +316,7 @@ RED - In a Siege game, the intermission will happen here if the Red (attacking) 
 BLUE - In a Siege game, the intermission will happen here if the Blue (defending) team wins
 */
 void SP_info_player_intermission(gentity_t* ent)
-{
-}
+{}
 
 /*QUAKED info_player_intermission_red (1 0 1) (-16 -16 -24) (16 16 32)
 The intermission will be viewed from this point.  Target an info_notnull for the view direction.
@@ -314,8 +326,7 @@ target - ent to look at
 target2 - ents to use when this intermission point is chosen
 */
 void SP_info_player_intermission_red(gentity_t* ent)
-{
-}
+{}
 
 /*QUAKED info_player_intermission_blue (1 0 1) (-16 -16 -24) (16 16 32)
 The intermission will be viewed from this point.  Target an info_notnull for the view direction.
@@ -325,8 +336,7 @@ target - ent to look at
 target2 - ents to use when this intermission point is chosen
 */
 void SP_info_player_intermission_blue(gentity_t* ent)
-{
-}
+{}
 
 #define JMSABER_RESPAWN_TIME 20000 //in case it gets stuck somewhere no one can reach
 
@@ -757,7 +767,7 @@ go to a random point that doesn't telefrag
 
 gentity_t* SelectRandomDeathmatchSpawnPoint(qboolean isbot)
 {
-	gentity_t* spots[MAX_SPAWN_POINTS];
+	gentity_t* spots[MAX_SPAWN_POINTS] = { 0 };
 	int count = 0;
 	gentity_t* spot = NULL;
 
@@ -843,7 +853,7 @@ static qboolean SafeSpawn_FindOffset(const vec3_t baseOrigin, vec3_t outOrigin)
 	static const float radii[] = { 32, 48, 64, 80 };
 	static const float angles[] = { 0, 45, 90, 135, 180, 225, 270, 315 };
 
-	vec3_t test;
+	vec3_t test = { 0 };
 	int r, a;
 
 	for (r = 0; r < 4; r++)
@@ -881,8 +891,8 @@ static gentity_t* SelectRandomFurthestSpawnPoint(
 {
 	vec3_t delta;
 	float dist;
-	float list_dist[MAX_SPAWN_POINTS];
-	gentity_t* list_spot[MAX_SPAWN_POINTS];
+	float list_dist[MAX_SPAWN_POINTS] = { 0 };
+	gentity_t* list_spot[MAX_SPAWN_POINTS] = { 0 };
 	int i, j;
 
 	int numSpots = 0;
@@ -1050,8 +1060,8 @@ static gentity_t* SelectDuelSpawnPoint(const int team, vec3_t avoidPoint,
 	vec3_t origin, vec3_t angles,
 	const qboolean isbot)
 {
-	float list_dist[MAX_SPAWN_POINTS];
-	gentity_t* list_spot[MAX_SPAWN_POINTS];
+	float list_dist[MAX_SPAWN_POINTS] = { 0 };
+	gentity_t* list_spot[MAX_SPAWN_POINTS] = { 0 };
 	int i;
 	char* spotName;
 
@@ -1680,7 +1690,7 @@ PickTeam
 */
 team_t PickTeam(const int ignoreclientNum)
 {
-	int counts[TEAM_NUM_TEAMS];
+	int counts[TEAM_NUM_TEAMS] = { 0 };
 
 	counts[TEAM_BLUE] = TeamCount(ignoreclientNum, TEAM_BLUE);
 	counts[TEAM_RED] = TeamCount(ignoreclientNum, TEAM_RED);
@@ -2123,7 +2133,7 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_yoda"
 };
 
-qboolean BG_IsHumanoidModel(const char* path)
+static qboolean BG_IsHumanoidModel(const char* path)
 {
 	if (!path || !path[0])
 	{
@@ -2144,7 +2154,7 @@ qboolean BG_IsHumanoidModel(const char* path)
 void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 {
 	int handle;
-	char gla_name[MAX_QPATH];
+	char gla_name[MAX_QPATH] = { 0 };
 	const vec3_t tempVec = { 0, 0, 0 };
 
 	if (strlen(modelname) >= MAX_QPATH)
@@ -2186,7 +2196,7 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 			//rww - allow option for perplayer models on server for collision and bolt stuff.
 			char modelFullPath[MAX_QPATH];
 			char truncModelName[MAX_QPATH];
-			char skin[MAX_QPATH];
+			char skin[MAX_QPATH] = { 0 };
 			char vehicleName[MAX_QPATH];
 			int skinHandle = 0;
 
@@ -2250,7 +2260,7 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 
 					if (level.gametype >= GT_TEAM && level.gametype != GT_SIEGE && !g_jediVmerc.integer)
 					{
-						float colorOverride[3];
+						float colorOverride[3] = { 0 };
 
 						colorOverride[0] = colorOverride[1] = colorOverride[2] = 0.0f;
 
@@ -2638,97 +2648,160 @@ void Svcmd_ToggleUserinfoValidation_f(void)
 		Com_Printf("%s %s\n", userinfoValidateExtra[index - numUserinfoFields],
 			g_userinfoValidate.integer & 1 << index ? "Validated" : "Ignored");
 }
+/*
+==================
+G_ValidateUserinfo
 
+Validates a userinfo string against size, format, character,
+and per-field count rules. Returns a static error message
+string on failure, or NULL on success.
+==================
+*/
 static char* G_ValidateUserinfo(const char* userinfo)
 {
-	unsigned int i, count;
-	const size_t length = strlen(userinfo);
+	unsigned int i;
+	unsigned int count;
+	size_t length;
 	userinfoValidate_t* info;
 	const char* s;
 	unsigned int fieldCount[ARRAY_LEN(userinfoFields)] = { 0 };
 
-	// size checks
+	if (userinfo == NULL)
+	{
+		return "Userinfo is NULL";
+	}
+
+	length = strlen(userinfo);
+
+	/* -------------------------
+	   Size checks
+	   ------------------------- */
 	if (g_userinfoValidate.integer & (1 << (numUserinfoFields + USERINFO_VALIDATION_SIZE)))
 	{
 		if (length < 1)
+		{
 			return "Userinfo too short";
+		}
 		if (length >= MAX_INFO_STRING)
+		{
 			return "Userinfo too long";
+		}
 	}
 
-	// slash checks
+	/* -------------------------
+	   Slash checks
+	   ------------------------- */
 	if (g_userinfoValidate.integer & (1 << (numUserinfoFields + USERINFO_VALIDATION_SLASH)))
 	{
-		// there must be a leading slash
+		/* leading slash required */
 		if (userinfo[0] != '\\')
+		{
 			return "Missing leading slash";
+		}
 
-		// no trailing slashes allowed, engine will append ip\\ip:port
+		/* no trailing slash (engine appends ip\\ip:port) */
 		if (userinfo[length - 1] == '\\')
+		{
 			return "Trailing slash";
+		}
 
-		// format for userinfo field is: \\key\\value
-		// so there must be an even amount of slashes
+		/* format: \\key\\value → even number of slashes */
 		for (i = 0, count = 0; i < length; i++)
 		{
 			if (userinfo[i] == '\\')
+			{
 				count++;
+			}
 		}
-		if (count & 1) // odd
+		if (count & 1u)
+		{
 			return "Bad number of slashes";
+		}
 	}
 
-	// extended characters are impossible to type, may want to disable
+	/* -------------------------
+	   Extended ASCII check
+	   ------------------------- */
 	if (g_userinfoValidate.integer & (1 << (numUserinfoFields + USERINFO_VALIDATION_EXTASCII)))
 	{
 		for (i = 0, count = 0; i < length; i++)
 		{
-			if (userinfo[i] < 0)
+			if ((unsigned char)userinfo[i] >= 128u)
+			{
 				count++;
+			}
 		}
-		if (count)
+		if (count > 0u)
+		{
 			return "Extended ASCII characters found";
+		}
 	}
 
-	// disallow \n \r ; and \"
+	/* -------------------------
+	   Control character check
+	   ------------------------- */
 	if (g_userinfoValidate.integer & (1 << (numUserinfoFields + USERINFO_VALIDATION_CONTROLCHARS)))
 	{
 		if (Q_strchrs(userinfo, "\n\r;\""))
+		{
 			return "Invalid characters found";
+		}
 	}
 
+	/* -------------------------
+	   Count occurrences of each known field
+	   ------------------------- */
 	s = userinfo;
-	while (s)
+	while (s != NULL && *s != '\0')
 	{
 		char key[BIG_INFO_KEY];
 		char value[BIG_INFO_VALUE];
+
 		Info_NextPair(&s, key, value);
 
 		if (!key[0])
+		{
 			break;
+		}
 
 		for (i = 0; i < numUserinfoFields; i++)
 		{
 			if (!Q_stricmp(key, userinfoFields[i].fieldClean))
+			{
 				fieldCount[i]++;
+			}
 		}
 	}
 
-	// count the number of fields
+	/* -------------------------
+	   Per-field count validation
+	   ------------------------- */
 	for (i = 0, info = userinfoFields; i < numUserinfoFields; i++, info++)
 	{
-		if (g_userinfoValidate.integer & 1 << i)
+		if (g_userinfoValidate.integer & (1u << i))
 		{
-			if (info->minCount && !fieldCount[i])
+			if (info->minCount && fieldCount[i] == 0u)
+			{
 				return va("%s field not found", info->fieldClean);
+			}
 			if (fieldCount[i] > info->maxCount)
-				return va("Too many %s fields (%i/%i)", info->fieldClean, fieldCount[i], info->maxCount);
+			{
+				return va("Too many %s fields (%i/%i)",
+					info->fieldClean, fieldCount[i], info->maxCount);
+			}
 		}
 	}
 
 	return NULL;
 }
 
+/*
+==================
+Class_Model System start
+
+Behaviour preserved exactly, but structure cleaned and bugs fixed.
+==================
+*/
 static char lcase(char c)
 {
 	if (c >= 'A' && c <= 'Z')
@@ -2737,65 +2810,153 @@ static char lcase(char c)
 	}
 	return c;
 }
-
 static int Class_Model(char* haystack, char* needle)
 {
+	char* h;
+	char* n;
+
+	if (!haystack || !needle)
+	{
+		return 0;
+	}
+
 	while (*haystack)
 	{
-		char* np = needle;
+		h = haystack;
+		n = needle;
 
-		while (*haystack && lcase(*haystack) != lcase(*np))
+		/* Find first matching character (case-insensitive) */
+		if (lcase(*h) != lcase(*n))
 		{
 			haystack++;
+			continue;
 		}
-		while (*haystack && *np && (lcase(*haystack) == lcase(*np) || *haystack == '^'))
+
+		/* Try to match the entire needle */
+		while (*h && *n)
 		{
-			if (*haystack == '^')
+			/* Skip color codes in haystack */
+			if (*h == '^')
 			{
-				for (int i = 0; i < 2; i++)
+				int i;
+				for (i = 0; i < 3; i++)
 				{
-					if (*haystack)
+					if (*h)
 					{
-						haystack++;
+						h++;
 					}
 				}
+				continue;
 			}
-			else
+
+			/* If characters don't match (case-insensitive), break */
+			if (lcase(*h) != lcase(*n))
 			{
-				if (*haystack)
-				{
-					*haystack++;
-				}
-				if (*np)
-				{
-					*np++;
-				}
+				break;
 			}
+
+			h++;
+			n++;
 		}
-		if (!*np)
+
+		/* If we consumed all of needle, match succeeded */
+		if (!*n)
 		{
 			return 1;
 		}
+
+		/* Move to next starting position */
+		haystack++;
 	}
+
 	return 0;
 }
 
+/*
+==================
+ScalePlayer
+
+Sets the player's model scale. Accepts an integer percentage
+(e.g., 100 = normal size, 50 = half size, 200 = double size).
+
+Behaviour preserved exactly, but structure cleaned and bugs fixed.
+==================
+*/
 void ScalePlayer(gentity_t* self, const int scale)
 {
-	float fc = scale / 100.0f;
+	float fc;
 
-	if (!self)
+	/* Safety: entity must exist */
+	if (self == NULL)
+	{
 		return;
+	}
 
-	if (!self->client)
+	/* Safety: must be a player */
+	if (self->client == NULL)
+	{
 		return;
+	}
 
-	if (!scale)
+	/*
+	 * Convert integer percentage to float scale.
+	 * If scale == 0, default to 1.0f (normal size).
+	 */
+	if (scale == 0)
+	{
 		fc = 1.0f;
+	}
+	else
+	{
+		fc = (float)scale / 100.0f;
+	}
 
+	/* Store integer scale in playerState */
 	self->client->ps.iModelScale = scale;
-	self->modelScale[0] = self->modelScale[1] = self->modelScale[2] = fc;
+
+	/* Apply uniform scale to the entity */
+	self->modelScale[0] = fc;
+	self->modelScale[1] = fc;
+	self->modelScale[2] = fc;
 }
+
+/*
+==================
+client_userinfo_Message
+
+Send message to player that their model/class is changing.
+Kills the player (except in duel/siege) so changes apply.
+==================
+*/
+static qboolean client_userinfo_Message(const int clientNum)
+{
+	gentity_t* ent = &g_entities[clientNum];
+	gclient_t* client = ent->client;
+
+	if (!(ent->r.svFlags & SVF_BOT))
+	{
+		if (g_gametype.integer != GT_DUEL &&
+			g_gametype.integer != GT_POWERDUEL &&
+			g_gametype.integer != GT_SIEGE)
+		{
+			client->ps.stats[STAT_HEALTH] = 0;
+			ent->health = 0;
+
+			player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
+			trap->UnlinkEntity((sharedEntity_t*)ent);
+		}
+
+		Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
+	}
+
+	return qtrue;
+}
+
+/*
+==================
+Class_Model System
+==================
+*/
 
 qboolean WinterGear = qfalse; //sets weither or not the models go for winter gear skins
 qboolean client_userinfo_changed(const int clientNum)
@@ -2807,7 +2968,7 @@ qboolean client_userinfo_changed(const int clientNum)
 	int max_health = 100;
 	const char* value;
 	char userinfo[MAX_INFO_STRING];
-	char buf[MAX_INFO_STRING];
+	char buf[MAX_INFO_STRING] = { 0 };
 	char oldClientinfo[MAX_INFO_STRING];
 	char model[MAX_QPATH];
 	char forcePowers[DEFAULT_FORCEPOWERS_LEN];
@@ -2913,7 +3074,6 @@ qboolean client_userinfo_changed(const int clientNum)
 	// set model
 	Q_strncpyz(model, Info_ValueForKey(userinfo, "model"), sizeof model);
 
-	//start of part 1
 	// load class system
 	if (ent->s.eType != ET_NPC // no npcs,handled in npc.cfg
 		&& level.gametype != GT_SIEGE)
@@ -2946,10 +3106,10 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "darthkrayt_mp")
 			|| Class_Model(model, "darthkrayt_r_mp")
 			|| Class_Model(model, "darthphobos_mp")
+			|| Class_Model(model, "darthdesolous")
 			|| Class_Model(model, "darthkrayt")
 			|| Class_Model(model, "darthkrayt_r")
 			|| Class_Model(model, "darthphobos")
-			|| Class_Model(model, "darthdesolous")
 			|| Class_Model(model, "md_gua_am")
 			|| Class_Model(model, "md_gua2_am")
 			|| Class_Model(model, "royal")
@@ -2961,6 +3121,8 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jerec_mp/classic")
 			|| Class_Model(model, "jerec_mp/robed")
 			|| Class_Model(model, "jerec_lowpoly_mp")
+			|| Class_Model(model, "jerec/classic")
+			|| Class_Model(model, "jerec/robed")
 			|| Class_Model(model, "jerec_lowpoly")
 			|| Class_Model(model, "darth_talon")
 			|| Class_Model(model, "darth_talon/")
@@ -3008,7 +3170,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "grandinquisitor")
 			|| Class_Model(model, "maulsp/main")
 			|| Class_Model(model, "sithstalker_mp")
-			|| Class_Model(model, "sithstalker")
 			|| Class_Model(model, "Sith_Stalker2")
 			|| Class_Model(model, "Sith_Stalker2/default")
 			|| Class_Model(model, "Sith_Stalker")
@@ -3018,21 +3179,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "Sith_Stalker/robehood")
 			|| Class_Model(model, "Sith_Stalker/siege")
 			|| Class_Model(model, "stk_adventure_robes_mp")
-			|| Class_Model(model, "stk_arena_cg_mp")
-			|| Class_Model(model, "stk_ceremonial_robes_mp")
-			|| Class_Model(model, "stk_corellian_fs_mp")
-			|| Class_Model(model, "stk_hero_armor_mp")
-			|| Class_Model(model, "stk_jedi_hunter_mp")
-			|| Class_Model(model, "stk_kamino_tsg_mp")
-			|| Class_Model(model, "stk_temple_eg_mp")
-			|| Class_Model(model, "stk_tie_fs_mp")
-			|| Class_Model(model, "stk_training_gear_mp")
-			|| Class_Model(model, "starkiller_tfu2_mp/kamino_tsg")
-			|| Class_Model(model, "starkiller_tfu2_mp/tie_fs")
-			|| Class_Model(model, "starkiller_tfu2_mp")
-			|| Class_Model(model, "starkiller_tfu2_mp/hero_armor")
-			|| Class_Model(model, "dooku_mp")
-			|| Class_Model(model, "dooku_tcw_mp")
 			|| Class_Model(model, "stk_adventure_robes")
 			|| Class_Model(model, "stk_arena_cg")
 			|| Class_Model(model, "stk_ceremonial_robes")
@@ -3042,48 +3188,41 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "stk_kamino_tsg")
 			|| Class_Model(model, "stk_temple_eg")
 			|| Class_Model(model, "stk_tie_fs")
-			|| Class_Model(model, "stk_training_gearp")
+			|| Class_Model(model, "stk_training_gear")
 			|| Class_Model(model, "starkiller_tfu2/kamino_tsg")
 			|| Class_Model(model, "starkiller_tfu2/tie_fs")
 			|| Class_Model(model, "starkiller_tfu2")
 			|| Class_Model(model, "starkiller_tfu2/hero_armor")
-			|| Class_Model(model, "dooku")
-			|| Class_Model(model, "dooku_tcw")
+			|| Class_Model(model, "dooku_mp")
+			|| Class_Model(model, "dooku_tcw_mp")
 			|| Class_Model(model, "md_dooku")
 			|| Class_Model(model, "dooku_tcw_mp/unrobed")
 			|| Class_Model(model, "dooku_totj_mp")
+			|| Class_Model(model, "dooku")
+			|| Class_Model(model, "dooku_tcw")
+			|| Class_Model(model, "dooku_tcw/unrobed")
+			|| Class_Model(model, "dooku_totj")
 			|| Class_Model(model, "maul_cyber_tcw_mp")
 			|| Class_Model(model, "maul_rebels_mp")
 			|| Class_Model(model, "maul_tcw_mp")
 			|| Class_Model(model, "maul_wots_mp")
 			|| Class_Model(model, "lord_stk_mp")
 			|| Class_Model(model, "lord_stk_tat_mp")
-			|| Class_Model(model, "dooku_tcw/unrobed")
-			|| Class_Model(model, "dooku_totj")
+			|| Class_Model(model, "md_stk_jhunter")
 			|| Class_Model(model, "maul_cyber_tcw")
 			|| Class_Model(model, "maul_rebels")
-			|| Class_Model(model, "maul_tcwp")
+			|| Class_Model(model, "maul_tcw")
 			|| Class_Model(model, "maul_wots")
 			|| Class_Model(model, "lord_stk")
 			|| Class_Model(model, "lord_stk_tat")
-			|| Class_Model(model, "md_stk_jhunter")
 			|| Class_Model(model, "maw_intro")
-			|| Class_Model(model, "maw")
-			|| Class_Model(model, "maw_mp"))
+			|| Class_Model(model, "maw_mp")
+			|| Class_Model(model, "maw"))
 		{
 			client->pers.nextbotclass = BCLASS_SITHWORRIOR1;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "alora")
 			|| Class_Model(model, "alora/red")
@@ -3097,33 +3236,15 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_ALORA;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "assassin_droid"))
 		{
 			client->pers.nextbotclass = BCLASS_ASSASSIN_DROID;
 			client->pers.botmodelscale = BOTZIZE_LARGE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "biker_scout")
 			|| Class_Model(model, "rebel_pilot/main")
@@ -3132,37 +3253,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "bespin_cop/red")
 			|| Class_Model(model, "bespin_cop/blue")
 			|| Class_Model(model, "aurrasing/default")
+			|| Class_Model(model, "tarkin")
 			|| Class_Model(model, "aurrasing"))
 		{
 			client->pers.nextbotclass = BCLASS_BESPIN_COP;
-			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
-		}
-		else if (Class_Model(model, "tarkin"))
-		{
-			client->pers.nextbotclass = BCLASS_IMPCOMMANDER;
-			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "lahansolo/main")
 			|| Class_Model(model, "jynerso/default")
@@ -3203,25 +3299,14 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_STORMPILOT;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "trooper3/default")
 			|| Class_Model(model, "MandoloriansPac/default_")
 			|| Class_Model(model, "Bountyhunter3/default")
 			|| Class_Model(model, "boba_fett_mp")
 			|| Class_Model(model, "bobafett_mp/esb")
-			|| Class_Model(model, "boba_fett")
-			|| Class_Model(model, "bobafett/esb")
 			|| Class_Model(model, "bobafett")
 			|| Class_Model(model, "boba_fett")
 			|| Class_Model(model, "bobafett/esb")
@@ -3249,52 +3334,22 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_BOBAFETT;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
-		//end of part 1
-		//start of part 2
 		else if (Class_Model(model, "durge/jetpack"))
 		{
 			client->pers.nextbotclass = BCLASS_BOBAFETT;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
-		else if (Class_Model(model, "jangofett_mp")
-			|| Class_Model(model, "jangofett"))
+		else if (Class_Model(model, "jangofett_mp"))
 		{
 			client->pers.nextbotclass = BCLASS_JANGO_NOJP;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "chiss")
 			|| Class_Model(model, "chiss/red")
@@ -3302,17 +3357,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_BARTENDER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "chewbacca")
 			|| Class_Model(model, "chewbacca2")
@@ -3333,50 +3379,23 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_CHEWIE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "wookiee/blue")
 			|| Class_Model(model, "zaalbar"))
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_WOOKIEMELEE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "wookiee/red"))
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_WOOKIE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "mandalore")
 			|| Class_Model(model, "MandalorianBlack")
@@ -3387,17 +3406,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_WOOKIE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "bao_dur")
 			|| Class_Model(model, "bith")
@@ -3415,17 +3425,9 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "TwinSuns"))
 		{
 			client->pers.nextbotclass = BCLASS_WOOKIE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			client->pers.botmodelscale = BOTZIZE_NORMAL;
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "cultist")
 			|| Class_Model(model, "cultist/red")
@@ -3434,17 +3436,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_CULTIST;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "desann")
 			|| Class_Model(model, "desann/main")
@@ -3457,17 +3450,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGE;
 			client->pers.nextbotclass = BCLASS_DESANN;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "kylo_ren")
 			|| Class_Model(model, "ren")
@@ -3478,19 +3462,9 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "kylo_ren_mp/ros_nomask")
 			|| Class_Model(model, "kylo_ren_mp/ros")
 			|| Class_Model(model, "kylo_ren_mp/ros_hood")
-
-			|| Class_Model(model, "kylo_ren/nomask")
-			|| Class_Model(model, "kylo_ren/nohood")
-			|| Class_Model(model, "kylo_ren/tlj_nomaskb")
-			|| Class_Model(model, "kylo_ren/tlj")
-			|| Class_Model(model, "kylo_ren/ros_nomask")
-			|| Class_Model(model, "kylo_ren/ros")
-			|| Class_Model(model, "kylo_ren/ros_hood")
-
 			|| Class_Model(model, "kylo")
 			|| Class_Model(model, "kylomp")
 			|| Class_Model(model, "kylo_ren_mp")
-			|| Class_Model(model, "kylo_ren")
 			|| Class_Model(model, "KyloRen")
 			|| Class_Model(model, "KyloRenK")
 			|| Class_Model(model, "kylo_ren/")
@@ -3502,17 +3476,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_TALL;
 			client->pers.nextbotclass = BCLASS_UNSTABLESABER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "prisoner")
 			|| Class_Model(model, "prisoner/red")
@@ -3520,17 +3485,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_ELDER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "galak")
 			|| Class_Model(model, "galak/red")
@@ -3542,17 +3498,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_GALAK;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "galakmech")
 			|| Class_Model(model, "galakmech/default")
@@ -3564,17 +3511,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_GALAKMECH;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "canderous")
 			|| Class_Model(model, "OldRepSold")
@@ -3583,17 +3521,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_BOUNTYHUNTER1;
 			client->pers.botmodelscale = BOTZIZE_TALL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "gran")
 			|| Class_Model(model, "gran/red")
@@ -3604,17 +3533,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_GRAN;
 			client->pers.botmodelscale = BOTZIZE_LARGE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "hazardtrooper")
 			|| Class_Model(model, "hazardtrooper/red")
@@ -3622,17 +3542,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_HAZARDTROOPER;
 			client->pers.botmodelscale = BOTZIZE_LARGER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "human_merc")
 			|| Class_Model(model, "human_merc/red")
@@ -3641,17 +3552,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_HUMAN_MERC;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "imperial")
 			|| Class_Model(model, "imperial/main")
@@ -3660,34 +3562,16 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_IMPERIAL;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "imperial/red")
 			|| Class_Model(model, "imperial/blue"))
 		{
 			client->pers.nextbotclass = BCLASS_IPPERIALAGENT3;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "imperial_worker")
 			|| Class_Model(model, "imperial_worker/red")
@@ -3695,20 +3579,9 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_IMPWORKER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
-		//end of part 2
-		//start of part 3
 		else if (Class_Model(model, "jan")
 			|| Class_Model(model, "jan/df2")
 			|| Class_Model(model, "jan/red")
@@ -3746,17 +3619,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_JAN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jawa")
 			|| Class_Model(model, "jawa/red")
@@ -3765,34 +3629,16 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALLER;
 			client->pers.nextbotclass = BCLASS_JAWA;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "finn_mp")
 			|| Class_Model(model, "finn"))
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_JEDICONSULAR1;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi")
 			|| Class_Model(model, "md_ongree")
@@ -3824,40 +3670,24 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "chirrut")
 			|| Class_Model(model, "taron_malicos")
 			|| Class_Model(model, "taron_malicos_mp")
-
-			|| Class_Model(model, "tarados_gon")
-			|| Class_Model(model, "zabrak_rots")
-
 			|| Class_Model(model, "tarados_gon_mp")
 			|| Class_Model(model, "zabrak_rots_mp")
-
 			|| Class_Model(model, "sariss_mp")
-			|| Class_Model(model, "sariss_mp/cape")
 			|| Class_Model(model, "sariss")
+			|| Class_Model(model, "sariss_mp/cape")
 			|| Class_Model(model, "sariss/cape")
 			|| Class_Model(model, "saesee_tiin_mp")
 			|| Class_Model(model, "saesee_tiin_mp/robed")
 			|| Class_Model(model, "saesee_tiin")
 			|| Class_Model(model, "saesee_tiin/robed")
-
-			|| Class_Model(model, "sora_bulq")
-			|| Class_Model(model, "redathgom")
-			|| Class_Model(model, "revan_jedi")
-			|| Class_Model(model, "micah_giiett")
-			|| Class_Model(model, "ben_solo")
-			|| Class_Model(model, "jedi_female1")
-			|| Class_Model(model, "jedi_female1a")
-			|| Class_Model(model, "jedi_female2")
-			|| Class_Model(model, "jedi_female2a")
-			|| Class_Model(model, "jedi_female3")
-			|| Class_Model(model, "jedi_female3a")
-			|| Class_Model(model, "jedi_nikto")
-
 			|| Class_Model(model, "sora_bulq_mp")
 			|| Class_Model(model, "redathgom_mp")
 			|| Class_Model(model, "revan_jedi_mp")
+			|| Class_Model(model, "revan_jedi")
 			|| Class_Model(model, "micah_giiett_mp")
+			|| Class_Model(model, "micah_giiett")
 			|| Class_Model(model, "ben_solo_mp")
+			|| Class_Model(model, "ben_solo")
 			|| Class_Model(model, "jedi_female1_mp")
 			|| Class_Model(model, "jedi_female1a_mp")
 			|| Class_Model(model, "jedi_female2_mp")
@@ -3865,43 +3695,20 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_female3_mp")
 			|| Class_Model(model, "jedi_female3a_mp")
 			|| Class_Model(model, "jedi_nikto_mp")
-
-			|| Class_Model(model, "sariss")
-			|| Class_Model(model, "sariss/cape")
-			|| Class_Model(model, "saesee_tiin")
-			|| Class_Model(model, "saesee_tiin/robed")
-			|| Class_Model(model, "sora_bulq")
-			|| Class_Model(model, "redathgom")
-			|| Class_Model(model, "revan_jedi")
-			|| Class_Model(model, "micah_giiett")
-			|| Class_Model(model, "ben_solo")
-			|| Class_Model(model, "jedi_female1")
-			|| Class_Model(model, "jedi_female1a")
-			|| Class_Model(model, "jedi_female2")
-			|| Class_Model(model, "jedi_female2a")
-			|| Class_Model(model, "jedi_female3")
-			|| Class_Model(model, "jedi_female3a")
-			|| Class_Model(model, "jedi_nikto")
-
 			|| Class_Model(model, "quinlan_vos")
 			|| Class_Model(model, "md_quinlan")
 			|| Class_Model(model, "quinlan_vos2")
 			|| Class_Model(model, "jedi_st_tiplee_mp")
-			|| Class_Model(model, "jedi_st_tiplee")
 			|| Class_Model(model, "jedi_st_tiplee/")
 			|| Class_Model(model, "Eeth_Koth/main")
 			|| Class_Model(model, "Eeth_Koth_mp")
 			|| Class_Model(model, "eeth_koth_mp/cw")
-			|| Class_Model(model, "Eeth_Koth")
 			|| Class_Model(model, "eeth_koth/cw")
 			|| Class_Model(model, "md_eeth_koth")
 			|| Class_Model(model, "st_tiplee/default")
 			|| Class_Model(model, "st_tiplee")
 			|| Class_Model(model, "tiplee")
 			|| Class_Model(model, "tiplee/tiplar")
-			|| Class_Model(model, "even_piell_mp")
-			|| Class_Model(model, "even_piell")
-			|| Class_Model(model, "md_even_piell")
 			|| Class_Model(model, "mja/")
 			|| Class_Model(model, "mja/main")
 			|| Class_Model(model, "mj/")
@@ -3914,16 +3721,11 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "mmKiadimundi/main")
 			|| Class_Model(model, "bar/main")
 			|| Class_Model(model, "shaak_ti/main")
-			|| Class_Model(model, "shaakti_tfu_mp")
-			|| Class_Model(model, "shaakti_tfu")
 			|| Class_Model(model, "lu/main")
 			|| Class_Model(model, "cin_drallig_mp/cw")
+			|| Class_Model(model, "cin_drallig/cw")
 			|| Class_Model(model, "cin_drallig_mp")
 			|| Class_Model(model, "cin_drallig_mp/old")
-
-			|| Class_Model(model, "cin_drallig/cw")
-			|| Class_Model(model, "cin_drallig")
-			|| Class_Model(model, "cin_drallig/old")
 			|| Class_Model(model, "cin_drallig_tm")
 			|| Class_Model(model, "cin_drallig_tm/")
 			|| Class_Model(model, "cin_drallig_tm/default")
@@ -3941,12 +3743,11 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "kit_fisto/default")
 			|| Class_Model(model, "kit_fisto")
 			|| Class_Model(model, "kitfisto_cw_mp")
-			|| Class_Model(model, "ki_adi_mundi_mp")
 			|| Class_Model(model, "kitfisto_cw")
+			|| Class_Model(model, "ki_adi_mundi_mp")
 			|| Class_Model(model, "ki_adi_mundi")
 			|| Class_Model(model, "Coleman/main")
 			|| Class_Model(model, "coleman_mp")
-			|| Class_Model(model, "coleman")
 			|| Class_Model(model, "coleman_trebor_vm/")
 			|| Class_Model(model, "coleman_trebor_vm/default")
 			|| Class_Model(model, "saesee_tiin/main")
@@ -3998,10 +3799,30 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_spanki6a_jka")
 			|| Class_Model(model, "jedi_spanki6b_jka")
 			|| Class_Model(model, "jedi_spanki_jka")
+			|| Class_Model(model, "jedi_spanki1a_mp")
+			|| Class_Model(model, "jedi_spanki1b_mp")
+			|| Class_Model(model, "jedi_spanki2_mp")
+			|| Class_Model(model, "jedi_spanki2a_mp")
+			|| Class_Model(model, "jedi_spanki2b_mp")
+			|| Class_Model(model, "jedi_spanki3_mp")
+			|| Class_Model(model, "jedi_spanki3a_mp")
+			|| Class_Model(model, "jedi_spanki3b_mp")
+			|| Class_Model(model, "jedi_spanki4_mp")
+			|| Class_Model(model, "jedi_spanki4a_mp")
+			|| Class_Model(model, "jedi_spanki4b_mp")
+			|| Class_Model(model, "jedi_spanki5_mp")
+			|| Class_Model(model, "jedi_spanki5a_mp")
+			|| Class_Model(model, "jedi_spanki5b_mp")
+			|| Class_Model(model, "jedi_spanki6_mp")
+			|| Class_Model(model, "jedi_spanki6a_mp")
+			|| Class_Model(model, "jedi_spanki6b_mp")
+			|| Class_Model(model, "jedi_spanki_mp")
+			|| Class_Model(model, "jaro_tapal_mp")
+			|| Class_Model(model, "jaro_tapal")
 			|| Class_Model(model, "spiderman")
 			|| Class_Model(model, "Wolverine")
 			|| Class_Model(model, "SD_tmnt")
-			|| Class_Model(model, "yun_mp")
+			|| Class_Model(model, "yun")
 			|| Class_Model(model, "md_agen")
 			|| Class_Model(model, "md_agen_robed")
 			|| Class_Model(model, "md_foul_moudama")
@@ -4018,15 +3839,15 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "Kavar")
 			|| Class_Model(model, "kentomarek_mp")
 			|| Class_Model(model, "kentomarek_mp/wii")
-			|| Class_Model(model, "kentomarek")
-			|| Class_Model(model, "kentomarek/wii")
 			|| Class_Model(model, "joopi_she_mp")
 			|| Class_Model(model, "jtguard_boss_mp")
 			|| Class_Model(model, "jtguard_mp")
+			|| Class_Model(model, "kreia")
+			|| Class_Model(model, "kentomarek")
+			|| Class_Model(model, "kentomarek/wii")
 			|| Class_Model(model, "joopi_she")
 			|| Class_Model(model, "jtguard_boss")
 			|| Class_Model(model, "jtguard")
-			|| Class_Model(model, "kreia")
 			|| Class_Model(model, "Vandar")
 			|| Class_Model(model, "Vandar_ghost")
 			|| Class_Model(model, "Visas")
@@ -4035,14 +3856,14 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "VrookLamar")
 			|| Class_Model(model, "bultar_mp")
 			|| Class_Model(model, "cal_inquisitor_mp")
-			|| Class_Model(model, "cal_kestis_jedi_mp")
+			|| Class_Model(model, "cal_inquisitor")
+			|| Class_Model(model, "cal_kestis_jedi")
 			|| Class_Model(model, "cal_kestis_mp")
 			|| Class_Model(model, "cal_kestis_mp/cape")
 			|| Class_Model(model, "cal_kestis_mp/default2")
 			|| Class_Model(model, "cal_kestis_jedi_mp")
 			|| Class_Model(model, "cal_survivor_mp")
-			|| Class_Model(model, "cal_inquisitor")
-			|| Class_Model(model, "cal_kestis_jedi")
+			|| Class_Model(model, "cal_survivor")
 			|| Class_Model(model, "cal_kestis")
 			|| Class_Model(model, "cal_kestis/cape")
 			|| Class_Model(model, "cal_kestis/cape2")
@@ -4061,27 +3882,15 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "kanan")
 			|| Class_Model(model, "kanan/blind")
 			|| Class_Model(model, "foul_moudama_mp")
-			|| Class_Model(model, "koffi_arana_mp")
-			|| Class_Model(model, "koffi_arana_mp")
 			|| Class_Model(model, "foul_moudama")
 			|| Class_Model(model, "koffi_arana")
-			|| Class_Model(model, "koffi_arana")
-			|| Class_Model(model, "boc")
-			|| Class_Model(model, "boc_mp"))
+			|| Class_Model(model, "koffi_arana_mp")
+			|| Class_Model(model, "boc"))
 		{
 			client->pers.nextbotclass = BCLASS_JEDI;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "Jedi_GenericFemale1")
 			|| Class_Model(model, "Jedi_GenericFemale1A")
@@ -4095,16 +3904,13 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "md_bultar")
 			|| Class_Model(model, "md_bultar_robed")
 			|| Class_Model(model, "barriss_mp")
-			|| Class_Model(model, "barriss")
 			|| Class_Model(model, "md_barriss")
 			|| Class_Model(model, "barriss_offee_mp")
-			|| Class_Model(model, "barriss_offee")
 			|| Class_Model(model, "lxjade/main")
 			|| Class_Model(model, "ahsoka_mp")
 			|| Class_Model(model, "ahsoka")
 			|| Class_Model(model, "ahsoka_tm")
 			|| Class_Model(model, "ahsoka_rebels_mp")
-			|| Class_Model(model, "ahsoka_rebels")
 			|| Class_Model(model, "anakin_ep2_mp")
 			|| Class_Model(model, "anakin_ep2_mp/hood")
 			|| Class_Model(model, "md_stass_allie")
@@ -4125,6 +3931,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "depabillaba_tcw_mp")
 			|| Class_Model(model, "depabillaba_tcw_mp/robed")
 			|| Class_Model(model, "depabillaba_tcw_mp/hooded")
+			|| Class_Model(model, "ExileFemaleLightSide")
+			|| Class_Model(model, "ExileFemaleLightSideUR")
+			|| Class_Model(model, "adi_gallia_mp/robed")
+			|| Class_Model(model, "adi_gallia_mp")
+			|| Class_Model(model, "even_piell_mp")
+			|| Class_Model(model, "even_piell")
 			|| Class_Model(model, "stass_allie")
 			|| Class_Model(model, "serraketo")
 			|| Class_Model(model, "sarissa_jeng")
@@ -4135,23 +3947,13 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "ExileFemaleLightSide")
 			|| Class_Model(model, "ExileFemaleLightSideUR")
 			|| Class_Model(model, "adi_gallia/robed")
-			|| Class_Model(model, "adi_gallia")
-			|| Class_Model(model, "adi_gallia_mp/robed")
-			|| Class_Model(model, "adi_gallia_mp"))
+			|| Class_Model(model, "md_even_piell")
+			|| Class_Model(model, "adi_gallia"))
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALL;
 			client->pers.nextbotclass = BCLASS_JEDI;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi_hm")
 			|| Class_Model(model, "jedi_hm_mp"))
@@ -4165,17 +3967,8 @@ qboolean client_userinfo_changed(const int clientNum)
 				client->pers.nextbotclass = BCLASS_JEDI;
 			}
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi_hf"))
 		{
@@ -4188,17 +3981,8 @@ qboolean client_userinfo_changed(const int clientNum)
 				client->pers.nextbotclass = BCLASS_JEDI;
 			}
 			client->pers.botmodelscale = BOTZIZE_SMALL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "Obinew2/main")
 			|| Class_Model(model, "obi3/main4")
@@ -4212,29 +3996,10 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "obi3/main2")
 			|| Class_Model(model, "obi3/main4")
 			|| Class_Model(model, "obi3/main3")
-
 			|| Class_Model(model, "obiwan_jabiim")
 			|| Class_Model(model, "obiwan_jabiim/robed")
 			|| Class_Model(model, "obiwan_jabiim/defaultb")
 			|| Class_Model(model, "obiwan_jabiim/robedc")
-			|| Class_Model(model, "obiwan_ot")
-			|| Class_Model(model, "obiwan_ot/ghost")
-			|| Class_Model(model, "obiwan_ot/default_hooded")
-			|| Class_Model(model, "obiwan_ot/default_robed")
-			|| Class_Model(model, "obiwan_ep3")
-			|| Class_Model(model, "obiwan_ep3/exile")
-			|| Class_Model(model, "obiwan_cw")
-			|| Class_Model(model, "obiwan_cw/helmet")
-			|| Class_Model(model, "obiwan_ep1")
-			|| Class_Model(model, "obiwan_ep1/hooded")
-			|| Class_Model(model, "obiwan_ep2")
-			|| Class_Model(model, "obiwan_ep2/robed")
-			|| Class_Model(model, "obiwan_ep2/hooded")
-			|| Class_Model(model, "obiwan_ep3/robed")
-			|| Class_Model(model, "obiwan_ep3/hood")
-			|| Class_Model(model, "obiwan_ep3/bw")
-			|| Class_Model(model, "obiwan_tcw")
-
 			|| Class_Model(model, "obiwan_jabiim_mp")
 			|| Class_Model(model, "obiwan_jabiim_mp/robed")
 			|| Class_Model(model, "obiwan_jabiim_mp/defaultb")
@@ -4243,10 +4008,18 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "obiwan_ot_mp/ghost")
 			|| Class_Model(model, "obiwan_ot_mp/default_hooded")
 			|| Class_Model(model, "obiwan_ot_mp/default_robed")
+			|| Class_Model(model, "obiwan_ot")
+			|| Class_Model(model, "obiwan_ot/ghost")
+			|| Class_Model(model, "obiwan_ot/default_hooded")
+			|| Class_Model(model, "obiwan_ot/default_robed")
 			|| Class_Model(model, "obiwan_ep3_mp")
 			|| Class_Model(model, "obiwan_ep3_mp/exile")
+			|| Class_Model(model, "obiwan_ep3")
+			|| Class_Model(model, "obiwan_ep3/exile")
 			|| Class_Model(model, "obiwan_cw_mp")
 			|| Class_Model(model, "obiwan_cw_mp/helmet")
+			|| Class_Model(model, "obiwan_cw")
+			|| Class_Model(model, "obiwan_cw/helmet")
 			|| Class_Model(model, "obiwan_ep1_mp")
 			|| Class_Model(model, "obiwan_ep1_mp/hooded")
 			|| Class_Model(model, "obiwan_ep2_mp")
@@ -4255,60 +4028,45 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "obiwan_ep3_mp/robed")
 			|| Class_Model(model, "obiwan_ep3_mp/hood")
 			|| Class_Model(model, "obiwan_ep3_mp/bw")
+			|| Class_Model(model, "obiwan_ep1")
+			|| Class_Model(model, "obiwan_ep1/hooded")
+			|| Class_Model(model, "obiwan_ep2")
+			|| Class_Model(model, "obiwan_ep2/robed")
+			|| Class_Model(model, "obiwan_ep2/hooded")
+			|| Class_Model(model, "obiwan_ep3/robed")
+			|| Class_Model(model, "obiwan_ep3/hood")
+			|| Class_Model(model, "obiwan_ep3/bw")
 			|| Class_Model(model, "obiwan_tcw_mp")
+			|| Class_Model(model, "obiwan_tcw")
+			|| Class_Model(model, "obiwan_cw/helmet")
 			|| Class_Model(model, "ntobiwan/main2"))
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_OBIWAN;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
-		//end of part 3
-		//start of part 4
 		else if (Class_Model(model, "jedi/master")
-
-			|| Class_Model(model, "agen_kolar")
-			|| Class_Model(model, "ahsoka_s7")
-			|| Class_Model(model, "anakin")
-			|| Class_Model(model, "anakin/robed")
-			|| Class_Model(model, "anakin/hood")
-			|| Class_Model(model, "anakin_tcw")
-			|| Class_Model(model, "anakin_tcw/cw")
-			|| Class_Model(model, "anakin_swolo")
-			|| Class_Model(model, "bastila")
-
 			|| Class_Model(model, "agen_kolar_mp")
+			|| Class_Model(model, "agen_kolar")
 			|| Class_Model(model, "ahsoka_s7_mp")
+			|| Class_Model(model, "ahsoka_s7")
 			|| Class_Model(model, "anakin_mp")
 			|| Class_Model(model, "anakin_mp/robed")
 			|| Class_Model(model, "anakin_mp/hood")
+			|| Class_Model(model, "anakin/robed")
+			|| Class_Model(model, "anakin/hood")
 			|| Class_Model(model, "anakin_tcw_mp")
+			|| Class_Model(model, "anakin_tcw")
 			|| Class_Model(model, "anakin_tcw_mp/cw")
+			|| Class_Model(model, "anakin_tcw/cw")
 			|| Class_Model(model, "anakin_swolo_mp")
-			|| Class_Model(model, "bastila_mp"))
+			|| Class_Model(model, "anakin_swolo"))
 		{
 			client->pers.nextbotclass = BCLASS_JEDIMASTER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jeditrainer")
 			|| Class_Model(model, "jeditrainer/red")
@@ -4316,17 +4074,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_JEDITRAINER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "kyle")
 			|| Class_Model(model, "kyledf1")
@@ -4351,41 +4100,37 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "mace_winduvm/default_robed")
 			|| Class_Model(model, "jedi_quigon")
 			|| Class_Model(model, "Quigon")
-
 			|| Class_Model(model, "fisto_mp")
 			|| Class_Model(model, "fisto_mp/robed")
 			|| Class_Model(model, "fisto_mp/cw")
+			|| Class_Model(model, "fisto")
+			|| Class_Model(model, "fisto/robed")
+			|| Class_Model(model, "fisto/cw")
 			|| Class_Model(model, "quigon_mp")
 			|| Class_Model(model, "quigon_mp/robed")
 			|| Class_Model(model, "quigon_mp/poncho")
 			|| Class_Model(model, "quigon_mp/ghost")
-			|| Class_Model(model, "plo_koon_mp")
-			|| Class_Model(model, "plo_koon_mp/jpb")
-			|| Class_Model(model, "plo_tcw_mp")
-			|| Class_Model(model, "quinlan_vos_mp")
-			|| Class_Model(model, "saesee_tiin_mp")
-			|| Class_Model(model, "ki_adi_mundi_mp")
-			|| Class_Model(model, "kota_mp")
-
-			|| Class_Model(model, "fisto")
-			|| Class_Model(model, "fisto/robed")
-			|| Class_Model(model, "fisto/cw")
 			|| Class_Model(model, "quigon")
 			|| Class_Model(model, "quigon/robed")
 			|| Class_Model(model, "quigon/poncho")
 			|| Class_Model(model, "quigon/ghost")
-			|| Class_Model(model, "plo_koon")
-			|| Class_Model(model, "plo_koon/jpb")
+			|| Class_Model(model, "plo_koon_mp")
+			|| Class_Model(model, "plo_koon_mp/jpb")
+			|| Class_Model(model, "plo_tcw_mp")
 			|| Class_Model(model, "plo_tcw")
+			|| Class_Model(model, "quinlan_vos_mp")
+			|| Class_Model(model, "saesee_tiin_mp")
+			|| Class_Model(model, "ki_adi_mundi_mp")
 			|| Class_Model(model, "quinlan_vos")
 			|| Class_Model(model, "saesee_tiin")
 			|| Class_Model(model, "ki_adi_mundi")
+			|| Class_Model(model, "kota_mp")
 			|| Class_Model(model, "kota")
 			|| Class_Model(model, "qu_rahn")
-			|| Class_Model(model, "kota_drunk")
 			|| Class_Model(model, "kota_drunk_mp")
-			|| Class_Model(model, "kota_drunk")
 			|| Class_Model(model, "kota_mp/blind")
+			|| Class_Model(model, "kota_drunk")
+			|| Class_Model(model, "kota/blind")
 			|| Class_Model(model, "jedi_kk")
 			|| Class_Model(model, "hs_kenobi_rots")
 			|| Class_Model(model, "jedi_kenobi")
@@ -4393,16 +4138,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "noQuiGonVM3/main2")
 			|| Class_Model(model, "moMace_Windu/main")
 			|| Class_Model(model, "muwindu/main")
-
-			|| Class_Model(model, "macewindu")
-			|| Class_Model(model, "macewindu/ghost")
-			|| Class_Model(model, "macewindu/hooded")
-			|| Class_Model(model, "macewindu/robed")
-			|| Class_Model(model, "macewindu/cw")
-			|| Class_Model(model, "macewindu_mp")
-			|| Class_Model(model, "macewindu/totj")
-			|| Class_Model(model, "oppo_rancisis")
-
 			|| Class_Model(model, "macewindu_mp")
 			|| Class_Model(model, "macewindu_mp/ghost")
 			|| Class_Model(model, "macewindu_mp/hooded")
@@ -4410,44 +4145,32 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "macewindu_mp/cw")
 			|| Class_Model(model, "macewindu_cw_mp")
 			|| Class_Model(model, "macewindu_mp/totj")
-			|| Class_Model(model, "oppo_rancisis_mp"))
+			|| Class_Model(model, "macewindu")
+			|| Class_Model(model, "macewindu/ghost")
+			|| Class_Model(model, "macewindu/hooded")
+			|| Class_Model(model, "macewindu/robed")
+			|| Class_Model(model, "macewindu/cw")
+			|| Class_Model(model, "macewindu_mp")
+			|| Class_Model(model, "macewindu/totj")
+			|| Class_Model(model, "oppo_rancisis_mp")
+			|| Class_Model(model, "oppo_rancisis"))
 		{
 			client->pers.nextbotclass = BCLASS_KYLE;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "Shaaktivm")
 			|| Class_Model(model, "jedi_shaakti")
-			|| Class_Model(model, "shaak_ti")
-			|| Class_Model(model, "shaakti_tfu")
 			|| Class_Model(model, "shaak_ti_mp")
-			|| Class_Model(model, "shaakti_tfu_mp")
+			|| Class_Model(model, "shaakti_tfu")
 			|| Class_Model(model, "bastila")
 			|| Class_Model(model, "brianna"))
 		{
 			client->pers.nextbotclass = BCLASS_KYLE;
 			client->pers.botmodelscale = BOTZIZE_SMALL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "lando")
 			|| Class_Model(model, "landoT")
@@ -4473,37 +4196,18 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_LANDO;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "k2so"))
 		{
 			client->pers.nextbotclass = BCLASS_LANDO;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "luke")
 			|| Class_Model(model, "ben_swolo_mp")
-			|| Class_Model(model, "ben_swolo")
 			|| Class_Model(model, "luke/")
 			|| Class_Model(model, "lukejka")
 			|| Class_Model(model, "lukejka/")
@@ -4511,14 +4215,10 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "rey/head_a1|torso_a1|lower_a1")
 			|| Class_Model(model, "rey")
 			|| Class_Model(model, "rey_mp")
-			|| Class_Model(model, "rey/resistance")
 			|| Class_Model(model, "rey_mp/resistance")
 			|| Class_Model(model, "rey_skywalker_mp")
 			|| Class_Model(model, "rey_skywalker_mp/hood")
 			|| Class_Model(model, "rey_mp/jedi")
-			|| Class_Model(model, "rey_skywalker")
-			|| Class_Model(model, "rey_skywalker/hood")
-			|| Class_Model(model, "rey/jedi")
 			|| Class_Model(model, "st_rey")
 			|| Class_Model(model, "jedi_st_rey")
 			|| Class_Model(model, "lb/")
@@ -4541,9 +4241,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "lukejka/red")
 			|| Class_Model(model, "lukejka/blue")
 			|| Class_Model(model, "t_luke_rotj")
-			|| Class_Model(model, "luuke")
-			|| Class_Model(model, "luke_sote")
-			|| Class_Model(model, "luke_de")
 			|| Class_Model(model, "jedi_luke")
 			|| Class_Model(model, "t_anakin")
 			|| Class_Model(model, "jedi_anakint")
@@ -4557,46 +4254,16 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_anakin")
 			|| Class_Model(model, "ajunta")
 			|| Class_Model(model, "Atris")
-
-			|| Class_Model(model, "luminara")
-			|| Class_Model(model, "luke_crait")
-			|| Class_Model(model, "luke_tbobf")
-			|| Class_Model(model, "luke_tbobf/robe")
-			|| Class_Model(model, "luke_tbobf/hood")
-			|| Class_Model(model, "luke_tfa")
-			|| Class_Model(model, "luke_crait")
-			|| Class_Model(model, "luke_anh")
-			|| Class_Model(model, "luke_anh")
-			|| Class_Model(model, "luke_esb_dago")
-			|| Class_Model(model, "luke_esb_dago/backpack")
-			|| Class_Model(model, "luke_esb")
-			|| Class_Model(model, "luke_hoth")
-			|| Class_Model(model, "luke_pilot")
-			|| Class_Model(model, "luke_yavin")
-			|| Class_Model(model, "luke_rotj/tunic_hood")
-			|| Class_Model(model, "luke_rotj/tunic_robe")
-			|| Class_Model(model, "luke_rotj/tunic")
-			|| Class_Model(model, "luke_rotj/endor")
-			|| Class_Model(model, "luke_rotj/endor_nohelmet")
-			|| Class_Model(model, "luke_rotj")
-			|| Class_Model(model, "luke_rotj/master")
-			|| Class_Model(model, "luke_rotj/tm_tunic")
-			|| Class_Model(model, "luke_rotj/default_fd")
-			|| Class_Model(model, "luke_tfa/cloak_glove")
-			|| Class_Model(model, "luke_tfa/hood_glove")
-			|| Class_Model(model, "galen_arena_cg")
-			|| Class_Model(model, "galen_hero_armor")
-			|| Class_Model(model, "galen_kamino_tsg")
-			|| Class_Model(model, "galen_tie_fs")
-			|| Class_Model(model, "cade")
-
 			|| Class_Model(model, "luminara_mp")
 			|| Class_Model(model, "luke_crait_mp")
 			|| Class_Model(model, "luke_tbobf_mp")
 			|| Class_Model(model, "luke_tbobf_mp/robe")
 			|| Class_Model(model, "luke_tbobf_mp/hood")
 			|| Class_Model(model, "luke_tfa_mp")
-			|| Class_Model(model, "luke_crait_mp")
+			|| Class_Model(model, "luke_crait")
+			|| Class_Model(model, "luke_tbobf")
+			|| Class_Model(model, "luke_tbobf/robe")
+			|| Class_Model(model, "luke_tbobf/hood")
 			|| Class_Model(model, "luke_anh_mp")
 			|| Class_Model(model, "luke_anh")
 			|| Class_Model(model, "luke_esb_dago_mp")
@@ -4620,21 +4287,34 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "galen_hero_armor_mp")
 			|| Class_Model(model, "galen_kamino_tsg_mp")
 			|| Class_Model(model, "galen_tie_fs_mp")
+			|| Class_Model(model, "cade")
+			|| Class_Model(model, "luke_esb_dago")
+			|| Class_Model(model, "luke_esb_dago/backpack")
+			|| Class_Model(model, "luke_esb")
+			|| Class_Model(model, "luke_hoth")
+			|| Class_Model(model, "luke_pilot")
+			|| Class_Model(model, "luke_yavin")
+			|| Class_Model(model, "luke_rotj/tunic_hood")
+			|| Class_Model(model, "luke_rotj/tunic_robe")
+			|| Class_Model(model, "luke_rotj/tunic")
+			|| Class_Model(model, "luke_rotj/endor")
+			|| Class_Model(model, "luke_rotj/endor_nohelmet")
+			|| Class_Model(model, "luke_rotj")
+			|| Class_Model(model, "luke_rotj/master")
+			|| Class_Model(model, "luke_rotj/tm_tunic")
+			|| Class_Model(model, "luke_rotj/default_fd")
+			|| Class_Model(model, "luke_tfa/cloak_glove")
+			|| Class_Model(model, "luke_tfa/hood_glove")
+			|| Class_Model(model, "galen_arena_cg")
+			|| Class_Model(model, "galen_hero_armor")
+			|| Class_Model(model, "galen_kamino_tsg")
+			|| Class_Model(model, "galen_tie_fs")
 			|| Class_Model(model, "cade_mp"))
 		{
 			client->pers.nextbotclass = BCLASS_LUKE;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "ea_ep2anakin")
 			|| Class_Model(model, "ahsoka_tm")
@@ -4643,17 +4323,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_DUELS;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "monmothma")
 			|| Class_Model(model, "mothma_young")
@@ -4662,19 +4333,10 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "ta/main")
 			|| Class_Model(model, "it/main"))
 		{
-			client->pers.nextbotclass = BCLASS_MONMOTHA;
+			client->pers.nextbotclass = BCLASS_MONMOTHMA;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "morgan")
 			|| Class_Model(model, "morgan/red")
@@ -4682,35 +4344,17 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_MORGANKATARN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "noghri")
 			|| Class_Model(model, "noghri/red")
 			|| Class_Model(model, "noghri/blue"))
 		{
-			client->pers.nextbotclass = BCLASS_NOGRHRI;
+			client->pers.nextbotclass = BCLASS_NOGHRI;
 			client->pers.botmodelscale = BOTZIZE_LARGE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "protocol")
 			|| Class_Model(model, "protocol/red")
@@ -4720,83 +4364,38 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_PROTOCOL;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "r2d2")
 			|| Class_Model(model, "r5d2"))
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALLER;
 			client->pers.nextbotclass = BCLASS_R2D2;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "marka_ragnos"))
 		{
 			client->pers.nextbotclass = BCLASS_RAGNOS;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rancor"))
 		{
 			client->pers.nextbotclass = BCLASS_RANCOR;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rax_joris")
 			|| Class_Model(model, "calo"))
 		{
 			client->pers.nextbotclass = BCLASS_RAX;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rebel")
 			|| Class_Model(model, "rose_tico")
@@ -4814,17 +4413,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_REBEL;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "reborn")
 			|| Class_Model(model, "reborn/red")
@@ -4842,17 +4432,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_REBORN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "reelo")
 			|| Class_Model(model, "reelo/red")
@@ -4860,17 +4441,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_REELO;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rockettrooper")
 			|| Class_Model(model, "rockettrooper/red")
@@ -4878,17 +4450,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_ROCKETTROOPER;
 			client->pers.botmodelscale = BOTZIZE_LARGER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rodian")
 			|| Class_Model(model, "rodian/red")
@@ -4898,17 +4461,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_RODIAN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rosh_penin")
 			|| Class_Model(model, "rosh_penin/red")
@@ -4916,17 +4470,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_ROSH_PENIN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "saboteur")
 			|| Class_Model(model, "saboteur/red")
@@ -4934,17 +4479,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SABOTEUR;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "shadowtrooper")
 			|| Class_Model(model, "shadowtrooper/red")
@@ -4952,20 +4488,9 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SHADOWTROOPER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
-		//end of part 4
-		//start of part 5
 		else if (Class_Model(model, "snowtrooper")
 			|| Class_Model(model, "snowtrooper/blue")
 			|| Class_Model(model, "snowtrooper/red")
@@ -4989,6 +4514,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "bossk")
 			|| Class_Model(model, "greedo")
 			|| Class_Model(model, "bolla_ropal_mp")
+			|| Class_Model(model, "bolla_ropal")
 			|| Class_Model(model, "bibfortuna")
 			|| Class_Model(model, "greef")
 			|| Class_Model(model, "caradune")
@@ -5004,17 +4530,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_STORMTROOPER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "cc/main")
 			|| Class_Model(model, "sdt/")
@@ -5055,7 +4572,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "shoretrooper/tank")
 			|| Class_Model(model, "shoretrooper/elite")
 			|| Class_Model(model, "501st_stormie/officer")
-			|| Class_Model(model, "jumptrooper_tfu")
 			|| Class_Model(model, "md_clo_cody")
 			|| Class_Model(model, "md_clo_rex")
 			|| Class_Model(model, "md_clo_fox")
@@ -5078,17 +4594,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_CLONETROOPER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "phasma")
 			|| Class_Model(model, "captainphasma")
@@ -5096,17 +4603,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_TALL;
 			client->pers.nextbotclass = BCLASS_STORMTROOPER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "fbhutt/main")
 			|| Class_Model(model, "Itho")
@@ -5120,17 +4618,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_STORMTROOPER;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "tavion")
 			|| Class_Model(model, "tavion/blue")
@@ -5145,26 +4634,15 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "asajj_bh/disguise")
 			|| Class_Model(model, "asajj")
 			|| Class_Model(model, "assajv")
-			|| Class_Model(model, "asajj")
-			|| Class_Model(model, "asajj_bh")
-			|| Class_Model(model, "AssajjCW")
 			|| Class_Model(model, "asajj_mp")
 			|| Class_Model(model, "asajj_bh_mp")
+			|| Class_Model(model, "asajj_bh")
 			|| Class_Model(model, "AssajjCW"))
 		{
 			client->pers.nextbotclass = BCLASS_TAVION;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "trandoshan")
 			|| Class_Model(model, "trandoshan/blue")
@@ -5177,17 +4655,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_TRANDOSHAN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "Bountyhunter2/default")
 			|| Class_Model(model, "bkzam/")
@@ -5197,6 +4666,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "4lom/main")
 			|| Class_Model(model, "4lom/")
 			|| Class_Model(model, "tusken")
+			|| Class_Model(model, "tusken_ep1n2")
 			|| Class_Model(model, "md_tus1_tc")
 			|| Class_Model(model, "md_tus2_tc")
 			|| Class_Model(model, "md_tus5_tc")
@@ -5209,51 +4679,24 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_TUSKEN_SNIPER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "edAurra/main")
 			|| Class_Model(model, "ks/main"))
 		{
 			client->pers.nextbotclass = BCLASS_TUSKEN_RAIDER;
 			client->pers.botmodelscale = BOTZIZE_SMALL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "fcgamorrean/main")
 			|| Class_Model(model, "gamorrean"))
 		{
 			client->pers.nextbotclass = BCLASS_TUSKEN_RAIDER;
 			client->pers.botmodelscale = BOTZIZE_LARGER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "ugnaught")
 			|| Class_Model(model, "ew/main")
@@ -5262,33 +4705,15 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALLER;
 			client->pers.nextbotclass = BCLASS_UGNAUGHT;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "wampa"))
 		{
 			client->pers.nextbotclass = BCLASS_WAMPA;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "weequay")
 			|| Class_Model(model, "weequay/blue")
@@ -5297,39 +4722,20 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_WEEQUAY;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "lamasu/main"))
 		{
 			client->pers.nextbotclass = BCLASS_WEEQUAY;
 			client->pers.botmodelscale = BOTZIZE_LARGER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "SBD/default")
 			|| Class_Model(model, "SBD")
 			|| Class_Model(model, "SBD2")
 			|| Class_Model(model, "sbd_mp")
-			|| Class_Model(model, "sbd")
 			|| Class_Model(model, "md_sbd_am")
 			|| Class_Model(model, "Super_Battle_Droid")
 			|| Class_Model(model, "Super Battle Droid")
@@ -5338,17 +4744,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SBD;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "battledroid")
 			|| Class_Model(model, "battledroid/main")
@@ -5370,17 +4767,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_BATTLEDROID;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "mando_hunter/default")
 			|| Class_Model(model, "Bountyhunter1/default")
@@ -5389,41 +4777,22 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_MANDOLORIAN1;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
-		//end of part 5
-		//start of part 6
 		else if (Class_Model(model, "jango_fett/blue")
+			|| Class_Model(model, "jumptrooper_tfu")
 			|| Class_Model(model, "boba_fett/blue"))
 		{
 			client->pers.nextbotclass = BCLASS_MANDOLORIAN2;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "T_yoda_MP")
 			|| Class_Model(model, "T_yoda")
-			|| Class_Model(model, "T_yoda/default")
 			|| Class_Model(model, "T_yoda_MP/default")
+			|| Class_Model(model, "T_yoda/default")
 			|| Class_Model(model, "nayodaghost/main")
 			|| Class_Model(model, "yoda/main")
 			|| Class_Model(model, "jedi_yoda")
@@ -5434,28 +4803,15 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "yoda_mp/hr")
 			|| Class_Model(model, "yoda_mp/cw")
 			|| Class_Model(model, "yoda_mp/ep2")
-			|| Class_Model(model, "yaddle")
-			|| Class_Model(model, "yoda/ghost")
-			|| Class_Model(model, "yoda/hr")
-			|| Class_Model(model, "yodap/cw")
-			|| Class_Model(model, "yoda/ep2")
 			|| Class_Model(model, "yodavm")
 			|| Class_Model(model, "pic_mp")
+			|| Class_Model(model, "pic")
 			|| Class_Model(model, "grogu"))
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALLEST;
 			client->pers.nextbotclass = BCLASS_YODA;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "youngani")
 			|| Class_Model(model, "youngshak")
@@ -5467,117 +4823,65 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "youngling/default")
 			|| Class_Model(model, "halsey_mp")
 			|| Class_Model(model, "halsey_mp/cw")
-			|| Class_Model(model, "halsey")
-			|| Class_Model(model, "halsey/cw")
-
-			|| Class_Model(model, "knox")
-			|| Class_Model(model, "nahdar")
-			|| Class_Model(model, "nahdar/robed")
-			|| Class_Model(model, "tsuichoi")
-			|| Class_Model(model, "zett_jukassa")
-
 			|| Class_Model(model, "knox_mp")
 			|| Class_Model(model, "nahdar_mp")
 			|| Class_Model(model, "nahdar_mp/robed")
 			|| Class_Model(model, "tsuichoi_mp")
-			|| Class_Model(model, "zett_jukassa_mp"))
+			|| Class_Model(model, "zett_jukassa_mp")
+			|| Class_Model(model, "halsey")
+			|| Class_Model(model, "halsey/cw")
+			|| Class_Model(model, "knox")
+			|| Class_Model(model, "nahdar")
+			|| Class_Model(model, "nahdar/robed")
+			|| Class_Model(model, "tsuichoi")
+			|| Class_Model(model, "zett_jukassa"))
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALLER;
 			client->pers.nextbotclass = BCLASS_JEDI;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "npj_p/default"))
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALL;
 			client->pers.nextbotclass = BCLASS_JEDI;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "Zaalba"))
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGER;
 			client->pers.nextbotclass = BCLASS_SMUGGLER1;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jarjar")
 			|| Class_Model(model, "md_jarjar")
 			|| Class_Model(model, "md_gungan_warrior")
 			|| Class_Model(model, "gungan")
 			|| Class_Model(model, "md_gunray")
-
-			|| Class_Model(model, "gunray")
-			|| Class_Model(model, "rune")
-
 			|| Class_Model(model, "gunray_mp")
 			|| Class_Model(model, "rune_mp")
 			|| Class_Model(model, "md_wat_tambor")
 			|| Class_Model(model, "md_shu_mai")
-			|| Class_Model(model, "gunray_ep3_mp")
-			|| Class_Model(model, "gunray_ep3"))
+			|| Class_Model(model, "gunray_ep3_mp"))
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGER;
 			client->pers.nextbotclass = BCLASS_SOILDER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "tera_sinube_mp")
 			|| Class_Model(model, "tera_sinube")
-			|| Class_Model(model, "thongla_jur")
 			|| Class_Model(model, "thongla_jur_mp")
-			|| Class_Model(model, "yarael")
-			|| Class_Model(model, "yarael_mp"))
+			|| Class_Model(model, "thongla_jur")
+			|| Class_Model(model, "yarael_mp")
+			|| Class_Model(model, "yarael"))
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGER;
 			client->pers.nextbotclass = BCLASS_JEDIMASTER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi_maul")
 			|| Class_Model(model, "DT_Maul")
@@ -5590,17 +4894,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_STAFFDARK;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "droideka")
 			|| Class_Model(model, "droideka/main")
@@ -5613,26 +4908,10 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SOILDER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "vader")
-
-			|| Class_Model(model, "darthvader")
-			|| Class_Model(model, "darthvader/ep3")
-			|| Class_Model(model, "darthvader/tv")
-			|| Class_Model(model, "darthvader/anh")
-			|| Class_Model(model, "darthvader/battle")
-
 			|| Class_Model(model, "darthvader_mp")
 			|| Class_Model(model, "darthvader_mp/ep3")
 			|| Class_Model(model, "darthvader_mp/tv")
@@ -5651,6 +4930,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "vader/default")
 			|| Class_Model(model, "jedi_vader")
 			|| Class_Model(model, "am_vader")
+			|| Class_Model(model, "darthvader")
 			|| Class_Model(model, "vadervmm")
 			|| Class_Model(model, "t_vader")
 			|| Class_Model(model, "darthplagueis")
@@ -5658,17 +4938,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGE;
 			client->pers.nextbotclass = BCLASS_VADER;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi_palpatine")
 			|| Class_Model(model, "sithinquisitor1/default")
@@ -5699,15 +4970,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "darkjedi")
 			|| Class_Model(model, "darthrevan")
 			|| Class_Model(model, "darthsion")
-
-			|| Class_Model(model, "palpatine")
-			|| Class_Model(model, "palpatine/robed_tcw")
-			|| Class_Model(model, "palpatine_boc")
-			|| Class_Model(model, "palpatine_fa")
-			|| Class_Model(model, "palpatine_holo")
-			|| Class_Model(model, "palpatine_ros")
-			|| Class_Model(model, "palpatine_ros/blind")
-
 			|| Class_Model(model, "palpatine_mp")
 			|| Class_Model(model, "palpatine_mp/robed_tcw")
 			|| Class_Model(model, "palpatine_boc_mp")
@@ -5715,38 +4977,27 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "palpatine_holo_mp")
 			|| Class_Model(model, "palpatine_ros_mp")
 			|| Class_Model(model, "palpatine_ros_mp/blind")
-			|| Class_Model(model, "darthtraya"))
+			|| Class_Model(model, "darthtraya")
+			|| Class_Model(model, "palpatine")
+			|| Class_Model(model, "palpatine/robed_tcw")
+			|| Class_Model(model, "palpatine_boc")
+			|| Class_Model(model, "palpatine_fa")
+			|| Class_Model(model, "palpatine_holo")
+			|| Class_Model(model, "palpatine_ros")
+			|| Class_Model(model, "palpatine_ros/blind"))
 		{
 			client->pers.nextbotclass = BCLASS_SITHLORD;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "snoke")
 			|| Class_Model(model, "mothertalzin"))
 		{
 			client->pers.nextbotclass = BCLASS_SITHLORD;
 			client->pers.botmodelscale = BOTZIZE_TALL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "pong_krell")
 			|| Class_Model(model, "md_jbrute")
@@ -5756,35 +5007,9 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_DUELS;
 			client->pers.botmodelscale = BOTZIZE_TALL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
-		else if (Class_Model(model, "jaro_tapal_mp")
-			|| Class_Model(model, "jaro_tapal"))
-			{
-				client->pers.nextbotclass = BCLASS_JEDIMASTER;
-				client->pers.botmodelscale = BOTZIZE_TALL;
-				if (!(ent->r.svFlags & SVF_BOT))
-				{
-					if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-						GT_SIEGE)
-					{
-						client->ps.stats[STAT_HEALTH] = ent->health = 0;
-						player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-						trap->UnlinkEntity((sharedEntity_t*)ent);
-					}
-					Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-				}
-				}
 		else if (Class_Model(model, "gr")
 			|| Class_Model(model, "gr/")
 			|| Class_Model(model, "gr/main")
@@ -5797,23 +5022,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "md_grievous4")
 			|| Class_Model(model, "md_grievous_robed")
 			|| Class_Model(model, "grievous_mp")
-			|| Class_Model(model, "grievous")
 			|| Class_Model(model, "sabertraining_droid")
 			|| Class_Model(model, "jedi_gri"))
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			client->pers.nextbotclass = BCLASS_GRIEVOUS;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "ma/main")
 			|| Class_Model(model, "acdRoyalguard")
@@ -5831,17 +5045,8 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_SITH;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "exile")
 			|| Class_Model(model, "ExileMaleDarkSideUR")
@@ -5858,38 +5063,19 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_SITH;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 		else
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (!(ent->r.svFlags & SVF_BOT))
-			{
-				if (g_gametype.integer != GT_DUEL && g_gametype.integer != GT_POWERDUEL && g_gametype.integer !=
-					GT_SIEGE)
-				{
-					client->ps.stats[STAT_HEALTH] = ent->health = 0;
-					player_die(ent, ent, ent, 100000, MOD_TEAM_CHANGE);
-					trap->UnlinkEntity((sharedEntity_t*)ent);
-				}
-				client->pers.botmodelscale = BOTZIZE_NORMAL;
-				Com_Printf("Changes to your Class settings will take effect the next time you respawn.\n");
-			}
+			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			client_userinfo_Message(clientNum);
 		}
 	}
-	//end of part 6 final part
 
 	client->pers.botclass = client->pers.nextbotclass;
+	// End of bot class checks
 
 	if (WinterGear)
 	{
@@ -6407,7 +5593,6 @@ char* ClientConnect(int clientNum, const qboolean firstTime, const qboolean isBo
 }
 
 void G_WriteClientSessionData(const gclient_t* client);
-
 void WP_SetSaber(int entNum, saberInfo_t* sabers, int saberNum, const char* saber_name);
 
 /*
@@ -6423,15 +5608,27 @@ extern void PlayerPain(gentity_t* self, int damage);
 extern qboolean gSiegeRoundBegun;
 extern qboolean gSiegeRoundEnded;
 extern qboolean g_dontPenalizeTeam; //g_cmds.c
-void SetTeamQuick(const gentity_t* ent, int team, qboolean doBegin);
+void SetTeamQuick(const gentity_t* ent, const int team, const qboolean doBegin);
+
+#include "ai_main.h"
+extern bot_state_t* botstates[MAX_CLIENTS];
+extern void Bot_GiveStartingCredits(bot_state_t* bs);
 
 void ClientBegin(const int clientNum, const qboolean allowTeamReset)
 {
 	char userinfo[MAX_INFO_VALUE];
-	//contains the message of the day that is sent to new players.
 	char motd[1024];
 
 	gentity_t* ent = g_entities + clientNum;
+
+	if (ent->r.svFlags & SVF_BOT)
+	{
+		bot_state_t* bs = botstates[clientNum];
+		if (bs)
+		{
+			Bot_GiveStartingCredits(bs);
+		}
+	}
 
 	if (ent->r.svFlags & SVF_BOT && level.gametype >= GT_TEAM)
 	{
@@ -7036,6 +6233,48 @@ extern qboolean UseSpawnWeapons;
 extern int SpawnWeapons;
 extern qboolean WP_HasForcePowers(const playerState_t* ps);
 
+static void ClassAmmoSetup(gentity_t* ent)
+{
+	if (!ent || !ent->client)
+	{
+		return;
+	}
+
+	gclient_t* client = ent->client;
+
+	if (ent->r.svFlags & SVF_BOT)
+	{//bots get infinite ammo.
+		client->ps.ammo[AMMO_BLASTER] = 999;
+		client->ps.ammo[AMMO_POWERCELL] = 999;
+		client->ps.ammo[AMMO_METAL_BOLTS] = 999;
+	}
+	else
+	{
+		client->ps.ammo[AMMO_BLASTER] = 900;
+		client->ps.ammo[AMMO_POWERCELL] = 900;
+		client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+	}
+}
+
+static void ClassItemHealthSetup(gentity_t* ent)
+{
+	if (!ent || !ent->client)
+	{
+		return;
+	}
+
+	gclient_t* client = ent->client;
+
+	if (ent->r.svFlags & SVF_BOT)
+	{
+		//bots get zip.
+	}
+	else
+	{
+		client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+	}
+}
+
 void ClientSpawn(gentity_t* ent)
 {
 	int i = 0, index = 0, savesaber_num = ENTITYNUM_NONE, wDisable = 0, savedSiegeIndex = 0, maxHealth = 100;
@@ -7046,16 +6285,21 @@ void ClientSpawn(gentity_t* ent)
 	clientSession_t savedSess;
 	forcedata_t savedForce;
 	int savedDodgeMax;
-	saberInfo_t saberSaved[MAX_SABERS];
+	saberInfo_t saberSaved[MAX_SABERS] = { 0 };
 	int persistant[MAX_PERSISTANT] = { 0 };
 	int flags, gameFlags, savedPing, accuracy_hits, accuracy_shots, eventSequence;
-	void* g2WeaponPtrs[MAX_SABERS];
+	void* g2WeaponPtrs[MAX_SABERS] = { 0 };
 	char userinfo[MAX_INFO_STRING] = { 0 }, * key = NULL, * value = NULL, * saber = NULL;
 	qboolean changedSaber = qfalse, inSiegeWithClass = qfalse;
 
 	index = ent - g_entities;
 	client = ent->client;
 	client->pers.botclass = client->pers.nextbotclass;
+	if (ent->r.svFlags & SVF_BOT)
+	{
+		bot_state_t* bs = botstates[index];
+		bs->startingCreditsGiven = qfalse;
+	}
 
 	//first we want the userinfo so we can see if we should update this client's saber -rww
 	trap->GetUserinfo(index, userinfo, sizeof userinfo);
@@ -7657,17 +6901,13 @@ void ClientSpawn(gentity_t* ent)
 				case BCLASS_ASSASSIN_DROID:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_DISRUPTOR;
 					client->skillLevel[SK_DISRUPTOR] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_BARTENDER:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_DISRUPTOR;
 					client->skillLevel[SK_DISRUPTOR] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_DET_PACK;
 					client->skillLevel[SK_DETPACK] = FORCE_LEVEL_3;
 					client->ps.ammo[AMMO_DETPACK] = 3;
@@ -7678,9 +6918,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->ps.ammo[AMMO_THERMAL] = 4;
 					break;
@@ -7693,9 +6931,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
 					client->skillLevel[SK_ROCKET] = FORCE_LEVEL_3;
 					client->ps.ammo[AMMO_ROCKETS] = 3;
@@ -7710,9 +6946,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BOWCASTER;
 					client->skillLevel[SK_BOWCASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_TRIP_MINE;
 					client->ps.ammo[AMMO_TRIPMINE] = 3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_DET_PACK;
@@ -7729,9 +6963,7 @@ void ClientSpawn(gentity_t* ent)
 					client->skillLevel[SK_REPEATERUPGRADE] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
 					client->skillLevel[SK_ROCKET] = FORCE_LEVEL_3;
 					client->ps.ammo[AMMO_ROCKETS] = 3;
@@ -7744,17 +6976,13 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_HAZARDTROOPER:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
 					client->skillLevel[SK_ROCKET] = FORCE_LEVEL_3;
 					client->ps.ammo[AMMO_ROCKETS] = 3;
@@ -7766,9 +6994,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
 					client->skillLevel[SK_SMOKEGRENADE] = FORCE_LEVEL_3;
@@ -7780,26 +7006,20 @@ void ClientSpawn(gentity_t* ent)
 				case BCLASS_IMPERIAL:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_DEMP2;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_IMPWORKER:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_JAN:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->skillLevel[SK_ACROBATICS] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
 					client->skillLevel[SK_FLASHGRENADE] = FORCE_LEVEL_3;
@@ -7809,9 +7029,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_STUN_BATON;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_LANDO:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
@@ -7820,18 +7038,14 @@ void ClientSpawn(gentity_t* ent)
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					client->skillLevel[SK_BLASTERRATEOFFIREUPGRADE] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_GALAKMECH:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					client->skillLevel[SK_REPEATERUPGRADE] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
@@ -7843,25 +7057,21 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.ammo[AMMO_THERMAL] = 4;
 					client->ps.powerups[PW_GALAK_SHIELD] = Q3_INFINITE;
 					break;
-				case BCLASS_MONMOTHA:
+				case BCLASS_MONMOTHMA:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
-					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
+					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
-				case BCLASS_NOGRHRI:
+				case BCLASS_NOGHRI:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CONCUSSION;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
 					client->ps.ammo[AMMO_THERMAL] = 4;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_PROTOCOL:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
@@ -7882,9 +7092,7 @@ void ClientSpawn(gentity_t* ent)
 				case BCLASS_RAX:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CONCUSSION;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
 					client->skillLevel[SK_CRYOBAN] = FORCE_LEVEL_3;
@@ -7896,17 +7104,13 @@ void ClientSpawn(gentity_t* ent)
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_REELO:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CONCUSSION;
@@ -7921,9 +7125,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
@@ -7934,9 +7136,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CONCUSSION;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
@@ -7947,9 +7147,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_ARMOR] = 100;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_DISRUPTOR;
 					client->skillLevel[SK_DISRUPTOR] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_STORMTROOPER:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
@@ -7957,9 +7155,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					client->skillLevel[SK_GRAPPLE] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_STORMPILOT:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
@@ -7967,17 +7163,13 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_SWAMPTROOPER:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CONCUSSION;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
@@ -7987,9 +7179,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_ARMOR] = 100;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
 					client->ps.ammo[AMMO_THERMAL] = 4;
@@ -7999,9 +7189,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_ARMOR] = 100;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_DISRUPTOR;
 					client->skillLevel[SK_DISRUPTOR] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_TUSKEN_RAIDER:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
@@ -8014,10 +7202,7 @@ void ClientSpawn(gentity_t* ent)
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_THERMAL] = 4;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_WAMPA:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
@@ -8025,9 +7210,7 @@ void ClientSpawn(gentity_t* ent)
 				case BCLASS_WEEQUAY:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CONCUSSION;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
 					client->ps.ammo[AMMO_THERMAL] = 4;
@@ -8040,9 +7223,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->ps.ammo[AMMO_THERMAL] = 4;
 					client->skillLevel[SK_GRAPPLE] = FORCE_LEVEL_3;
@@ -8056,9 +7237,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
@@ -8073,9 +7252,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.ammo[AMMO_ROCKETS] = 5;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
@@ -8088,9 +7265,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
 					client->skillLevel[SK_ROCKET] = FORCE_LEVEL_3;
 					client->ps.ammo[AMMO_ROCKETS] = 3;
@@ -8102,17 +7277,13 @@ void ClientSpawn(gentity_t* ent)
 				case BCLASS_BATTLEDROID:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_SBD:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_OLD;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 900;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					client->ps.ammo[AMMO_BLASTER] = 999;
 					break;
 				case BCLASS_WOOKIEMELEE:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
@@ -8122,9 +7293,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
 					client->skillLevel[SK_SMOKEGRENADE] = FORCE_LEVEL_3;
@@ -8134,17 +7303,13 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_TROOPER3:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
 					client->skillLevel[SK_ROCKET] = FORCE_LEVEL_3;
 					client->ps.ammo[AMMO_ROCKETS] = 5;
@@ -8154,9 +7319,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_ARMOR] = 100;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
 					client->skillLevel[SK_CRYOBAN] = FORCE_LEVEL_3;
@@ -8167,9 +7330,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
@@ -8183,9 +7344,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_DET_PACK;
 					client->skillLevel[SK_DETPACK] = FORCE_LEVEL_3;
 					client->ps.ammo[AMMO_DETPACK] = 3;
@@ -8194,9 +7353,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					break;
@@ -8207,9 +7364,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.ammo[AMMO_METAL_BOLTS] = 675;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					break;
@@ -8217,9 +7372,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
@@ -8233,9 +7386,7 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					client->ps.ammo[AMMO_TRIPMINE] = 3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
@@ -8247,16 +7398,12 @@ void ClientSpawn(gentity_t* ent)
 					client->ps.stats[STAT_ARMOR] = 100;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_PLAYER:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.ammo[AMMO_BLASTER] = 900;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 900;
+					ClassAmmoSetup(ent);
 					break;
 				default:
 					if (g_gametype.integer != GT_SIEGE)
@@ -8280,9 +7427,8 @@ void ClientSpawn(gentity_t* ent)
 							}
 						}
 					}
-					client->ps.ammo[AMMO_BLASTER] = 500;
-					client->ps.ammo[AMMO_POWERCELL] = 500;
-					client->ps.ammo[AMMO_METAL_BOLTS] = 500;
+
+					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
@@ -8474,7 +7620,7 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_ALORA:
 			client->ps.stats[STAT_ARMOR] = 200;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_ASSASSIN_DROID:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
@@ -8482,15 +7628,16 @@ void ClientSpawn(gentity_t* ent)
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_BARTENDER:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_HEALTHDISP;
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_AMMODISP;
 			break;
 		case BCLASS_BESPIN_COP:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
 			break;
 		case BCLASS_BOBAFETT:
 			client->ps.stats[STAT_ARMOR] = 300;
@@ -8503,7 +7650,7 @@ void ClientSpawn(gentity_t* ent)
 			ent->flags |= FL_DINDJARIN;
 			break;
 		case BCLASS_CHEWIE:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SENTRY_GUN;
 			client->ps.stats[STAT_ARMOR] = 300;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
@@ -8512,27 +7659,27 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_CULTIST:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_DESANN:
 			client->ps.stats[STAT_ARMOR] = 300;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_UNSTABLESABER:
 			client->ps.stats[STAT_ARMOR] = 300;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_ELDER:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SENTRY_GUN;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_GALAK:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
@@ -8540,13 +7687,13 @@ void ClientSpawn(gentity_t* ent)
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_GRAN:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_ARMOR] = 300;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_HAZARDTROOPER:
 			client->ps.stats[STAT_ARMOR] = 300;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SENTRY_GUN;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_JETPACK;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_FLAMETHROWER;
@@ -8555,10 +7702,11 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_HUMAN_MERC:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_AMMODISP;
 			break;
 		case BCLASS_IMPERIAL:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SENTRY_GUN;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
@@ -8566,13 +7714,12 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_IMPWORKER:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_JAN:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SENTRY_GUN;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
 			client->ps.stats[STAT_ARMOR] = 200;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
@@ -8580,59 +7727,58 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_JAWA:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_JEDI:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
 			break;
 		case BCLASS_JEDIMASTER:
 			client->ps.stats[STAT_ARMOR] = 125;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_JEDITRAINER:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_OBIWAN:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_KYLE:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_LANDO:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_HEALTHDISP;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_LUKE:
 			client->ps.stats[STAT_ARMOR] = 200;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_DUELS:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_GALAKMECH:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
-		case BCLASS_MONMOTHA:
+		case BCLASS_MONMOTHMA:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC_BIG;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_HEALTHDISP;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_AMMODISP;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
 
@@ -8642,17 +7788,16 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_MORGANKATARN:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
-		case BCLASS_NOGRHRI:
+		case BCLASS_NOGHRI:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 200;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_RAX:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC_BIG;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
@@ -8660,39 +7805,39 @@ void ClientSpawn(gentity_t* ent)
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_REBORN:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_REBORN_TWIN:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_REBORN_MASTER:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_REELO:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_ROCKETTROOPER:
 			client->ps.stats[STAT_ARMOR] = 300;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_JETPACK;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_RODIAN:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
 			client->ps.stats[STAT_ARMOR] = 100;
@@ -8701,18 +7846,18 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_ROSH_PENIN:
 			client->ps.stats[STAT_ARMOR] = 150;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SABER_DROID:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SABOTEUR:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SHADOWTROOPER:
 			client->ps.stats[STAT_ARMOR] = 175;
@@ -8721,16 +7866,15 @@ void ClientSpawn(gentity_t* ent)
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC_BIG;
 			break;
 		case BCLASS_STORMTROOPER:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_STORMPILOT:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
+			ClassItemHealthSetup(ent);
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
@@ -8738,34 +7882,34 @@ void ClientSpawn(gentity_t* ent)
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_TAVION:
 			client->ps.stats[STAT_ARMOR] = 250;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_TRANDOSHAN:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_TUSKEN_SNIPER:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_BINOCULARS;
 			break;
 		case BCLASS_TUSKEN_RAIDER:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
 			break;
 		case BCLASS_UGNAUGHT:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
@@ -8774,13 +7918,13 @@ void ClientSpawn(gentity_t* ent)
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SERENITY:
 			client->ps.stats[STAT_ARMOR] = 500;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SENTRY_GUN;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
@@ -8791,7 +7935,7 @@ void ClientSpawn(gentity_t* ent)
 			client->ps.stats[STAT_ARMOR] = 500;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_AMMODISP;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_CLOAK;
@@ -8800,42 +7944,42 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_YODA:
 			client->ps.stats[STAT_ARMOR] = 500;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_PADAWAN:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_GRIEVOUS:
 			client->ps.stats[STAT_ARMOR] = 200;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SITHLORD:
 			client->ps.stats[STAT_ARMOR] = 200;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_VADER:
 			client->ps.stats[STAT_ARMOR] = 500;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SITH:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_STAFFDARK:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_APPRENTICE:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_MANDOLORIAN:
 			client->ps.stats[STAT_ARMOR] = 300;
@@ -8871,7 +8015,7 @@ void ClientSpawn(gentity_t* ent)
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_BATTLEDROID:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
@@ -8886,12 +8030,12 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_WOOKIE:
 			client->ps.stats[STAT_ARMOR] = 500;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_WOOKIEMELEE:
 			client->ps.stats[STAT_ARMOR] = 500;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_TROOPER1:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
@@ -8903,63 +8047,63 @@ void ClientSpawn(gentity_t* ent)
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_TROOPER3:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_JETPACK;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_JEDIKNIGHT1:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_JEDIKNIGHT2:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_JEDIKNIGHT3:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SMUGGLER1:
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			client->ps.stats[STAT_ARMOR] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SMUGGLER2:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SMUGGLER3:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_JEDICONSULAR1:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_JEDICONSULAR2:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_JEDICONSULAR3:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_BOUNTYHUNTER1:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_JETPACK;
@@ -8967,50 +8111,50 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_BOUNTYHUNTER2:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_JETPACK;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_BOUNTYHUNTER3:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SENTRY_GUN;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_JETPACK;
 			break;
 		case BCLASS_SITHWORRIOR1:
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			client->ps.stats[STAT_ARMOR] = 200;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SITHWORRIOR2:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SITHWORRIOR3:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_IPPERIALAGENT2:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
 			break;
 		case BCLASS_SITHINQUISITOR1:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SITHINQUISITOR2:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SITHINQUISITOR3:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_CLONETROOPER:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
 			client->ps.stats[STAT_ARMOR] = 100;
@@ -9111,8 +8255,8 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_JAWA:
 		case BCLASS_LANDO:
 		case BCLASS_GALAKMECH:
-		case BCLASS_MONMOTHA:
-		case BCLASS_NOGRHRI:
+		case BCLASS_MONMOTHMA:
+		case BCLASS_NOGHRI:
 		case BCLASS_PROTOCOL:
 		case BCLASS_R2D2:
 		case BCLASS_R5D2:

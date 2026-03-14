@@ -3,11 +3,11 @@
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
 
-This file is part of the MovieDuels source code.
+This file is part of the SerenityJediEngine2026 source code.
 
-MovieDuels is free software; you can redistribute it and/or modify it
+SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -165,8 +165,6 @@ cvar_t* r_directedScale;
 cvar_t* r_debugLight;
 cvar_t* r_debugSort;
 cvar_t* r_debugStyle;
-
-cvar_t* g_DebugSaberCombat;
 
 // the limits apply to the sum of all scenes in a frame --
 // the main view, all the 3D icons, etc
@@ -475,8 +473,6 @@ void R_Register()
 	broadsword_dircap = ri->Cvar_Get("broadsword_dircap", "64", CVAR_NONE, "");
 
 	r_weather = ri->Cvar_Get("r_weather", "0", CVAR_ARCHIVE, "");
-
-	g_DebugSaberCombat = ri->Cvar_Get("g_DebugSaberCombat", "0", CVAR_ARCHIVE, "");
 	/*
 	Ghoul2 Insert End
 	*/

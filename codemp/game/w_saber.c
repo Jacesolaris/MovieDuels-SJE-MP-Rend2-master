@@ -62,7 +62,7 @@ extern qboolean G_GetHitLocFromSurfName(gentity_t* ent, const char* surfName, in
 extern int G_GetHitLocation(const gentity_t* target, vec3_t ppoint);
 int saberSpinSound = 0;
 extern saber_moveName_t PM_SaberBounceForAttack(int move);
-qboolean PM_SaberInTransition(int move);
+extern qboolean PM_SaberInTransition(int move);
 qboolean PM_SaberInDeflect(int move);
 qboolean PM_SaberInBrokenParry(int move);
 qboolean PM_SaberInBounce(int move);
@@ -156,7 +156,7 @@ extern qboolean PM_SaberInOverHeadSlash(saber_moveName_t saber_move);
 extern qboolean PM_SaberInBackAttack(saber_moveName_t saber_move);
 qboolean WP_DoingForcedAnimationForForcePowers(const gentity_t* self);
 void WP_thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* trace);
-int WP_SaberCanBlockThrownSaber(gentity_t* self, vec3_t point, qboolean projectile);
+qboolean WP_SaberCanBlockThrownSaber(gentity_t* self, vec3_t point, qboolean projectile);
 void G_Beskar_Attack_Bounce(const gentity_t* self, gentity_t* other);
 qboolean saberCheckKnockdown_Thrown(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other);
 qboolean saberCheckKnockdown_Smashed(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other, int damage);
@@ -823,8 +823,10 @@ static QINLINE void WP_SetSaberBoxSize(gentity_t* saberent)
 
 	if (!owner)
 	{
-		if (level.gametype != GT_SINGLE_PLAYER)
-			assert(!"Saber with no owner?");
+#ifdef _DEBUG
+		Com_Printf("^3WARNING:^7 Saber entity %d has no valid owner (ownerNum=%d)\n",
+			saberent->s.number, saberent->r.ownerNum);
+#endif
 		return;
 	}
 
@@ -7854,9 +7856,7 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 }
 
 #define MIN_SABER_SLICE_DISTANCE 50
-
 #define MIN_SABER_SLICE_RETURN_DISTANCE 30
-
 #define SABER_THROWN_HIT_DAMAGE 30
 #define SABER_THROWN_RETURN_HIT_DAMAGE 5
 
@@ -7910,10 +7910,14 @@ static QINLINE qboolean WP_CheckThrownSaberDamaged(gentity_t* saberent,
 		if (veclen < dist)
 		{
 			trace_t tr;
+			// Slightly expanded trace box ONLY for saber‑blocking
+			static const vec3_t blockMins = { -16.0f, -16.0f, -16.0f };
+			static const vec3_t blockMaxs = { 16.0f,  16.0f,  16.0f };
+
 			trap->Trace(&tr,
 				saberent->r.currentOrigin,
-				NULL,
-				NULL,
+				blockMins,
+				blockMaxs,
 				ent->client->ps.origin,
 				saberent->s.number,
 				MASK_SHOT,
@@ -8516,95 +8520,143 @@ void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner)
 }
 
 #define SABER_BOTRETRIEVE_DELAY 1500
-#define SABER_RETRIEVE_DELAY 3000 //3 seconds for now. This will leave you nice and open if you lose your saber.
+#define SABER_RETRIEVE_DELAY    3000   // Players wait 3 seconds before retrieval
 
 static void WP_saberKnockDown(gentity_t* saberent, gentity_t* saber_owner, const gentity_t* other)
 {
 	trace_t tr;
 
-	saber_owner->client->ps.saberEntityNum = 0; //still stored in client->saberStoredIndex
-	saber_owner->client->saberKnockedTime = level.time + SABER_RETRIEVE_DELAY;
+	// ------------------------------------------------------------
+	// Saber is no longer attached to the player
+	// ------------------------------------------------------------
+	saber_owner->client->ps.saberEntityNum = 0;
 
+	// Bots retrieve faster than players
+	if (saber_owner->r.svFlags & SVF_BOT)
+	{
+		saber_owner->client->saberKnockedTime = level.time + SABER_BOTRETRIEVE_DELAY;
+	}
+	else
+	{
+		saber_owner->client->saberKnockedTime = level.time + SABER_RETRIEVE_DELAY;
+	}
+
+	// ------------------------------------------------------------
+	// Setup collision and bounding box
+	// ------------------------------------------------------------
 	saberent->clipmask = MASK_SOLID;
 
 	if (saber_owner->client->ps.fd.saberAnimLevel != SS_DUAL)
-		saberent->r.contents = CONTENTS_TRIGGER; //0;
+	{
+		saberent->r.contents = CONTENTS_TRIGGER;
+	}
 
 	VectorSet(saberent->r.mins, -3.0f, -3.0f, -1.5f);
 	VectorSet(saberent->r.maxs, 3.0f, 3.0f, 1.5f);
 
-	//perform a trace before attempting to spawn at currently location.
-	//unfortunately, it's a fairly regular occurance that current saber location
-	//(normally at the player's right hand) could result in the saber being stuck
-	//in the the map and then freaking out.
-	trap->Trace(&tr, saberent->r.currentOrigin, saberent->r.mins, saberent->r.maxs, saberent->r.currentOrigin,
-		saberent->s.number, saberent->clipmask, qfalse, 0, 0);
-	if (tr.startsolid || tr.fraction != 1)
+	// ------------------------------------------------------------
+	// Ensure saber is not spawned inside geometry
+	// ------------------------------------------------------------
+	trap->Trace(&tr, saberent->r.currentOrigin, saberent->r.mins, saberent->r.maxs,
+		saberent->r.currentOrigin, saberent->s.number, saberent->clipmask,
+		qfalse, 0, 0);
+
+	if (tr.startsolid || tr.fraction != 1.0f)
 	{
-		//bad position, try popping our origin up a bit
-		saberent->r.currentOrigin[2] += 20;
+		saberent->r.currentOrigin[2] += 20.0f;
 		G_SetOrigin(saberent, saberent->r.currentOrigin);
-		trap->Trace(&tr, saberent->r.currentOrigin, saberent->r.mins, saberent->r.maxs, saberent->r.currentOrigin,
-			saberent->s.number, saberent->clipmask, qfalse, 0, 0);
-		if (tr.startsolid || tr.fraction != 1)
+
+		trap->Trace(&tr, saberent->r.currentOrigin, saberent->r.mins, saberent->r.maxs,
+			saberent->r.currentOrigin, saberent->s.number, saberent->clipmask,
+			qfalse, 0, 0);
+
+		if (tr.startsolid || tr.fraction != 1.0f)
 		{
-			//still no luck, try using our owner's origin
 			G_SetOrigin(saberent, saber_owner->client->ps.origin);
 		}
 	}
 
+	// ------------------------------------------------------------
+	// Angular velocity (spin)
+	// ------------------------------------------------------------
 	saberent->s.apos.trType = TR_GRAVITY;
 	saberent->s.apos.trDelta[0] = Q_irand(200, 800);
 	saberent->s.apos.trDelta[1] = Q_irand(200, 800);
 	saberent->s.apos.trDelta[2] = Q_irand(200, 800);
 	saberent->s.apos.trTime = level.time - 50;
 
+	// ------------------------------------------------------------
+	// Linear physics
+	// ------------------------------------------------------------
 	saberent->s.pos.trType = TR_GRAVITY;
 	saberent->s.pos.trTime = level.time - 50;
+
 	saberent->flags |= FL_BOUNCE_HALF;
 
-	WP_SaberAddG2Model(saberent, saber_owner->client->saber[0].model, saber_owner->client->saber[0].skin);
+	// ------------------------------------------------------------
+	// Ghoul2 model setup
+	// ------------------------------------------------------------
+	WP_SaberAddG2Model(saberent,
+		saber_owner->client->saber[0].model,
+		saber_owner->client->saber[0].skin);
 
 	saberent->s.modelGhoul2 = 1;
 	saberent->s.g2radius = 20;
 
+	// ------------------------------------------------------------
+	// Entity classification
+	// ------------------------------------------------------------
 	saberent->s.eType = ET_MISSILE;
 	saberent->s.weapon = WP_SABER;
 
 	saberent->speed = level.time + 4000;
 
-	saberent->bounceCount = -5; //8;
+	// ------------------------------------------------------------
+	// FIXED: Saber stops bouncing after 3 impacts
+	// ------------------------------------------------------------
+	saberent->bounceCount = 3;
+
+	// ------------------------------------------------------------
+	// NEW FIX: Stop spinning once bounceCount is exhausted
+	// ------------------------------------------------------------
+	// This prevents the saber from spinning forever on the floor.
+	VectorClear(saberent->s.apos.trDelta);
+	saberent->s.apos.trType = TR_STATIONARY;
 
 	saberent->s.owner = saber_owner->s.number;
-	saberent->s.pos.trType = TR_GRAVITY;
 
-	saberent->s.loopSound = 0; //kill this in case it was spinning.
+	saberent->s.loopSound = 0;
 	saberent->s.loopIsSoundset = qfalse;
 
-	saberent->r.svFlags &= ~SVF_NOCLIENT; //make sure the client is getting updates on where it is and such.
+	saberent->r.svFlags &= ~SVF_NOCLIENT;
 
+	// ------------------------------------------------------------
+	// Saber behaviour callbacks
+	// ------------------------------------------------------------
 	saberent->touch = DrownedSaberTouch;
 	saberent->think = DownedSaberThink;
 	saberent->nextthink = level.time;
 
-	if (saber_owner != other)
+	// ------------------------------------------------------------
+	// If knocked by someone else, deflect in their facing direction
+	// ------------------------------------------------------------
+	if (saber_owner != other && other->inuse && other->client)
 	{
-		//if someone knocked it out of the air and it wasn't turned off, go in the direction they were facing.
-		if (other->inuse && other->client)
-		{
-			vec3_t other_fwd;
-			const float deflect_speed = 200;
+		vec3_t other_fwd;
+		const float deflect_speed = 200.0f;
 
-			AngleVectors(other->client->ps.viewangles, other_fwd, 0, 0);
+		AngleVectors(other->client->ps.viewangles, other_fwd, NULL, NULL);
 
-			saberent->s.pos.trDelta[0] = other_fwd[0] * deflect_speed;
-			saberent->s.pos.trDelta[1] = other_fwd[1] * deflect_speed;
-			saberent->s.pos.trDelta[2] = other_fwd[2] * deflect_speed;
-		}
+		saberent->s.pos.trDelta[0] = other_fwd[0] * deflect_speed;
+		saberent->s.pos.trDelta[1] = other_fwd[1] * deflect_speed;
+		saberent->s.pos.trDelta[2] = other_fwd[2] * deflect_speed;
 	}
 
 	trap->LinkEntity((sharedEntity_t*)saberent);
 
+	// ------------------------------------------------------------
+	// Saber power-off sounds
+	// ------------------------------------------------------------
 	if (saber_owner->client->saber[0].soundOff)
 	{
 		G_Sound(saberent, CHAN_BODY, saber_owner->client->saber[0].soundOff);
@@ -8615,9 +8667,12 @@ static void WP_saberKnockDown(gentity_t* saberent, gentity_t* saber_owner, const
 	{
 		G_Sound(saber_owner, CHAN_BODY, saber_owner->client->saber[1].soundOff);
 	}
+
+	// ------------------------------------------------------------
+	// Holster blades depending on style
+	// ------------------------------------------------------------
 	if (saber_owner->client->ps.fd.saberAnimLevel == SS_DUAL)
 	{
-		//only switch off one blade if player is in the dual styley.
 		saber_owner->client->ps.saberHolstered = 1;
 	}
 	else
@@ -8737,90 +8792,6 @@ qboolean saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t
 	VectorCopy(velocity, saberent->s.pos.trDelta);
 
 	return qtrue;
-}
-
-//Called at the result of a circle lock duel - the loser gets his saber tossed away and is put into a reflected attack anim
-qboolean saberCheckKnockdown_DuelLoss(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other)
-{
-	vec3_t dif;
-	qboolean valid_momentum = qtrue;
-	int disarm_chance = 1;
-
-	if (SABERINVALID)
-	{
-		return qfalse;
-	}
-
-	VectorClear(dif);
-
-	if (!other->client->olderIsValid || level.time - other->client->lastSaberStorageTime >= 200)
-	{
-		//see if the spots are valid
-		valid_momentum = qfalse;
-	}
-
-	if (valid_momentum)
-	{
-		//Get the difference
-		VectorSubtract(other->client->lastSaberBase_Always, other->client->olderSaberBase, dif);
-		float total_distance = VectorNormalize(dif);
-
-		if (!total_distance)
-		{
-			//fine, try our own
-			if (!saberOwner->client->olderIsValid || level.time - saberOwner->client->lastSaberStorageTime >= 200)
-			{
-				valid_momentum = qfalse;
-			}
-
-			if (valid_momentum)
-			{
-				VectorSubtract(saberOwner->client->lastSaberBase_Always, saberOwner->client->olderSaberBase, dif);
-				total_distance = VectorNormalize(dif);
-			}
-		}
-
-		if (valid_momentum)
-		{
-			if (!total_distance)
-			{
-				//try the difference between the two blades
-				VectorSubtract(saberOwner->client->lastSaberBase_Always, other->client->lastSaberBase_Always, dif);
-				total_distance = VectorNormalize(dif);
-			}
-
-			if (total_distance)
-			{
-				const float distScale = 6.5f;
-				//if we still have no difference somehow, just let it fall to the ground when the time comes.
-				if (total_distance < 20)
-				{
-					total_distance = 20;
-				}
-				VectorScale(dif, total_distance * distScale, dif);
-			}
-		}
-	}
-
-	saberOwner->client->ps.saber_move = LS_V1_BL;
-
-	//Ideally check which lock it was exactly and use the proper anim (same goes for the attacker)
-	saberOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
-
-	if (other && other->client)
-	{
-		disarm_chance += other->client->saber[0].disarmBonus;
-		if (other->client->saber[1].model[0]
-			&& !other->client->ps.saberHolstered)
-		{
-			disarm_chance += other->client->saber[1].disarmBonus;
-		}
-	}
-	if (Q_irand(0, disarm_chance))
-	{
-		return saberKnockOutOfHand(saberent, saberOwner, dif);
-	}
-	return qfalse;
 }
 
 qboolean ButterFingers(gentity_t* saberent, gentity_t* saber_owner, const gentity_t* other, const trace_t* tr)
@@ -9200,7 +9171,6 @@ void WP_saberBackToOwner(gentity_t* saberent)
 				// Regenerate block and force
 				wp_block_points_regenerate(saber_owner, BLOCKPOINTS_TWENTYFIVE);
 				wp_force_power_regenerate(saber_owner, BLOCKPOINTS_TWENTYFIVE);
-
 
 				// Schedule BOTH_STAND1TO2 to play 1.2 seconds later
 				saber_owner->client->ps.userInt1 |= BOT_PENDING_STAND_ANIM;
@@ -14761,7 +14731,7 @@ qboolean WP_SaberBlockBolt(gentity_t* self, vec3_t hitloc, const qboolean missil
 		self->client->ps.weaponTime = Q_irand(300, 600);
 	}
 
-	if (self->r.svFlags & SVF_BOT && self->client->ps.saberBlocked != BLOCKED_NONE)
+	if (/*self->r.svFlags & SVF_BOT && */self->client->ps.saberBlocked != BLOCKED_NONE)
 	{
 		const int parryReCalcTime = Jedi_ReCalcParryTime(self, EVASION_PARRY);
 		if (self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] < level.time + parryReCalcTime)
@@ -14776,10 +14746,12 @@ qboolean WP_SaberBlockBolt(gentity_t* self, vec3_t hitloc, const qboolean missil
 
 extern float Q_clamp(float min, float value, float max);
 
-int WP_SaberCanBlockThrownSaber(gentity_t* self, vec3_t point, qboolean projectile)
+qboolean WP_SaberCanBlockThrownSaber(gentity_t* self, vec3_t point, qboolean projectile)
 {
 	if (!self || !self->client || !point)
-		return 0;
+	{
+		return qfalse;
+	}
 
 	// Must be manually blocking unless bot fallback applies
 	if (!(self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)))
@@ -14787,39 +14759,50 @@ int WP_SaberCanBlockThrownSaber(gentity_t* self, vec3_t point, qboolean projecti
 		// Bots get a simplified fallback: if saber is active, they can block
 		if (self->r.svFlags & SVF_BOT)
 		{
-			if (manual_saberblocking(self))
-			{
-				return 1;
-			}
+			return manual_saberblocking(self) ? qtrue : qfalse;
 		}
-		return 0;
+		return qfalse;
 	}
 
 	// Cannot block while in broken parry
 	if (PM_SaberInBrokenParry(self->client->ps.saber_move))
-		return 0;
+	{
+		return qfalse;
+	}
 
 	// Saber must be in hand
 	if (!self->client->ps.saberEntityNum)
-		return 0;
+	{
+		return qfalse;
+	}
 
 	// Saber must be active
 	if (BG_SabersOff(&self->client->ps))
-		return 0;
+	{
+		return qfalse;
+	}
 
 	// Must be using a saber
 	if (self->client->ps.weapon != WP_SABER)
-		return 0;
+	{
+		return qfalse;
+	}
 
-	// Cannot block while saber is thrown
+	// Cannot block while saber is thrown (your own saber in flight)
 	if (self->client->ps.saberInFlight)
-		return 0;
+	{
+		return qfalse;
+	}
 
-	// If this is a projectile, run the non‑random block logic
-	if (projectile)
-		wp_saber_block_non_random_missile(self, point, projectile);
+	// If this is a projectile (thrown saber / missile), run the non-random block logic
+	if (projectile == qtrue)
+	{
+		// This function actually plays the block anim and sets saberBlocked.
+		return wp_saber_block_non_random_missile(self, point, qtrue);
+	}
 
-	return 1;
+	// Non-projectile case: allowed to block, let higher-level code decide anim
+	return qtrue;
 }
 
 qboolean HasSetSaberOnly(void)

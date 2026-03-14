@@ -27,6 +27,13 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "ui_local.h"
 #include <qcommon\qfiles.h>
+#include <qcommon\q_color.h>
+#include "ui_shared.h"
+#include <qcommon\q_string.h>
+#include <string.h>
+#include <qcommon\q_shared.h>
+#include <game\bg_public.h>
+#include <qcommon\q_platform.h>
 
 //
 // arena and bot info
@@ -45,7 +52,7 @@ UI_ParseInfos
 */
 static int UI_ParseInfos(const char* buf, int max, char* infos[])
 {
-	char	info[MAX_INFO_STRING];
+	char	info[MAX_INFO_STRING] = { 0 };
 
 	int count = 0;
 

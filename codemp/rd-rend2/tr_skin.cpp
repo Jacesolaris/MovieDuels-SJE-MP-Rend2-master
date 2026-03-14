@@ -1,6 +1,4 @@
 #include "tr_local.h"
-#include <qcommon\qfiles.h>
-#include <cassert>
 
 /*
 ============================================================================
@@ -168,8 +166,7 @@ qhandle_t RE_RegisterSkin(const char* name) {
 		return 0;
 	}
 
-	if (strlen(name) >= MAX_QPATH)
-	{
+	if (strlen(name) >= MAX_QPATH) {
 		Com_Printf("Skin name exceeds MAX_QPATH\n");
 		return 0;
 	}

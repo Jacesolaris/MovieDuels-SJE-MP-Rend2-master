@@ -29,7 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/movie-duels											///
+///								    https://www.moddb.com/mods/movie-duels											            ///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -37,15 +37,27 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_saga.h"
 #include <qcommon\q_shared.h>
 #include "bg_public.h"
+#include <assert.h>
+#include "b_public.h"
+#include <math.h>
+#include "bg_vehicles.h"
+#include <string.h>
+#include "bg_weapons.h"
+#include "g_public.h"
+#include "anims.h"
+#include "surfaceflags.h"
+#include <qcommon\q_platform.h>
+#include <qcommon\q_math.h>
+#include "teams.h"
+#include <stdlib.h>
 
 extern void player_Cloak(gentity_t* self);
 extern void Jedi_Cloak(gentity_t* self);
 extern void Jedi_Decloak(gentity_t* self);
 extern int IsPressingKickButton(const gentity_t* self);
-qboolean PM_SaberInTransition(int move);
+extern qboolean PM_SaberInTransition(int move);
 qboolean PM_SaberInStart(int move);
 qboolean PM_SaberInReturn(int move);
-qboolean saberCheckKnockdown_DuelLoss(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other);
 extern qboolean G_ValidSaberStyle(const gentity_t* ent, int saber_style);
 extern qboolean BG_SprintAnim(int anim);
 extern void Weapon_GrapplingHook_Fire(gentity_t* ent);
@@ -417,7 +429,7 @@ static void P_WorldEffects(gentity_t* ent)
 extern void G_ApplyKnockback(gentity_t* targ, vec3_t new_dir, float knockback);
 extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength, const qboolean breakSaberLock);
 
-void G_GetMassAndVelocityForEnt(const gentity_t* ent, float* mass, vec3_t velocity)
+static void G_GetMassAndVelocityForEnt(const gentity_t* ent, float* mass, vec3_t velocity)
 {
 	if (ent->client)
 	{
@@ -927,7 +939,7 @@ Find all trigger entities that ent's current position touches.
 Spectators will only interact with teleporters.
 ============
 */
-void G_TouchTriggers(gentity_t* ent)
+static void G_TouchTriggers(gentity_t* ent)
 {
 	int touch[MAX_GENTITIES];
 	trace_t trace;
@@ -3793,7 +3805,7 @@ static int PainTime(const gentity_t* ent)
 	return 150;
 }
 
-int fire_deley_time()
+static int fire_deley_time()
 {
 	return 500;
 }
@@ -5747,7 +5759,7 @@ static void ClientThink_real(gentity_t* ent)
 #endif
 			{
 				float pDif = 40.0f;
-				vec3_t bolt_org, pBoltOrg;
+				vec3_t bolt_org = { 0 }, pBoltOrg;
 				vec3_t tAngles;
 				vec3_t vDif;
 				vec3_t entDir, otherAngles;
@@ -5845,7 +5857,7 @@ static void ClientThink_real(gentity_t* ent)
 				else
 				{
 					//see if we can move to be next to the hand.. if it's not clear, break the throw.
-					vec3_t intendedOrigin;
+					vec3_t intendedOrigin = { 0 };
 					trace_t tr;
 					trace_t tr2;
 

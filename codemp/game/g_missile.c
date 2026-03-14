@@ -105,11 +105,11 @@ static float vector_bolt_distance(vec3_t v1, vec3_t v2)
  */
 static gentity_t* G_GetEntitySafe(int idx)
 {
-    if (idx >= 0 && idx < MAX_GENTITIES)
-    {
-        return &g_entities[idx];
-    }
-    return NULL;
+	if (idx >= 0 && idx < MAX_GENTITIES)
+	{
+		return &g_entities[idx];
+	}
+	return NULL;
 }
 
 /*
@@ -244,8 +244,6 @@ static void g_missile_bouncedoff_saber(const gentity_t* ent, gentity_t* missile,
 	}
 }
 
-
-
 static void g_deflect_missile_to_attacker(const gentity_t* ent, gentity_t* missile, vec3_t forward)
 {
 	// Safety: validate pointers (prevents crashes if caller passes NULL)
@@ -318,26 +316,26 @@ static void g_reflect_missile_to_attacker(const gentity_t* ent, gentity_t* missi
 	//
 	// Determine base bounce direction
 	//
-    if (!is_owner &&
-        missile->s.weapon != WP_SABER &&
-        missile->s.weapon != G2_MODEL_PART)
-    {
-        // Bounce back toward the original shooter (safe lookup)
-        gentity_t* origOwner = G_GetEntitySafe(missile->r.ownerNum);
-        if (origOwner)
-        {
-            VectorSubtract(origOwner->r.currentOrigin,
-                missile->r.currentOrigin,
-                bounce_dir);
-            VectorNormalize(bounce_dir);
-        }
-        else
-        {
-            // Fallback: push forward
-            VectorCopy(forward, bounce_dir);
-            VectorNormalize(bounce_dir);
-        }
-    }
+	if (!is_owner &&
+		missile->s.weapon != WP_SABER &&
+		missile->s.weapon != G2_MODEL_PART)
+	{
+		// Bounce back toward the original shooter (safe lookup)
+		gentity_t* origOwner = G_GetEntitySafe(missile->r.ownerNum);
+		if (origOwner)
+		{
+			VectorSubtract(origOwner->r.currentOrigin,
+				missile->r.currentOrigin,
+				bounce_dir);
+			VectorNormalize(bounce_dir);
+		}
+		else
+		{
+			// Fallback: push forward
+			VectorCopy(forward, bounce_dir);
+			VectorNormalize(bounce_dir);
+		}
+	}
 	else if (is_owner)
 	{
 		// Push the missile away from the owner, with extra speed
@@ -438,26 +436,26 @@ void g_reflect_missile_auto(const gentity_t* ent, gentity_t* missile, vec3_t for
 	//
 	// Determine base bounce direction
 	//
-    if (!is_owner &&
-        missile->s.weapon != WP_SABER &&
-        missile->s.weapon != G2_MODEL_PART)
-    {
-        // Bounce back toward the original shooter (safe lookup)
-        gentity_t* origOwner = G_GetEntitySafe(missile->r.ownerNum);
-        if (origOwner)
-        {
-            VectorSubtract(origOwner->r.currentOrigin,
-                missile->r.currentOrigin,
-                bounce_dir);
-            VectorNormalize(bounce_dir);
-        }
-        else
-        {
-            // Fallback: push forward
-            VectorCopy(forward, bounce_dir);
-            VectorNormalize(bounce_dir);
-        }
-    }
+	if (!is_owner &&
+		missile->s.weapon != WP_SABER &&
+		missile->s.weapon != G2_MODEL_PART)
+	{
+		// Bounce back toward the original shooter (safe lookup)
+		gentity_t* origOwner = G_GetEntitySafe(missile->r.ownerNum);
+		if (origOwner)
+		{
+			VectorSubtract(origOwner->r.currentOrigin,
+				missile->r.currentOrigin,
+				bounce_dir);
+			VectorNormalize(bounce_dir);
+		}
+		else
+		{
+			// Fallback: push forward
+			VectorCopy(forward, bounce_dir);
+			VectorNormalize(bounce_dir);
+		}
+	}
 	else if (is_owner)
 	{
 		// Push the missile away from the owner, with extra speed
@@ -673,15 +671,15 @@ void g_reflect_missile_bot(const gentity_t* ent, gentity_t* missile, vec3_t forw
 
 	//save the original speed
 	float speed = VectorNormalize(missile->s.pos.trDelta);
-    /* Use safe owner lookup; the original code checked the address of g_entities which
-     * is always true and could read out-of-range owner indices. */
-    gentity_t* origOwner = G_GetEntitySafe(missile->r.ownerNum);
-    if (origOwner && missile->s.weapon != WP_SABER && missile->s.weapon != G2_MODEL_PART && !isowner)
-    {
-        //bounce back at them if you can
-        VectorSubtract(origOwner->r.currentOrigin, missile->r.currentOrigin, bounce_dir);
-        VectorNormalize(bounce_dir);
-    }
+	/* Use safe owner lookup; the original code checked the address of g_entities which
+	 * is always true and could read out-of-range owner indices. */
+	gentity_t* origOwner = G_GetEntitySafe(missile->r.ownerNum);
+	if (origOwner && missile->s.weapon != WP_SABER && missile->s.weapon != G2_MODEL_PART && !isowner)
+	{
+		//bounce back at them if you can
+		VectorSubtract(origOwner->r.currentOrigin, missile->r.currentOrigin, bounce_dir);
+		VectorNormalize(bounce_dir);
+	}
 	else if (isowner)
 	{
 		//in this case, actually push the missile away from me, and since we're giving boost to our own missile by pushing it, up the velocity
@@ -1088,19 +1086,19 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 	//
 	// Duel protection: projectiles cannot affect non‑duel opponents
 	//
-    if ((other->r.contents & CONTENTS_LIGHTSABER) && !is_knocked_saber)
-    {
-        const gentity_t* other_owner = G_GetEntitySafe(other->r.ownerNum);
+	if ((other->r.contents & CONTENTS_LIGHTSABER) && !is_knocked_saber)
+	{
+		const gentity_t* other_owner = G_GetEntitySafe(other->r.ownerNum);
 
-        if (other_owner &&
-            other_owner->takedamage &&
-            other_owner->client &&
-            other_owner->client->ps.duelInProgress &&
-            other_owner->client->ps.duelIndex != ent->r.ownerNum)
-        {
-            goto killProj;
-        }
-    }
+		if (other_owner &&
+			other_owner->takedamage &&
+			other_owner->client &&
+			other_owner->client->ps.duelInProgress &&
+			other_owner->client->ps.duelIndex != ent->r.ownerNum)
+		{
+			goto killProj;
+		}
+	}
 	else if (!is_knocked_saber)
 	{
 		if (other->takedamage &&
@@ -1398,12 +1396,12 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 			vec3_t velocity;
 			qboolean did_dmg = qfalse;
 
-            gentity_t* ownerEnt = G_GetEntitySafe(ent->r.ownerNum);
-            if (ownerEnt && ownerEnt->client && LogAccuracyHit(other, ownerEnt))
-            {
-                ownerEnt->client->accuracy_hits++;
-                hit_client = qtrue;
-            }
+			gentity_t* ownerEnt = G_GetEntitySafe(ent->r.ownerNum);
+			if (ownerEnt && ownerEnt->client && LogAccuracyHit(other, ownerEnt))
+			{
+				ownerEnt->client->accuracy_hits++;
+				hit_client = qtrue;
+			}
 
 			BG_EvaluateTrajectoryDelta(&ent->s.pos, level.time, velocity);
 
@@ -1442,9 +1440,9 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 			}
 			else
 			{
-                gentity_t* owner = G_GetEntitySafe(ent->r.ownerNum);
-                float distance = owner ? VectorDistance(owner->r.currentOrigin,
-                    other->r.currentOrigin) : 999999.0f;
+				gentity_t* owner = G_GetEntitySafe(ent->r.ownerNum);
+				float distance = owner ? VectorDistance(owner->r.currentOrigin,
+					other->r.currentOrigin) : 999999.0f;
 
 				if (distance <= 100.0f)
 				{
@@ -1462,11 +1460,11 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 				}
 				else
 				{
-                    G_Damage(other, ent,
-                        (owner ? owner : ent),
-                        velocity, ent->r.currentOrigin,
-                        missile_dmg, 0,
-                        ent->methodOfDeath);
+					G_Damage(other, ent,
+						(owner ? owner : ent),
+						velocity, ent->r.currentOrigin,
+						missile_dmg, 0,
+						ent->methodOfDeath);
 				}
 
 				did_dmg = qtrue;
@@ -1743,23 +1741,23 @@ killProj:
 	//
 	// Splash damage
 	//
-    if (ent->splashDamage)
-    {
-        if (g_radius_damage(trace->endpos,
-            ent->parent,
-            ent->splashDamage,
-            ent->splashRadius,
-            other,
-            ent,
-            ent->splashMethodOfDeath))
-        {
-            gentity_t* splashOwner = G_GetEntitySafe(ent->r.ownerNum);
-            if (!hit_client && splashOwner && splashOwner->client)
-            {
-                splashOwner->client->accuracy_hits++;
-            }
-        }
-    }
+	if (ent->splashDamage)
+	{
+		if (g_radius_damage(trace->endpos,
+			ent->parent,
+			ent->splashDamage,
+			ent->splashRadius,
+			other,
+			ent,
+			ent->splashMethodOfDeath))
+		{
+			gentity_t* splashOwner = G_GetEntitySafe(ent->r.ownerNum);
+			if (!hit_client && splashOwner && splashOwner->client)
+			{
+				splashOwner->client->accuracy_hits++;
+			}
+		}
+	}
 
 	//
 	// G2 model parts free themselves
@@ -2095,8 +2093,8 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 		(float)(FORCE_LEVEL_3 - blocker->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE]) /
 		(float)FORCE_LEVEL_3;
 
-    gentity_t* prev_owner = G_GetEntitySafe(bolt->r.ownerNum);
-    const float distance = prev_owner ? vector_bolt_distance(blocker->r.currentOrigin, prev_owner->r.currentOrigin) : 99999.0f;
+	gentity_t* prev_owner = G_GetEntitySafe(bolt->r.ownerNum);
+	const float distance = prev_owner ? vector_bolt_distance(blocker->r.currentOrigin, prev_owner->r.currentOrigin) : 99999.0f;
 
 	const qboolean manual_proj_blocking =
 		(blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
@@ -2338,8 +2336,8 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 	// For Jedi AI
 	blocker->client->ps.saberEventFlags |= SEF_DEFLECTED;
 
-    // Remember original owner for damage credit (may be NULL)
-    bolt->activator = prev_owner;
+	// Remember original owner for damage credit (may be NULL)
+	bolt->activator = prev_owner;
 
 	// Manual missile‑blocking cooldown
 	blocker->client->ps.ManualMBlockingTime = level.time + (600 - blocker->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] * 200);

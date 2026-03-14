@@ -1723,6 +1723,7 @@ typedef struct cgEffects_s {
 
 	fxHandle_t	mSparks;
 	fxHandle_t	mSaberCut;
+	fxHandle_t	mSaberCutMD;
 	fxHandle_t	mDroidCut;
 	fxHandle_t	mDroidtouch;
 	fxHandle_t	mTurretMuzzleFlash;

@@ -3,11 +3,11 @@
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
 
-This file is part of the MovieDuels source code.
+This file is part of the SerenityJediEngine2026 source code.
 
-MovieDuels is free software; you can redistribute it and/or modify it
+SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -28,7 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
 ///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/movie-duels											///
+///								    https://www.moddb.com/mods/serenityjediengine-20											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -223,8 +223,6 @@ cvar_t* r_com_rend2;
 
 cvar_t* com_outcast;
 
-cvar_t* g_DebugSaberCombat;
-
 /*
 Ghoul2 Insert End
 */
@@ -294,9 +292,8 @@ void RE_GetBModelVerts(const int bmodelIndex, vec3_t* verts, vec3_t normal);
 
 static void R_Splash()
 {
-	image_t* pImage = R_FindImageFile("menu/splash", qfalse, qfalse, qfalse, GL_CLAMP);
-
-	/*const int splash_pick = rand() % 5;
+	image_t* pImage;
+	const int splash_pick = rand() % 5;
 
 	switch (splash_pick)
 	{
@@ -318,7 +315,7 @@ static void R_Splash()
 	default:
 		pImage = R_FindImageFile("menu/splash", qfalse, qfalse, qfalse, GL_CLAMP);
 		break;
-	}*/
+	}
 
 	extern void	RB_SetGL2D();
 	RB_SetGL2D();
@@ -791,7 +788,7 @@ static const char* TruncateGLExtensionsString(const char* extensions_string, con
 	int num_extensions = 0;
 	size_t extensions_len = strlen(extensions_string);
 
-	while ((q = strchr(p, ' ')) != nullptr && num_extensions < max_extensions)
+	while ((q = strchr(p, ' ')) != nullptr && num_extensions <= max_extensions)
 	{
 		p = q + 1;
 		num_extensions++;
@@ -1724,8 +1721,6 @@ static void R_Register()
 	r_com_rend2 = ri->Cvar_Get("com_rend2", "0", CVAR_ARCHIVE, "");
 
 	com_outcast = ri->Cvar_Get("com_outcast", "0", CVAR_ARCHIVE, "");
-
-	g_DebugSaberCombat = ri->Cvar_Get("g_DebugSaberCombat", "0", CVAR_ARCHIVE, "");
 
 	r_modelpoolmegs = ri->Cvar_Get("r_modelpoolmegs", "20", CVAR_ARCHIVE, "");
 	if (ri->Sys_LowPhysicalMemory())

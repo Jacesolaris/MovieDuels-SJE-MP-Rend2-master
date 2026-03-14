@@ -62,8 +62,7 @@ struct surfaceInfo_t
 		, genBarycentricI(0)
 		, genPolySurfaceIndex(0)
 		, genLod(0)
-	{
-	}
+	{}
 };
 
 #define MDXABONEDEF				// used in the mdxformat.h file to stop redefinitions of the bone struct.
@@ -231,8 +230,7 @@ struct boltInfo_t
 		surfaceNumber(-1),
 		surfaceType(0),
 		boltUsed(0), position()
-	{
-	}
+	{}
 };
 
 #ifdef _SOF2

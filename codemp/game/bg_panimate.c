@@ -55,6 +55,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_public.h"
 #include <qcommon\q_math.h>
 #include <qcommon\q_platform.h>
+#include <qcommon\q_color.h>
 
 qboolean PM_SaberInTransition(int move);
 qboolean PM_SaberInDeflect(int move);
@@ -4766,8 +4767,7 @@ void BG_InitAnimsets(void)
 
 //ALWAYS call on game/cgame shutdown
 void BG_ClearAnimsets()
-{
-}
+{}
 
 static animation_t* BG_AnimsetAlloc(void)
 {
@@ -4778,8 +4778,7 @@ static animation_t* BG_AnimsetAlloc(void)
 }
 
 static void BG_AnimsetFree()
-{
-}
+{}
 
 #ifdef _CGAME //none of this is actually needed server side. Could just be moved to cgame code but it's here since it used to tie in a lot with the anim loading stuff.
 
@@ -5049,10 +5048,10 @@ static void ParseAnimationEvtBlock(const char* aeb_filename, animevent_t* anim_e
 
 		if (animations[anim_num].numFrames == 0)
 		{
-			//we don't use this anim
-			Com_Printf(S_COLOR_YELLOW"WARNING: %s mpanimevents.cfg: anim %s not used by this model\n", aeb_filename,
-				token);
-			//skip this entry
+#ifndef FINAL_BUILD
+			Com_Printf(S_COLOR_YELLOW"WARNING: %s mpanimevents.cfg: anim %s not used by this model\n",
+				aeb_filename, token);
+#endif
 			SkipRestOfLine(text_p);
 			continue;
 		}
@@ -5152,7 +5151,6 @@ static void ParseAnimationEvtBlock(const char* aeb_filename, animevent_t* anim_e
 				{
 					if (string_data[0] == '*')
 					{
-						//FIXME? Would be nice to make custom sounds work with mpanimevents.
 						anim_events[cur_anim_event].eventData[num] = 0;
 					}
 					else
@@ -5166,7 +5164,6 @@ static void ParseAnimationEvtBlock(const char* aeb_filename, animevent_t* anim_e
 			{
 				if (string_data[0] == '*')
 				{
-					//FIXME? Would be nice to make custom sounds work with mpanimevents.
 					anim_events[cur_anim_event].eventData[AED_SOUNDINDEX_START] = 0;
 				}
 				else
@@ -5174,8 +5171,7 @@ static void ParseAnimationEvtBlock(const char* aeb_filename, animevent_t* anim_e
 					anim_events[cur_anim_event].eventData[AED_SOUNDINDEX_START] = trap->S_RegisterSound(string_data);
 				}
 #ifndef FINAL_BUILD
-				if (!animEvents[curAnimEvent].eventData[AED_SOUNDINDEX_START] &&
-					stringData[0] != '*')
+				if (!animEvents[curAnimEvent].eventData[AED_SOUNDINDEX_START] && stringData[0] != '*')
 				{//couldn't register it - file not found
 					Com_Printf(S_COLOR_RED "ParseAnimationSndBlock: sound %s does not exist (mpanimevents.cfg %s)!\n", stringData, aeb_filename);
 				}
@@ -5425,7 +5421,19 @@ int BG_ParseAnimationEvtFile(const char* as_filename, const int animFileIndex, c
 	}
 
 	// Build full path to mpanimevents.cfg
-	Com_sprintf(sfilename, sizeof(sfilename), "%smpanimevents.cfg", as_filename);
+	// safe vehicle-based selection of event file
+	if (as_filename && strstr(as_filename, "droideka2"))
+	{
+		Com_sprintf(sfilename, sizeof(sfilename), "models/players/droideka2/animevents.cfg");
+	}
+	else if (as_filename && strstr(as_filename, "sbd_mp"))
+	{
+		Com_sprintf(sfilename, sizeof(sfilename), "models/players/sbd_mp/animevents.cfg");
+	}
+	else
+	{
+		Com_sprintf(sfilename, sizeof(sfilename), "%smpanimevents.cfg", as_filename);
+	}
 
 	// Initialize event arrays (only when not inside an include)
 	if (bg_animParseIncluding <= 0)

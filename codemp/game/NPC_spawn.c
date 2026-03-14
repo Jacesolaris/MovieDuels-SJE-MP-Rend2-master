@@ -28,6 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_saga.h"
 #include "bg_vehicles.h"
 #include "g_nav.h"
+#include "b_public.h"
 
 extern void G_DebugPrint(int level, const char* format, ...);
 
@@ -1163,8 +1164,7 @@ NPC_SpawnEffect
 */
 
 static void NPC_SpawnEffect(gentity_t* ent)
-{
-}
+{}
 
 //--------------------------------------------------------------
 // NPC_SetFX_SpawnStates
@@ -4797,7 +4797,6 @@ static void NPC_FindSpawnPoint(const gentity_t* ent, vec3_t out)
 
 	out[2] += 24;
 }
-
 
 gentity_t* NPC_SpawnType(const gentity_t* ent, const char* npc_type, const char* targetname, qboolean isVehicle)
 {

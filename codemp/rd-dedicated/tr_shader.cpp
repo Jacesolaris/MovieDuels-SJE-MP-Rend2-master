@@ -3,11 +3,11 @@
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
 
-This file is part of the MovieDuels source code.
+This file is part of the SerenityJediEngine2026 source code.
 
-MovieDuels is free software; you can redistribute it and/or modify it
+SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -2029,8 +2029,7 @@ using infoParm_t = struct infoParm_s
 
 	infoParm_s(const char* name, const uint32_t& clearSolid, const uint32_t& surfaceFlags, const uint32_t& contents)
 		: name(name), clearSolid(clearSolid), surfaceFlags(surfaceFlags), contents(contents)
-	{
-	}
+	{}
 };
 
 infoParm_t info_Parms[] = {
@@ -2398,8 +2397,7 @@ sortedIndex.
 extern bool gServerSkinHack;
 
 static void FixRenderCommandList(const int newShader)
-{
-}
+{}
 
 /*
 ==============
@@ -2632,8 +2630,6 @@ Returns a freshly allocated shader with all the needed info
 from the current global working shader
 =========================
 */
-
-extern cvar_t* g_DebugSaberCombat;
 static shader_t* FinishShader(void)
 {
 	int stage, lm_stage; //rwwRMG - stageIndex for AGEN_BLEND
@@ -2750,10 +2746,7 @@ static shader_t* FinishShader(void)
 		// check for a missing texture
 		if (!pStage->bundle[0].image)
 		{
-			if (g_DebugSaberCombat->integer != 0)
-			{
-				Com_Printf(S_COLOR_YELLOW "Shader %s has a stage with no image\n", shader.name);
-			}
+			Com_Printf(S_COLOR_YELLOW "Shader %s has a stage with no image\n", shader.name);
 			pStage->active = qfalse;
 			stage++;
 			continue;

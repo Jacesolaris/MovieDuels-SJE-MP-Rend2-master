@@ -2,11 +2,11 @@
 ===========================================================================
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
 
-This file is part of the MovieDuels source code.
+This file is part of the SerenityJediEngine2026 source code.
 
-MovieDuels is free software; you can redistribute it and/or modify it
+SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -159,23 +159,7 @@ typedef struct mdxaBone_s {
 #endif
 
 ////////////////////////////////////
-#ifdef __cplusplus
-static inline void MDXA_Identity(mdxaBone_t& m)
-{
-	memset(&m, 0, sizeof(mdxaBone_t));
-	m.matrix[0][0] = 1.0f;
-	m.matrix[1][1] = 1.0f;
-	m.matrix[2][2] = 1.0f;
-}
-#else
-static inline void MDXA_Identity(mdxaBone_t* m)
-{
-	memset(m, 0, sizeof(mdxaBone_t));
-	m->matrix[0][0] = 1.0f;
-	m->matrix[1][1] = 1.0f;
-	m->matrix[2][2] = 1.0f;
-}
-#endif
+
 // mdxHeader_t  - this contains the header for the file, with sanity checking and version checking, plus number of lod's to be expected
 //
 typedef struct mdxmHeader_s {
