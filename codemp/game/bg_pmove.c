@@ -54,6 +54,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <qcommon\q_platform.h>
 #include "anims.h"
 #include <stdlib.h>
+#include <math.h>
 
 #define MAX_WEAPON_CHARGE_TIME 5000
 
@@ -3373,7 +3374,7 @@ static qboolean LedgeGrabableEntity(const int entityNum)
 }
 
 //Switch to this animation and keep repeating this animation while updating its timers
-void PM_AdjustAngleForWallGrab(playerState_t* ps, usercmd_t* ucmd)
+static void PM_AdjustAngleForWallGrab(playerState_t* ps, usercmd_t* ucmd)
 {
 	if (ps->pm_flags & PMF_STUCK_TO_WALL && PM_InLedgeMove(ps->legsAnim))
 	{

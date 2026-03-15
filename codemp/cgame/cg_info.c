@@ -30,6 +30,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <game\bg_weapons.h>
 #include <qcommon\q_color.h>
+#include <qcommon\q_math.h>
+#include <game\bg_public.h>
+#include <qcommon\q_string.h>
 
 #define MAX_LOADING_PLAYER_ICONS	16
 #define MAX_LOADING_ITEM_ICONS		26

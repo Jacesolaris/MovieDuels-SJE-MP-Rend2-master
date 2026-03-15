@@ -47,6 +47,10 @@ USER INTERFACE MAIN
 #include <qcommon\q_shared.h>
 #include <game\bg_weapons.h>
 #include "ui_public.h"
+#include "keycodes.h"
+#include <qcommon\q_color.h>
+#include <qcommon\q_string.h>
+#include <assert.h>
 
 extern void UI_SaberAttachToChar(itemDef_t* item);
 
@@ -974,7 +978,7 @@ static void UI_SetActiveMenu(uiMenuCommand_t menu)
 	if (Menu_Count() > 0)
 	{
 		char buf[256];
-		vec3_t v;
+		vec3_t v = { 0 };
 		v[0] = v[1] = v[2] = 0;
 		switch (menu)
 		{
@@ -2178,7 +2182,7 @@ static void UI_DrawJediNonJedi(rectDef_t* rect, float scale, vec4_t color, int t
 	char s[256];
 	//menuDef_t *menu;
 
-	char info[MAX_INFO_VALUE];
+	char info[MAX_INFO_VALUE] = { 0 };
 
 	int i = val;
 	if (i < min || i > max)
@@ -2222,7 +2226,7 @@ static void UI_DrawTeamMember(rectDef_t* rect, float scale, vec4_t color, qboole
 	int value = trap->Cvar_VariableValue(va(blue ? "ui_blueteam%i" : "ui_redteam%i", num));
 	const char* text;
 	const int maxcl = trap->Cvar_VariableValue("sv_maxClients");
-	vec4_t finalColor;
+	vec4_t finalColor = { 0 };
 	int numval = num;
 
 	numval *= 2;
@@ -3192,7 +3196,7 @@ static void UI_DrawServerRefreshDate(rectDef_t* rect, float scale, vec4_t color,
 {
 	if (uiInfo.serverStatus.refreshActive)
 	{
-		vec4_t lowLight, newColor;
+		vec4_t lowLight = {0}, newColor;
 		lowLight[0] = 0.8 * color[0];
 		lowLight[1] = 0.8 * color[1];
 		lowLight[2] = 0.8 * color[2];
@@ -3366,7 +3370,7 @@ static void UI_OwnerDraw(float x, float y, float w, float h, float text_x, float
 	int ownerDrawFlags, int align, float special, float scale, vec4_t color, qhandle_t shader,
 	int textStyle, int i_menu_font)
 {
-	rectDef_t rect;
+	rectDef_t rect = { 0 };
 	int findex;
 	int drawRank;
 	int iUse;
@@ -4632,27 +4636,6 @@ static qboolean UI_SelectedPlayer_HandleKey(int flags, float* special, int key)
 	return qfalse;
 }
 
-/*
-static qboolean UI_VoiceChat_HandleKey(int flags, float *special, int key)
-{
-	qboolean ret = qfalse;
-
-	switch(key)
-	{
-		case A_1:
-		case A_KP_1:
-			ret = qtrue;
-			break;
-		case A_2:
-		case A_KP_2:
-			ret = qtrue;
-			break;
-	}
-
-	return ret;
-}
-*/
-
 static qboolean UI_OwnerDrawHandleKey(int ownerDraw, int flags, float* special, int key)
 {
 	int findex;
@@ -4783,9 +4766,6 @@ static qboolean UI_OwnerDrawHandleKey(int ownerDraw, int flags, float* special, 
 	case UI_SELECTEDPLAYER:
 		UI_SelectedPlayer_HandleKey(flags, special, key);
 		break;
-		//	case UI_VOICECHAT:
-		//		UI_VoiceChat_HandleKey(flags, special, key);
-		//		break;
 	default:
 		break;
 	}
@@ -5407,7 +5387,7 @@ their real counterparts.  This is to create a interface which allows
 you to discard your changes if you did something you didnt want
 =================
 */
-void UI_UpdateVideoSetup(void)
+static void UI_UpdateVideoSetup(void)
 {
 	trap->Cvar_Set("r_mode", UI_Cvar_VariableString("ui_r_mode"));
 	trap->Cvar_Set("r_fullscreen", UI_Cvar_VariableString("ui_r_fullscreen"));
@@ -5437,7 +5417,7 @@ Retrieves the current actual video settings into the temporary user
 interface versions of the cvars.
 =================
 */
-void UI_GetVideoSetup(void)
+static void UI_GetVideoSetup(void)
 {
 	trap->Cvar_Register(NULL, "ui_r_glCustom", "4", CVAR_INTERNAL | CVAR_ARCHIVE);
 
@@ -10284,7 +10264,7 @@ void UI_LoadForceConfig_List(void)
 {
 	int numfiles;
 	char filelist[2048];
-	int filelen;
+	int filelen = 0;
 	qboolean lightSearch = qfalse;
 
 	uiInfo.forceConfigCount = 0;
@@ -11479,7 +11459,7 @@ static void UI_DrawConnectScreen(qboolean overlay)
 {
 	const char* s;
 	uiClientState_t cstate;
-	char info[MAX_INFO_VALUE];
+	char info[MAX_INFO_VALUE] = { 0 };
 	float centerPoint, yStart, scale;
 
 	char sStringEdTemp[256];

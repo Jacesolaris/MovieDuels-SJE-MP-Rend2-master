@@ -3,11 +3,11 @@
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
 Copyright (C) 2005 - 2015, ioquake3 contributors
-Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
+Copyright (C) 2013 - 2015, MovieDuels contributors
 
-This file is part of the SerenityJediEngine2026 source code.
+This file is part of the MovieDuels source code.
 
-SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
+MovieDuels is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 

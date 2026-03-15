@@ -3091,6 +3091,9 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "tauntaun")
 			|| Class_Model(model, "tie_bomber")
 			|| Class_Model(model, "tie_fighter")
+			|| Class_Model(model, "droideka")
+			|| Class_Model(model, "droideka/main")
+			|| Class_Model(model, "droideka_mp")
 			|| Class_Model(model, "x-wing")
 			|| Class_Model(model, "z-95"))
 		{
@@ -3140,6 +3143,8 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "cyber_maul_mp/robed")
 			|| Class_Model(model, "cyber_maul_mp/hood")
 			|| Class_Model(model, "darthmaul")
+			|| Class_Model(model, "darthmaul/robed")
+			|| Class_Model(model, "darthmaul/hood")
 			|| Class_Model(model, "cyber_maul")
 			|| Class_Model(model, "cyber_maul/robed")
 			|| Class_Model(model, "cyber_maul/hood")
@@ -3221,7 +3226,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SITHWORRIOR1;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "alora")
@@ -3236,14 +3241,14 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_ALORA;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "assassin_droid"))
 		{
 			client->pers.nextbotclass = BCLASS_ASSASSIN_DROID;
 			client->pers.botmodelscale = BOTZIZE_LARGE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "biker_scout")
@@ -3257,7 +3262,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "aurrasing"))
 		{
 			client->pers.nextbotclass = BCLASS_BESPIN_COP;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "lahansolo/main")
@@ -3292,14 +3297,11 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_st_poe")
 			|| Class_Model(model, "Krennic")
 			|| Class_Model(model, "dash_rendar/default")
-			|| Class_Model(model, "dash_rendar")
-			|| Class_Model(model, "hux")
-			|| Class_Model(model, "hux/coat")
-			|| Class_Model(model, "hux/coat_hat"))
+			|| Class_Model(model, "dash_rendar"))
 		{
 			client->pers.nextbotclass = BCLASS_STORMPILOT;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "trooper3/default")
@@ -3325,39 +3327,41 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "bobafett/nohelm")
 			|| Class_Model(model, "bobafett/mand2")
 			|| Class_Model(model, "bobafett/nohelm2")
-			|| Class_Model(model, "dindjarin")
-			|| Class_Model(model, "mando_arm")
-			|| Class_Model(model, "sabine")
 			|| Class_Model(model, "mando_arm/jetpack")
 			|| Class_Model(model, "pazvizsla")
+			|| Class_Model(model, "jangofett/jetpack2")
 			|| Class_Model(model, "dindjarin/jetpack"))
 		{
 			client->pers.nextbotclass = BCLASS_BOBAFETT;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "durge/jetpack"))
 		{
 			client->pers.nextbotclass = BCLASS_BOBAFETT;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
-		else if (Class_Model(model, "jangofett_mp"))
+		else if (Class_Model(model, "jangofett_mp")
+			|| Class_Model(model, "jangofett")
+			|| Class_Model(model, "mando_arm")
+			|| Class_Model(model, "dindjarin"))
 		{
 			client->pers.nextbotclass = BCLASS_JANGO_NOJP;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "chiss")
 			|| Class_Model(model, "chiss/red")
+			|| Class_Model(model, "thrawn")
 			|| Class_Model(model, "chiss/blue"))
 		{
 			client->pers.nextbotclass = BCLASS_BARTENDER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "chewbacca")
@@ -3379,7 +3383,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_CHEWIE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "wookiee/blue")
@@ -3387,14 +3391,14 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_WOOKIEMELEE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "wookiee/red"))
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_WOOKIE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "mandalore")
@@ -3406,7 +3410,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_WOOKIE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "bao_dur")
@@ -3426,7 +3430,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_WOOKIE;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "cultist")
@@ -3436,7 +3440,16 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_CULTIST;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
+		else if (Class_Model(model, "shin")
+			|| Class_Model(model, "shin/cloak")
+			|| Class_Model(model, "shin/hood"))
+		{
+			client->pers.nextbotclass = BCLASS_CULTIST;
+			client->pers.botmodelscale = BOTZIZE_SMALL;
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "desann")
@@ -3446,11 +3459,13 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "desann/dark_robed")
 			|| Class_Model(model, "desann/unrobed")
 			|| Class_Model(model, "desann/robed")
-			|| Class_Model(model, "desann/default"))
+			|| Class_Model(model, "desann/default")
+			|| Class_Model(model, "baylan")
+			|| Class_Model(model, "baylan/cape"))
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGE;
 			client->pers.nextbotclass = BCLASS_DESANN;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "kylo_ren")
@@ -3463,12 +3478,22 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "kylo_ren_mp/ros")
 			|| Class_Model(model, "kylo_ren_mp/ros_hood")
 			|| Class_Model(model, "kylo")
+			|| Class_Model(model, "kylo_ren/ros")
+			|| Class_Model(model, "kylo_ren/ros_hood")
+			|| Class_Model(model, "kylo_ren/ros_nomask")
+			|| Class_Model(model, "kylo_ren/nomask")
+			|| Class_Model(model, "kylo_ren/nohood")
+			|| Class_Model(model, "kylo_ren/tlj_nomaska")
+			|| Class_Model(model, "kylo_ren/tlj_nomaskb")
+			|| Class_Model(model, "kylo_ren/tlj")
 			|| Class_Model(model, "kylomp")
 			|| Class_Model(model, "kylo_ren_mp")
 			|| Class_Model(model, "KyloRen")
 			|| Class_Model(model, "KyloRenK")
 			|| Class_Model(model, "kylo_ren/")
+			|| Class_Model(model, "kylo_ren")
 			|| Class_Model(model, "Matt_TRT")
+			|| Class_Model(model, "ben_swolo")
 			|| Class_Model(model, "batman_begins")
 			|| Class_Model(model, "secondsister")
 			|| Class_Model(model, "9thsister")
@@ -3476,7 +3501,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_TALL;
 			client->pers.nextbotclass = BCLASS_UNSTABLESABER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "prisoner")
@@ -3485,7 +3510,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_ELDER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "galak")
@@ -3498,7 +3523,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_GALAK;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "galakmech")
@@ -3511,7 +3536,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_GALAKMECH;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "canderous")
@@ -3521,7 +3546,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_BOUNTYHUNTER1;
 			client->pers.botmodelscale = BOTZIZE_TALL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "gran")
@@ -3533,7 +3558,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_GRAN;
 			client->pers.botmodelscale = BOTZIZE_LARGE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "hazardtrooper")
@@ -3542,7 +3567,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_HAZARDTROOPER;
 			client->pers.botmodelscale = BOTZIZE_LARGER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "human_merc")
@@ -3552,7 +3577,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_HUMAN_MERC;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "imperial")
@@ -3562,7 +3587,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_IMPERIAL;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "imperial/red")
@@ -3570,7 +3595,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_IPPERIALAGENT3;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "imperial_worker")
@@ -3579,7 +3604,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_IMPWORKER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jan")
@@ -3606,11 +3631,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "padme3a/main")
 			|| Class_Model(model, "padme3b/main")
 			|| Class_Model(model, "padmebt/main")
-			|| Class_Model(model, "st_finn")
-			|| Class_Model(model, "jedi_st_finn")
 			|| Class_Model(model, "padme/main")
+			|| Class_Model(model, "padme_ep2/default_bw")
 			|| Class_Model(model, "md_pad_ga")
 			|| Class_Model(model, "md_padme_mus")
+			|| Class_Model(model, "pad_ga")
+			|| Class_Model(model, "padme_mus")
 			|| Class_Model(model, "leia_hoth")
 			|| Class_Model(model, "leia_hoth/default")
 			|| Class_Model(model, "atton")
@@ -3619,7 +3645,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_JAN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jawa")
@@ -3629,19 +3655,24 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALLER;
 			client->pers.nextbotclass = BCLASS_JAWA;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "finn_mp")
+			|| Class_Model(model, "st_finn")
+			|| Class_Model(model, "jedi_st_finn")
+			|| Class_Model(model, "sabine")
+			|| Class_Model(model, "gideon")
 			|| Class_Model(model, "finn"))
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_JEDICONSULAR1;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi")
 			|| Class_Model(model, "md_ongree")
+			|| Class_Model(model, "ongree/robed")
 			|| Class_Model(model, "md_jed1")
 			|| Class_Model(model, "md_jed2")
 			|| Class_Model(model, "md_jed3")
@@ -3663,6 +3694,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "md_sora")
 			|| Class_Model(model, "jedi/j2")
 			|| Class_Model(model, "boc_mp")
+			|| Class_Model(model, "jedibrute")
 			|| Class_Model(model, "asharad_hett_mp")
 			|| Class_Model(model, "asharad_hett_mp/tusken")
 			|| Class_Model(model, "asharad_hett")
@@ -3672,6 +3704,8 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "taron_malicos_mp")
 			|| Class_Model(model, "tarados_gon_mp")
 			|| Class_Model(model, "zabrak_rots_mp")
+			|| Class_Model(model, "tarados_gon")
+			|| Class_Model(model, "zabrak_rots")
 			|| Class_Model(model, "sariss_mp")
 			|| Class_Model(model, "sariss")
 			|| Class_Model(model, "sariss_mp/cape")
@@ -3682,22 +3716,20 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "saesee_tiin/robed")
 			|| Class_Model(model, "sora_bulq_mp")
 			|| Class_Model(model, "redathgom_mp")
+			|| Class_Model(model, "sora_bulq")
+			|| Class_Model(model, "redathgom")
 			|| Class_Model(model, "revan_jedi_mp")
 			|| Class_Model(model, "revan_jedi")
 			|| Class_Model(model, "micah_giiett_mp")
 			|| Class_Model(model, "micah_giiett")
+			|| Class_Model(model, "micah_giiett/robed")
 			|| Class_Model(model, "ben_solo_mp")
 			|| Class_Model(model, "ben_solo")
-			|| Class_Model(model, "jedi_female1_mp")
-			|| Class_Model(model, "jedi_female1a_mp")
-			|| Class_Model(model, "jedi_female2_mp")
-			|| Class_Model(model, "jedi_female2a_mp")
-			|| Class_Model(model, "jedi_female3_mp")
-			|| Class_Model(model, "jedi_female3a_mp")
 			|| Class_Model(model, "jedi_nikto_mp")
-			|| Class_Model(model, "quinlan_vos")
+			|| Class_Model(model, "jedi_nikto")
+			|| Class_Model(model, "jedi_nikto/robed")
 			|| Class_Model(model, "md_quinlan")
-			|| Class_Model(model, "quinlan_vos2")
+			|| Class_Model(model, "jedi_st_tiplee")
 			|| Class_Model(model, "jedi_st_tiplee_mp")
 			|| Class_Model(model, "jedi_st_tiplee/")
 			|| Class_Model(model, "Eeth_Koth/main")
@@ -3720,12 +3752,13 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "muwindu/main")
 			|| Class_Model(model, "mmKiadimundi/main")
 			|| Class_Model(model, "bar/main")
-			|| Class_Model(model, "shaak_ti/main")
 			|| Class_Model(model, "lu/main")
 			|| Class_Model(model, "cin_drallig_mp/cw")
 			|| Class_Model(model, "cin_drallig/cw")
 			|| Class_Model(model, "cin_drallig_mp")
 			|| Class_Model(model, "cin_drallig_mp/old")
+			|| Class_Model(model, "cin_drallig")
+			|| Class_Model(model, "cin_drallig/old")
 			|| Class_Model(model, "cin_drallig_tm")
 			|| Class_Model(model, "cin_drallig_tm/")
 			|| Class_Model(model, "cin_drallig_tm/default")
@@ -3739,20 +3772,19 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "agen_kolar")
 			|| Class_Model(model, "agen_kolar/")
 			|| Class_Model(model, "agen_kolar/default")
+			|| Class_Model(model, "agen_kolar/robed")
 			|| Class_Model(model, "mlkfisto/main")
 			|| Class_Model(model, "kit_fisto/default")
 			|| Class_Model(model, "kit_fisto")
 			|| Class_Model(model, "kitfisto_cw_mp")
 			|| Class_Model(model, "kitfisto_cw")
-			|| Class_Model(model, "ki_adi_mundi_mp")
-			|| Class_Model(model, "ki_adi_mundi")
 			|| Class_Model(model, "Coleman/main")
 			|| Class_Model(model, "coleman_mp")
+			|| Class_Model(model, "coleman")
 			|| Class_Model(model, "coleman_trebor_vm/")
 			|| Class_Model(model, "coleman_trebor_vm/default")
 			|| Class_Model(model, "saesee_tiin/main")
 			|| Class_Model(model, "mhplokoon/main")
-			|| Class_Model(model, "mkyarael/main")
 			|| Class_Model(model, "Anakin_JA/main")
 			|| Class_Model(model, "ani3/main")
 			|| Class_Model(model, "ani3/main2")
@@ -3763,6 +3795,14 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jediconsular1/default")
 			|| Class_Model(model, "jediconsular2/default")
 			|| Class_Model(model, "jediconsular3/default")
+			|| Class_Model(model, "jedi_spanki_jka/head_b4|torso_a4|lower_f1")
+			|| Class_Model(model, "jedi_spanki_jka/head_e5|torso_c1|lower_d1")
+			|| Class_Model(model, "jedi_spanki_jka/head_d5|torso_f1|lower_g1")
+			|| Class_Model(model, "jedi_spanki_jka/head_f1|torso_f2|lower_g1")
+			|| Class_Model(model, "jedi_spanki_jka/head_d1|torso_g1|lower_d1")
+			|| Class_Model(model, "jedi_spanki_jka/head_b2|torso_a3|lower_a1")
+			|| Class_Model(model, "jedi_spanki_jka/head_d4|torso_b2|lower_b1")
+			|| Class_Model(model, "jedi_spanki_jka/head_f1|torso_b4|lower_c1")
 			|| Class_Model(model, "jedi_spanki1a")
 			|| Class_Model(model, "jedi_spanki1b")
 			|| Class_Model(model, "jedi_spanki2")
@@ -3827,9 +3867,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "md_agen_robed")
 			|| Class_Model(model, "md_foul_moudama")
 			|| Class_Model(model, "md_micah_robed")
-			|| Class_Model(model, "md_tsuichoi")
 			|| Class_Model(model, "md_redath_robed")
-			|| Class_Model(model, "md_zett_jukassa")
 			|| Class_Model(model, "md_jed_nikto")
 			|| Class_Model(model, "md_jed_nikto_robed")
 			|| Class_Model(model, "md_joopi_robed")
@@ -3855,6 +3893,8 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jocasta")
 			|| Class_Model(model, "VrookLamar")
 			|| Class_Model(model, "bultar_mp")
+			|| Class_Model(model, "bultar")
+			|| Class_Model(model, "bultar/robed")
 			|| Class_Model(model, "cal_inquisitor_mp")
 			|| Class_Model(model, "cal_inquisitor")
 			|| Class_Model(model, "cal_kestis_jedi")
@@ -3875,9 +3915,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "cal_kestis/default2")
 			|| Class_Model(model, "cal_kestis/default3")
 			|| Class_Model(model, "cal_kestis/default4")
-			|| Class_Model(model, "ezrabridger_mp")
-			|| Class_Model(model, "ezra")
-			|| Class_Model(model, "ezrabridger")
 			|| Class_Model(model, "kanan_mp")
 			|| Class_Model(model, "kanan")
 			|| Class_Model(model, "kanan/blind")
@@ -3885,11 +3922,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "foul_moudama")
 			|| Class_Model(model, "koffi_arana")
 			|| Class_Model(model, "koffi_arana_mp")
+			|| Class_Model(model, "koffi_arana/robed")
 			|| Class_Model(model, "boc"))
 		{
 			client->pers.nextbotclass = BCLASS_JEDI;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "Jedi_GenericFemale1")
@@ -3906,21 +3944,30 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "barriss_mp")
 			|| Class_Model(model, "md_barriss")
 			|| Class_Model(model, "barriss_offee_mp")
+			|| Class_Model(model, "barriss_offee")
 			|| Class_Model(model, "lxjade/main")
 			|| Class_Model(model, "ahsoka_mp")
 			|| Class_Model(model, "ahsoka")
-			|| Class_Model(model, "ahsoka_tm")
 			|| Class_Model(model, "ahsoka_rebels_mp")
+			|| Class_Model(model, "ahsoka_rebels")
 			|| Class_Model(model, "anakin_ep2_mp")
 			|| Class_Model(model, "anakin_ep2_mp/hood")
+			|| Class_Model(model, "anakin_ep2")
+			|| Class_Model(model, "anakin_ep2/hood")
+			|| Class_Model(model, "anakin_ep2/robed")
 			|| Class_Model(model, "md_stass_allie")
 			|| Class_Model(model, "md_stass_allie_robed")
 			|| Class_Model(model, "md_sarissa_jeng")
 			|| Class_Model(model, "caleb_dume_mp/robed")
 			|| Class_Model(model, "caleb_dume_mp/hooded")
 			|| Class_Model(model, "caleb_dume_mp")
+			|| Class_Model(model, "caleb_dume/robed")
+			|| Class_Model(model, "caleb_dume/hooded")
+			|| Class_Model(model, "caleb_dume")
 			|| Class_Model(model, "jedi_zf")
 			|| Class_Model(model, "jedi_tf")
+			|| Class_Model(model, "jedi_tf/head_b4|torso_b1|lower_a1")
+			|| Class_Model(model, "jedi_zf/head_c1|torso_b1|lower_a1")
 			|| Class_Model(model, "yun_mp")
 			|| Class_Model(model, "md_serra")
 			|| Class_Model(model, "md_jocasta")
@@ -3938,6 +3985,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "even_piell_mp")
 			|| Class_Model(model, "even_piell")
 			|| Class_Model(model, "stass_allie")
+			|| Class_Model(model, "stass_allie/robed")
 			|| Class_Model(model, "serraketo")
 			|| Class_Model(model, "sarissa_jeng")
 			|| Class_Model(model, "depabillaba")
@@ -3948,11 +3996,28 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "ExileFemaleLightSideUR")
 			|| Class_Model(model, "adi_gallia/robed")
 			|| Class_Model(model, "md_even_piell")
+			|| Class_Model(model, "ezrabridger_mp")
+			|| Class_Model(model, "ezra")
+			|| Class_Model(model, "ezrabridger")
+			|| Class_Model(model, "jedi_female1/head_d3|torso_f1|lower_e1")
+			|| Class_Model(model, "jedi_female1/head_c2|torso_d2|lower_f1")
+			|| Class_Model(model, "jedi_female1_mp")
+			|| Class_Model(model, "jedi_female1a_mp")
+			|| Class_Model(model, "jedi_female2_mp")
+			|| Class_Model(model, "jedi_female2a_mp")
+			|| Class_Model(model, "jedi_female3_mp")
+			|| Class_Model(model, "jedi_female3a_mp")
+			|| Class_Model(model, "jedi_female1")
+			|| Class_Model(model, "jedi_female1a")
+			|| Class_Model(model, "jedi_female2")
+			|| Class_Model(model, "jedi_female2a")
+			|| Class_Model(model, "jedi_female3")
+			|| Class_Model(model, "jedi_female3a")
 			|| Class_Model(model, "adi_gallia"))
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALL;
 			client->pers.nextbotclass = BCLASS_JEDI;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi_hm")
@@ -3967,7 +4032,7 @@ qboolean client_userinfo_changed(const int clientNum)
 				client->pers.nextbotclass = BCLASS_JEDI;
 			}
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi_hf"))
@@ -3981,7 +4046,7 @@ qboolean client_userinfo_changed(const int clientNum)
 				client->pers.nextbotclass = BCLASS_JEDI;
 			}
 			client->pers.botmodelscale = BOTZIZE_SMALL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "Obinew2/main")
@@ -4030,11 +4095,13 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "obiwan_ep3_mp/bw")
 			|| Class_Model(model, "obiwan_ep1")
 			|| Class_Model(model, "obiwan_ep1/hooded")
+			|| Class_Model(model, "obiwan_ep1/robed")
 			|| Class_Model(model, "obiwan_ep2")
 			|| Class_Model(model, "obiwan_ep2/robed")
 			|| Class_Model(model, "obiwan_ep2/hooded")
 			|| Class_Model(model, "obiwan_ep3/robed")
 			|| Class_Model(model, "obiwan_ep3/hood")
+			|| Class_Model(model, "obiwan_ep3")
 			|| Class_Model(model, "obiwan_ep3/bw")
 			|| Class_Model(model, "obiwan_tcw_mp")
 			|| Class_Model(model, "obiwan_tcw")
@@ -4043,7 +4110,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_OBIWAN;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi/master")
@@ -4051,7 +4118,9 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "agen_kolar")
 			|| Class_Model(model, "ahsoka_s7_mp")
 			|| Class_Model(model, "ahsoka_s7")
-			|| Class_Model(model, "anakin_mp")
+			|| Class_Model(model, "anakin")
+			|| Class_Model(model, "anakin/mus")
+			|| Class_Model(model, "anakin/shood")
 			|| Class_Model(model, "anakin_mp/robed")
 			|| Class_Model(model, "anakin_mp/hood")
 			|| Class_Model(model, "anakin/robed")
@@ -4065,7 +4134,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_JEDIMASTER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jeditrainer")
@@ -4074,7 +4143,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_JEDITRAINER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "kyle")
@@ -4099,7 +4168,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "mace_winduvm")
 			|| Class_Model(model, "mace_winduvm/default_robed")
 			|| Class_Model(model, "jedi_quigon")
-			|| Class_Model(model, "Quigon")
 			|| Class_Model(model, "fisto_mp")
 			|| Class_Model(model, "fisto_mp/robed")
 			|| Class_Model(model, "fisto_mp/cw")
@@ -4116,12 +4184,15 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "quigon/ghost")
 			|| Class_Model(model, "plo_koon_mp")
 			|| Class_Model(model, "plo_koon_mp/jpb")
+			|| Class_Model(model, "plo_koon")
+			|| Class_Model(model, "plo_koon/jpb")
 			|| Class_Model(model, "plo_tcw_mp")
 			|| Class_Model(model, "plo_tcw")
 			|| Class_Model(model, "quinlan_vos_mp")
 			|| Class_Model(model, "saesee_tiin_mp")
 			|| Class_Model(model, "ki_adi_mundi_mp")
 			|| Class_Model(model, "quinlan_vos")
+			|| Class_Model(model, "quinlan_vos2")
 			|| Class_Model(model, "saesee_tiin")
 			|| Class_Model(model, "ki_adi_mundi")
 			|| Class_Model(model, "kota_mp")
@@ -4157,25 +4228,36 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_KYLE;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "Shaaktivm")
 			|| Class_Model(model, "jedi_shaakti")
 			|| Class_Model(model, "shaak_ti_mp")
+			|| Class_Model(model, "shaak_ti")
+			|| Class_Model(model, "shaak_ti/main")
 			|| Class_Model(model, "shaakti_tfu")
 			|| Class_Model(model, "bastila")
+			|| Class_Model(model, "rey/head_a1|torso_a1|lower_a1")
+			|| Class_Model(model, "rey")
+			|| Class_Model(model, "rey_mp")
+			|| Class_Model(model, "rey_mp/resistance")
+			|| Class_Model(model, "rey/resistance")
+			|| Class_Model(model, "rey_skywalker_mp")
+			|| Class_Model(model, "rey_skywalker_mp/hood")
+			|| Class_Model(model, "rey/jedi")
+			|| Class_Model(model, "rey_skywalker")
+			|| Class_Model(model, "rey_skywalker/hood")
+			|| Class_Model(model, "rey_mp/jedi")
 			|| Class_Model(model, "brianna"))
 		{
 			client->pers.nextbotclass = BCLASS_KYLE;
 			client->pers.botmodelscale = BOTZIZE_SMALL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "lando")
 			|| Class_Model(model, "landoT")
-			|| Class_Model(model, "rex_endor")
-			|| Class_Model(model, "rex_old")
 			|| Class_Model(model, "Kyle_officer")
 			|| Class_Model(model, "kyledf1")
 			|| Class_Model(model, "landoT/endor")
@@ -4196,29 +4278,21 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_LANDO;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "k2so"))
 		{
 			client->pers.nextbotclass = BCLASS_LANDO;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "luke")
-			|| Class_Model(model, "ben_swolo_mp")
 			|| Class_Model(model, "luke/")
 			|| Class_Model(model, "lukejka")
 			|| Class_Model(model, "lukejka/")
 			|| Class_Model(model, "luke_tfa")
-			|| Class_Model(model, "rey/head_a1|torso_a1|lower_a1")
-			|| Class_Model(model, "rey")
-			|| Class_Model(model, "rey_mp")
-			|| Class_Model(model, "rey_mp/resistance")
-			|| Class_Model(model, "rey_skywalker_mp")
-			|| Class_Model(model, "rey_skywalker_mp/hood")
-			|| Class_Model(model, "rey_mp/jedi")
 			|| Class_Model(model, "st_rey")
 			|| Class_Model(model, "jedi_st_rey")
 			|| Class_Model(model, "lb/")
@@ -4247,7 +4321,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_anakin")
 			|| Class_Model(model, "adi/main")
 			|| Class_Model(model, "md_adi_tcw")
-			|| Class_Model(model, "shaak_ti/main")
 			|| Class_Model(model, "mgaaylasecura/")
 			|| Class_Model(model, "mgaaylasecura/main")
 			|| Class_Model(model, "jedi_anakin2")
@@ -4255,6 +4328,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "ajunta")
 			|| Class_Model(model, "Atris")
 			|| Class_Model(model, "luminara_mp")
+			|| Class_Model(model, "luminara")
 			|| Class_Model(model, "luke_crait_mp")
 			|| Class_Model(model, "luke_tbobf_mp")
 			|| Class_Model(model, "luke_tbobf_mp/robe")
@@ -4313,7 +4387,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_LUKE;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "ea_ep2anakin")
@@ -4323,7 +4397,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_DUELS;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "monmothma")
@@ -4335,7 +4409,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_MONMOTHMA;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "morgan")
@@ -4344,7 +4418,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_MORGANKATARN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "noghri")
@@ -4353,7 +4427,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_NOGHRI;
 			client->pers.botmodelscale = BOTZIZE_LARGE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "protocol")
@@ -4364,7 +4438,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_PROTOCOL;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "r2d2")
@@ -4372,21 +4446,21 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALLER;
 			client->pers.nextbotclass = BCLASS_R2D2;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "marka_ragnos"))
 		{
 			client->pers.nextbotclass = BCLASS_RAGNOS;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rancor"))
 		{
 			client->pers.nextbotclass = BCLASS_RANCOR;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rax_joris")
@@ -4394,7 +4468,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_RAX;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rebel")
@@ -4413,7 +4487,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_REBEL;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "reborn")
@@ -4432,7 +4506,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_REBORN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "reelo")
@@ -4441,7 +4515,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_REELO;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rockettrooper")
@@ -4450,7 +4524,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_ROCKETTROOPER;
 			client->pers.botmodelscale = BOTZIZE_LARGER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rodian")
@@ -4461,7 +4535,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_RODIAN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "rosh_penin")
@@ -4470,7 +4544,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_ROSH_PENIN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "saboteur")
@@ -4479,7 +4553,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SABOTEUR;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "shadowtrooper")
@@ -4488,7 +4562,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SHADOWTROOPER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "snowtrooper")
@@ -4509,8 +4583,8 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "swamptrooper/red")
 			|| Class_Model(model, "First_Order_Riot_Trooper")
 			|| Class_Model(model, "sullustan")
-			|| Class_Model(model, "rex_old")
 			|| Class_Model(model, "rex_endor")
+			|| Class_Model(model, "rex_old")
 			|| Class_Model(model, "bossk")
 			|| Class_Model(model, "greedo")
 			|| Class_Model(model, "bolla_ropal_mp")
@@ -4526,11 +4600,16 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "shadow_stormtrooper")
 			|| Class_Model(model, "evotrooper")
 			|| Class_Model(model, "evotrooper/shadow")
+			|| Class_Model(model, "hux")
+			|| Class_Model(model, "hux/coat")
+			|| Class_Model(model, "hux/coat_hat")
+			|| Class_Model(model, "sithtrooper")
+			|| Class_Model(model, "sithtrooper/officer")
 			|| Class_Model(model, "satine"))
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_STORMTROOPER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "cc/main")
@@ -4542,9 +4621,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "ccm")
 			|| Class_Model(model, "ccm/main")
 			|| Class_Model(model, "cc/")
-			|| Class_Model(model, "gideon")
-			|| Class_Model(model, "darktrooper_tv_mp")
-			|| Class_Model(model, "thrawn")
 			|| Class_Model(model, "hera")
 			|| Class_Model(model, "TR_8R")
 			|| Class_Model(model, "TR_8R_normal")
@@ -4565,6 +4641,26 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "trooper2/default")
 			|| Class_Model(model, "clonetrooper_p1_mp")
 			|| Class_Model(model, "clonetrooper_p2_mp")
+			|| Class_Model(model, "clonetrooper_p1")
+			|| Class_Model(model, "clonetrooper_p2")
+			|| Class_Model(model, "clonetrooper_p2/212")
+			|| Class_Model(model, "clonetrooper_p2/shock")
+			|| Class_Model(model, "clonetrooper_p2/deviss_rgb")
+			|| Class_Model(model, "clonetrooper_p2/327_deviss")
+			|| Class_Model(model, "clonetrooper_p2/327")
+			|| Class_Model(model, "clonetrooper_p2/332")
+			|| Class_Model(model, "clonetrooper_p2/501")
+			|| Class_Model(model, "clonetrooper_p2/airborne_rgb")
+			|| Class_Model(model, "clonetrooper_p2/13")
+			|| Class_Model(model, "clonetrooper_p2/212_cody")
+			|| Class_Model(model, "clonetrooper_p2/212_airborne")
+			|| Class_Model(model, "clonetrooper_p2/501_rex")
+			|| Class_Model(model, "clonetrooper_p2/fox")
+			|| Class_Model(model, "clonetrooper_p2/fives")
+			|| Class_Model(model, "clonetrooper_p2/91_neyo")
+			|| Class_Model(model, "clonetrooper_p2/332_vaughn")
+			|| Class_Model(model, "clonetrooper_p2/shadow")
+			|| Class_Model(model, "clonetrooper_p2/assassin")
 			|| Class_Model(model, "md_clone_assassin")
 			|| Class_Model(model, "deathtrooper")
 			|| Class_Model(model, "deathtrooper/commander")
@@ -4594,16 +4690,19 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_CLONETROOPER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "phasma")
 			|| Class_Model(model, "captainphasma")
+			|| Class_Model(model, "darktrooper_tv_mp")
+			|| Class_Model(model, "darktrooper_tv")
+			|| Class_Model(model, "darktrooper_tvp")
 			|| Class_Model(model, "CaptainPhasmaK"))
 		{
 			client->pers.botmodelscale = BOTZIZE_TALL;
 			client->pers.nextbotclass = BCLASS_STORMTROOPER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "fbhutt/main")
@@ -4614,11 +4713,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "ithorian")
 			|| Class_Model(model, "nrep_sold")
 			|| Class_Model(model, "NRSD_mp")
-			|| Class_Model(model, "nrsd_mp"))
+			|| Class_Model(model, "nrsd_mp")
+			|| Class_Model(model, "nrsd"))
 		{
 			client->pers.nextbotclass = BCLASS_STORMTROOPER;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "tavion")
@@ -4641,7 +4741,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_TAVION;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "trandoshan")
@@ -4655,7 +4755,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_TRANDOSHAN;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "Bountyhunter2/default")
@@ -4667,6 +4767,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "4lom/")
 			|| Class_Model(model, "tusken")
 			|| Class_Model(model, "tusken_ep1n2")
+			|| Class_Model(model, "tusken_quarak/ep2")
 			|| Class_Model(model, "md_tus1_tc")
 			|| Class_Model(model, "md_tus2_tc")
 			|| Class_Model(model, "md_tus5_tc")
@@ -4679,7 +4780,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_TUSKEN_SNIPER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "edAurra/main")
@@ -4687,7 +4788,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_TUSKEN_RAIDER;
 			client->pers.botmodelscale = BOTZIZE_SMALL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "fcgamorrean/main")
@@ -4695,7 +4796,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_TUSKEN_RAIDER;
 			client->pers.botmodelscale = BOTZIZE_LARGER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "ugnaught")
@@ -4705,14 +4806,14 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALLER;
 			client->pers.nextbotclass = BCLASS_UGNAUGHT;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "wampa"))
 		{
 			client->pers.nextbotclass = BCLASS_WAMPA;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "weequay")
@@ -4722,20 +4823,21 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_WEEQUAY;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "lamasu/main"))
 		{
 			client->pers.nextbotclass = BCLASS_WEEQUAY;
 			client->pers.botmodelscale = BOTZIZE_LARGER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "SBD/default")
 			|| Class_Model(model, "SBD")
 			|| Class_Model(model, "SBD2")
 			|| Class_Model(model, "sbd_mp")
+			|| Class_Model(model, "sbd")
 			|| Class_Model(model, "md_sbd_am")
 			|| Class_Model(model, "Super_Battle_Droid")
 			|| Class_Model(model, "Super Battle Droid")
@@ -4744,7 +4846,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SBD;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "battledroid")
@@ -4767,7 +4869,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_BATTLEDROID;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "mando_hunter/default")
@@ -4777,7 +4879,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_MANDOLORIAN1;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jango_fett/blue")
@@ -4786,7 +4888,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_MANDOLORIAN2;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "T_yoda_MP")
@@ -4803,6 +4905,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "yoda_mp/hr")
 			|| Class_Model(model, "yoda_mp/cw")
 			|| Class_Model(model, "yoda_mp/ep2")
+			|| Class_Model(model, "yaddle")
+			|| Class_Model(model, "yoda/ghost")
+			|| Class_Model(model, "yoda")
+			|| Class_Model(model, "yoda/hr")
+			|| Class_Model(model, "yoda/cw")
+			|| Class_Model(model, "yoda/ep2")
 			|| Class_Model(model, "yodavm")
 			|| Class_Model(model, "pic_mp")
 			|| Class_Model(model, "pic")
@@ -4810,7 +4918,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALLEST;
 			client->pers.nextbotclass = BCLASS_YODA;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "youngani")
@@ -4824,6 +4932,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "halsey_mp")
 			|| Class_Model(model, "halsey_mp/cw")
 			|| Class_Model(model, "knox_mp")
+			|| Class_Model(model, "md_zett_jukassa")
 			|| Class_Model(model, "nahdar_mp")
 			|| Class_Model(model, "nahdar_mp/robed")
 			|| Class_Model(model, "tsuichoi_mp")
@@ -4834,25 +4943,26 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "nahdar")
 			|| Class_Model(model, "nahdar/robed")
 			|| Class_Model(model, "tsuichoi")
+			|| Class_Model(model, "md_tsuichoi")
 			|| Class_Model(model, "zett_jukassa"))
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALLER;
 			client->pers.nextbotclass = BCLASS_JEDI;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "npj_p/default"))
 		{
 			client->pers.botmodelscale = BOTZIZE_SMALL;
 			client->pers.nextbotclass = BCLASS_JEDI;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "Zaalba"))
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGER;
 			client->pers.nextbotclass = BCLASS_SMUGGLER1;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jarjar")
@@ -4861,14 +4971,21 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "gungan")
 			|| Class_Model(model, "md_gunray")
 			|| Class_Model(model, "gunray_mp")
+			|| Class_Model(model, "gunray")
 			|| Class_Model(model, "rune_mp")
+			|| Class_Model(model, "rune")
 			|| Class_Model(model, "md_wat_tambor")
+			|| Class_Model(model, "wat_tambor")
 			|| Class_Model(model, "md_shu_mai")
-			|| Class_Model(model, "gunray_ep3_mp"))
+			|| Class_Model(model, "shu_mai")
+			|| Class_Model(model, "NeimoidianSecurity")
+			|| Class_Model(model, "neimoidian_guard")
+			|| Class_Model(model, "gunray_ep3_mp")
+			|| Class_Model(model, "gunray_ep3"))
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGER;
 			client->pers.nextbotclass = BCLASS_SOILDER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "tera_sinube_mp")
@@ -4876,11 +4993,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "thongla_jur_mp")
 			|| Class_Model(model, "thongla_jur")
 			|| Class_Model(model, "yarael_mp")
+			|| Class_Model(model, "mkyarael/main")
 			|| Class_Model(model, "yarael"))
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGER;
 			client->pers.nextbotclass = BCLASS_JEDIMASTER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi_maul")
@@ -4894,13 +5012,10 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_STAFFDARK;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
-		else if (Class_Model(model, "droideka")
-			|| Class_Model(model, "droideka/main")
-			|| Class_Model(model, "droideka_mp")
-			|| Class_Model(model, "md_dro_am")
+		else if (Class_Model(model, "md_dro_am")
 			|| Class_Model(model, "khadmiral/main")
 			|| Class_Model(model, "khadmiral/main2")
 			|| Class_Model(model, "dustil")
@@ -4908,7 +5023,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SOILDER;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "vader")
@@ -4938,7 +5053,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGE;
 			client->pers.nextbotclass = BCLASS_VADER;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "jedi_palpatine")
@@ -4971,14 +5086,18 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "darthrevan")
 			|| Class_Model(model, "darthsion")
 			|| Class_Model(model, "palpatine_mp")
+			|| Class_Model(model, "palpatine/sith_hood")
+			|| Class_Model(model, "palpatine/sith_hood2")
+			|| Class_Model(model, "palpatine/robed")
+			|| Class_Model(model, "palpatine/")
 			|| Class_Model(model, "palpatine_mp/robed_tcw")
+			|| Class_Model(model, "palpatine/senate")
 			|| Class_Model(model, "palpatine_boc_mp")
 			|| Class_Model(model, "palpatine_fa_mp")
 			|| Class_Model(model, "palpatine_holo_mp")
 			|| Class_Model(model, "palpatine_ros_mp")
 			|| Class_Model(model, "palpatine_ros_mp/blind")
 			|| Class_Model(model, "darthtraya")
-			|| Class_Model(model, "palpatine")
 			|| Class_Model(model, "palpatine/robed_tcw")
 			|| Class_Model(model, "palpatine_boc")
 			|| Class_Model(model, "palpatine_fa")
@@ -4988,7 +5107,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SITHLORD;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "snoke")
@@ -4996,7 +5115,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_SITHLORD;
 			client->pers.botmodelscale = BOTZIZE_TALL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "pong_krell")
@@ -5007,7 +5126,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.nextbotclass = BCLASS_DUELS;
 			client->pers.botmodelscale = BOTZIZE_TALL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "gr")
@@ -5017,6 +5136,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "grfour")
 			|| Class_Model(model, "grievous_utapau")
 			|| Class_Model(model, "grievous4")
+			|| Class_Model(model, "grievous/cape")
 			|| Class_Model(model, "grievous")
 			|| Class_Model(model, "md_grievous")
 			|| Class_Model(model, "md_grievous4")
@@ -5025,8 +5145,9 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "sabertraining_droid")
 			|| Class_Model(model, "jedi_gri"))
 		{
+			client->pers.nextbotclass = BCLASS_DUELS;
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "ma/main")
@@ -5045,7 +5166,7 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_SITH;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "exile")
@@ -5057,19 +5178,25 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "Sith_Assassin")
 			|| Class_Model(model, "Sith_Assassin2")
 			|| Class_Model(model, "Sith_Assassin2Master")
-			|| Class_Model(model, "sith_warrior")
-			|| Class_Model(model, "sithtrooper")
-			|| Class_Model(model, "sithtrooper/officer"))
+			|| Class_Model(model, "sith_warrior"))
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_SITH;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 		else
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			// Consolidated behavior: use helper to notify player and handle respawn kill if needed
+			if (g_entities[clientNum].r.svFlags & SVF_BOT)
+			{
+				client->pers.nextbotclass = BCLASS_STORMTROOPER;
+			}
+			else
+			{
+				client->pers.nextbotclass = BCLASS_JEDI;
+			}
+			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
 	}
@@ -7630,7 +7757,6 @@ void ClientSpawn(gentity_t* ent)
 		case BCLASS_BARTENDER:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_HEALTHDISP;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_AMMODISP;
 			break;
 		case BCLASS_BESPIN_COP:

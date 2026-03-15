@@ -533,7 +533,7 @@ if(BuildMPEngine)
 		set(MPEngineWin32Files
 			"${MPDir}/win32/MovieDuels-MP.ico"
 			"${MPDir}/win32/resource.h"
-			"${MPDir}/win32/MovieDuels.rc"
+			"${MPDir}/win32/MovieDuels-MP.rc"
 			)
 
 		set(MPEngineFiles ${MPEngineFiles} ${MPEngineWin32Files})
@@ -654,7 +654,7 @@ if(BuildMPDed)
 	set(MPDedFiles ${MPDedFiles} ${MPDedNullFiles})
 	if(WIN32)
 		set(MPDedWin32Files
-			"${MPDir}/win32/MovieDuelsded.rc"
+			"${MPDir}/win32/MovieDuels-DED.rc"
 			)
 		source_group("win32" FILES ${MPDedWin32Files})
 		set(MPDedFiles ${MPDedFiles} ${MPDedWin32Files})

@@ -1,10 +1,10 @@
 /*
 ===========================================================================
-Copyright (C) 2013 - 2016, SerenityJediEngine2026 contributors
+Copyright (C) 2013 - 2016, MovieDuels contributors
 
-This file is part of the SerenityJediEngine2026 source code.
+This file is part of the MovieDuels source code.
 
-SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
+MovieDuels is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
