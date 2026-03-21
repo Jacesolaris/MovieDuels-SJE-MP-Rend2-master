@@ -163,6 +163,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include "qcommon/q_platform.h"
+#include <stdint.h>
 
 typedef union fileBuffer_u {
 	void* v;
@@ -1610,10 +1611,12 @@ typedef struct siegePers_s
 
 #define DEFAULT_BLOCK_TIME_MAX_MILLISECONDS 300
 
+#define BOTZIZE_TINY    	55
 #define BOTZIZE_SMALLEST	65
 #define BOTZIZE_SMALLER		75
 #define BOTZIZE_SMALL		95
 #define BOTZIZE_NORMAL		100
+#define BOTZIZE_TALLISH		105
 #define BOTZIZE_TALL		110
 #define BOTZIZE_LARGE		120
 #define BOTZIZE_LARGER		125

@@ -26,6 +26,11 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "b_local.h"
 #include "g_nav.h"
 #include "anims.h"
+#include "bg_public.h"
+#include <qcommon\q_platform.h>
+#include "g_local.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_shared.h>
 
 qboolean G_BoundsOverlap(const vec3_t mins1, const vec3_t maxs1, const vec3_t mins2, const vec3_t maxs2);
 int NAV_Steer(gentity_t* self, vec3_t dir, float distance);
@@ -39,9 +44,10 @@ qboolean NPC_CheckFallPositionOK(const gentity_t* NPC, vec3_t position);
 static qboolean NPC_TryJump_Final();
 extern void G_DrawEdge(vec3_t start, vec3_t end, int type);
 
-void npc_conversation_animation()
+void npc_conversation_animation(void)
 {
-	const int randAnim = irand(1, 10);
+	// Random animation selection (1–10)
+	const int randAnim = Q_irand(1, 10);
 
 	switch (randAnim)
 	{
@@ -50,14 +56,21 @@ void npc_conversation_animation()
 	case 3:
 	case 4:
 	case 5:
-		NPC_SetAnim(NPCS.NPC, SETANIM_BOTH, BOTH_TALK2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+		NPC_SetAnim(NPCS.NPC,
+			SETANIM_TORSO,
+			BOTH_TALK2,
+			SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 		break;
+
 	case 6:
 	case 7:
 	case 8:
 	case 9:
 	default:
-		NPC_SetAnim(NPCS.NPC, SETANIM_BOTH, BOTH_TALK1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+		NPC_SetAnim(NPCS.NPC,
+			SETANIM_TORSO,
+			BOTH_TALK1,
+			SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 		break;
 	}
 }

@@ -310,17 +310,31 @@ qboolean UI_SaberProperNameForSaber(const char* saber_name, char* saberProperNam
 static qboolean UI_SaberValidForPlayerInMP(const char* saber_name)
 {
 	char allowed[8] = { 0 };
-	if (!WP_SaberParseParm(saber_name, "notInMP", allowed))
-	{//not defined, default is yes
+
+	// Read "notInMP" from saber file
+	if (WP_SaberParseParm(saber_name, "notInMP", allowed) == qfalse)
+	{
+		// Flag missing → NOT allowed
+		return qfalse;
+	}
+
+	if (allowed[0] == '\0')
+	{
+		// Empty value → NOT allowed
+		return qfalse;
+	}
+
+	// Only "0" means allowed
+	if (atoi(allowed) == 0)
+	{
 		return qtrue;
 	}
-	if (!allowed[0])
-	{//not defined, default is yes
-		return qtrue;
-	}
-	//return value
-	return atoi(allowed) == 0;
+
+	// Any other value (including "1") → NOT allowed
+	return qfalse;
 }
+
+
 
 void UI_SaberLoadParms(void)
 {

@@ -6961,57 +6961,79 @@ Check for hard landings that generate sound events
 */
 static void PM_CrashLand(void)
 {
-	float delta;
-	float dist;
-	float vel, acc;
-	float t;
-	float a, b, c, den;
+	float    delta;
+	float    dist;
+	float    vel, acc;
+	float    t;
+	float    a, b, c, den;
 	qboolean didRoll = qfalse;
 
-	//falling to death NPCs pavement smear.
+	const qboolean isBotWithSaber =
 #ifdef _GAME
-	if (g_entities[pm->ps->clientNum].NPC && g_entities[pm->ps->clientNum].NPC->aiFlags & NPCAI_DIE_ON_IMPACT)
+	((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT) && (pm->ps->weapon == WP_SABER)) ? qtrue : qfalse;
+#else
+		qfalse;
+#endif
+
+	const qboolean isBot =
+#ifdef _GAME
+	(g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT) ? qtrue : qfalse;
+#else
+		qfalse;
+#endif
+
+#ifdef _GAME
+	// NPCs flagged to die on impact: smear on pavement
+	if (g_entities[pm->ps->clientNum].NPC &&
+		(g_entities[pm->ps->clientNum].NPC->aiFlags & NPCAI_DIE_ON_IMPACT))
 	{
-		//have to do death on impact if we are falling to our death, FIXME: should we avoid any additional damage this func?
 		PM_CrashLandDamage(1000);
 	}
 #endif
 
-	// calculate the exact velocity on landing
+	// ------------------------------------------------------------
+	// Compute vertical velocity at impact
+	// ------------------------------------------------------------
 	dist = pm->ps->origin[2] - pml.previous_origin[2];
 	vel = pml.previous_velocity[2];
 	acc = -pm->ps->gravity;
 
-	a = acc / 2;
+	a = acc * 0.5f;
 	b = vel;
 	c = -dist;
+	den = b * b - 4.0f * a * c;
 
-	den = b * b - 4 * a * c;
-	if (den < 0)
+	if (den < 0.0f)
 	{
 		pm->ps->inAirAnim = qfalse;
 		return;
 	}
-	t = (-b - sqrt(den)) / (2 * a);
+
+	t = (-b - sqrtf(den)) / (2.0f * a);
 
 	delta = vel + t * acc;
-	delta = delta * delta * 0.0001;
+	delta = delta * delta * 0.0001f; // scale into damage-ish units
 
 #ifdef _GAME
 	PM_CrashLandEffect();
 #endif
-	// ducking while falling doubles damage
-	if (pm->ps->pm_flags & PMF_DUCKED)
+
+	// Ducking while falling doubles damage (before rolls, etc.)
+	if ((pm->ps->pm_flags & PMF_DUCKED) != 0)
 	{
-		delta *= 2;
+		delta *= 2.0f;
 	}
 
+	// ------------------------------------------------------------
+	// Landing anims for special air moves
+	// ------------------------------------------------------------
 	if (pm->ps->legsAnim == BOTH_A7_KICK_F_AIR ||
 		pm->ps->legsAnim == BOTH_A7_KICK_B_AIR ||
 		pm->ps->legsAnim == BOTH_A7_KICK_R_AIR ||
 		pm->ps->legsAnim == BOTH_A7_KICK_L_AIR)
 	{
 		int landAnim = -1;
+
 		switch (pm->ps->legsAnim)
 		{
 		case BOTH_A7_KICK_F_AIR:
@@ -7026,17 +7048,21 @@ static void PM_CrashLand(void)
 		case BOTH_A7_KICK_L_AIR:
 			landAnim = BOTH_FORCELANDLEFT1;
 			break;
-		default:;
+		default:
+			break;
 		}
+
 		if (landAnim != -1)
 		{
 			if (pm->ps->torsoAnim == pm->ps->legsAnim)
 			{
-				PM_SetAnim(SETANIM_BOTH, landAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				PM_SetAnim(SETANIM_BOTH, landAnim,
+					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			}
 			else
 			{
-				PM_SetAnim(SETANIM_LEGS, landAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				PM_SetAnim(SETANIM_LEGS, landAnim,
+					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			}
 		}
 	}
@@ -7047,6 +7073,7 @@ static void PM_CrashLand(void)
 		pm->ps->legsAnim == BOTH_FORCEJUMP2)
 	{
 		int fjAnim;
+
 		switch (pm->ps->legsAnim)
 		{
 		case BOTH_FORCEJUMPLEFT1:
@@ -7062,39 +7089,40 @@ static void PM_CrashLand(void)
 			fjAnim = BOTH_LAND1;
 			break;
 		}
+
 		PM_SetAnim(SETANIM_BOTH, fjAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+
 #ifdef _GAME
-		if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT) &&
-			fjAnim == BOTH_LAND1)
+		// Bot saber follow‑up after force jump land
+		if (isBotWithSaber == qtrue && fjAnim == BOTH_LAND1)
 		{
 			pm->ps->userInt1 |= BOT_SABER_PENDING_MASK;
 			pm->ps->userInt2 = pm->cmd.serverTime + BOT_SABER_PENDING_DELAY_MS;
 		}
 #endif
 	}
-	// decide which landing animation to use
-	else if (!BG_InRoll(pm->ps, pm->ps->legsAnim) && pm->ps->inAirAnim && !pm->ps->m_iVehicleNum)
+	else if (!BG_InRoll(pm->ps, pm->ps->legsAnim) &&
+		pm->ps->inAirAnim == qtrue &&
+		pm->ps->m_iVehicleNum == 0)
 	{
-		//only play a land animation if we transitioned into an in-air animation while off the ground
-		if (!PM_SaberInSpecial(pm->ps->saber_move))
+		// Only play a land anim if we transitioned into an in‑air anim
+		if (PM_SaberInSpecial(pm->ps->saber_move) == qfalse)
 		{
-			if (pm->ps->pm_flags & PMF_BACKWARDS_JUMP)
+			int landingAnim;
+
+			if ((pm->ps->pm_flags & PMF_BACKWARDS_JUMP) != 0)
 			{
-				PM_ForceLegsAnim(BOTH_LANDBACK1);
+				landingAnim = BOTH_LANDBACK1;
 			}
 			else
 			{
-				PM_ForceLegsAnim(BOTH_LAND1);
+				landingAnim = BOTH_LAND1;
 			}
-#ifdef _GAME
-			int landingAnim = (pm->ps->pm_flags & PMF_BACKWARDS_JUMP)
-				? BOTH_LANDBACK1
-				: BOTH_LAND1;
 
 			PM_ForceLegsAnim(landingAnim);
 
-			if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT) &&
-				landingAnim == BOTH_LAND1)
+#ifdef _GAME
+			if (isBotWithSaber == qtrue && landingAnim == BOTH_LAND1)
 			{
 				pm->ps->userInt1 |= BOT_SABER_PENDING_MASK;
 				pm->ps->userInt2 = pm->cmd.serverTime + BOT_SABER_PENDING_DELAY_MS;
@@ -7103,10 +7131,13 @@ static void PM_CrashLand(void)
 		}
 	}
 
-	if (pm->ps->weapon != WP_SABER && pm->ps->weapon != WP_MELEE && !PM_IsRocketTrooper())
+	// ------------------------------------------------------------
+	// Return to weapon‑ready torso (non‑saber)
+	// ------------------------------------------------------------
+	if (pm->ps->weapon != WP_SABER &&
+		pm->ps->weapon != WP_MELEE &&
+		PM_IsRocketTrooper() == qfalse)
 	{
-		//saber handles its own anims
-		//This will push us back into our weaponready stance from the land anim.
 		if (pm->ps->weapon == WP_DISRUPTOR && pm->ps->zoomMode == 1)
 		{
 			PM_StartTorsoAnim(TORSO_WEAPONREADY4);
@@ -7127,7 +7158,7 @@ static void PM_CrashLand(void)
 			}
 			else
 			{
-				if (PM_CanSetWeaponReadyAnim())
+				if (PM_CanSetWeaponReadyAnim() == qtrue)
 				{
 					PM_StartTorsoAnim(PM_GetWeaponReadyAnim());
 				}
@@ -7135,20 +7166,25 @@ static void PM_CrashLand(void)
 		}
 	}
 
-	if (!PM_InSpecialJump(pm->ps->legsAnim) ||
+	// ------------------------------------------------------------
+	// Land timer for interruptible in‑air anims
+	// ------------------------------------------------------------
+	if (PM_InSpecialJump(pm->ps->legsAnim) == qfalse ||
 		pm->ps->legsTimer < 1 ||
 		pm->ps->legsAnim == BOTH_WALL_RUN_LEFT ||
 		pm->ps->legsAnim == BOTH_WALL_RUN_RIGHT)
 	{
-		//Only set the timer if we're in an anim that can be interrupted (this would not be, say, a flip)
-		if (!BG_InRoll(pm->ps, pm->ps->legsAnim) && pm->ps->inAirAnim)
+		if (!BG_InRoll(pm->ps, pm->ps->legsAnim) &&
+			pm->ps->inAirAnim == qtrue)
 		{
-			if (!PM_SaberInSpecial(pm->ps->saber_move) || pm->ps->weapon != WP_SABER)
+			if (PM_SaberInSpecial(pm->ps->saber_move) == qfalse ||
+				pm->ps->weapon != WP_SABER)
 			{
-				if (pm->ps->legsAnim != BOTH_FORCELAND1 && pm->ps->legsAnim != BOTH_FORCELANDBACK1 &&
-					pm->ps->legsAnim != BOTH_FORCELANDRIGHT1 && pm->ps->legsAnim != BOTH_FORCELANDLEFT1)
+				if (pm->ps->legsAnim != BOTH_FORCELAND1 &&
+					pm->ps->legsAnim != BOTH_FORCELANDBACK1 &&
+					pm->ps->legsAnim != BOTH_FORCELANDRIGHT1 &&
+					pm->ps->legsAnim != BOTH_FORCELANDLEFT1)
 				{
-					//don't override if we have started a force land
 					pm->ps->legsTimer = TIMER_LAND;
 				}
 			}
@@ -7157,96 +7193,143 @@ static void PM_CrashLand(void)
 
 	pm->ps->inAirAnim = qfalse;
 
-	if (pm->ps->m_iVehicleNum)
+	// No fall stuff while on a vehicle
+	if (pm->ps->m_iVehicleNum != 0)
 	{
-		//don't do fall stuff while on a vehicle
 		return;
 	}
 
-	// never take falling damage if completely underwater
+	// Never take falling damage if completely underwater
 	if (pm->waterlevel == 3)
 	{
 		return;
 	}
 
-	// reduce falling damage if there is standing water
+	// Standing water reduces damage
 	if (pm->waterlevel == 2)
 	{
-		delta *= 0.25;
+		delta *= 0.25f;
 	}
-	if (pm->waterlevel == 1)
+	else if (pm->waterlevel == 1)
 	{
-		delta *= 0.5;
+		delta *= 0.5f;
 	}
 
-	if (delta < 1)
-	{
-		//sight/sound event for soft landing
+	// ------------------------------------------------------------
+	// BOT LANDING PREDICTION + AUTO‑ROLL (bots only)
+	// ------------------------------------------------------------
 #ifdef _GAME
-		AddSoundEvent(&g_entities[pm->ps->clientNum], pm->ps->origin, 32, AEL_MINOR, qfalse, qtrue);
-#endif
-		return;
-	}
-
-	if (pm->ps->pm_flags & PMF_DUCKED)
+	if (isBot == qtrue || isBotWithSaber == qtrue &&
+		delta >= 2.0f &&
+		PM_InOnGroundAnim(pm->ps->legsAnim) == qfalse &&
+		PM_InKnockDown(pm->ps) == qfalse &&
+		BG_InRoll(pm->ps, pm->ps->legsAnim) == qfalse &&
+		pm->ps->forceHandExtend == HANDEXTEND_NONE)
 	{
-		if (delta >= 2 && !PM_InOnGroundAnim(pm->ps->legsAnim) && !PM_InKnockDown(pm->ps) && !BG_InRoll(
-			pm->ps, pm->ps->legsAnim) &&
+		// Bots auto‑roll on hard landings to absorb damage
+		int rollAnim = pm_try_roll();
+
+		if (PM_InRollComplete(pm->ps, pm->ps->legsAnim) == qtrue)
+		{
+			rollAnim = 0;
+			pm->ps->legsTimer = 0;
+			pm->ps->legsAnim = 0;
+			PM_SetAnim(SETANIM_BOTH, BOTH_LAND1,
+				SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			pm->ps->legsTimer = TIMER_LAND;
+		}
+
+		if (rollAnim == BOTH_FORCELONGLEAP_LAND)
+		{
+			PM_SetAnim(SETANIM_BOTH, rollAnim,
+				SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+		}
+
+		if (rollAnim != 0)
+		{
+			// Roll absorbs impact
+			pm->ps->legsTimer = 0;
+			delta /= 3.0f; // same as original roll logic
+			pm->ps->legsAnim = 0;
+
+			if (pm->ps->torsoAnim == BOTH_A7_SOULCAL)
+			{
+				pm->ps->torsoTimer = 0;
+			}
+
+			PM_SetAnim(SETANIM_BOTH, rollAnim,
+				SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			didRoll = qtrue;
+		}
+	}
+#endif
+
+	// Original crouch‑roll logic (players + bots if not already rolled)
+	if ((pm->ps->pm_flags & PMF_DUCKED) != 0 &&
+		didRoll == qfalse)
+	{
+		if (delta >= 2.0f &&
+			PM_InOnGroundAnim(pm->ps->legsAnim) == qfalse &&
+			PM_InKnockDown(pm->ps) == qfalse &&
+			BG_InRoll(pm->ps, pm->ps->legsAnim) == qfalse &&
 			pm->ps->forceHandExtend == HANDEXTEND_NONE)
 		{
-			//roll!
 			int anim = pm_try_roll();
 
-			if (PM_InRollComplete(pm->ps, pm->ps->legsAnim))
+			if (PM_InRollComplete(pm->ps, pm->ps->legsAnim) == qtrue)
 			{
 				anim = 0;
 				pm->ps->legsTimer = 0;
 				pm->ps->legsAnim = 0;
-				PM_SetAnim(SETANIM_BOTH, BOTH_LAND1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				PM_SetAnim(SETANIM_BOTH, BOTH_LAND1,
+					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 				pm->ps->legsTimer = TIMER_LAND;
 			}
+
 			if (anim == BOTH_FORCELONGLEAP_LAND)
 			{
-				PM_SetAnim(SETANIM_BOTH, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-				// Only blend over 100ms
+				PM_SetAnim(SETANIM_BOTH, anim,
+					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			}
-			if (anim)
+
+			if (anim != 0)
 			{
-				//absorb some impact
 				pm->ps->legsTimer = 0;
-				delta /= 3;
-				// /= 2 just cancels out the above delta *= 2 when landing while crouched, the roll itself should absorb a little damage
+				delta /= 3.0f;
 				pm->ps->legsAnim = 0;
+
 				if (pm->ps->torsoAnim == BOTH_A7_SOULCAL)
 				{
-					//get out of it on torso
 					pm->ps->torsoTimer = 0;
 				}
-				PM_SetAnim(SETANIM_BOTH, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+
+				PM_SetAnim(SETANIM_BOTH, anim,
+					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 				didRoll = qtrue;
 			}
 		}
 	}
 
-	// SURF_NODAMAGE is used for bounce pads where you don't ever
-	// want to take damage or play a crunch sound
-	if (!(pml.groundTrace.surfaceFlags & SURF_NODAMAGE))
+	// ------------------------------------------------------------
+	// SURFACE / FORCE JUMP LANDING ASSIST
+	// ------------------------------------------------------------
+	if ((pml.groundTrace.surfaceFlags & SURF_NODAMAGE) == 0)
 	{
-		if (delta > 7)
+		if (delta > 7.0f)
 		{
 			int delta_send = (int)delta;
 
 			if (delta_send > 600)
 			{
-				//will never need to know any value above this
 				delta_send = 600;
 			}
 
-			if (pm->ps->fd.forceJumpZStart)
+			// Force jump landing assist (players + bots)
+			if (pm->ps->fd.forceJumpZStart != 0)
 			{
 				if ((int)pm->ps->origin[2] >= (int)pm->ps->fd.forceJumpZStart)
 				{
-					//was force jumping, landed on higher or same level as when force jump was started
+					// Landed at or above jump start height → treat as safe jump
 					if (delta_send > 8)
 					{
 						delta_send = 8;
@@ -7256,15 +7339,17 @@ static void PM_CrashLand(void)
 				{
 					if (delta_send > 8)
 					{
-						const int dif = (int)pm->ps->fd.forceJumpZStart - (int)pm->ps->origin[2];
-						int dmgLess = forceJumpHeight[pm->ps->fd.forcePowerLevel[FP_LEVITATION]] - dif;
+						const int dif =
+							(int)pm->ps->fd.forceJumpZStart - (int)pm->ps->origin[2];
+						int dmgLess =
+							forceJumpHeight[pm->ps->fd.forcePowerLevel[FP_LEVITATION]] - dif;
 
 						if (dmgLess < 0)
 						{
 							dmgLess = 0;
 						}
 
-						delta_send -= dmgLess * 0.3;
+						delta_send -= (int)(dmgLess * 0.3f);
 
 						if (delta_send < 8)
 						{
@@ -7274,12 +7359,30 @@ static void PM_CrashLand(void)
 				}
 			}
 
-			delta_send /= 2; //half it
+			// Base scaling
+			delta_send /= 2;
 			delta_send *= 3;
 
-			if (didRoll)
+#ifdef _GAME
+			// BOT‑ONLY: reduce damage from normal jump landings,
+			// but still allow big falls to hurt.
+			if (isBot == qtrue || isBotWithSaber == qtrue)
 			{
-				//Add the appropriate event..
+				if (delta_send < 80)
+				{
+					// Normal jump / moderate fall → heavily reduced
+					delta_send = (int)(delta_send * 0.35f);
+				}
+				else
+				{
+					// Huge falls still hurt, but slightly softened
+					delta_send = (int)(delta_send * 0.75f);
+				}
+			}
+#endif
+
+			if (didRoll == qtrue)
+			{
 				PM_AddEventWithParm(EV_ROLL, delta_send);
 			}
 			else
@@ -7289,7 +7392,7 @@ static void PM_CrashLand(void)
 		}
 		else
 		{
-			if (didRoll)
+			if (didRoll == qtrue)
 			{
 				PM_AddEventWithParm(EV_ROLL, 0);
 			}
@@ -7300,13 +7403,12 @@ static void PM_CrashLand(void)
 		}
 	}
 
-	if (PM_InForceFall())
+	if (PM_InForceFall() == qtrue)
 	{
 		return;
 	}
 
 	VectorClear(pm->ps->velocity);
-	// start footstep cycle over
 	pm->ps->bobCycle = 0;
 }
 
@@ -9391,24 +9493,21 @@ static void PM_Footsteps(void)
 	else
 	{
 		//all other NPCs...
-		if (PM_InSaberAnim(pm->ps->legsAnim)
+		if ((PM_InSaberAnim(pm->ps->legsAnim)
 			&& !PM_SpinningSaberAnim(pm->ps->legsAnim)
 			&& !PM_SaberInBrokenParry(pm->ps->saber_move)
 			|| PM_SaberStanceAnim(pm->ps->legsAnim)
 			|| PM_SaberDrawPutawayAnim(pm->ps->legsAnim)
-			|| pm->ps->legsAnim == BOTH_BUTTON_HOLD
-			|| pm->ps->legsAnim == BOTH_BUTTON_RELEASE
-			|| pm->ps->legsAnim == BOTH_THERMAL_READY
-			|| pm->ps->legsAnim == BOTH_THERMAL_THROW
-			|| pm->ps->legsAnim == BOTH_ATTACK10
-			|| pm->ps->legsAnim == BOTH_BUTTON_HOLD
-			|| pm->ps->legsAnim == BOTH_BUTTON_RELEASE
-			|| pm->ps->legsAnim == BOTH_THERMAL_READY
-			|| pm->ps->legsAnim == BOTH_THERMAL_THROW
-			|| pm->ps->legsAnim == BOTH_ATTACK10
 			|| PM_LandingAnim(pm->ps->legsAnim)
 			|| PM_PainAnim(pm->ps->legsAnim)
 			|| PM_ForceAnim(pm->ps->legsAnim))
+			|| (pm->ps->legsAnim) == BOTH_BUTTON_HOLD
+			|| (pm->ps->legsAnim) == BOTH_BUTTON_RELEASE
+			|| (pm->ps->legsAnim) == BOTH_THERMAL_READY
+			|| (pm->ps->legsAnim) == BOTH_THERMAL_THROW
+			|| (pm->ps->legsAnim) == BOTH_ATTACK10
+			|| (pm->ps->legsAnim) == BOTH_STAND1TO2
+			|| (pm->ps->legsAnim) == BOTH_STAND2TO1)
 		{
 			//legs are in a saber anim, and not spinning, be sure to override it
 			setAnimFlags |= SETANIM_FLAG_OVERRIDE;

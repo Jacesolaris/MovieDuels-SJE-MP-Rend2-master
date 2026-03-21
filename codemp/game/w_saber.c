@@ -228,7 +228,7 @@ static QINLINE void G_PlayReaction(
 		return;
 
 	const int style = ent->client->ps.fd.saberAnimLevel;
-	const int idx = irand(0, set->count - 1);
+	const int idx = Q_irand(0, set->count - 1);
 
 	const int* anims =
 		(style == SS_DUAL) ? set->dual :
@@ -5251,6 +5251,8 @@ qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int h
 			self->client->pers.botclass != BCLASS_MANDOLORIAN &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN2 &&
+			self->client->pers.botclass != BCLASS_FORCE_DARK_NO_SABER &&
+			self->client->pers.botclass != BCLASS_FORCE_LIGHT_NO_SABER &&
 			self->client->pers.botclass != BCLASS_BOBAFETT)
 		|| self->client->ps.fd.forcePower < FATIGUE_DODGEINGBOT)
 		// if your not a mando or jedi or low FP then you cant dodge
@@ -5360,7 +5362,15 @@ qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int h
 
 	if (self->r.svFlags & SVF_BOT) //bots only get 1
 	{
-		PM_AddFatigue(&self->client->ps, FATIGUE_DODGEINGBOT);
+		if (self->client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+			self->client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER)
+		{
+			PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
+		}
+		else
+		{
+			PM_AddFatigue(&self->client->ps, FATIGUE_DODGEINGBOT);
+		}
 	}
 	else
 	{
@@ -12699,16 +12709,27 @@ static float wp_block_force_chance(const gentity_t* defender)
 float manual_forceblocking(const gentity_t* defender)
 {
 	const float block_factor = wp_block_force_chance(defender);
+	qboolean ForceNoSaber = qfalse;
 
 	if (defender->client->ps.fd.forcePower <= BLOCKPOINTS_FATIGUE)
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
-	if (!(defender->client->ps.fd.forcePowersKnown & 1 << FP_ABSORB))
+	if (defender->client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+		defender->client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER)
 	{
-		//doesn't have absorb
-		return qfalse;
+		ForceNoSaber = qtrue;
+	}
+
+	if (!walk_check(defender) || defender->client->ps.groundEntityNum == ENTITYNUM_NONE)
+	{
+		return 0.0f;
+	}
+
+	if (!(defender->client->ps.fd.forcePowersKnown & (1 << FP_ABSORB)) && !ForceNoSaber)
+	{
+		return 0.0f;
 	}
 
 	if (defender->health <= 1
@@ -12722,31 +12743,22 @@ float manual_forceblocking(const gentity_t* defender)
 		|| !walk_check(defender)
 		|| in_camera)
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (!(defender->client->buttons & BUTTON_BLOCK))
 	{
-		if (defender->r.svFlags & SVF_BOT)
+		if (defender->r.svFlags & SVF_BOT ||
+			defender->s.eType == ET_NPC ||
+			(defender->s.number >= MAX_CLIENTS && !G_ControlledByPlayer(defender)))
 		{
-			//bots just randomly parry to make up for them not intelligently parrying.
 			return block_factor;
 		}
 
-		if (defender->s.eType == ET_NPC)
-		{
-			//bots just randomly parry to make up for them not intelligently parrying.
-			return block_factor;
-		}
-
-		if (defender->s.number >= MAX_CLIENTS && !G_ControlledByPlayer(defender))
-		{
-			//bots just randomly parry to make up for them not intelligently parrying.
-			return block_factor;
-		}
-		return qfalse;
+		return 0.0f;
 	}
-	return qtrue;
+
+	return 1.0f;
 }
 
 qboolean Block_Button_Held(const gentity_t* defender)
@@ -12846,23 +12858,23 @@ float manual_running_and_saberblocking(const gentity_t* defender)
 {
 	if (defender->r.svFlags & SVF_BOT && defender->client->ps.weapon != WP_SABER)
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->client->buttons & BUTTON_ATTACK)
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->client->buttons & BUTTON_WALKING)
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (!(defender->client->ps.fd.forcePowersKnown & 1 << FP_SABER_DEFENSE))
 	{
 		//doesn't have saber defense
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->health <= 1
@@ -12881,21 +12893,21 @@ float manual_running_and_saberblocking(const gentity_t* defender)
 		|| defender->client->ps.fd.blockPoints < BLOCKPOINTS_FIVE
 		|| defender->client->ps.fd.forcePower < BLOCKPOINTS_FIVE)
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->client->ps.weapon != WP_SABER
 		|| defender->client->ps.weapon == WP_NONE
 		|| defender->client->ps.weapon == WP_MELEE) //saber not here
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->client->ps.weapon == WP_SABER
 		&& defender->client->ps.saberInFlight)
 	{
 		//saber not currently in use or available.
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->client->buttons & BUTTON_ALT_ATTACK ||
@@ -12905,13 +12917,13 @@ float manual_running_and_saberblocking(const gentity_t* defender)
 		defender->client->buttons & BUTTON_FORCEGRIP ||
 		defender->client->buttons & BUTTON_DASH)
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (SaberAttacking(defender) && defender->r.svFlags & SVF_BOT)
 	{
 		//bots just randomly parry to make up for them not intelligently parrying.
-		return qtrue;
+		return 0.0f;
 	}
 
 	if (!(defender->client->buttons & BUTTON_BLOCK))
@@ -12919,11 +12931,11 @@ float manual_running_and_saberblocking(const gentity_t* defender)
 		if (defender->r.svFlags & SVF_BOT)
 		{
 			//bots just randomly parry to make up for them not intelligently parrying.
-			return qtrue;
+			return 1.0f;
 		}
-		return qfalse;
+		return 0.0f;
 	}
-	return qtrue;
+	return 1.0f;
 }
 
 qboolean manual_meleeblocking(const gentity_t* defender) //Is this guy blocking or not?
@@ -12970,22 +12982,22 @@ float manual_npc_saberblocking(const gentity_t* defender)
 {
 	if (!(defender->r.svFlags & SVF_BOT))
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->r.svFlags & SVF_BOT && defender->client->ps.weapon != WP_SABER)
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (BG_IsAlreadyinTauntAnim(defender->client->ps.torsoAnim))
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (PM_SaberInKata(defender->client->ps.saber_move))
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->health <= 1
@@ -13004,41 +13016,41 @@ float manual_npc_saberblocking(const gentity_t* defender)
 		|| defender->client->ps.fd.blockPoints < BLOCKPOINTS_FIVE
 		|| defender->client->ps.fd.forcePower < BLOCKPOINTS_FIVE)
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->client->ps.weapon != WP_SABER
 		|| defender->client->ps.weapon == WP_NONE
 		|| defender->client->ps.weapon == WP_MELEE) //saber not here
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->client->ps.weapon == WP_SABER
 		&& defender->client->ps.saberInFlight)
 	{
 		//saber not currently in use or available.
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (defender->client->ps.weapon == WP_SABER && defender->client->ps.saberHolstered)
 	{
 		//saber not currently in use or available.
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (PM_SaberInMassiveBounce(defender->client->ps.torsoAnim) || PM_SaberInBashedAnim(defender->client->ps.torsoAnim))
 	{
-		return qfalse;
+		return 0.0f;
 	}
 
 	if (SaberAttacking(defender) && defender->client->ps.saberFatigueChainCount < MISHAPLEVEL_HUDFLASH)
 	{
 		//bots just randomly parry to make up for them not intelligently parrying.
-		return qtrue;
+		return 1.0f;
 	}
 
-	return qtrue;
+	return 1.0f;
 }
 
 int PlayerCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the player absorb a kick

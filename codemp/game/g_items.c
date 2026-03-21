@@ -3517,7 +3517,7 @@ Use_Item
 Respawn the item
 ================
 */
-void Use_Item(gentity_t* ent, gentity_t* other, gentity_t* activator)
+static void Use_Item(gentity_t* ent, gentity_t* other, gentity_t* activator)
 {
 	RespawnItem(ent);
 }

@@ -23,6 +23,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include "qcommon/qfiles.h"
+#include "ui_shared.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
+#include <qcommon\q_shared.h>
 
 #define NUM_FORCE_STAR_IMAGES  9
 #define FORCE_NONJEDI	0
@@ -43,7 +47,6 @@ extern int uiSaberColorShaders[NUM_SABER_COLORS];
 
 void UI_InitForceShaders(void);
 void UI_ReadLegalForce(void);
-void UI_DrawTotalForceStars(rectDef_t* rect, float scale, vec4_t color, int textStyle);
 void UI_DrawForceStars(const rectDef_t* rect, float scale, vec4_t color, int textStyle, int forceindex, int val, int min, int max);
 void UI_UpdateClientForcePowers(const char* teamArg);
 void UI_SaveForceTemplate();

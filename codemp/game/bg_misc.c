@@ -2487,96 +2487,117 @@ qboolean BG_CanItemBeGrabbed(const int gametype, const entityState_t* ent, const
 
 	const gitem_t* item = &bg_itemlist[ent->modelIndex];
 
+	// Nobody picks up SBD gun
 	if (item->giType == IT_WEAPON && item->giTag == WP_BRYAR_OLD)
 	{
-		//nobody picks up sbd gun no matter what
 		return qfalse;
 	}
 
-	if (ps)
+	if (!ps)
 	{
-		if (ps->trueJedi)
-		{
-			//force powers and saber only
-			if (item->giType != IT_TEAM //not a flag
-				&& item->giType != IT_ARMOR //not shields
-				&& (item->giType != IT_WEAPON
-					|| item->giTag != WP_SABER) //not a saber
-				&& (item->giType != IT_HOLDABLE || item->giTag != HI_SEEKER) //not a seeker
-				&& (item->giType != IT_POWERUP || item->giTag == PW_YSALAMIRI)) //not a force pick-up
-			{
-				return qfalse;
-			}
-		}
-		else if (ps->trueNonJedi)
-		{
-			//can't pick up force powerups
-			if (item->giType == IT_POWERUP && item->giTag != PW_YSALAMIRI
-				//if a powerup, can only can pick up ysalamiri
-				|| item->giType == IT_HOLDABLE && item->giTag == HI_SEEKER //if holdable, cannot pick up seeker
-				|| item->giType == IT_WEAPON && item->giTag == WP_SABER) //or if it's a saber
-			{
-				return qfalse;
-			}
-		}
+		return qfalse; // safety
+	}
 
-		if (gametype != GT_JEDIMASTER &&
-			gametype != GT_SINGLE_PLAYER &&
-			gametype != GT_HOLOCRON &&
-			gametype != GT_SIEGE &&
-			gametype != GT_CTY)
+	/*
+	==========================================================
+		GLOBAL BOT RESTRICTION:
+		These bot classes NEVER pick up weapons.
+	==========================================================
+	*/
+	if (pm_entBot &&
+		(pm_entBot->s.botclass == BCLASS_SBD ||
+			pm_entBot->s.botclass == BCLASS_WOOKIEMELEE ||
+			pm_entBot->s.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+			pm_entBot->s.botclass == BCLASS_FORCE_LIGHT_NO_SABER))
+	{
+		if (item->giType == IT_WEAPON)
 		{
-			if (ps->isJediMaster && item && (item->giType == IT_WEAPON || item->giType == IT_AMMO))
-			{
-				//jedi master cannot pick up weapons
-				return qfalse;
-			}
-			if (ps->fd.forcePowerLevel[FP_SABER_OFFENSE] >= FORCE_LEVEL_1 && item && (item->giType == IT_WEAPON || item
-				->giType == IT_AMMO || item->giType == IT_HEALTH))
-			{
-				//jedi cannot pick up weapons
-				return qfalse;
-			}
-			if (ps->weapon == WP_SABER && item && (item->giType == IT_WEAPON || item->giType == IT_AMMO || item->giType
-				== IT_HEALTH))
-			{
-				//Saber  users cannot pick up weapons
-				return qfalse;
-			}
-		}
-		if (item->giType == IT_WEAPON && item->giTag == WP_BRYAR_OLD)
-		{
-			//SBD cannot pick up weapons
-			return qfalse;
-		}
-		if (pm_entBot && pm_entBot->s.botclass == BCLASS_SBD)
-		{
-			return qfalse;
-		}
-		if (ps->weapon == WP_BRYAR_OLD)
-		{
-			//  users cannot pick up weapons
-			return qfalse;
-		}
-		if (pm_entBot && pm_entBot->s.botclass == BCLASS_WOOKIEMELEE)
-		{
-			return qfalse;
-		}
-		if (ps->duelInProgress)
-		{
-			//no picking stuff up while in a duel, no matter what the type is
 			return qfalse;
 		}
 	}
-	else
+
+	/*
+	==========================================================
+		TRUE JEDI RESTRICTIONS
+	==========================================================
+	*/
+	if (ps->trueJedi)
 	{
-		//safety return since below code assumes a non-null ps
+		if (item->giType != IT_TEAM &&
+			item->giType != IT_ARMOR &&
+			!(item->giType == IT_WEAPON && item->giTag == WP_SABER) &&
+			!(item->giType == IT_HOLDABLE && item->giTag == HI_SEEKER) &&
+			!(item->giType == IT_POWERUP && item->giTag != PW_YSALAMIRI))
+		{
+			return qfalse;
+		}
+	}
+	else if (ps->trueNonJedi)
+	{
+		if ((item->giType == IT_POWERUP && item->giTag != PW_YSALAMIRI) ||
+			(item->giType == IT_HOLDABLE && item->giTag == HI_SEEKER) ||
+			(item->giType == IT_WEAPON && item->giTag == WP_SABER))
+		{
+			return qfalse;
+		}
+	}
+
+	/*
+	==========================================================
+		JEDI MASTER / JEDI RESTRICTIONS
+	==========================================================
+	*/
+	if (gametype != GT_JEDIMASTER &&
+		gametype != GT_SINGLE_PLAYER &&
+		gametype != GT_HOLOCRON &&
+		gametype != GT_SIEGE &&
+		gametype != GT_CTY)
+	{
+		if (ps->isJediMaster && (item->giType == IT_WEAPON || item->giType == IT_AMMO))
+		{
+			return qfalse;
+		}
+
+		if (ps->fd.forcePowerLevel[FP_SABER_OFFENSE] >= FORCE_LEVEL_1 &&
+			(item->giType == IT_WEAPON || item->giType == IT_AMMO || item->giType == IT_HEALTH))
+		{
+			return qfalse;
+		}
+
+		if (ps->weapon == WP_SABER &&
+			(item->giType == IT_WEAPON || item->giType == IT_AMMO || item->giType == IT_HEALTH))
+		{
+			return qfalse;
+		}
+	}
+
+	// SBD weapon restriction (redundant but preserved)
+	if (item->giType == IT_WEAPON && item->giTag == WP_BRYAR_OLD)
+	{
 		return qfalse;
 	}
 
+	// Weapon restriction for players holding WP_BRYAR_OLD
+	if (ps->weapon == WP_BRYAR_OLD)
+	{
+		return qfalse;
+	}
+
+	// No pickups during duel
+	if (ps->duelInProgress)
+	{
+		return qfalse;
+	}
+
+	/*
+	==========================================================
+		ITEM TYPE SWITCH
+	==========================================================
+	*/
 	switch (item->giType)
 	{
 	case IT_WEAPON:
+	{
 		if (ent->generic1 == ps->clientNum && ent->powerups)
 		{
 			return qfalse;
@@ -2588,76 +2609,82 @@ qboolean BG_CanItemBeGrabbed(const int gametype, const entityState_t* ent, const
 			gametype != GT_SIEGE &&
 			gametype != GT_CTY)
 		{
-			if (item->giType == IT_WEAPON && item->giTag == WP_BRYAR_OLD)
+			if (item->giTag == WP_BRYAR_OLD)
 			{
-				//SBD cannot pick up weapons
 				return qfalse;
 			}
-			if (pm_entBot && pm_entBot->s.botclass == BCLASS_SBD)
+
+			if (pm_entBot &&
+				(pm_entBot->s.botclass == BCLASS_SBD ||
+					pm_entBot->s.botclass == BCLASS_WOOKIEMELEE ||
+					pm_entBot->s.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+					pm_entBot->s.botclass == BCLASS_FORCE_LIGHT_NO_SABER))
 			{
 				return qfalse;
 			}
 		}
-		if (pm_entBot && pm_entBot->s.botclass == BCLASS_WOOKIEMELEE)
-		{
-			return qfalse;
-		}
+
 		if (gametype == GT_SINGLE_PLAYER)
 		{
 			const int ammo_index = weaponData[item->giTag].ammoIndex;
 
-			if (COM_BitCheck(&ps->stats[STAT_WEAPONS], item->giTag) && ps->ammo[ammo_index] >= ammoData[ammo_index].max &&
-				item->giTag != WP_THERMAL && item->giTag != WP_TRIP_MINE && item->giTag != WP_DET_PACK)
+			if (COM_BitCheck(&ps->stats[STAT_WEAPONS], item->giTag) &&
+				ps->ammo[ammo_index] >= ammoData[ammo_index].max &&
+				item->giTag != WP_THERMAL &&
+				item->giTag != WP_TRIP_MINE &&
+				item->giTag != WP_DET_PACK)
 			{
-				//weaponstay stuff.. in CoOp all weapons (not just dropped ones) are restricted to already have checks
 				return qfalse;
 			}
 		}
 		else
 		{
-			if (!(ent->eFlags & EF_DROPPEDWEAPON) && ps->stats[STAT_WEAPONS] & 1 << item->giTag &&
-				item->giTag != WP_THERMAL && item->giTag != WP_TRIP_MINE && item->giTag != WP_DET_PACK)
+			if (!(ent->eFlags & EF_DROPPEDWEAPON) &&
+				(ps->stats[STAT_WEAPONS] & (1 << item->giTag)) &&
+				item->giTag != WP_THERMAL &&
+				item->giTag != WP_TRIP_MINE &&
+				item->giTag != WP_DET_PACK)
 			{
-				//weaponstay stuff.. if this isn't dropped, and you already have it, you don't get it.
 				return qfalse;
 			}
 		}
-		if (item->giTag == WP_THERMAL || item->giTag == WP_TRIP_MINE || item->giTag == WP_DET_PACK)
+
+		if (item->giTag == WP_THERMAL ||
+			item->giTag == WP_TRIP_MINE ||
+			item->giTag == WP_DET_PACK)
 		{
-			//check to see if full on ammo for this, if so, then..
 			const int ammo_index = weaponData[item->giTag].ammoIndex;
-			//JAC: Only restrict pickups on full ammo if the player already has this weapon.
-			if (ps->ammo[ammo_index] >= ammoData[ammo_index].max && ps->stats[STAT_WEAPONS] & 1 << item->giTag)
+
+			if (ps->ammo[ammo_index] >= ammoData[ammo_index].max &&
+				(ps->stats[STAT_WEAPONS] & (1 << item->giTag)))
 			{
-				//don't need it
 				return qfalse;
 			}
 		}
-		return qtrue; // weapons are always picked up
+
+		return qtrue;
+	}
 
 	case IT_AMMO:
 		if (item->giTag == -1)
 		{
-			//special case for "all ammo" packs
 			return qtrue;
 		}
 		if (ps->ammo[item->giTag] >= ammoData[item->giTag].max)
 		{
-			return qfalse; // can't hold any more
+			return qfalse;
 		}
 		return qtrue;
 
 	case IT_ARMOR:
-		if (ps->stats[STAT_ARMOR] >= ps->stats[STAT_MAX_HEALTH]/* * item->giTag*/)
+		if (ps->stats[STAT_ARMOR] >= ps->stats[STAT_MAX_HEALTH])
 		{
 			return qfalse;
 		}
 		return qtrue;
 
 	case IT_HEALTH:
-		// small and mega healths will go over the max, otherwise
-		// don't pick up if already at max
-		if (ps->fd.forcePowersActive & 1 << FP_RAGE)
+		if (ps->fd.forcePowersActive & (1 << FP_RAGE))
 		{
 			return qfalse;
 		}
@@ -2678,41 +2705,38 @@ qboolean BG_CanItemBeGrabbed(const int gametype, const entityState_t* ent, const
 		return qtrue;
 
 	case IT_POWERUP:
-		if (ps && ps->powerups[PW_YSALAMIRI])
+		if (ps->powerups[PW_YSALAMIRI] && item->giTag != PW_YSALAMIRI)
 		{
-			if (item->giTag != PW_YSALAMIRI)
-			{
-				return qfalse;
-			}
+			return qfalse;
 		}
-		return qtrue; // powerups are always picked up
+		return qtrue;
 
-	case IT_TEAM: // team items, such as flags
+	case IT_TEAM:
 		if (gametype == GT_CTF || gametype == GT_CTY)
 		{
-			// ent->model_index2 is non-zero on items if they are dropped
-			// we need to know this because we can pick up our dropped flag (and return it)
-			// but we can't pick up our flag at base
 			if (ps->persistant[PERS_TEAM] == TEAM_RED)
 			{
 				if (item->giTag == PW_BLUEFLAG ||
-					item->giTag == PW_REDFLAG && ent->model_index2 ||
-					item->giTag == PW_REDFLAG && ps->powerups[PW_BLUEFLAG])
+					(item->giTag == PW_REDFLAG && ent->model_index2) ||
+					(item->giTag == PW_REDFLAG && ps->powerups[PW_BLUEFLAG]))
+				{
 					return qtrue;
+				}
 			}
 			else if (ps->persistant[PERS_TEAM] == TEAM_BLUE)
 			{
 				if (item->giTag == PW_REDFLAG ||
-					item->giTag == PW_BLUEFLAG && ent->model_index2 ||
-					item->giTag == PW_BLUEFLAG && ps->powerups[PW_REDFLAG])
+					(item->giTag == PW_BLUEFLAG && ent->model_index2) ||
+					(item->giTag == PW_BLUEFLAG && ps->powerups[PW_REDFLAG]))
+				{
 					return qtrue;
+				}
 			}
 		}
-
 		return qfalse;
 
 	case IT_HOLDABLE:
-		if (ps->stats[STAT_HOLDABLE_ITEMS] & 1 << item->giTag)
+		if (ps->stats[STAT_HOLDABLE_ITEMS] & (1 << item->giTag))
 		{
 			return qfalse;
 		}
@@ -2720,8 +2744,10 @@ qboolean BG_CanItemBeGrabbed(const int gametype, const entityState_t* ent, const
 
 	case IT_BAD:
 		Com_Error(ERR_DROP, "BG_CanItemBeGrabbed: IT_BAD");
+		break;
+
 	default:
-#ifndef NDEBUG // bk0001204
+#ifndef NDEBUG
 		Com_Printf("BG_CanItemBeGrabbed: unknown enum %d\n", item->giType);
 #endif
 		break;

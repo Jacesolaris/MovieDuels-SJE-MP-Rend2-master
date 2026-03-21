@@ -51,6 +51,8 @@ USER INTERFACE MAIN
 #include <qcommon\q_color.h>
 #include <qcommon\q_string.h>
 #include <assert.h>
+#include <game\bg_public.h>
+#include <qcommon\q_platform.h>
 
 extern void UI_SaberAttachToChar(itemDef_t* item);
 
@@ -704,7 +706,7 @@ static void _UI_DrawSides(float x, float y, float w, float h, float size)
 	trap->R_DrawStretchPic(x + w - size, y, size, h, 0, 0, 0, 0, uiInfo.uiDC.whiteShader);
 }
 
-void _UI_DrawTopBottom(float x, float y, float w, float h, float size)
+static void _UI_DrawTopBottom(float x, float y, float w, float h, float size)
 {
 	size *= uiInfo.uiDC.yscale;
 	trap->R_DrawStretchPic(x, y, w, size, 0, 0, 0, 0, uiInfo.uiDC.whiteShader);
@@ -1142,7 +1144,7 @@ _UI_Shutdown
 void UI_CleanupGhoul2(void);
 void UI_FreeAllSpecies(void);
 
-void UI_Shutdown(void)
+static void UI_Shutdown(void)
 {
 	trap->LAN_SaveCachedServers();
 	UI_CleanupGhoul2();
@@ -2021,7 +2023,7 @@ static void UI_DrawForceSide(rectDef_t* rect, float scale, vec4_t color, int tex
 	char s[256];
 	menuDef_t* menu;
 
-	char info[MAX_INFO_VALUE];
+	char info[MAX_INFO_VALUE] = { 0 };
 
 	info[0] = '\0';
 	trap->GetConfigString(CS_SERVERINFO, info, sizeof info);
@@ -3196,7 +3198,7 @@ static void UI_DrawServerRefreshDate(rectDef_t* rect, float scale, vec4_t color,
 {
 	if (uiInfo.serverStatus.refreshActive)
 	{
-		vec4_t lowLight = {0}, newColor;
+		vec4_t lowLight = { 0 }, newColor;
 		lowLight[0] = 0.8 * color[0];
 		lowLight[1] = 0.8 * color[1];
 		lowLight[2] = 0.8 * color[2];
@@ -3479,7 +3481,6 @@ static void UI_OwnerDraw(float x, float y, float w, float h, float text_x, float
 		UI_DrawSkill(&rect, scale, color, textStyle, i_menu_font);
 		break;
 	case UI_TOTALFORCESTARS:
-		//      UI_DrawTotalForceStars(&rect, scale, color, textStyle);
 		break;
 	case UI_BLUETEAMNAME:
 		UI_DrawTeamName(&rect, scale, color, qtrue, textStyle, i_menu_font);
@@ -4825,7 +4826,7 @@ static void UI_LoadMods()
 
 	// To still display base game with old engine
 	Q_strncpyz(version, UI_Cvar_VariableString("version"), sizeof version);
-	if (strstr(version, "2003"))
+	if (strstr(version, "2026"))
 	{
 		trap->SE_GetStringTextString("MENUS_JEDI_ACADEMY", sJediAcademy, sizeof sJediAcademy);
 		uiInfo.modList[0].modName = String_Alloc("");
@@ -7811,7 +7812,7 @@ static void UI_RunMenuScript(char** args)
 
 static void UI_GetTeamColor(vec4_t* color)
 {}
-void UI_SetSiegeTeams(void)
+static void UI_SetSiegeTeams(void)
 {
 	static char info[MAX_INFO_VALUE];
 	char* mapname = NULL;

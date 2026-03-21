@@ -7886,7 +7886,7 @@ qboolean CanDamage(const gentity_t* targ, vec3_t origin)
 G_RadiusDamage
 ============
 */
-qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t impactPoint, int hit_loc, int* dmg, int mod);
+extern qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int hit_loc, int* dmg, const int mod);
 
 static void Do_DustFallNear(const vec3_t origin, const int dustcount)
 {

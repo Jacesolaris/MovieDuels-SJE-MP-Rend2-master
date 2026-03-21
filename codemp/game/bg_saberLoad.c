@@ -46,6 +46,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #elif UI_BUILD
 #include "ui/ui_local.h"
 #endif
+#include <stdlib.h>
 
 extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
 
@@ -3085,19 +3086,26 @@ qboolean WP_SaberParseParm(const char* saber_name, const char* parmname, char* s
 static qboolean WP_SaberValidForPlayerInMP(const char* saber_name)
 {
 	char allowed[8] = { 0 };
-	if (!WP_SaberParseParm(saber_name, "notInMP", allowed))
+
+	if (WP_SaberParseParm(saber_name, "notInMP", allowed) == qfalse)
 	{
-		//not defined, default is yes
+		return qfalse;
+	}
+
+	if (allowed[0] == '\0')
+	{
+		return qfalse;
+	}
+
+	if (atoi(allowed) == 0)
+	{
 		return qtrue;
 	}
-	if (!allowed[0])
-	{
-		//not defined, default is yes
-		return qtrue;
-	}
-	//return value
-	return atoi(allowed) == 0;
+
+	return qfalse;
 }
+
+
 
 void WP_RemoveSaber(saberInfo_t* sabers, const int saberNum)
 {

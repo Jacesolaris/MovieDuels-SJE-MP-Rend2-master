@@ -23,6 +23,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "client.h"
 #include "cl_cgameapi.h"
 #include "FxScheduler.h"
+#include <string.h>
+#include <qcommon\q_math.h>
 
 extern int drawnFx;
 
@@ -53,8 +55,8 @@ void CParticle::Init(void)
 	mRefEnt.radius = 0.0f;
 	if (mFlags & FX_PLAYER_VIEW)
 	{
-		mOrigin1[0] = irand(0, 639);
-		mOrigin1[1] = irand(0, 479);
+		mOrigin1[0] = Q_irand(0, 639);
+		mOrigin1[1] = Q_irand(0, 479);
 	}
 }
 

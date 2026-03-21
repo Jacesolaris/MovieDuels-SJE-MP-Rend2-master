@@ -6776,8 +6776,7 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 	const saberInfo_t* saber1 = BG_MySaber(pm->ps->clientNum, 0);
 	const saberInfo_t* saber2 = BG_MySaber(pm->ps->clientNum, 1);
 
-	const qboolean is_holding_block_button =
-		(pm->ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse;
+	const qboolean is_holding_block_button = (pm->ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse;
 
 	/*==========================================================
 		SABER ATTACK CHAIN / MISHAP HANDLING
@@ -6997,8 +6996,7 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 		ANIM RESTART LOGIC
 	==========================================================*/
 
-	if ((pm->ps->torsoAnim == anim || pm->ps->legsAnim == anim) &&
-		new_move > LS_PUTAWAY)
+	if ((pm->ps->torsoAnim == anim || pm->ps->legsAnim == anim) && new_move > LS_PUTAWAY)
 	{
 		setflags |= SETANIM_FLAG_RESTART;
 	}
@@ -7119,118 +7117,118 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 		parts = SETANIM_TORSO;
 	}
 
-	/*==========================================================
-		FULL‑BODY / TORSO / LEGS ANIM SELECTION
-	==========================================================*/
-
 	if (!pm->ps->m_iVehicleNum)
 	{
+		//if not riding a vehicle
 		if (new_move == LS_JUMPATTACK_ARIAL_RIGHT ||
 			new_move == LS_JUMPATTACK_ARIAL_LEFT)
 		{
+			//force only on legs
 			parts = SETANIM_LEGS;
 		}
-		else if (
-			new_move == LS_A_LUNGE ||
-			new_move == LS_A_JUMP_T__B_ ||
-			new_move == LS_A_JUMP_PALP_ ||
-			new_move == LS_A_BACKSTAB ||
-			new_move == LS_A_BACKSTAB_B ||
-			new_move == LS_A_BACK ||
-			new_move == LS_A_BACK_CR ||
-			new_move == LS_ROLL_STAB ||
-			new_move == LS_A_FLIP_STAB ||
-			new_move == LS_A_FLIP_SLASH ||
-			new_move == LS_JUMPATTACK_DUAL ||
-			new_move == LS_GRIEVOUS_LUNGE ||
-			new_move == LS_JUMPATTACK_ARIAL_LEFT ||
-			new_move == LS_JUMPATTACK_ARIAL_RIGHT ||
-			new_move == LS_JUMPATTACK_CART_LEFT ||
-			new_move == LS_JUMPATTACK_CART_RIGHT ||
-			new_move == LS_JUMPATTACK_STAFF_LEFT ||
-			new_move == LS_JUMPATTACK_STAFF_RIGHT ||
-			new_move == LS_BUTTERFLY_LEFT ||
-			new_move == LS_BUTTERFLY_RIGHT ||
-			new_move == LS_A_BACKFLIP_ATK ||
-			new_move == LS_STABDOWN ||
-			new_move == LS_STABDOWN_BACKHAND ||
-			new_move == LS_STABDOWN_STAFF ||
-			new_move == LS_STABDOWN_DUAL ||
-			new_move == LS_DUAL_SPIN_PROTECT ||
-			new_move == LS_DUAL_SPIN_PROTECT_GRIE ||
-			new_move == LS_STAFF_SOULCAL ||
-			new_move == LS_YODA_SPECIAL ||
-			new_move == LS_A1_SPECIAL ||
-			new_move == LS_A2_SPECIAL ||
-			new_move == LS_A3_SPECIAL ||
-			new_move == LS_A4_SPECIAL ||
-			new_move == LS_A5_SPECIAL ||
-			new_move == LS_GRIEVOUS_SPECIAL ||
-			new_move == LS_UPSIDE_DOWN_ATTACK ||
-			new_move == LS_PULL_ATTACK_STAB ||
-			new_move == LS_PULL_ATTACK_SWING ||
-			PM_SaberInBrokenParry(new_move) ||
-			PM_kick_move(new_move))
+		else if (new_move == LS_A_LUNGE
+			|| new_move == LS_A_JUMP_T__B_
+			|| new_move == LS_A_JUMP_PALP_
+			|| new_move == LS_A_BACKSTAB
+			|| new_move == LS_A_BACKSTAB_B
+			|| new_move == LS_A_BACK
+			|| new_move == LS_A_BACK_CR
+			|| new_move == LS_ROLL_STAB
+			|| new_move == LS_A_FLIP_STAB
+			|| new_move == LS_A_FLIP_SLASH
+			|| new_move == LS_JUMPATTACK_DUAL
+			|| new_move == LS_GRIEVOUS_LUNGE
+			|| new_move == LS_JUMPATTACK_CART_LEFT
+			|| new_move == LS_JUMPATTACK_CART_RIGHT
+			|| new_move == LS_JUMPATTACK_STAFF_LEFT
+			|| new_move == LS_JUMPATTACK_STAFF_RIGHT
+			|| new_move == LS_BUTTERFLY_LEFT
+			|| new_move == LS_BUTTERFLY_RIGHT
+			|| new_move == LS_A_BACKFLIP_ATK
+			|| new_move == LS_STABDOWN
+			|| new_move == LS_STABDOWN_BACKHAND
+			|| new_move == LS_STABDOWN_STAFF
+			|| new_move == LS_STABDOWN_DUAL
+			|| new_move == LS_DUAL_SPIN_PROTECT
+			|| new_move == LS_DUAL_SPIN_PROTECT_GRIE
+			|| new_move == LS_STAFF_SOULCAL
+			|| new_move == LS_YODA_SPECIAL
+			|| new_move == LS_A1_SPECIAL
+			|| new_move == LS_A2_SPECIAL
+			|| new_move == LS_A3_SPECIAL
+			|| new_move == LS_A4_SPECIAL
+			|| new_move == LS_A5_SPECIAL
+			|| new_move == LS_GRIEVOUS_SPECIAL
+			|| new_move == LS_UPSIDE_DOWN_ATTACK
+			|| new_move == LS_PULL_ATTACK_STAB
+			|| new_move == LS_PULL_ATTACK_SWING
+			|| PM_SaberInBrokenParry(new_move)
+			|| PM_kick_move(new_move))
 		{
 			parts = SETANIM_BOTH;
 		}
 		else if (PM_SpinningSaberAnim(anim))
 		{
+			//spins must be played on entire body
 			parts = SETANIM_BOTH;
 		}
+		//coming out of a spin, force full body setting
 		else if (PM_SpinningSaberAnim(pm->ps->legsAnim))
 		{
+			//spins must be played on entire body
 			parts = SETANIM_BOTH;
 			pm->ps->legsTimer = pm->ps->torsoTimer = 0;
 		}
-		else if (
-			((!pm->cmd.forwardmove && !pm->cmd.rightmove && !pm->cmd.upmove &&
-				!(pm->ps->pm_flags & PMF_DUCKED)) ||
-				(is_holding_block_button && (pm->cmd.buttons & BUTTON_WALKING))))
+		else if (!pm->cmd.forwardmove && !pm->cmd.rightmove && !pm->cmd.upmove && !(pm->ps->pm_flags & PMF_DUCKED) ||
+			is_holding_block_button && pm->cmd.buttons & BUTTON_WALKING)
 		{
-			if (is_holding_block_button &&
-				(pm->cmd.buttons & BUTTON_WALKING) &&
-				!PM_SaberInParry(new_move) &&
-				!PM_SaberInKnockaway(new_move) &&
-				!PM_SaberInBrokenParry(new_move) &&
-				!PM_SaberInReflect(new_move) &&
-				!PM_SaberInSpecial(new_move))
+			//not trying to run, duck or jump
+			if (is_holding_block_button && pm->cmd.buttons & BUTTON_WALKING
+				&& !PM_SaberInParry(new_move)
+				&& !PM_SaberInKnockaway(new_move)
+				&& !PM_SaberInBrokenParry(new_move)
+				&& !PM_SaberInReflect(new_move)
+				&& !PM_SaberInSpecial(new_move))
 			{
 				parts = SETANIM_TORSO;
-
 				if (pm->ps->fd.saberAnimLevel == SS_DUAL)
+				{
 					anim = PM_BlockingPoseForsaber_anim_levelDual();
+				}
 				else if (pm->ps->fd.saberAnimLevel == SS_STAFF)
+				{
 					anim = PM_BlockingPoseForsaber_anim_levelStaff();
+				}
 				else
+				{
 					anim = PM_BlockingPoseForsaber_anim_levelSingle();
+				}
 			}
-			else if (
-				!PM_FlippingAnim(pm->ps->legsAnim) &&
-				!BG_InRoll(pm->ps, pm->ps->legsAnim) &&
-				!PM_InKnockDown(pm->ps) &&
-				!PM_JumpingAnim(pm->ps->legsAnim) &&
-				!PM_PainAnim(pm->ps->legsAnim) &&
-				!PM_InSpecialJump(pm->ps->legsAnim) &&
-				!PM_InSlopeAnim(pm->ps->legsAnim) &&
-				pm->ps->groundEntityNum != ENTITYNUM_NONE &&
-				!(pm->ps->pm_flags & PMF_DUCKED) &&
-				new_move != LS_PUTAWAY)
+			else if (!PM_FlippingAnim(pm->ps->legsAnim)
+				&& !BG_InRoll(pm->ps, pm->ps->legsAnim)
+				&& !PM_InKnockDown(pm->ps)
+				&& !PM_JumpingAnim(pm->ps->legsAnim)
+				&& !PM_PainAnim(pm->ps->legsAnim)
+				&& !PM_InSpecialJump(pm->ps->legsAnim)
+				&& !PM_InSlopeAnim(pm->ps->legsAnim)
+				&& pm->ps->groundEntityNum != ENTITYNUM_NONE
+				&& !(pm->ps->pm_flags & PMF_DUCKED)
+				&& new_move != LS_PUTAWAY)
 			{
 				parts = SETANIM_BOTH;
 			}
-			else if (new_move == LS_SPINATTACK_DUAL ||
-				new_move == LS_SPINATTACK ||
-				new_move == LS_SPINATTACK_GRIEV ||
-				new_move == LS_GRIEVOUS_SPECIAL)
+			else if ((new_move == LS_SPINATTACK_DUAL || new_move == LS_SPINATTACK || new_move == LS_SPINATTACK_GRIEV || new_move == LS_GRIEVOUS_SPECIAL))
 			{
-				parts = (pm->ps->pm_flags & PMF_DUCKED) ? SETANIM_BOTH : SETANIM_TORSO;
+				if (pm->ps->pm_flags & PMF_DUCKED)
+				{
+					parts = SETANIM_BOTH;
+				}
+				else
+				{
+					parts = SETANIM_TORSO;
+				}
 			}
 		}
-
-		/*==========================================================
-			APPLY ANIMATION
-		==========================================================*/
 
 		PM_SetAnim(parts, anim, setflags);
 
@@ -7243,165 +7241,149 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 				pm->ps->legsTimer = pm->ps->torsoTimer;
 			}
 		}
+	}
 
-		/*==========================================================
-			POST‑ANIM LOGIC (ATTACK FLAGS, EVENTS, ETC.)
-		==========================================================*/
-
-		if (pm->ps->torsoAnim == anim)
+	if (pm->ps->torsoAnim == anim)
+	{
+		//successfully changed anims
+		if (pm->ps->weapon == WP_SABER && !BG_SabersOff(pm->ps))
 		{
-			if (pm->ps->weapon == WP_SABER && !BG_SabersOff(pm->ps))
-			{
 #ifdef _GAME
-				const qboolean is_holding_block_button_and_attack =
-					(pm->ps->ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
-				(void)is_holding_block_button_and_attack;
+			const qboolean is_holding_block_button_and_attack = pm->ps->ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK ? qtrue : qfalse;
+			//Active Blocking
 
-				if (!(g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT))
-				{
-					if (pm->ps->saberFatigueChainCount >= MISHAPLEVEL_TEN)
-					{
-						pm->ps->userInt3 |= (1 << FLAG_SLIGHTFATIGUE);
-					}
-					else
-					{
-						pm->ps->userInt3 &= ~(1 << FLAG_SLIGHTFATIGUE);
-					}
-				}
-				else
-#endif
-				{
-					PM_NPCFatigue(pm->ps, new_move);
-				}
-
-				PM_SaberFakeFlagUpdate(new_move);
-				PM_SaberPerfectBlockUpdate(new_move);
-
-				if (!PM_SaberInBounce(new_move) && !PM_SaberInReturn(new_move))
-				{
-					pm->ps->userInt3 &= ~(1 << FLAG_SLOWBOUNCE);
-					pm->ps->userInt3 &= ~(1 << FLAG_OLDSLOWBOUNCE);
-					pm->ps->userInt3 &= ~(1 << FLAG_PARRIED);
-					pm->ps->userInt3 &= ~(1 << FLAG_BLOCKING);
-					pm->ps->userInt3 &= ~(1 << FLAG_BLOCKED);
-				}
-
-				if (!PM_SaberInMassiveBounce(pm->ps->torsoAnim))
-				{
-					pm->ps->userInt3 &= ~(1 << FLAG_MBLOCKBOUNCE);
-				}
-
-				if (!PM_SaberInParry(new_move))
-				{
-					pm->ps->userInt3 &= ~(1 << FLAG_PREBLOCK);
-				}
-
-				/*==================================================
-					ATTACK EVENT + BROKEN LIMB PAIN
-				==================================================*/
-
-				if (PM_SaberInAttack(new_move) || pm_saber_in_special_attack(anim))
-				{
-					if (pm->ps->saber_move != new_move)
-					{
-						/* Not previously in this attack */
-						if (new_move != LS_KICK_F &&
-							new_move != LS_KICK_F2 &&
-							new_move != LS_KICK_B &&
-							new_move != LS_KICK_B2 &&
-							new_move != LS_KICK_B3 &&
-							new_move != LS_KICK_R &&
-							new_move != LS_SLAP_R &&
-							new_move != LS_KICK_L &&
-							new_move != LS_SLAP_L &&
-							new_move != LS_KICK_F_AIR &&
-							new_move != LS_KICK_F_AIR2 &&
-							new_move != LS_KICK_B_AIR &&
-							new_move != LS_KICK_R_AIR &&
-							new_move != LS_KICK_L_AIR)
-						{
-							PM_AddEvent(EV_SABER_ATTACK);
-						}
-
-						if (pm->ps->brokenLimbs)
-						{
-							int i_factor = -1;
-
-							if (pm->ps->brokenLimbs & (1 << BROKENLIMB_RARM))
-							{
-								i_factor = 5;
-							}
-							else if (pm->ps->brokenLimbs & (1 << BROKENLIMB_LARM))
-							{
-								i_factor = 10;
-							}
-
-							if (i_factor != -1)
-							{
-								if (!PM_irand_timesync(0, i_factor))
-								{
-									BG_AddPredictableEventToPlayerstate(
-										EV_PAIN,
-										PM_irand_timesync(1, 100),
-										pm->ps);
-								}
-							}
-						}
-					}
-					else if ((setflags & SETANIM_FLAG_RESTART) &&
-						pm_saber_in_special_attack(anim))
-					{
-						if (!PM_InCartwheel(pm->ps->torsoAnim))
-						{
-							pm->ps->weaponTime = pm->ps->torsoTimer;
-						}
-					}
-				}
-				else if (PM_SaberInStart(new_move))
-				{
-					const int damage_delay = 150;
-					if (pm->ps->torsoTimer < damage_delay)
-					{
-						/* original code had a no-op here; preserved */
-						pm->ps->torsoTimer;
-					}
-				}
-
-				if (PM_SaberInSpecial(new_move) &&
-					pm->ps->weaponTime < pm->ps->torsoTimer)
-				{
-					pm->ps->weaponTime = pm->ps->torsoTimer;
-				}
-			}
-
-			/*======================================================
-				FINAL STATE UPDATES
-			======================================================*/
-
-			pm->ps->saber_move = new_move;
-			pm->ps->saberBlocking = saber_moveData[new_move].blocking;
-			pm->ps->torsoAnim = anim;
-
-			if (pm->ps->clientNum == 0)
+			if (!(g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT))
 			{
-				if (pm->ps->saberBlocked >= BLOCKED_UPPER_RIGHT_PROJ &&
-					pm->ps->saberBlocked <= BLOCKED_TOP_PROJ &&
-					new_move >= LS_REFLECT_UP &&
-					new_move <= LS_REFLECT_LL)
+			}
+			else
+#endif
+			{
+				PM_NPCFatigue(pm->ps, new_move); //drainblockpoints low cost
+			}
+
+			//update the flag
+			PM_SaberFakeFlagUpdate(new_move);
+
+			PM_SaberPerfectBlockUpdate(new_move);
+
+			if (!PM_SaberInBounce(new_move) && !PM_SaberInReturn(new_move)) //or new move isn't slow bounce move
+			{
+				//switched away from a slow bounce move, remove the flags.
+				pm->ps->userInt3 &= ~(1 << FLAG_SLOWBOUNCE);
+				pm->ps->userInt3 &= ~(1 << FLAG_OLDSLOWBOUNCE);
+				pm->ps->userInt3 &= ~(1 << FLAG_PARRIED);
+				pm->ps->userInt3 &= ~(1 << FLAG_BLOCKING);
+				pm->ps->userInt3 &= ~(1 << FLAG_BLOCKED);
+			}
+
+			if (!PM_SaberInMassiveBounce(pm->ps->torsoAnim))
+			{
+				//cancel out pre-block flag
+				pm->ps->userInt3 &= ~(1 << FLAG_MBLOCKBOUNCE);
+			}
+
+			if (!PM_SaberInParry(new_move))
+			{
+				//cancel out pre-block flag
+				pm->ps->userInt3 &= ~(1 << FLAG_PREBLOCK);
+			}
+
+			if (PM_SaberInAttack(new_move) || pm_saber_in_special_attack(anim))
+			{
+				if (pm->ps->saber_move != new_move)
 				{
-					/* keep projectile block state */
+					//wasn't playing that attack before
+					if (new_move != LS_KICK_F
+						&& new_move != LS_KICK_F2
+						&& new_move != LS_KICK_B
+						&& new_move != LS_KICK_B2
+						&& new_move != LS_KICK_B3
+						&& new_move != LS_KICK_R
+						&& new_move != LS_SLAP_R
+						&& new_move != LS_KICK_L
+						&& new_move != LS_SLAP_L
+						&& new_move != LS_KICK_F_AIR
+						&& new_move != LS_KICK_F_AIR2
+						&& new_move != LS_KICK_B_AIR
+						&& new_move != LS_KICK_R_AIR
+						&& new_move != LS_KICK_L_AIR)
+					{
+						PM_AddEvent(EV_SABER_ATTACK);
+					}
+
+					if (pm->ps->brokenLimbs)
+					{
+						//randomly make pain sounds with a broken arm because we are suffering.
+						int i_factor = -1;
+
+						if (pm->ps->brokenLimbs & 1 << BROKENLIMB_RARM)
+						{
+							//You're using it more. So it hurts more.
+							i_factor = 5;
+						}
+						else if (pm->ps->brokenLimbs & 1 << BROKENLIMB_LARM)
+						{
+							i_factor = 10;
+						}
+
+						if (i_factor != -1)
+						{
+							if (!PM_irand_timesync(0, i_factor))
+							{
+								BG_AddPredictableEventToPlayerstate(EV_PAIN, PM_irand_timesync(1, 100), pm->ps);
+							}
+						}
+					}
 				}
-				else
+				else if (setflags & SETANIM_FLAG_RESTART && pm_saber_in_special_attack(anim))
 				{
-					pm->ps->saberBlocked = BLOCKED_NONE;
+					//sigh, if restarted a special, then set the weaponTime *again*
+					if (!PM_InCartwheel(pm->ps->torsoAnim))
+					{
+						//can still attack during a cartwheel/arial
+						pm->ps->weaponTime = pm->ps->torsoTimer; //so we know our weapon is busy
+					}
 				}
 			}
-			else if (pm->ps->saberBlocked <= BLOCKED_ATK_BOUNCE ||
-				!BG_SabersOff(pm->ps) ||
-				(new_move < LS_PARRY_UR || new_move > LS_REFLECT_LL))
+			else if (PM_SaberInStart(new_move))
+			{
+				const int damage_delay = 150;
+				if (pm->ps->torsoTimer < damage_delay)
+				{
+					pm->ps->torsoTimer;
+				}
+			}
+
+			if (PM_SaberInSpecial(new_move) &&
+				pm->ps->weaponTime < pm->ps->torsoTimer)
+			{
+				//rww 01-02-03 - I think this will solve the issue of special attacks being interrupt able, hopefully without side effects
+				pm->ps->weaponTime = pm->ps->torsoTimer;
+			}
+		}
+
+		pm->ps->saber_move = new_move;
+		pm->ps->saberBlocking = saber_moveData[new_move].blocking;
+
+		pm->ps->torsoAnim = anim;
+
+		if (pm->ps->clientNum == 0)
+		{
+			if (pm->ps->saberBlocked >= BLOCKED_UPPER_RIGHT_PROJ && pm->ps->saberBlocked <= BLOCKED_TOP_PROJ
+				&& new_move >= LS_REFLECT_UP && new_move <= LS_REFLECT_LL)
+			{
+				//don't clear it when blocking projectiles
+			}
+			else
 			{
 				pm->ps->saberBlocked = BLOCKED_NONE;
 			}
+		}
+		else if (pm->ps->saberBlocked <= BLOCKED_ATK_BOUNCE || !BG_SabersOff(pm->ps) || (new_move < LS_PARRY_UR ||
+			new_move > LS_REFLECT_LL))
+		{
+			//NPCs only clear blocked if not blocking?
+			pm->ps->saberBlocked = BLOCKED_NONE;
 		}
 	}
 }

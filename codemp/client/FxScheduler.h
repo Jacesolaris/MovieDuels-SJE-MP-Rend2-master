@@ -87,7 +87,7 @@ public:
 	int GetHandle() const
 	{
 		if (mMediaList.size() == 0) { return 0; }
-		return mMediaList[irand(0, static_cast<int>(mMediaList.size()) - 1)];
+		return mMediaList[Q_irand(0, static_cast<int>(mMediaList.size()) - 1)];
 	}
 
 	CMediaHandles& operator=(const CMediaHandles& that);

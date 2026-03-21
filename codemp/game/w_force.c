@@ -2470,7 +2470,7 @@ void ForceSpeed(gentity_t* self, const int forceDuration)
 
 static void ForceHopAnim(gentity_t* self)
 {
-	const int setAnimOverride = SETANIM_AFLAG_PACE;
+	const int setAnimOverride = SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD;
 
 	if (self->client->pers.cmd.rightmove > 0)
 	{
@@ -2492,7 +2492,7 @@ static void ForceHopAnim(gentity_t* self)
 
 void ForceDashAnimDash(gentity_t* self)
 {
-	const int setAnimOverride = SETANIM_AFLAG_PACE;
+	const int setAnimOverride = SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD;
 
 	if (self->client->pers.cmd.rightmove > 0)
 	{
@@ -2961,13 +2961,12 @@ void ForceLightning(gentity_t* self)
 
 	if (self->client->ps.fd.forcePowerLevel[FP_LIGHTNING] < FORCE_LEVEL_2)
 	{
-		//short burst
-		G_SoundOnEnt(self, CHAN_BODY, "sound/weapons/force/lightning2.wav");
+		G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/lightning2.wav"));
 	}
 	else
 	{
 		//holding it
-		self->s.loopSound = G_SoundIndex("sound/weapons/force/lightning3.mp3");
+		G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/lightning3.wav"));
 	}
 
 	WP_ForcePowerStart(self, FP_LIGHTNING, 500);
@@ -2978,17 +2977,6 @@ static qboolean melee_block_lightning_counter_force(gentity_t* attacker, const g
 	//generically checks to see if the defender is able to block an attack from this attacker
 	if (!manual_forceblocking(defender))
 	{
-		return qfalse;
-	}
-
-	if (!walk_check(defender) || defender->client->ps.groundEntityNum == ENTITYNUM_NONE)
-	{
-		//can't block  Force power while running or in mid-air
-		return qfalse;
-	}
-	if (!(defender->client->ps.fd.forcePowersKnown & 1 << FP_ABSORB))
-	{
-		//doesn't have absorb
 		return qfalse;
 	}
 
@@ -3157,11 +3145,25 @@ static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t 
 					|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
 					|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
 				{
-					dmg *= 2;
+					if (self->client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER)
+					{
+						dmg = Q_irand(1, 2);
+					}
+					else
+					{
+						dmg *= 2;
+					}
 				}
 				else
 				{
-					dmg = Q_irand(1, 3);
+					if (self->client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER)
+					{
+						dmg = Q_irand(1, 2);
+					}
+					else
+					{
+						dmg = Q_irand(1, 3);
+					}
 				}
 				const qboolean saber_lightning_blocked = saber_block_lightning(self, traceEnt);
 				const qboolean hand_lightning_blocked = melee_block_lightning(self, traceEnt);
@@ -8365,6 +8367,7 @@ static qboolean G_SpecialRollGetup(gentity_t* self)
 extern qboolean PM_SaberInBrokenParry(int move);
 extern qboolean PM_InKnockDown(const playerState_t* ps);
 void Flamethrower_Fire(gentity_t* self);
+extern qboolean Bot_Is_Allowed_to_use_force(gentity_t* ent);
 
 void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 {
@@ -8379,6 +8382,11 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 	}
 
 	if (!self->client)
+	{
+		return;
+	}
+
+	if (self->r.svFlags & SVF_BOT && !Bot_Is_Allowed_to_use_force(self))
 	{
 		return;
 	}
@@ -9010,6 +9018,11 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 				{
 					regenAmount = 1;
 					regenDelay = 4000;
+				}
+				else if (self->client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER
+					|| self->client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER)
+				{
+					regenAmount = 5;
 				}
 				else
 				{

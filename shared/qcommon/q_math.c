@@ -234,12 +234,32 @@ float Q_flrand(const float min, const float max)
 }
 
 // Returns an integer min <= x <= max (ie inclusive)
-int irand(const int min, int max)
+int irand(int min, int max)
 {
-	assert(max - min < QRAND_MAX);
+	// Safety: handle reversed ranges
+	if (max < min)
+	{
+#ifdef _DEBUG
+		printf("WARNING: irand() called with max < min (%d < %d). Swapping.\n", max, min);
+#endif
+		int tmp = max;
+		max = min;
+		min = tmp;
+	}
 
-	max++;
+	// Safety: prevent overflow of the RNG math
+	if (max - min >= QRAND_MAX)
+	{
+#ifdef _DEBUG
+		printf("WARNING: irand() range too large (%d to %d). Clamping to QRAND_MAX.\n", min, max);
+#endif
+		max = min + QRAND_MAX - 1;
+	}
+
+	// Raven's original logic
+	max++;  // make range inclusive
 	holdrand = holdrand * 214013L + 2531011L;
+
 	int result = holdrand >> 17;
 	result = (result * (max - min) >> 15) + min;
 

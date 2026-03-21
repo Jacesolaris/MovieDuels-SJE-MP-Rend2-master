@@ -32,6 +32,16 @@ FORCE INTERFACE
 #include "ui_local.h"
 #include "qcommon/qfiles.h"
 #include "ui_force.h"
+#include "keycodes.h"
+#include <stdlib.h>
+#include <qcommon\q_string.h>
+#include <string.h>
+#include "menudef.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_shared.h>
+#include <game\bg_public.h>
+#include <qcommon\q_platform.h>
+#include "ui_shared.h"
 
 int uiForceSide = FORCE_LIGHTSIDE;
 int uiJediNonJedi = -1;
@@ -214,7 +224,7 @@ void UI_UpdateClientForcePowers(const char* teamArg)
 	gTouchedForce = qfalse;
 }
 
-int UI_TranslateFCFIndex(int index)
+static int UI_TranslateFCFIndex(int index)
 {
 	if (uiForceSide == FORCE_LIGHTSIDE)
 	{
@@ -473,8 +483,8 @@ void UI_ReadLegalForce(void)
 {
 	char fcfString[512];
 	int forcePlace = 0;
-	char singleBuf[64];
-	char info[MAX_INFO_VALUE];
+	char singleBuf[64] = { 0 };
+	char info[MAX_INFO_VALUE] = { 0 };
 	int c = 0;
 	int forceTeam = 0;
 	qboolean updateForceLater = qfalse;
@@ -639,7 +649,7 @@ void UI_UpdateForcePowers()
 
 	if (forcePowers && forcePowers[0])
 	{
-		char readBuf[256];
+		char readBuf[256]={0};
 		while (forcePowers[i])
 		{
 			int i_r = 0;
@@ -800,7 +810,7 @@ qboolean UI_SkinColor_HandleKey(int flags, float* special, int key, int num, int
 
 qboolean UI_ForceSide_HandleKey(int flags, float* special, int key, int num, int min, int max, int type)
 {
-	char info[MAX_INFO_VALUE];
+	char info[MAX_INFO_VALUE] = { 0 };
 
 	info[0] = '\0';
 	trap->GetConfigString(CS_SERVERINFO, info, sizeof info);
@@ -868,7 +878,7 @@ qboolean UI_ForceSide_HandleKey(int flags, float* special, int key, int num, int
 
 qboolean UI_JediNonJedi_HandleKey(int flags, float* special, int key, int num, int min, int max, int type)
 {
-	char info[MAX_INFO_VALUE];
+	char info[MAX_INFO_VALUE] = { 0 };
 
 	info[0] = '\0';
 	trap->GetConfigString(CS_SERVERINFO, info, sizeof info);
@@ -1109,7 +1119,7 @@ void UI_ForceConfigHandle(int oldindex, int newindex)
 	int i;
 	int c = 0;
 	char fcfBuffer[8192];
-	char singleBuf[64];
+	char singleBuf[64] = { 0 };
 	char info[MAX_INFO_VALUE];
 	int forceTeam = 0;
 

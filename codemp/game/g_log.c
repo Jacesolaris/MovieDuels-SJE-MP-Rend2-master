@@ -999,12 +999,12 @@ qboolean CalculateLogistics(const gentity_t* ent, int* stuffUsed)
 }
 
 // did this player earn the tactician award?
-qboolean CalculateTactician(const gentity_t* ent, int* kills)
+static qboolean CalculateTactician(const gentity_t* ent, int* kills)
 {
 #ifdef LOGGING_WEAPONS
 	int nBestPlayer = -1, nMostKills = 0;
 	int person, weapon;
-	int wasPickedUpBySomeone[WP_NUM_WEAPONS];
+	int wasPickedUpBySomeone[WP_NUM_WEAPONS] = { 0 };
 	int killsWithWeapon[WP_NUM_WEAPONS];
 	const int playTime = (level.time - ent->client->pers.enterTime) / 60000;
 

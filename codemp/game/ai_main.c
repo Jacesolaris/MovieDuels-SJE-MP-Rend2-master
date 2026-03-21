@@ -54,7 +54,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_public.h"
 #include <qcommon\q_string.h>
 #include "bg_saga.h"
-//
+ //
 
 #define BOT_THINK_TIME	1000/bot_fps.integer
 //bot states
@@ -86,7 +86,7 @@ int pass_loved_one_check(const bot_state_t* bs, const gentity_t* ent);
 void ExitLevel(void);
 extern qboolean G_HeavyMelee(const gentity_t* attacker);
 void siege_defend_from_attackers(bot_state_t* bs);
-void request_siege_assistance(bot_state_t* bs, int base_class);
+void request_siege_assistance(bot_state_t* bs, const int base_class);
 qboolean switch_siege_ideal_class(const bot_state_t* bs, const char* idealclass);
 extern int rebel_attackers;
 extern int imperial_attackers;
@@ -832,7 +832,7 @@ static void ai_mod_jump(bot_state_t* bs)
 			return;
 
 		// Perform delayed saber-style switch if scheduled
-		if (bs->nextStyleSwitchTime > 0 &&
+		if (bs->nextStyleSwitchTime > 0 && bs->saberSpecialist &&
 			level.time >= bs->nextStyleSwitchTime)
 		{
 			Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
@@ -1485,6 +1485,57 @@ static qboolean bot_should_walk_saber(bot_state_t* bs, bot_input_t* bi)
 	return qfalse;
 }
 
+static qboolean bot_should_walk(bot_state_t* bs, bot_input_t* bi)
+{
+	const int client = bs->cur_ps.clientNum;
+
+	const gentity_t* self = &g_entities[client];
+	const gentity_t* enemy = bs->currentEnemy;
+
+	// Validate enemy before doing ANY distance or visibility checks
+	if (!enemy || !enemy->client || enemy->health <= 0)
+	{
+		walktime[client] = 0;
+		bi->actionflags &= ~ACTION_WALK;
+		return qfalse;
+	}
+
+	// Don’t walk if we’re mid‑jump
+	if (bs->jumpTime > level.time)
+	{
+		walktime[client] = 0;
+		bi->actionflags &= ~ACTION_WALK;
+		return qfalse;
+	}
+
+	// Now safe to compute distance
+	const float dist = Distance(self->r.currentOrigin, enemy->r.currentOrigin);
+
+	const qboolean closeEnough =
+		(dist < 300.0f) ||
+		(walktime[client] > level.time);
+
+	if (!closeEnough)
+	{
+		walktime[client] = 0;
+		bi->actionflags &= ~ACTION_WALK;
+		return qfalse;
+	}
+
+	// Visibility check
+	if (visible(self, enemy) || walktime[client] > level.time)
+	{
+		bi->actionflags |= ACTION_WALK;
+		walktime[client] = level.time + 2000;
+		return qtrue;
+	}
+
+	// Not visible → stop walking
+	walktime[client] = 0;
+	bi->actionflags &= ~ACTION_WALK;
+	return qfalse;
+}
+
 static qboolean bot_in_saber_engagement(bot_state_t* bs)
 {
 	if (bs->cur_ps.weapon != WP_SABER)
@@ -1581,43 +1632,31 @@ static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_
 		bs->saberEngageEmote = 0;
 	}
 
-	// Saber combat walking logic
+	// ------------------------------------------------------------
+	// WALKING LOGIC
+	// ------------------------------------------------------------
+
+	// 1. Saber combat walking logic
 	if (bs->cur_ps.weapon == WP_SABER)
 	{
-		gentity_t* self = &g_entities[client];
-		gentity_t* enemy = bs->currentEnemy;
-		qboolean inSaberCombat = qfalse;
+		bot_should_walk_saber(bs, &bi);
+	}
 
-		if (enemy &&
-			enemy->client &&
-			enemy->health > 0 &&
-			bs->jumpTime <= level.time &&
-			(VectorDistance(self->r.currentOrigin, enemy->r.currentOrigin) < 300 || walktime[client] > level.time))
-		{
-			if (visible(self, bs->currentEnemy) || walktime[client] > level.time)
-			{
-				bot_should_walk_saber(bs, &bi);
-				walktime[client] = level.time + 2000;
+	// 2. Force-only bots always use walking logic
+	else if (g_entities[bs->client].client != NULL &&
+		(g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+			g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER))
+	{
+		bot_should_walk(bs, &bi);
+	}
 
-				// Auto‑unholster saber
-				if (bs->cur_ps.saberHolstered)
-				{
-					bs->cur_ps.saberHolstered = 0;
-				}
-				// schedule a style switch 1.2 seconds after walking
-				bs->nextStyleSwitchTime = level.time + 1200;
-			}
-			else
-			{
-				walktime[client] = 0;
-				bi.actionflags &= ~ACTION_WALK;
-			}
-		}
-		else
-		{
-			walktime[client] = 0;
-			bi.actionflags &= ~ACTION_WALK;
-		}
+	// 3. Gun bots: walk when alt-firing
+	// (Distance and visibility handled inside bot_should_walk)
+	else if (bs->cur_ps.weapon != WP_MELEE &&
+		bs->cur_ps.weapon != WP_SABER &&
+		bs->doAltAttack == qtrue)
+	{
+		bot_should_walk(bs, &bi);
 	}
 
 	// Manual overrides
@@ -4286,6 +4325,12 @@ void request_siege_assistance(bot_state_t* bs, const int base_class)
 		//recently did vchat, don't do it now.
 		return;
 	}
+
+	if (level.gametype == GT_FFA || level.gametype == GT_HOLOCRON)
+	{
+		return;
+	}
+
 	switch (base_class)
 	{
 	case SPC_DEMOLITIONIST:
@@ -4388,14 +4433,26 @@ static void should_switcha_siege_classes(bot_state_t* bs, const qboolean saber)
 int bot_select_choice_weapon(bot_state_t* bs, const int weapon, const int doselection)
 {
 	int hasit = 0;
-
 	int i = 0;
 
+	// ------------------------------------------------------------
+	// Force-only bot class: never selects or uses any weapon
+	// ------------------------------------------------------------
+	if (g_entities[bs->client].client &&
+		(g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+			g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER))
+	{
+		return 0; // explicit qfalse
+	}
+
+	// ------------------------------------------------------------
+	// Check if bot has the weapon and enough ammo
+	// ------------------------------------------------------------
 	while (i < WP_NUM_WEAPONS)
 	{
-		if (bs->cur_ps.ammo[weaponData[i].ammoIndex] >= weaponData[i].energyPerShot &&
-			i == weapon &&
-			bs->cur_ps.stats[STAT_WEAPONS] & 1 << i)
+		if (i == weapon &&
+			(bs->cur_ps.stats[STAT_WEAPONS] & (1 << i)) &&
+			bs->cur_ps.ammo[weaponData[i].ammoIndex] >= weaponData[i].energyPerShot)
 		{
 			hasit = 1;
 			break;
@@ -4404,19 +4461,31 @@ int bot_select_choice_weapon(bot_state_t* bs, const int weapon, const int dosele
 		i++;
 	}
 
-	if (hasit && bs->cur_ps.weapon != weapon && doselection && bs->virtualWeapon != weapon)
+	// ------------------------------------------------------------
+	// If bot has the weapon and wants to switch to it
+	// ------------------------------------------------------------
+	if (hasit &&
+		bs->cur_ps.weapon != weapon &&
+		doselection &&
+		bs->virtualWeapon != weapon)
 	{
 		bs->virtualWeapon = weapon;
 		bot_select_weapon(bs->client, weapon);
-		return 2;
+		return 2; // explicit: weapon switched
 	}
 
+	// ------------------------------------------------------------
+	// Bot has the weapon but no switch needed
+	// ------------------------------------------------------------
 	if (hasit)
 	{
-		return 1;
+		return 1; // explicit: weapon available
 	}
 
-	return 0;
+	// ------------------------------------------------------------
+	// Bot does not have the weapon
+	// ------------------------------------------------------------
+	return 0; // explicit qfalse
 }
 
 static qboolean attack_local_breakables(bot_state_t* bs)
@@ -8335,6 +8404,8 @@ static qboolean Bot_SameGroundLevel(bot_state_t* bs, const vec3_t enemyPos)
 // ---------------------------------------------------------
 // CLOSE‑RANGE MELEE COMBAT HANDLING
 // ---------------------------------------------------------
+void JediDirectionalDashDodge(bot_state_t* bs, const vec3_t enemyPos);
+void BotStartBackOff(bot_state_t* bs);
 static void melee_combat_handling(bot_state_t* bs)
 {
 	if (!bs || !bs->currentEnemy)
@@ -8365,6 +8436,37 @@ static void melee_combat_handling(bot_state_t* bs)
 		bs->meleeStrafeTime = level.time + Q_irand(500, 1800);
 	}
 
+	qboolean forceOnlyDark = (g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER);
+	qboolean forceOnlyLight = (g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER);
+
+	// -------------------------------------------------
+	// EARLY-FRAME KATA REACTION (IMMEDIATE RETREAT)
+	// -------------------------------------------------
+	if (bs->currentEnemy &&
+		bs->currentEnemy->client &&
+		bs->currentEnemy->s.number < MAX_CLIENTS)
+	{
+		playerState_t* ps = &bs->currentEnemy->client->ps;
+
+		const qboolean enemyInKata = BotEnemyInKata(ps);
+
+		if ((forceOnlyDark || forceOnlyLight) &&
+			enemyInKata == qtrue &&
+			PM_InKnockDown(ps) == qfalse)
+		{
+			if (bs->cur_ps.fd.forcePower >= 30)
+			{
+				bs->cur_ps.fd.forcePower -= 5;
+				JediDirectionalDashDodge(bs, enemyPos);
+				return;
+			}
+			else
+			{
+				BotStartBackOff(bs);
+				return;
+			}
+		}
+	}
 	// -------------------------------------------------
 	// SAME GROUND CHECK (UNIFIED HELPER)
 	// -------------------------------------------------
@@ -8472,47 +8574,103 @@ static void movefor_attack_quad(const bot_state_t* bs, vec3_t move_dir, const in
 
 static qboolean bot_behave_check_backstab(bot_state_t* bs)
 {
-	// Check if there is an enemy behind us that we can backstab...
-	vec3_t forward, back_org, cur_org, move_dir;
+	// ------------------------------------------------------------------
+	// Only saber users can perform backstabs.
+	// ------------------------------------------------------------------
+	if (bs->cur_ps.weapon != WP_SABER)
+	{
+		return qfalse;
+	}
+
+	vec3_t forward;
+	vec3_t cur_org;
+	vec3_t back_org;
+	vec3_t move_dir;
 	trace_t tr;
 
-	if (bs->cur_ps.weapon != WP_SABER)
-		return qfalse;
-
+	// Bot eye position
 	VectorCopy(bs->cur_ps.origin, cur_org);
-	cur_org[2] += 24;
+	cur_org[2] += 24.0f;
+
+	// Forward direction
 	AngleVectors(bs->cur_ps.viewangles, forward, NULL, NULL);
-	VectorMA(cur_org, -64, forward, back_org);
 
-	trap->Trace(&tr, cur_org, NULL, NULL, back_org, bs->client, MASK_SHOT, 0, 0, 0);
+	// Trace 64 units behind the bot
+	VectorMA(cur_org, -64.0f, forward, back_org);
 
+	trap->Trace(&tr,
+		cur_org,
+		NULL,
+		NULL,
+		back_org,
+		bs->client,
+		MASK_SHOT,
+		0,
+		0,
+		0);
+
+	// Validate trace hit
 	if (tr.entityNum < 0 || tr.entityNum > ENTITYNUM_MAX_NORMAL)
+	{
 		return qfalse;
+	}
 
 	const gentity_t* enemy = &g_entities[tr.entityNum];
 
-	if (!enemy
-		|| enemy->s.eType != ET_PLAYER && enemy->s.eType != ET_NPC
-		|| !enemy->client
-		|| enemy->health < 1
-		|| enemy->client->ps.eFlags & EF_DEAD)
+	// ------------------------------------------------------------------
+	// Validate enemy entity
+	// ------------------------------------------------------------------
+	if (enemy == NULL)
+	{
 		return qfalse;
+	}
 
-	if (OnSameTeam(&g_entities[bs->client], enemy))
+	if ((enemy->s.eType != ET_PLAYER) && (enemy->s.eType != ET_NPC))
+	{
 		return qfalse;
+	}
 
-	// OK, let's stab away! bwahahaha!
+	if (enemy->client == NULL)
+	{
+		return qfalse;
+	}
+
+	if (enemy->health < 1)
+	{
+		return qfalse;
+	}
+
+	if ((enemy->client->ps.eFlags & EF_DEAD) != 0)
+	{
+		return qfalse;
+	}
+
+	// Don’t attack teammates
+	if (OnSameTeam(&g_entities[bs->client], enemy) == qtrue)
+	{
+		return qfalse;
+	}
+
+	// ------------------------------------------------------------------
+	// Execute backstab movement
+	// ------------------------------------------------------------------
 	VectorCopy(bs->cur_ps.origin, cur_org);
-	VectorMA(cur_org, -64, forward, back_org);
+	VectorMA(cur_org, -64.0f, forward, back_org);
 
 	VectorSubtract(cur_org, bs->origin, move_dir);
 
-	move_dir[2] = 0;
+	// Keep movement horizontal
+	move_dir[2] = 0.0f;
+
 	VectorNormalize(move_dir);
 
-	//adjust the moveDir to do strafing
+	// Adjust for strafing behaviour
 	adjustfor_strafe(bs, move_dir);
+
+	// Trace movement path
 	trace_move(bs, move_dir, tr.entityNum);
+
+	// Perform backstab attack
 	trap->EA_Move(bs->client, move_dir, 5000);
 	trap->EA_Attack(bs->client);
 
@@ -8521,42 +8679,77 @@ static qboolean bot_behave_check_backstab(bot_state_t* bs)
 
 static qboolean bot_behave_check_use_kata(const bot_state_t* bs)
 {
-	// Check if there is an in front of us that we can use our kata on...
-	vec3_t forward, back_org, cur_org;
-	trace_t tr;
-
+	// ------------------------------------------------------------------
+	// Check if bot is using a saber; kata only applies to saber users.
+	// ------------------------------------------------------------------
 	if (bs->cur_ps.weapon != WP_SABER)
 	{
 		return qfalse;
 	}
 
+	vec3_t forward;
+	vec3_t cur_org;
+	vec3_t end_org;
+	trace_t tr;
+
+	// Bot eye position
 	VectorCopy(bs->cur_ps.origin, cur_org);
-	cur_org[2] += 24;
+	cur_org[2] += 24.0f;
+
+	// Forward direction
 	AngleVectors(bs->cur_ps.viewangles, forward, NULL, NULL);
-	VectorMA(cur_org, 64, forward, back_org);
 
-	trap->Trace(&tr, cur_org, NULL, NULL, back_org, bs->client, MASK_SHOT, 0, 0, 0);
+	// Trace 64 units forward
+	VectorMA(cur_org, 64.0f, forward, end_org);
 
+	trap->Trace(&tr,
+		cur_org,
+		NULL,
+		NULL,
+		end_org,
+		bs->client,
+		MASK_SHOT,
+		0,
+		0,
+		0);
+
+	// Validate trace hit
 	if (tr.entityNum < 0 || tr.entityNum > ENTITYNUM_MAX_NORMAL)
+	{
 		return qfalse;
+	}
 
 	const gentity_t* enemy = &g_entities[tr.entityNum];
 
-	if (!enemy
-		|| enemy->s.eType != ET_PLAYER && enemy->s.eType != ET_NPC
-		|| !enemy->client
-		|| enemy->health < 1
-		|| enemy->client->ps.eFlags & EF_DEAD)
+	// ------------------------------------------------------------------
+	// Validate enemy entity
+	// ------------------------------------------------------------------
+	if (enemy == NULL ||
+		(enemy->s.eType != ET_PLAYER && enemy->s.eType != ET_NPC) ||
+		enemy->client == NULL ||
+		enemy->health < 1 ||
+		(enemy->client->ps.eFlags & EF_DEAD))
+	{
 		return qfalse;
+	}
 
-	if (OnSameTeam(&g_entities[bs->client], enemy))
+	// Don’t attack teammates
+	if (OnSameTeam(&g_entities[bs->client], enemy) == qtrue)
+	{
 		return qfalse;
+	}
 
-	// OK. We have a target. First make it not happen constantly with some randomization!
-	if (irand(0, 200) > 50)
+	// ------------------------------------------------------------------
+	// Randomization to prevent constant kata spam
+	// ------------------------------------------------------------------
+	if (Q_irand(0, 200) > 50)
+	{
 		return qfalse;
+	}
 
-	// OK, let's stab away! bwahahaha!
+	// ------------------------------------------------------------------
+	// Execute kata attack
+	// ------------------------------------------------------------------
 	trap->EA_Attack(bs->client);
 	trap->EA_Alt_Attack(bs->client);
 
@@ -8565,51 +8758,97 @@ static qboolean bot_behave_check_use_kata(const bot_state_t* bs)
 
 static qboolean bot_behave_check_use_crouch_attack(bot_state_t* bs)
 {
-	// Check if there is an in front of us that we can use our special crouch attack on...
-	vec3_t forward, back_org, cur_org, moveDir;
+	// ------------------------------------------------------------------
+	// Only saber users can perform crouch attacks.
+	// ------------------------------------------------------------------
+	if (bs->cur_ps.weapon != WP_SABER)
+	{
+		return qfalse;
+	}
+
+	vec3_t forward;
+	vec3_t cur_org;
+	vec3_t end_org;
+	vec3_t moveDir;
 	trace_t tr;
 
-	if (bs->cur_ps.weapon != WP_SABER)
-		return qfalse;
-
+	// Bot eye position
 	VectorCopy(bs->cur_ps.origin, cur_org);
-	cur_org[2] += 24;
+	cur_org[2] += 24.0f;
+
+	// Forward direction
 	AngleVectors(bs->cur_ps.viewangles, forward, NULL, NULL);
-	VectorMA(cur_org, 64, forward, back_org);
 
-	trap->Trace(&tr, cur_org, NULL, NULL, back_org, bs->client, MASK_SHOT, 0, 0, 0);
+	// Trace 64 units forward
+	VectorMA(cur_org, 64.0f, forward, end_org);
 
+	trap->Trace(&tr,
+		cur_org,
+		NULL,
+		NULL,
+		end_org,
+		bs->client,
+		MASK_SHOT,
+		0,
+		0,
+		0);
+
+	// Validate trace hit
 	if (tr.entityNum < 0 || tr.entityNum > ENTITYNUM_MAX_NORMAL)
+	{
 		return qfalse;
+	}
 
 	const gentity_t* enemy = &g_entities[tr.entityNum];
 
-	if (!enemy
-		|| enemy->s.eType != ET_PLAYER && enemy->s.eType != ET_NPC
-		|| !enemy->client
-		|| enemy->health < 1
-		|| enemy->client->ps.eFlags & EF_DEAD)
+	// ------------------------------------------------------------------
+	// Validate enemy entity
+	// ------------------------------------------------------------------
+	if (enemy == NULL ||
+		(enemy->s.eType != ET_PLAYER && enemy->s.eType != ET_NPC) ||
+		enemy->client == NULL ||
+		enemy->health < 1 ||
+		(enemy->client->ps.eFlags & EF_DEAD))
+	{
 		return qfalse;
+	}
 
-	if (OnSameTeam(&g_entities[bs->client], enemy))
+	// Don’t attack teammates
+	if (OnSameTeam(&g_entities[bs->client], enemy) == qtrue)
+	{
 		return qfalse;
+	}
 
-	// OK. We have a target. First make it not happen constantly with some randomization!
-	if (irand(0, 200) > 10)
+	// ------------------------------------------------------------------
+	// Randomization to prevent constant crouch‑attack spam.
+	// Behaviour preserved: same probability, but using Q_irand.
+	// ------------------------------------------------------------------
+	if (Q_irand(0, 200) > 10)
+	{
 		return qfalse;
+	}
 
-	// OK, let's stab away! bwahahaha!
+	// ------------------------------------------------------------------
+	// Execute crouch‑attack movement
+	// ------------------------------------------------------------------
 	VectorCopy(bs->cur_ps.origin, cur_org);
-	VectorMA(cur_org, 64, forward, back_org);
+	VectorMA(cur_org, 64.0f, forward, end_org);
 
+	// Move direction from bot origin toward target
 	VectorSubtract(cur_org, bs->origin, moveDir);
 
-	moveDir[2] = 0;
+	// Keep movement horizontal
+	moveDir[2] = 0.0f;
+
 	VectorNormalize(moveDir);
 
-	//adjust the moveDir to do strafing
+	// Adjust for strafing behaviour
 	adjustfor_strafe(bs, moveDir);
+
+	// Trace movement path
 	trace_move(bs, moveDir, tr.entityNum);
+
+	// Perform crouch attack
 	trap->EA_Crouch(bs->client);
 	trap->EA_Move(bs->client, moveDir, 5000);
 	trap->EA_Attack(bs->client);
@@ -9219,13 +9458,13 @@ float bot_weapon_can_lead(const bot_state_t* bs)
 	switch (bs->cur_ps.weapon)
 	{
 	case WP_BRYAR_PISTOL:
-		return 0.5f;
+		return 0.95f;
 	case WP_BLASTER:
-		return 0.5f;
+		return 0.95f;
 	case WP_BOWCASTER:
-		return 0.5f;
+		return 0.95f;
 	case WP_REPEATER:
-		return 0.45f;
+		return 0.95f;
 	case WP_THERMAL:
 		return 0.5f;
 	case WP_DEMP2:
@@ -9319,6 +9558,9 @@ static void bot_aim_offset_goal_angles(bot_state_t* bs)
 {
 	if (bs->skills.perfectaim)
 	{
+		bs->aimOffsetAmtYaw = 0.0f;
+		bs->aimOffsetAmtPitch = 0.0f;
+
 		return;
 	}
 
@@ -9512,13 +9754,15 @@ static int should_secondary_fire(const bot_state_t* bs)
 
 static int combat_bot_ai(bot_state_t* bs)
 {
-	vec3_t eorg, a;
+	vec3_t eorg;
+	vec3_t a;
 
 	if (!bs->currentEnemy)
 	{
 		return 0;
 	}
 
+	// Get enemy origin (client or non-client)
 	if (bs->currentEnemy->client)
 	{
 		VectorCopy(bs->currentEnemy->client->ps.origin, eorg);
@@ -9528,24 +9772,31 @@ static int combat_bot_ai(bot_state_t* bs)
 		VectorCopy(bs->currentEnemy->s.origin, eorg);
 	}
 
+	// Direction from our eye to enemy
 	VectorSubtract(eorg, bs->eye, a);
 	vectoangles(a, a);
 
-	if (bot_get_weapon_range(bs) == BWEAPONRANGE_SABER)
+	// Cache weapon range once
+	const int weaponRange = bot_get_weapon_range(bs);
+
+	// ------------------------------------------------------------
+	// Close-range logic: saber / melee
+	// ------------------------------------------------------------
+
+	if (weaponRange == BWEAPONRANGE_SABER)
 	{
+		// Primary saber attack
 		if (bs->frame_Enemy_Len <= SABER_ATTACK_RANGE)
 		{
 			bs->doAttack = 1;
 		}
-	}
-	else if (bot_get_weapon_range(bs) == BWEAPONRANGE_SABER)
-	{
-		if (bs->frame_Enemy_Len <= SABER_KICK_RANGE)
+		// Kick when slightly further (or as you tune it)
+		else if (bs->frame_Enemy_Len <= SABER_KICK_RANGE)
 		{
 			bs->doBotKick = 1;
 		}
 	}
-	else if (bot_get_weapon_range(bs) == BWEAPONRANGE_MELEE)
+	else if (weaponRange == BWEAPONRANGE_MELEE)
 	{
 		if (bs->frame_Enemy_Len <= MELEE_ATTACK_RANGE)
 		{
@@ -9554,48 +9805,58 @@ static int combat_bot_ai(bot_state_t* bs)
 	}
 	else
 	{
+		// --------------------------------------------------------
+		// Ranged weapon logic
+		// --------------------------------------------------------
 		float fovcheck;
-		if (bs->cur_ps.weapon == WP_THERMAL || bs->cur_ps.weapon == WP_ROCKET_LAUNCHER)
+
+		if (bs->cur_ps.weapon == WP_THERMAL ||
+			bs->cur_ps.weapon == WP_ROCKET_LAUNCHER)
 		{
-			//be careful with the hurty weapons
-			fovcheck = 40;
+			// Be careful with explosives
+			fovcheck = 40.0f;
 
 			if (bs->cur_ps.weaponstate == WEAPON_CHARGING_ALT &&
 				bs->cur_ps.weapon == WP_ROCKET_LAUNCHER)
 			{
-				//if we're charging the weapon up then we can hold fire down within a normal fov
-				fovcheck = 60;
+				// While charging rockets, allow a bit more FOV
+				fovcheck = 60.0f;
 			}
 		}
 		else
 		{
-			fovcheck = 60;
+			fovcheck = 60.0f;
 		}
 
+		// While charging, allow very wide FOV
 		if (bs->cur_ps.weaponstate == WEAPON_CHARGING ||
 			bs->cur_ps.weaponstate == WEAPON_CHARGING_ALT)
 		{
-			fovcheck = 160;
+			fovcheck = 160.0f;
 		}
 
-		if (bs->frame_Enemy_Len < 128)
+		// Very close → widen FOV
+		if (bs->frame_Enemy_Len < 128.0f)
 		{
-			fovcheck *= 2;
+			fovcheck *= 2.0f;
 		}
 
 		if (in_field_of_vision(bs->viewangles, fovcheck, a))
 		{
 			if (bs->cur_ps.weapon == WP_THERMAL)
 			{
-				if (level.time - bs->cur_ps.weaponChargeTime < bs->frame_Enemy_Len * 2 &&
+				// Thermal det logic
+				if ((level.time - bs->cur_ps.weaponChargeTime < bs->frame_Enemy_Len * 2.0f &&
 					level.time - bs->cur_ps.weaponChargeTime < 4000 &&
-					bs->frame_Enemy_Len > 64 ||
-					bs->cur_ps.weaponstate != WEAPON_CHARGING &&
-					bs->cur_ps.weaponstate != WEAPON_CHARGING_ALT)
+					bs->frame_Enemy_Len > 64.0f) ||
+					(bs->cur_ps.weaponstate != WEAPON_CHARGING &&
+						bs->cur_ps.weaponstate != WEAPON_CHARGING_ALT))
 				{
-					if (bs->cur_ps.weaponstate != WEAPON_CHARGING && bs->cur_ps.weaponstate != WEAPON_CHARGING_ALT)
+					if (bs->cur_ps.weaponstate != WEAPON_CHARGING &&
+						bs->cur_ps.weaponstate != WEAPON_CHARGING_ALT)
 					{
-						if (bs->frame_Enemy_Len > 512 && bs->frame_Enemy_Len < 800)
+						if (bs->frame_Enemy_Len > 512.0f &&
+							bs->frame_Enemy_Len < 800.0f)
 						{
 							bs->doAltAttack = 1;
 						}
@@ -9629,7 +9890,7 @@ static int combat_bot_ai(bot_state_t* bs)
 				{
 					bs->doAltAttack = 1;
 				}
-				else if (!sec_fire)
+				else if (sec_fire == 0)
 				{
 					if (bs->cur_ps.weapon != WP_THERMAL)
 					{
@@ -9647,7 +9908,7 @@ static int combat_bot_ai(bot_state_t* bs)
 
 				if (sec_fire == 2)
 				{
-					//released a charge
+					// Released a charge
 					return 1;
 				}
 			}
@@ -9869,7 +10130,6 @@ static int saber_bot_fallback_navigation(bot_state_t* bs)
 	return 1; // Success!
 }
 
-
 /*
 ==================
 BotTryAnotherWeapon
@@ -9908,15 +10168,22 @@ static BotTryAnotherWeapon(bot_state_t* bs)
 bot_select_ideal_weapon
 ==================
 */
+
 static qboolean bot_weapon_selectable(const bot_state_t* bs, const int weapon)
 {
+	// ------------------------------------------------------------
+	// WP_NONE is never selectable
+	// ------------------------------------------------------------
 	if (weapon == WP_NONE)
 	{
 		return qfalse;
 	}
 
+	// ------------------------------------------------------------
+	// Check if bot has the weapon and enough ammo
+	// ------------------------------------------------------------
 	if (bs->cur_ps.ammo[weaponData[weapon].ammoIndex] >= weaponData[weapon].energyPerShot &&
-		bs->cur_ps.stats[STAT_WEAPONS] & 1 << weapon)
+		(bs->cur_ps.stats[STAT_WEAPONS] & (1 << weapon)))
 	{
 		return qtrue;
 	}
@@ -10229,6 +10496,19 @@ static void strafe_tracing(bot_state_t* bs)
 //doing primary weapon fire
 static int prim_firing(const bot_state_t* bs)
 {
+	// ------------------------------------------------------------
+	// Force-only bot class: never fires primary weapon
+	// ------------------------------------------------------------
+	if (g_entities[bs->client].client &&
+		(g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+			g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER))
+	{
+		return 0; // explicit qfalse
+	}
+
+	// ------------------------------------------------------------
+	// Original behaviour preserved
+	// ------------------------------------------------------------
 	if (bs->cur_ps.weaponstate != WEAPON_CHARGING &&
 		bs->doAttack)
 	{
@@ -10247,6 +10527,20 @@ static int prim_firing(const bot_state_t* bs)
 //should we keep our primary weapon from firing?
 static int keep_prim_from_firing(bot_state_t* bs)
 {
+	// ------------------------------------------------------------
+	// Force-only bot class: prevent all primary weapon firing
+	// ------------------------------------------------------------
+	if (g_entities[bs->client].client &&
+		(g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+			g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER))
+	{
+		bs->doAttack = 0; // ensure no firing state remains
+		return 0;
+	}
+
+	// ------------------------------------------------------------
+	// Original behaviour preserved
+	// ------------------------------------------------------------
 	if (bs->cur_ps.weaponstate != WEAPON_CHARGING &&
 		bs->doAttack)
 	{
@@ -10567,6 +10861,11 @@ static qboolean bot_buy_item(bot_state_t* bs, const char* msg)
 	}
 
 	if (bs->cur_ps.weapon == WP_SABER)
+	{
+		return qfalse;
+	}
+
+	if (bs->cur_ps.weapon == WP_MELEE)
 	{
 		return qfalse;
 	}
@@ -11156,6 +11455,102 @@ static qboolean bot_should_jump_to_enemy(bot_state_t* bs, float xy, qboolean wil
 	return qfalse;
 }
 
+// ------------------------------------------------------------
+// Bot Fall‑Landing Prediction & Roll Preparation
+// ------------------------------------------------------------
+static void Bot_CheckFallLanding(bot_state_t* bs)
+{
+	// Must have a valid client entity
+	if (!bs || bs->client < 0)
+	{
+		return;
+	}
+
+	const gentity_t* ent = &g_entities[bs->client];
+
+	// --------------------------------------------------------
+	// 1. Detect if bot has been airborne long enough
+	// --------------------------------------------------------
+	// If lastOnGround + 350ms < now → bot has been falling for a while
+	const qboolean longFall =
+		(bs->cur_ps.lastOnGround + 350 < level.time) ? qtrue : qfalse;
+
+	if (longFall == qfalse)
+	{
+		return;
+	}
+
+	// --------------------------------------------------------
+	// 2. Check if this is NOT a safe Force Jump landing
+	// --------------------------------------------------------
+	// If forceJumpZStart == 0 → not a force jump
+	// OR if bot is below the jump start height → falling, not landing safely
+	const qboolean unsafeForceJump =
+		((!bs->cur_ps.fd.forceJumpZStart) ||
+			(bs->origin[2] < bs->cur_ps.fd.forceJumpZStart))
+		? qtrue : qfalse;
+
+	if (unsafeForceJump == qfalse)
+	{
+		return;
+	}
+
+	// --------------------------------------------------------
+	// 3. Determine fall speed
+	// --------------------------------------------------------
+	float speed = VectorLength(bs->cur_ps.velocity);
+
+	// Dynamic danger threshold:
+	// speed >= (100 + health) AND not using saber
+	// OR speed >= 700 (always dangerous)
+	const qboolean dangerousFall =
+		(((speed >= (100.0f + ent->health)) &&
+			(bs->virtualWeapon != WP_SABER)) ||
+			(speed >= 700.0f))
+		? qtrue : qfalse;
+
+	if (dangerousFall == qfalse)
+	{
+		return;
+	}
+
+	// --------------------------------------------------------
+	// 4. Switch to saber or melee to allow roll‑landing
+	// --------------------------------------------------------
+	if (bs->virtualWeapon != WP_SABER)
+	{
+		// Try saber first
+		const qboolean switchedToSaber =
+			bot_select_choice_weapon(bs, WP_SABER, 1) ? qtrue : qfalse;
+
+		if (switchedToSaber == qfalse)
+		{
+			// Try melee as fallback
+			bot_select_choice_weapon(bs, WP_MELEE, 1);
+		}
+	}
+
+	// --------------------------------------------------------
+	// 5. If bot now has saber/melee, prepare crouch‑roll
+	// --------------------------------------------------------
+	const qboolean canRoll =
+		((bs->virtualWeapon == WP_SABER) ||
+			(bs->virtualWeapon == WP_MELEE))
+		? qtrue : qfalse;
+
+	if (canRoll == qtrue)
+	{
+		// Force crouch for 300ms → triggers roll on landing
+		bs->duckTime = level.time + 300;
+
+		// If bot is not moving, force forward movement
+		if (!bs->lastucmd.forwardmove && !bs->lastucmd.rightmove)
+		{
+			trap->EA_MoveForward(bs->client);
+		}
+	}
+}
+
 extern saberInfo_t* BG_MySaber(int clientNum, int saberNum);
 void bot_check_speak(gentity_t* self, const qboolean moving);
 extern void AngleClamp(vec3_t ang);
@@ -11467,7 +11862,7 @@ void standard_bot_ai(bot_state_t* bs)
 		return;
 	}
 
-	bot_check_speak(&g_entities[bs->client], qtrue);
+	bot_check_speak(&g_entities[bs->client], qfalse);
 
 	if (PM_InLedgeMove(bs->cur_ps.legsAnim))
 	{
@@ -11477,7 +11872,7 @@ void standard_bot_ai(bot_state_t* bs)
 	}
 
 	// Execute delayed saber-style switch if scheduled
-	if (bs->nextStyleSwitchTime > 0 &&
+	if (bs->nextStyleSwitchTime > 0 && bs->saberSpecialist &&
 		level.time >= bs->nextStyleSwitchTime)
 	{
 		Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
@@ -11538,139 +11933,224 @@ void standard_bot_ai(bot_state_t* bs)
 
 	fj_halt = 0;
 
-#ifndef FORCEJUMP_INSTANTMETHOD
-	if (bs->forceJumpChargeTime > level.time)
-	{
-		use_the_force = 1;
-		forceHostile = 0;
-	}
-
-	if (bs->currentEnemy && bs->currentEnemy->client && bs->frame_Enemy_Vis && bs->forceJumpChargeTime < level.time)
-#else
 	if (bs->currentEnemy && bs->currentEnemy->client && bs->frame_Enemy_Vis)
-#endif
 	{
-		VectorSubtract(bs->currentEnemy->client->ps.origin, bs->eye, a_fo);
-		vectoangles(a_fo, a_fo);
+		// Compute angle to enemy once
+		vec3_t toEnemyAngles;
+		vec3_t toEnemyVec;
+		qboolean forceOnlyDark = (g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER);
+		qboolean forceOnlyLight = (g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER);
+		qboolean GunnerRage = (g_entities[bs->client].client->pers.botclass == BCLASS_WOOKIEMELEE ||
+			g_entities[bs->client].client->pers.botclass == BCLASS_WOOKIE ||
+			g_entities[bs->client].client->pers.botclass == BCLASS_CHEWIE);
+		VectorSubtract(bs->currentEnemy->client->ps.origin, bs->eye, toEnemyVec);
+		vectoangles(toEnemyVec, toEnemyAngles);
 
-		//do this above all things
-		if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_PUSH && (bs->doForcePush > level.time || bs->cur_ps.fd.
-			forceGripBeingGripped > level.time) && level.clients[bs->client].ps.fd.forcePower > forcePowerNeeded[
-				level.clients[bs->client].ps.fd.forcePowerLevel[FP_PUSH]][FP_PUSH])
+		// -----------------------------
+		// PRIORITY 1: PUSH (escape grip / emergency)
+		// -----------------------------
+		if (bs->cur_ps.fd.forcePowersKnown & (1 << FP_PUSH) &&
+			(bs->doForcePush > level.time || bs->cur_ps.fd.forceGripBeingGripped > level.time) &&
+			level.clients[bs->client].ps.fd.forcePower > forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_PUSH]][FP_PUSH])
 		{
 			level.clients[bs->client].ps.fd.forcePowerSelected = FP_PUSH;
 			use_the_force = 1;
 			forceHostile = 1;
 		}
+		else if ((forceOnlyDark || forceOnlyLight) && bs->cur_ps.fd.forcePowersKnown & (1 << FP_PUSH) &&
+			bs->frame_Enemy_Len < FORCE_BCLASS_FORCE_NO_SABER_CLOSE &&
+			level.clients[bs->client].ps.fd.forcePower > 30 &&
+			in_field_of_vision(bs->viewangles, 50, toEnemyAngles))
+		{
+			level.clients[bs->client].ps.fd.forcePowerSelected = FP_PUSH;
+			use_the_force = 1;
+			forceHostile = 1;
+		}
+
+		// -----------------------------
+		// DARK SIDE LOGIC
+		// -----------------------------
 		else if (bs->cur_ps.fd.forceSide == FORCE_DARKSIDE)
 		{
-			//try dark side powers
-			//in order of priority top to bottom
-			if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_GRIP && bs->cur_ps.fd.forcePowersActive & 1 << FP_GRIP
-				&& in_field_of_vision(bs->viewangles, 50, a_fo))
+			// Maintain active grip
+			if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_GRIP)) &&
+				(bs->cur_ps.fd.forcePowersActive & (1 << FP_GRIP)) &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles))
 			{
-				//already gripping someone, so hold it
 				level.clients[bs->client].ps.fd.forcePowerSelected = FP_GRIP;
 				use_the_force = 1;
 				forceHostile = 1;
 			}
-			else if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_LIGHTNING && bs->frame_Enemy_Len <
-				FORCE_LIGHTNING_RADIUS && level.clients[bs->client].ps.fd.forcePower > 50 && in_field_of_vision(
-					bs->viewangles, 50, a_fo))
+			// Lightning
+			else if (forceOnlyDark && Q_irand(0, 3) && (bs->cur_ps.fd.forcePowersKnown & (1 << FP_LIGHTNING)) &&
+				bs->frame_Enemy_Len < FORCE_BCLASS_FORCE_NO_SABER &&
+				level.clients[bs->client].ps.fd.forcePower > 50 &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles))
 			{
 				level.clients[bs->client].ps.fd.forcePowerSelected = FP_LIGHTNING;
 				use_the_force = 1;
 				forceHostile = 1;
 			}
-			else if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_GRIP && bs->frame_Enemy_Len < MAX_GRIP_DISTANCE &&
-				level.clients[bs->client].ps.fd.forcePower > forcePowerNeeded[level.clients[bs->client].ps.fd.
-				forcePowerLevel[FP_GRIP]][FP_GRIP] && in_field_of_vision(bs->viewangles, 50, a_fo))
+			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_LIGHTNING)) &&
+				bs->frame_Enemy_Len < FORCE_LIGHTNING_RADIUS &&
+				level.clients[bs->client].ps.fd.forcePower > 50 &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles))
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_LIGHTNING;
+				use_the_force = 1;
+				forceHostile = 1;
+			}
+			// Grip (new attempt)
+			else if (forceOnlyDark && Q_irand(0, 3) && (bs->cur_ps.fd.forcePowersKnown & (1 << FP_GRIP)) &&
+				bs->frame_Enemy_Len < FORCE_BCLASS_FORCE_NO_SABER &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_GRIP]][FP_GRIP] &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles))
 			{
 				level.clients[bs->client].ps.fd.forcePowerSelected = FP_GRIP;
 				use_the_force = 1;
 				forceHostile = 1;
 			}
-			else if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_RAGE && g_entities[bs->client].health < 25 && level.
-				clients[bs->client].ps.fd.forcePower > forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[
-					FP_RAGE]][FP_RAGE])
+			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_GRIP)) &&
+				bs->frame_Enemy_Len < MAX_GRIP_DISTANCE &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_GRIP]][FP_GRIP] &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles))
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_GRIP;
+				use_the_force = 1;
+				forceHostile = 1;
+			}
+			// Rage (low health)
+			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_RAGE)) &&
+				g_entities[bs->client].health < 25 &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_RAGE]][FP_RAGE])
 			{
 				level.clients[bs->client].ps.fd.forcePowerSelected = FP_RAGE;
 				use_the_force = 1;
 				forceHostile = 0;
 			}
-			else if (bs->cur_ps.weapon == WP_BOWCASTER && bs->cur_ps.fd.forcePowersKnown & 1 << FP_RAGE &&
-				g_entities[bs->client].health < 75 && level.clients[bs->client].ps.fd.forcePower > forcePowerNeeded[
-					level.clients[bs->client].ps.fd.forcePowerLevel[FP_RAGE]][FP_RAGE])
+			// Rage (bowcaster special case)
+			else if (GunnerRage &&
+				(bs->cur_ps.fd.forcePowersKnown & (1 << FP_RAGE)) &&
+				g_entities[bs->client].health < 75 &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_RAGE]][FP_RAGE])
 			{
 				level.clients[bs->client].ps.fd.forcePowerSelected = FP_RAGE;
 				use_the_force = 1;
 				forceHostile = 0;
 			}
-			else if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_DRAIN && bs->frame_Enemy_Len < MAX_DRAIN_DISTANCE &&
-				level.clients[bs->client].ps.fd.forcePower > 50 && in_field_of_vision(bs->viewangles, 50, a_fo) && bs->
-				currentEnemy->client->ps.fd.forcePower > 10 && bs->currentEnemy->client->ps.fd.forceSide ==
-				FORCE_LIGHTSIDE)
+			// Drain
+			else if (forceOnlyDark && Q_irand(0, 3) && (bs->cur_ps.fd.forcePowersKnown & (1 << FP_DRAIN)) &&
+				bs->frame_Enemy_Len < FORCE_BCLASS_FORCE_NO_SABER &&
+				level.clients[bs->client].ps.fd.forcePower > 50 &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles) &&
+				bs->currentEnemy->client->ps.fd.forcePower > 10 &&
+				bs->currentEnemy->client->ps.fd.forceSide == FORCE_LIGHTSIDE)
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_DRAIN;
+				use_the_force = 1;
+				forceHostile = 1;
+			}
+			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_DRAIN)) &&
+				bs->frame_Enemy_Len < MAX_DRAIN_DISTANCE &&
+				level.clients[bs->client].ps.fd.forcePower > 50 &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles) &&
+				bs->currentEnemy->client->ps.fd.forcePower > 10 &&
+				bs->currentEnemy->client->ps.fd.forceSide == FORCE_LIGHTSIDE)
 			{
 				level.clients[bs->client].ps.fd.forcePowerSelected = FP_DRAIN;
 				use_the_force = 1;
 				forceHostile = 1;
 			}
 		}
+
+		// -----------------------------
+		// LIGHT SIDE LOGIC
+		// -----------------------------
 		else if (bs->cur_ps.fd.forceSide == FORCE_LIGHTSIDE)
 		{
-			//try light side powers
-			if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_ABSORB && bs->cur_ps.fd.forceGripCripple &&
-				level.clients[bs->client].ps.fd.forcePower > forcePowerNeeded[level.clients[bs->client].ps.fd.
-				forcePowerLevel[FP_ABSORB]][FP_ABSORB])
-			{
-				//absorb to get out
-				level.clients[bs->client].ps.fd.forcePowerSelected = FP_ABSORB;
-				use_the_force = 1;
-				forceHostile = 0;
-			}
-			else if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_ABSORB && bs->cur_ps.electrifyTime >= level.time &&
-				level.clients[bs->client].ps.fd.forcePower > forcePowerNeeded[level.clients[bs->client].ps.fd.
-				forcePowerLevel[FP_ABSORB]][FP_ABSORB])
-			{
-				//absorb lightning
-				level.clients[bs->client].ps.fd.forcePowerSelected = FP_ABSORB;
-				use_the_force = 1;
-				forceHostile = 0;
-			}
-			else if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_TELEPATHY && bs->frame_Enemy_Len < MAX_TRICK_DISTANCE
-				&& level.clients[bs->client].ps.fd.forcePower > forcePowerNeeded[level.clients[bs->client].ps.fd.
-				forcePowerLevel[FP_TELEPATHY]][FP_TELEPATHY] && in_field_of_vision(bs->viewangles, 50, a_fo) && !(bs
-					->
-					currentEnemy->client->ps.fd.forcePowersActive & 1 << FP_SEE))
-			{
-				level.clients[bs->client].ps.fd.forcePowerSelected = FP_TELEPATHY;
-				use_the_force = 1;
-				forceHostile = 1;
-			}
-			else if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_ABSORB && g_entities[bs->client].health < 75 && bs->
-				currentEnemy->client->ps.fd.forceSide == FORCE_DARKSIDE && level.clients[bs->client].ps.fd.forcePower >
+			// Absorb to escape grip
+			if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_ABSORB)) &&
+				bs->cur_ps.fd.forceGripCripple &&
+				level.clients[bs->client].ps.fd.forcePower >
 				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_ABSORB]][FP_ABSORB])
 			{
 				level.clients[bs->client].ps.fd.forcePowerSelected = FP_ABSORB;
 				use_the_force = 1;
 				forceHostile = 0;
 			}
-			else if (bs->cur_ps.fd.forcePowersKnown & 1 << FP_PROTECT && g_entities[bs->client].health < 35 && level
-				.clients[bs->client].ps.fd.forcePower > forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel
-				[FP_PROTECT]][FP_PROTECT])
+			// Absorb lightning
+			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_ABSORB)) &&
+				bs->cur_ps.electrifyTime >= level.time &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_ABSORB]][FP_ABSORB])
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_ABSORB;
+				use_the_force = 1;
+				forceHostile = 0;
+			}
+			// Mind trick
+			else if (forceOnlyLight && (bs->cur_ps.fd.forcePowersKnown & (1 << FP_TELEPATHY)) &&
+				bs->frame_Enemy_Len < FORCE_BCLASS_FORCE_NO_SABER &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_TELEPATHY]][FP_TELEPATHY] &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles) &&
+				!(bs->currentEnemy->client->ps.fd.forcePowersActive & (1 << FP_SEE)))
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_TELEPATHY;
+				use_the_force = 1;
+				forceHostile = 1;
+			}
+			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_TELEPATHY)) &&
+				bs->frame_Enemy_Len < MAX_TRICK_DISTANCE &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_TELEPATHY]][FP_TELEPATHY] &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles) &&
+				!(bs->currentEnemy->client->ps.fd.forcePowersActive & (1 << FP_SEE)))
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_TELEPATHY;
+				use_the_force = 1;
+				forceHostile = 1;
+			}
+			// Absorb (low health vs dark side)
+			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_ABSORB)) &&
+				g_entities[bs->client].health < 75 &&
+				bs->currentEnemy->client->ps.fd.forceSide == FORCE_DARKSIDE &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_ABSORB]][FP_ABSORB])
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_ABSORB;
+				use_the_force = 1;
+				forceHostile = 0;
+			}
+			// Protect (low health)
+			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_PROTECT)) &&
+				g_entities[bs->client].health < 35 &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_PROTECT]][FP_PROTECT])
 			{
 				level.clients[bs->client].ps.fd.forcePowerSelected = FP_PROTECT;
 				use_the_force = 1;
 				forceHostile = 0;
 			}
 		}
-		else if (bs->cur_ps.saberInFlight && !bs->cur_ps.saberEntityNum)
+
+		// -----------------------------
+		// LOST SABER LOGIC
+		// -----------------------------
+		else if (!(g_entities[bs->client].client &&
+			(g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+				g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER)) &&
+			bs->cur_ps.saberInFlight && !bs->cur_ps.saberEntityNum)
 		{
-			//we've lost our saber.
-			//check to see if we can get the saber back yet.
-			if (g_entities[g_entities[bs->client].client->saberStoredIndex].s.pos.trType == TR_STATIONARY)
+			const gentity_t* saberEnt =
+				&g_entities[g_entities[bs->client].client->saberStoredIndex];
+
+			if (saberEnt->s.pos.trType == TR_STATIONARY)
 			{
-				//saber is ready to be pulled back
 				level.clients[bs->client].ps.fd.forcePowerSelected = FP_SABERTHROW;
 				use_the_force = 1;
 				forceHostile = 0;
@@ -12637,7 +13117,7 @@ void standard_bot_ai(bot_state_t* bs)
 
 	if (bs->currentEnemy)
 	{
-		if (bot_get_weapon_range(bs) == BWEAPONRANGE_SABER)
+		if (bot_get_weapon_range(bs) == BWEAPONRANGE_SABER && bs->saberSpecialist)
 		{
 			int saber_range = SABER_ATTACK_RANGE;
 
@@ -12766,37 +13246,7 @@ void standard_bot_ai(bot_state_t* bs)
 		}
 	}
 
-	if (bs->cur_ps.lastOnGround + 300 < level.time //haven't been on the ground for a while
-		&& (!bs->cur_ps.fd.forceJumpZStart || bs->origin[2] < bs->cur_ps.fd.forceJumpZStart))
-		//and not safely landing from a jump
-	{
-		//been off the ground for a little while
-		float speed = VectorLength(bs->cur_ps.velocity);
-		if (speed >= 100 + g_entities[bs->client].health && bs->virtualWeapon != WP_SABER || speed >= 700)
-		{
-			//moving fast enough to get hurt get ready to crouch roll
-			if (bs->virtualWeapon != WP_SABER)
-			{
-				//try switching to saber
-				if (!bot_select_choice_weapon(bs, WP_SABER, 1))
-				{
-					//ok, try switching to melee
-					bot_select_choice_weapon(bs, WP_MELEE, 1);
-				}
-			}
-
-			if (bs->virtualWeapon == WP_MELEE || bs->virtualWeapon == WP_SABER)
-			{
-				//in or switching to a weapon that allows us to do roll landings
-				bs->duckTime = level.time + 300;
-				if (!bs->lastucmd.forwardmove && !bs->lastucmd.rightmove)
-				{
-					//not trying to move at all so we should at least attempt to move
-					trap->EA_MoveForward(bs->client);
-				}
-			}
-		}
-	}
+	Bot_CheckFallLanding(bs);
 
 	if (bs->doChat && bs->chatTime > level.time && (!bs->currentEnemy || !bs->frame_Enemy_Vis))
 	{
@@ -12995,55 +13445,55 @@ void standard_bot_ai(bot_state_t* bs)
 #endif
 	}
 
-#ifndef FORCEJUMP_INSTANTMETHOD
-	if (bs->forceJumpChargeTime > level.time)
-	{
-		bs->jumpTime = 0;
-	}
-#endif
-
-	if (bs->jumpPrep > level.time)
-	{
-		bs->forceJumpChargeTime = 0;
-	}
-
-	if (bs->forceJumpChargeTime > level.time)
-	{
-		bs->jumpHoldTime = ((float)(bs->forceJumpChargeTime - level.time) * 0.5f) + level.time;
-		bs->forceJumpChargeTime = 0;
-	}
-
-	if (bs->jumpHoldTime > level.time)
-	{
-		bs->jumpTime = bs->jumpHoldTime;
-	}
-
-	if (bs->jumpTime > level.time && bs->jDelay < level.time)
-	{
-		if (bs->jumpHoldTime > level.time)
-		{
-			trap->EA_Jump(bs->client);
-			if (bs->wpCurrent)
-			{
-				if (bs->wpCurrent->origin[2] - bs->origin[2] < 64)
-				{
-					trap->EA_MoveForward(bs->client);
-				}
-			}
-			else
-			{
-				trap->EA_MoveForward(bs->client);
-			}
-			if (g_entities[bs->client].client->ps.groundEntityNum == ENTITYNUM_NONE)
-			{
-				g_entities[bs->client].client->ps.pm_flags |= PMF_JUMP_HELD;
-			}
-		}
-		else if (!(bs->cur_ps.pm_flags & PMF_JUMP_HELD))
-		{
-			trap->EA_Jump(bs->client);
-		}
-	}
+	//#ifndef FORCEJUMP_INSTANTMETHOD
+	//	if (bs->forceJumpChargeTime > level.time)
+	//	{
+	//		bs->jumpTime = 0;
+	//	}
+	//#endif
+	//
+	//	if (bs->jumpPrep > level.time)
+	//	{
+	//		bs->forceJumpChargeTime = 0;
+	//	}
+	//
+	//	if (bs->forceJumpChargeTime > level.time)
+	//	{
+	//		bs->jumpHoldTime = ((float)(bs->forceJumpChargeTime - level.time) * 0.5f) + level.time;
+	//		bs->forceJumpChargeTime = 0;
+	//	}
+	//
+	//	if (bs->jumpHoldTime > level.time)
+	//	{
+	//		bs->jumpTime = bs->jumpHoldTime;
+	//	}
+	//
+	//	if (bs->jumpTime > level.time && bs->jDelay < level.time)
+	//	{
+	//		if (bs->jumpHoldTime > level.time)
+	//		{
+	//			trap->EA_Jump(bs->client);
+	//			if (bs->wpCurrent)
+	//			{
+	//				if (bs->wpCurrent->origin[2] - bs->origin[2] < 64)
+	//				{
+	//					trap->EA_MoveForward(bs->client);
+	//				}
+	//			}
+	//			else
+	//			{
+	//				trap->EA_MoveForward(bs->client);
+	//			}
+	//			if (g_entities[bs->client].client->ps.groundEntityNum == ENTITYNUM_NONE)
+	//			{
+	//				g_entities[bs->client].client->ps.pm_flags |= PMF_JUMP_HELD;
+	//			}
+	//		}
+	//		else if (!(bs->cur_ps.pm_flags & PMF_JUMP_HELD))
+	//		{
+	//			trap->EA_Jump(bs->client);
+	//		}
+	//	}
 
 	if (bs->duckTime > level.time)
 	{
@@ -13195,6 +13645,40 @@ void standard_bot_ai(bot_state_t* bs)
 		bs->doAltAttack = 0;
 	}
 
+	// ------------------------------------------------------------
+	// Block firing for Force-only bots OR frozen bots
+	// ------------------------------------------------------------
+	qboolean blockWeaponFire = qfalse;
+
+	if (bs->cur_ps.userInt3 & (1 << FLAG_FROZEN))
+	{
+		blockWeaponFire = qtrue;
+	}
+
+	if (blockWeaponFire)
+	{
+		bs->doAttack = qfalse;
+		bs->doAltAttack = qfalse;
+		return;
+	}
+
+	if (use_the_force)
+	{
+		trap->EA_ForcePower(bs->client);
+	}
+	if (bs->doAttack)
+	{
+		trap->EA_Attack(bs->client);
+	}
+	else if (bs->doAltAttack)
+	{
+		trap->EA_Alt_Attack(bs->client);
+	}
+
+	if (use_the_force)
+	{
+		trap->EA_ForcePower(bs->client);
+	}
 	if (bs->doAttack)
 	{
 		trap->EA_Attack(bs->client);
@@ -13209,29 +13693,34 @@ void standard_bot_ai(bot_state_t* bs)
 		use_the_force = qfalse;
 	}
 
-	if (use_the_force)
+	// Only Force Jump if the waypoint requires it
+	if (use_the_force && fj_halt > 0)
 	{
+		// Bot must have the required Force Jump level
+		if (bs->cur_ps.fd.forcePowerLevel[FP_LEVITATION] >= fj_halt)
+		{
 #ifndef FORCEJUMP_INSTANTMETHOD
-		if (bs->forceJumpChargeTime > level.time)
-		{
-			level.clients[bs->client].ps.fd.forcePowerSelected = FP_LEVITATION;
-			trap->EA_ForcePower(bs->client);
-		}
-		else
-		{
-#endif
-			if (bot_forcepowers.integer && !g_forcePowerDisable.integer)
+			if (bs->forceJumpChargeTime > level.time)
 			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_LEVITATION;
 				trap->EA_ForcePower(bs->client);
 			}
-#ifndef FORCEJUMP_INSTANTMETHOD
-		}
+			else
+			{
 #endif
+				if (bot_forcepowers.integer && !g_forcePowerDisable.integer)
+				{
+					trap->EA_ForcePower(bs->client);
+				}
+#ifndef FORCEJUMP_INSTANTMETHOD
+			}
+#endif
+		}
 	}
 
 	move_toward_ideal_angles(bs);
 }
-void bot_moveto(bot_state_t* bs, const qboolean strafe);
+
 void Enhanced_bot_ai(bot_state_t* bs)
 {
 	const int saberNum = 0;
@@ -13529,7 +14018,7 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		return;
 	}
 
-	bot_check_speak(&g_entities[bs->client], qtrue);
+	bot_check_speak(&g_entities[bs->client], qfalse);
 
 	if (PM_InLedgeMove(bs->cur_ps.legsAnim))
 	{
@@ -13539,7 +14028,7 @@ void Enhanced_bot_ai(bot_state_t* bs)
 	}
 
 	// Execute delayed saber-style switch if scheduled
-	if (bs->nextStyleSwitchTime > 0 &&
+	if (bs->nextStyleSwitchTime > 0 && bs->saberSpecialist &&
 		level.time >= bs->nextStyleSwitchTime)
 	{
 		Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
@@ -13602,27 +14091,16 @@ void Enhanced_bot_ai(bot_state_t* bs)
 	use_the_force = 0;
 	forceHostile = 0;
 
-#ifndef FORCEJUMP_INSTANTMETHOD
-	// Charging a force jump overrides everything
-	if (bs->forceJumpChargeTime > level.time)
-	{
-		use_the_force = 1;
-		forceHostile = 0;
-	}
-#endif
-
-	// Must have a visible enemy to consider offensive powers
-#if !defined(FORCEJUMP_INSTANTMETHOD)
-	if (bs->currentEnemy && bs->currentEnemy->client && bs->frame_Enemy_Vis &&
-		bs->forceJumpChargeTime < level.time)
-#else
 	if (bs->currentEnemy && bs->currentEnemy->client && bs->frame_Enemy_Vis)
-#endif
 	{
 		// Compute angle to enemy once
 		vec3_t toEnemyAngles;
 		vec3_t toEnemyVec;
-
+		qboolean forceOnlyDark = (g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER);
+		qboolean forceOnlyLight = (g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER);
+		qboolean GunnerRage = (g_entities[bs->client].client->pers.botclass == BCLASS_WOOKIEMELEE ||
+			g_entities[bs->client].client->pers.botclass == BCLASS_WOOKIE ||
+			g_entities[bs->client].client->pers.botclass == BCLASS_CHEWIE);
 		VectorSubtract(bs->currentEnemy->client->ps.origin, bs->eye, toEnemyVec);
 		vectoangles(toEnemyVec, toEnemyAngles);
 
@@ -13630,10 +14108,17 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		// PRIORITY 1: PUSH (escape grip / emergency)
 		// -----------------------------
 		if (bs->cur_ps.fd.forcePowersKnown & (1 << FP_PUSH) &&
-			(bs->doForcePush > level.time ||
-				bs->cur_ps.fd.forceGripBeingGripped > level.time) &&
-			level.clients[bs->client].ps.fd.forcePower >
-			forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_PUSH]][FP_PUSH])
+			(bs->doForcePush > level.time || bs->cur_ps.fd.forceGripBeingGripped > level.time) &&
+			level.clients[bs->client].ps.fd.forcePower > forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_PUSH]][FP_PUSH])
+		{
+			level.clients[bs->client].ps.fd.forcePowerSelected = FP_PUSH;
+			use_the_force = 1;
+			forceHostile = 1;
+		}
+		else if ((forceOnlyDark || forceOnlyLight) && bs->cur_ps.fd.forcePowersKnown & (1 << FP_PUSH) &&
+			bs->frame_Enemy_Len < FORCE_BCLASS_FORCE_NO_SABER_CLOSE &&
+			level.clients[bs->client].ps.fd.forcePower > 50 &&
+			in_field_of_vision(bs->viewangles, 30, toEnemyAngles))
 		{
 			level.clients[bs->client].ps.fd.forcePowerSelected = FP_PUSH;
 			use_the_force = 1;
@@ -13655,6 +14140,15 @@ void Enhanced_bot_ai(bot_state_t* bs)
 				forceHostile = 1;
 			}
 			// Lightning
+			else if (forceOnlyDark && Q_irand(0, 3) && (bs->cur_ps.fd.forcePowersKnown & (1 << FP_LIGHTNING)) &&
+				bs->frame_Enemy_Len < FORCE_BCLASS_FORCE_NO_SABER &&
+				level.clients[bs->client].ps.fd.forcePower > 50 &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles))
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_LIGHTNING;
+				use_the_force = 1;
+				forceHostile = 1;
+			}
 			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_LIGHTNING)) &&
 				bs->frame_Enemy_Len < FORCE_LIGHTNING_RADIUS &&
 				level.clients[bs->client].ps.fd.forcePower > 50 &&
@@ -13665,6 +14159,16 @@ void Enhanced_bot_ai(bot_state_t* bs)
 				forceHostile = 1;
 			}
 			// Grip (new attempt)
+			else if (forceOnlyDark && Q_irand(0, 3) && (bs->cur_ps.fd.forcePowersKnown & (1 << FP_GRIP)) &&
+				bs->frame_Enemy_Len < FORCE_BCLASS_FORCE_NO_SABER &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_GRIP]][FP_GRIP] &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles))
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_GRIP;
+				use_the_force = 1;
+				forceHostile = 1;
+			}
 			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_GRIP)) &&
 				bs->frame_Enemy_Len < MAX_GRIP_DISTANCE &&
 				level.clients[bs->client].ps.fd.forcePower >
@@ -13686,7 +14190,7 @@ void Enhanced_bot_ai(bot_state_t* bs)
 				forceHostile = 0;
 			}
 			// Rage (bowcaster special case)
-			else if (bs->cur_ps.weapon == WP_BOWCASTER &&
+			else if (GunnerRage &&
 				(bs->cur_ps.fd.forcePowersKnown & (1 << FP_RAGE)) &&
 				g_entities[bs->client].health < 75 &&
 				level.clients[bs->client].ps.fd.forcePower >
@@ -13697,6 +14201,17 @@ void Enhanced_bot_ai(bot_state_t* bs)
 				forceHostile = 0;
 			}
 			// Drain
+			else if (forceOnlyDark && Q_irand(0, 3) && (bs->cur_ps.fd.forcePowersKnown & (1 << FP_DRAIN)) &&
+				bs->frame_Enemy_Len < FORCE_BCLASS_FORCE_NO_SABER &&
+				level.clients[bs->client].ps.fd.forcePower > 50 &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles) &&
+				bs->currentEnemy->client->ps.fd.forcePower > 10 &&
+				bs->currentEnemy->client->ps.fd.forceSide == FORCE_LIGHTSIDE)
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_DRAIN;
+				use_the_force = 1;
+				forceHostile = 1;
+			}
 			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_DRAIN)) &&
 				bs->frame_Enemy_Len < MAX_DRAIN_DISTANCE &&
 				level.clients[bs->client].ps.fd.forcePower > 50 &&
@@ -13736,6 +14251,17 @@ void Enhanced_bot_ai(bot_state_t* bs)
 				forceHostile = 0;
 			}
 			// Mind trick
+			else if (forceOnlyLight && (bs->cur_ps.fd.forcePowersKnown & (1 << FP_TELEPATHY)) &&
+				bs->frame_Enemy_Len < FORCE_BCLASS_FORCE_NO_SABER &&
+				level.clients[bs->client].ps.fd.forcePower >
+				forcePowerNeeded[level.clients[bs->client].ps.fd.forcePowerLevel[FP_TELEPATHY]][FP_TELEPATHY] &&
+				in_field_of_vision(bs->viewangles, 50, toEnemyAngles) &&
+				!(bs->currentEnemy->client->ps.fd.forcePowersActive & (1 << FP_SEE)))
+			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_TELEPATHY;
+				use_the_force = 1;
+				forceHostile = 1;
+			}
 			else if ((bs->cur_ps.fd.forcePowersKnown & (1 << FP_TELEPATHY)) &&
 				bs->frame_Enemy_Len < MAX_TRICK_DISTANCE &&
 				level.clients[bs->client].ps.fd.forcePower >
@@ -13773,7 +14299,10 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		// -----------------------------
 		// LOST SABER LOGIC
 		// -----------------------------
-		else if (bs->cur_ps.saberInFlight && !bs->cur_ps.saberEntityNum)
+		else if (!(g_entities[bs->client].client &&
+			(g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+				g_entities[bs->client].client->pers.botclass == BCLASS_FORCE_LIGHT_NO_SABER)) &&
+			bs->cur_ps.saberInFlight && !bs->cur_ps.saberEntityNum)
 		{
 			const gentity_t* saberEnt =
 				&g_entities[g_entities[bs->client].client->saberStoredIndex];
@@ -14711,7 +15240,7 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		// -----------------------------
 		// SABER RANGE
 		// -----------------------------
-		if (weapRange == BWEAPONRANGE_SABER)
+		if (weapRange == BWEAPONRANGE_SABER && bs->saberSpecialist)
 		{
 			int saber_range = SABER_ATTACK_RANGE;
 
@@ -14852,50 +15381,7 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		}
 	}
 
-	qboolean longFall =
-		(bs->cur_ps.lastOnGround + 300 < level.time) &&
-		(!bs->cur_ps.fd.forceJumpZStart ||
-			bs->origin[2] < bs->cur_ps.fd.forceJumpZStart);
-
-	if (longFall)
-	{
-		float speed = VectorLength(bs->cur_ps.velocity);
-
-		// Clean, correct logic:
-		// High fall speed OR extremely high velocity
-		qboolean dangerousFall =
-			(speed >= (100.0f + g_entities[bs->client].health)) ||
-			(speed >= 700.0f);
-
-		if (dangerousFall)
-		{
-			// Prefer saber or melee for roll landing
-			if (bs->virtualWeapon != WP_SABER &&
-				bs->virtualWeapon != WP_MELEE)
-			{
-				// Try saber first
-				if (!bot_select_choice_weapon(bs, WP_SABER, 1))
-				{
-					// fallback to melee
-					bot_select_choice_weapon(bs, WP_MELEE, 1);
-				}
-			}
-
-			// Only roll if we actually have a roll‑capable weapon
-			if (bs->virtualWeapon == WP_SABER ||
-				bs->virtualWeapon == WP_MELEE)
-			{
-				bs->duckTime = level.time + 300;
-
-				// If not moving, push forward to avoid stiff landing
-				if (!bs->lastucmd.forwardmove &&
-					!bs->lastucmd.rightmove)
-				{
-					trap->EA_MoveForward(bs->client);
-				}
-			}
-		}
-	}
+	Bot_CheckFallLanding(bs);
 
 	if (bs->doChat && bs->chatTime > level.time && (!bs->currentEnemy || !bs->frame_Enemy_Vis))
 	{
@@ -15145,85 +15631,85 @@ void Enhanced_bot_ai(bot_state_t* bs)
 	// -----------------------------------------------------
 	// FORCE JUMP CHARGE CANCEL (Rule #6)
 	// -----------------------------------------------------
-#ifndef FORCEJUMP_INSTANTMETHOD
-	if (bs->forceJumpChargeTime > level.time)
-	{
-		// While charging force jump, normal jump is disabled
-		bs->jumpTime = 0;
-	}
-#endif
-
-	// -----------------------------------------------------
-	// PREP CANCELS FORCE JUMP (Rule #6)
-	// -----------------------------------------------------
-	if (bs->jumpPrep > level.time)
-	{
-		bs->forceJumpChargeTime = 0;
-	}
-
-	// -----------------------------------------------------
-	// FORCE JUMP CHARGE → HOLD CONVERSION (Rule #6)
-	// -----------------------------------------------------
-	if (bs->forceJumpChargeTime > level.time)
-	{
-		bs->jumpHoldTime =
-			((bs->forceJumpChargeTime - level.time) * 0.5f) + level.time;
-
-		bs->forceJumpChargeTime = 0;
-	}
-
-	// -----------------------------------------------------
-	// HOLD → JUMP WINDOW (Rule #6)
-	// -----------------------------------------------------
-	if (bs->jumpHoldTime > level.time)
-	{
-		bs->jumpTime = bs->jumpHoldTime;
-	}
-
-	// -----------------------------------------------------
-	// EXECUTE JUMP (Rules #1, #4, #6, #7)
-	// -----------------------------------------------------
-	if (bs->jumpTime > level.time &&
-		bs->jDelay < level.time &&
-		!fj_halt)
-	{
-		// Saber bots walk, not sprint (Rule #1)
-		if (bs->cur_ps.weapon == WP_SABER)
-		{
-			bs->doWalk = qtrue;
-		}
-
-		// Held jump (force jump)
-		if (bs->jumpHoldTime > level.time)
-		{
-			trap->EA_Jump(bs->client);
-
-			// Move forward only if it helps reach the waypoint
-			if (bs->wpCurrent &&
-				bs->wpCurrent->origin[2] - bs->origin[2] < 64)
-			{
-				trap->EA_MoveForward(bs->client);
-			}
-			else if (!bs->wpCurrent)
-			{
-				trap->EA_MoveForward(bs->client);
-			}
-
-			// If airborne, keep jump held
-			if (g_entities[bs->client].client->ps.groundEntityNum == ENTITYNUM_NONE)
-			{
-				g_entities[bs->client].client->ps.pm_flags |= PMF_JUMP_HELD;
-			}
-		}
-		else
-		{
-			// Normal jump (not held)
-			if (!(bs->cur_ps.pm_flags & PMF_JUMP_HELD))
-			{
-				trap->EA_Jump(bs->client);
-			}
-		}
-	}
+//#ifndef FORCEJUMP_INSTANTMETHOD
+//	if (bs->forceJumpChargeTime > level.time)
+//	{
+//		// While charging force jump, normal jump is disabled
+//		bs->jumpTime = 0;
+//	}
+//#endif
+//
+//	// -----------------------------------------------------
+//	// PREP CANCELS FORCE JUMP (Rule #6)
+//	// -----------------------------------------------------
+//	if (bs->jumpPrep > level.time)
+//	{
+//		bs->forceJumpChargeTime = 0;
+//	}
+//
+//	// -----------------------------------------------------
+//	// FORCE JUMP CHARGE → HOLD CONVERSION (Rule #6)
+//	// -----------------------------------------------------
+//	if (bs->forceJumpChargeTime > level.time)
+//	{
+//		bs->jumpHoldTime =
+//			((bs->forceJumpChargeTime - level.time) * 0.5f) + level.time;
+//
+//		bs->forceJumpChargeTime = 0;
+//	}
+//
+//	// -----------------------------------------------------
+//	// HOLD → JUMP WINDOW (Rule #6)
+//	// -----------------------------------------------------
+//	if (bs->jumpHoldTime > level.time)
+//	{
+//		bs->jumpTime = bs->jumpHoldTime;
+//	}
+//
+//	// -----------------------------------------------------
+//	// EXECUTE JUMP (Rules #1, #4, #6, #7)
+//	// -----------------------------------------------------
+//	if (bs->jumpTime > level.time &&
+//		bs->jDelay < level.time &&
+//		!fj_halt)
+//	{
+//		// Saber bots walk, not sprint (Rule #1)
+//		if (bs->cur_ps.weapon == WP_SABER)
+//		{
+//			bs->doWalk = qtrue;
+//		}
+//
+//		// Held jump (force jump)
+//		if (bs->jumpHoldTime > level.time)
+//		{
+//			trap->EA_Jump(bs->client);
+//
+//			// Move forward only if it helps reach the waypoint
+//			if (bs->wpCurrent &&
+//				bs->wpCurrent->origin[2] - bs->origin[2] < 64)
+//			{
+//				trap->EA_MoveForward(bs->client);
+//			}
+//			else if (!bs->wpCurrent)
+//			{
+//				trap->EA_MoveForward(bs->client);
+//			}
+//
+//			// If airborne, keep jump held
+//			if (g_entities[bs->client].client->ps.groundEntityNum == ENTITYNUM_NONE)
+//			{
+//				g_entities[bs->client].client->ps.pm_flags |= PMF_JUMP_HELD;
+//			}
+//		}
+//		else
+//		{
+//			// Normal jump (not held)
+//			if (!(bs->cur_ps.pm_flags & PMF_JUMP_HELD))
+//			{
+//				trap->EA_Jump(bs->client);
+//			}
+//		}
+//	}
 
 	if (bs->duckTime > level.time)
 	{
@@ -15407,26 +15893,33 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		bs->doAltAttack = 0;
 	}
 
+	// ------------------------------------------------------------
+	// Block firing for Force-only bots OR frozen bots
+	// ------------------------------------------------------------
+	qboolean blockWeaponFire = qfalse;
+
+	if (bs->cur_ps.userInt3 & (1 << FLAG_FROZEN))
+	{
+		blockWeaponFire = qtrue;
+	}
+
+	if (blockWeaponFire)
+	{
+		bs->doAttack = qfalse;
+		bs->doAltAttack = qfalse;
+		return;
+	}
+
+	if (use_the_force)
+	{
+		trap->EA_ForcePower(bs->client);
+	}
 	if (bs->doAttack)
 	{
-		// Prevent frozen bots from firing
-		if (bs->cur_ps.userInt3 & (1 << FLAG_FROZEN))
-		{
-			bs->doAttack = qfalse;      // stop attack intent
-			bs->doAltAttack = qfalse;   // stop alt attack intent
-			return;                     // skip firing
-		}
 		trap->EA_Attack(bs->client);
 	}
 	else if (bs->doAltAttack)
 	{
-		// Prevent frozen bots from alt-firing
-		if (bs->cur_ps.userInt3 & (1 << FLAG_FROZEN))
-		{
-			bs->doAttack = qfalse;
-			bs->doAltAttack = qfalse;
-			return;
-		}
 		trap->EA_Alt_Attack(bs->client);
 	}
 
@@ -15435,30 +15928,29 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		use_the_force = qfalse;
 	}
 
-	if (use_the_force)
+	// Only Force Jump if the waypoint requires it
+	if (use_the_force && fj_halt > 0)
 	{
-		// Jetpack bots should NOT use ground force powers
-		if (bs->cur_ps.eFlags & EF_JETPACK_ACTIVE)
-			return;
-
+		// Bot must have the required Force Jump level
+		if (bs->cur_ps.fd.forcePowerLevel[FP_LEVITATION] >= fj_halt)
+		{
 #ifndef FORCEJUMP_INSTANTMETHOD
-		// Force jump charge → levitation
-		if (bs->forceJumpChargeTime > level.time)
-		{
-			level.clients[bs->client].ps.fd.forcePowerSelected = FP_LEVITATION;
-			trap->EA_ForcePower(bs->client);
-		}
-		else
-		{
-#endif
-			// Normal force power usage
-			if (bot_forcepowers.integer && !g_forcePowerDisable.integer)
+			if (bs->forceJumpChargeTime > level.time)
 			{
+				level.clients[bs->client].ps.fd.forcePowerSelected = FP_LEVITATION;
 				trap->EA_ForcePower(bs->client);
 			}
-#ifndef FORCEJUMP_INSTANTMETHOD
-		}
+			else
+			{
 #endif
+				if (bot_forcepowers.integer && !g_forcePowerDisable.integer)
+				{
+					trap->EA_ForcePower(bs->client);
+				}
+#ifndef FORCEJUMP_INSTANTMETHOD
+			}
+#endif
+		}
 	}
 
 	move_toward_ideal_angles(bs);
@@ -16024,226 +16516,130 @@ void trace_move(bot_state_t* bs, vec3_t move_dir, const int target_num)
 
 extern void npc_conversation_animation();
 
-static void bot_check_speak(gentity_t* self, const qboolean moving)
+void bot_check_speak(gentity_t* self, const qboolean moving)
 {
 	char filename[256];
 	char npc_sound_dir[256];
 	fileHandle_t f;
 
-	if (self->bot_check_speach_time > level.time) return; // not yet...
-
-	self->bot_check_speach_time = level.time + 5000 + irand(0, 15000);
-
-	strcpy(npc_sound_dir, self->client->botSoundDir);
-
-	if (botstates[self->s.number]->currentEnemy && botstates[self->s.number]->enemySeenTime >= level.time)
+	// ------------------------------------------------------------------
+	// Speech cooldown
+	// ------------------------------------------------------------------
+	if (self->bot_check_speach_time > level.time)
 	{
-		// Have enemy...
-		const int rand_choice = irand(0, 50);
+		return;
+	}
+
+	self->bot_check_speach_time = level.time + 5000 + Q_irand(0, 15000);
+
+	// ------------------------------------------------------------------
+	// Copy bot sound directory safely
+	// ------------------------------------------------------------------
+	Q_strncpyz(npc_sound_dir, self->client->botSoundDir, sizeof(npc_sound_dir));
+
+	// ------------------------------------------------------------------
+	// Determine whether bot currently has a visible enemy
+	// ------------------------------------------------------------------
+	const bot_state_t* bs = botstates[self->s.number];
+
+	const qboolean hasEnemy =
+		((bs->currentEnemy != NULL) &&
+			(bs->enemySeenTime >= level.time))
+		? qtrue
+		: qfalse;
+
+	// ------------------------------------------------------------------
+	// Choose sound file
+	// ------------------------------------------------------------------
+	if (hasEnemy == qtrue)
+	{
+		const int rand_choice = Q_irand(0, 50);
 
 		switch (rand_choice)
 		{
-		case 0:
-			strcpy(filename, va("sound/chars/%s/misc/anger1.mp3", npc_sound_dir));
-			break;
-		case 1:
-			strcpy(filename, va("sound/chars/%s/misc/anger2.mp3", npc_sound_dir));
-			break;
-		case 2:
-			strcpy(filename, va("sound/chars/%s/misc/anger3.mp3", npc_sound_dir));
-			break;
-		case 3:
-			strcpy(filename, va("sound/chars/%s/misc/chase1.mp3", npc_sound_dir));
-			break;
-		case 4:
-			strcpy(filename, va("sound/chars/%s/misc/chase2.mp3", npc_sound_dir));
-			break;
-		case 5:
-			strcpy(filename, va("sound/chars/%s/misc/chase3.mp3", npc_sound_dir));
-			break;
-		case 6:
-			strcpy(filename, va("sound/chars/%s/misc/combat1.mp3", npc_sound_dir));
-			break;
-		case 7:
-			strcpy(filename, va("sound/chars/%s/misc/combat2.mp3", npc_sound_dir));
-			break;
-		case 8:
-			strcpy(filename, va("sound/chars/%s/misc/combat3.mp3", npc_sound_dir));
-			break;
-		case 9:
-			strcpy(filename, va("sound/chars/%s/misc/confuse1.mp3", npc_sound_dir));
-			break;
-		case 10:
-			strcpy(filename, va("sound/chars/%s/misc/confuse2.mp3", npc_sound_dir));
-			break;
-		case 11:
-			strcpy(filename, va("sound/chars/%s/misc/confuse3.mp3", npc_sound_dir));
-			break;
-		case 12:
-			strcpy(filename, va("sound/chars/%s/misc/cover1.mp3", npc_sound_dir));
-			break;
-		case 13:
-			strcpy(filename, va("sound/chars/%s/misc/cover2.mp3", npc_sound_dir));
-			break;
-		case 14:
-			strcpy(filename, va("sound/chars/%s/misc/cover3.mp3", npc_sound_dir));
-			break;
-		case 15:
-			strcpy(filename, va("sound/chars/%s/misc/cover4.mp3", npc_sound_dir));
-			break;
-		case 16:
-			strcpy(filename, va("sound/chars/%s/misc/cover5.mp3", npc_sound_dir));
-			break;
-		case 17:
-			strcpy(filename, va("sound/chars/%s/misc/deflect1.mp3", npc_sound_dir));
-			break;
-		case 18:
-			strcpy(filename, va("sound/chars/%s/misc/deflect2.mp3", npc_sound_dir));
-			break;
-		case 19:
-			strcpy(filename, va("sound/chars/%s/misc/deflect3.mp3", npc_sound_dir));
-			break;
-		case 20:
-			strcpy(filename, va("sound/chars/%s/misc/detected1.mp3", npc_sound_dir));
-			break;
-		case 21:
-			strcpy(filename, va("sound/chars/%s/misc/detected2.mp3", npc_sound_dir));
-			break;
-		case 22:
-			strcpy(filename, va("sound/chars/%s/misc/detected3.mp3", npc_sound_dir));
-			break;
-		case 23:
-			strcpy(filename, va("sound/chars/%s/misc/detected4.mp3", npc_sound_dir));
-			break;
-		case 24:
-			strcpy(filename, va("sound/chars/%s/misc/detected5.mp3", npc_sound_dir));
-			break;
-		case 25:
-			strcpy(filename, va("sound/chars/%s/misc/escaping1.mp3", npc_sound_dir));
-			break;
-		case 26:
-			strcpy(filename, va("sound/chars/%s/misc/escaping2.mp3", npc_sound_dir));
-			break;
-		case 27:
-			strcpy(filename, va("sound/chars/%s/misc/escaping3.mp3", npc_sound_dir));
-			break;
-		case 28:
-			strcpy(filename, va("sound/chars/%s/misc/giveup1.mp3", npc_sound_dir));
-			break;
-		case 29:
-			strcpy(filename, va("sound/chars/%s/misc/giveup2.mp3", npc_sound_dir));
-			break;
-		case 30:
-			strcpy(filename, va("sound/chars/%s/misc/giveup3.mp3", npc_sound_dir));
-			break;
-		case 31:
-			strcpy(filename, va("sound/chars/%s/misc/giveup4.mp3", npc_sound_dir));
-			break;
-		case 32:
-			strcpy(filename, va("sound/chars/%s/misc/gloat1.mp3", npc_sound_dir));
-			break;
-		case 33:
-			strcpy(filename, va("sound/chars/%s/misc/gloat2.mp3", npc_sound_dir));
-			break;
-		case 34:
-			strcpy(filename, va("sound/chars/%s/misc/gloat3.mp3", npc_sound_dir));
-			break;
-		case 35:
-			strcpy(filename, va("sound/chars/%s/misc/jchase1.mp3", npc_sound_dir));
-			break;
-		case 36:
-			strcpy(filename, va("sound/chars/%s/misc/jchase2.mp3", npc_sound_dir));
-			break;
-		case 37:
-			strcpy(filename, va("sound/chars/%s/misc/jchase3.mp3", npc_sound_dir));
-			break;
-		case 38:
-			strcpy(filename, va("sound/chars/%s/misc/jdetected1.mp3", npc_sound_dir));
-			break;
-		case 39:
-			strcpy(filename, va("sound/chars/%s/misc/jdetected2.mp3", npc_sound_dir));
-			break;
-		case 40:
-			strcpy(filename, va("sound/chars/%s/misc/jdetected3.mp3", npc_sound_dir));
-			break;
-		case 41:
-			strcpy(filename, va("sound/chars/%s/misc/jlost1.mp3", npc_sound_dir));
-			break;
-		case 42:
-			strcpy(filename, va("sound/chars/%s/misc/jlost2.mp3", npc_sound_dir));
-			break;
-		case 43:
-			strcpy(filename, va("sound/chars/%s/misc/jlost3.mp3", npc_sound_dir));
-			break;
-		case 44:
-			strcpy(filename, va("sound/chars/%s/misc/outflank1.mp3", npc_sound_dir));
-			break;
-		case 45:
-			strcpy(filename, va("sound/chars/%s/misc/outflank2.mp3", npc_sound_dir));
-			break;
-		case 46:
-			strcpy(filename, va("sound/chars/%s/misc/outflank3.mp3", npc_sound_dir));
-			break;
-		case 47:
-			strcpy(filename, va("sound/chars/%s/misc/taunt.mp3", npc_sound_dir));
-			break;
-		case 48:
-			strcpy(filename, va("sound/chars/%s/misc/taunt1.mp3", npc_sound_dir));
-			break;
-		case 49:
-			strcpy(filename, va("sound/chars/%s/misc/taunt2.mp3", npc_sound_dir));
-			break;
+		case 0:  Q_strncpyz(filename, va("sound/chars/%s/misc/anger1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 1:  Q_strncpyz(filename, va("sound/chars/%s/misc/anger2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 2:  Q_strncpyz(filename, va("sound/chars/%s/misc/anger3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 3:  Q_strncpyz(filename, va("sound/chars/%s/misc/chase1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 4:  Q_strncpyz(filename, va("sound/chars/%s/misc/chase2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 5:  Q_strncpyz(filename, va("sound/chars/%s/misc/chase3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 6:  Q_strncpyz(filename, va("sound/chars/%s/misc/combat1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 7:  Q_strncpyz(filename, va("sound/chars/%s/misc/combat2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 8:  Q_strncpyz(filename, va("sound/chars/%s/misc/combat3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 9:  Q_strncpyz(filename, va("sound/chars/%s/misc/confuse1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 10: Q_strncpyz(filename, va("sound/chars/%s/misc/confuse2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 11: Q_strncpyz(filename, va("sound/chars/%s/misc/confuse3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 12: Q_strncpyz(filename, va("sound/chars/%s/misc/cover1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 13: Q_strncpyz(filename, va("sound/chars/%s/misc/cover2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 14: Q_strncpyz(filename, va("sound/chars/%s/misc/cover3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 15: Q_strncpyz(filename, va("sound/chars/%s/misc/cover4.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 16: Q_strncpyz(filename, va("sound/chars/%s/misc/cover5.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 17: Q_strncpyz(filename, va("sound/chars/%s/misc/deflect1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 18: Q_strncpyz(filename, va("sound/chars/%s/misc/deflect2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 19: Q_strncpyz(filename, va("sound/chars/%s/misc/deflect3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 20: Q_strncpyz(filename, va("sound/chars/%s/misc/detected1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 21: Q_strncpyz(filename, va("sound/chars/%s/misc/detected2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 22: Q_strncpyz(filename, va("sound/chars/%s/misc/detected3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 23: Q_strncpyz(filename, va("sound/chars/%s/misc/detected4.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 24: Q_strncpyz(filename, va("sound/chars/%s/misc/detected5.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 25: Q_strncpyz(filename, va("sound/chars/%s/misc/escaping1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 26: Q_strncpyz(filename, va("sound/chars/%s/misc/escaping2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 27: Q_strncpyz(filename, va("sound/chars/%s/misc/escaping3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 28: Q_strncpyz(filename, va("sound/chars/%s/misc/giveup1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 29: Q_strncpyz(filename, va("sound/chars/%s/misc/giveup2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 30: Q_strncpyz(filename, va("sound/chars/%s/misc/giveup3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 31: Q_strncpyz(filename, va("sound/chars/%s/misc/giveup4.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 32: Q_strncpyz(filename, va("sound/chars/%s/misc/gloat1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 33: Q_strncpyz(filename, va("sound/chars/%s/misc/gloat2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 34: Q_strncpyz(filename, va("sound/chars/%s/misc/gloat3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 35: Q_strncpyz(filename, va("sound/chars/%s/misc/jchase1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 36: Q_strncpyz(filename, va("sound/chars/%s/misc/jchase2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 37: Q_strncpyz(filename, va("sound/chars/%s/misc/jchase3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 38: Q_strncpyz(filename, va("sound/chars/%s/misc/jdetected1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 39: Q_strncpyz(filename, va("sound/chars/%s/misc/jdetected2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 40: Q_strncpyz(filename, va("sound/chars/%s/misc/jdetected3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 41: Q_strncpyz(filename, va("sound/chars/%s/misc/jlost1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 42: Q_strncpyz(filename, va("sound/chars/%s/misc/jlost2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 43: Q_strncpyz(filename, va("sound/chars/%s/misc/jlost3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 44: Q_strncpyz(filename, va("sound/chars/%s/misc/outflank1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 45: Q_strncpyz(filename, va("sound/chars/%s/misc/outflank2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 46: Q_strncpyz(filename, va("sound/chars/%s/misc/outflank3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 47: Q_strncpyz(filename, va("sound/chars/%s/misc/taunt.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 48: Q_strncpyz(filename, va("sound/chars/%s/misc/taunt1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 49: Q_strncpyz(filename, va("sound/chars/%s/misc/taunt2.mp3", npc_sound_dir), sizeof(filename)); break;
 		default:
-			strcpy(filename, va("sound/chars/%s/misc/taunt3.mp3", npc_sound_dir));
+			Q_strncpyz(filename, va("sound/chars/%s/misc/taunt3.mp3", npc_sound_dir), sizeof(filename));
 			break;
 		}
 	}
 	else
 	{
-		// No enemy...
-		const int rand_choice = irand(0, 10);
+		const int rand_choice = Q_irand(0, 10);
 
 		switch (rand_choice)
 		{
-		case 0:
-			strcpy(filename, va("sound/chars/%s/misc/sight1.mp3", npc_sound_dir));
-			break;
-		case 1:
-			strcpy(filename, va("sound/chars/%s/misc/sight2.mp3", npc_sound_dir));
-			break;
-		case 2:
-			strcpy(filename, va("sound/chars/%s/misc/sight3.mp3", npc_sound_dir));
-			break;
-		case 3:
-			strcpy(filename, va("sound/chars/%s/misc/look1.mp3", npc_sound_dir));
-			break;
-		case 4:
-			strcpy(filename, va("sound/chars/%s/misc/look2.mp3", npc_sound_dir));
-			break;
-		case 5:
-			strcpy(filename, va("sound/chars/%s/misc/look3.mp3", npc_sound_dir));
-			break;
-		case 6:
-			strcpy(filename, va("sound/chars/%s/misc/suspicious1.mp3", npc_sound_dir));
-			break;
-		case 7:
-			strcpy(filename, va("sound/chars/%s/misc/suspicious2.mp3", npc_sound_dir));
-			break;
-		case 8:
-			strcpy(filename, va("sound/chars/%s/misc/suspicious3.mp3", npc_sound_dir));
-			break;
-		case 9:
-			strcpy(filename, va("sound/chars/%s/misc/suspicious4.mp3", npc_sound_dir));
-			break;
+		case 0: Q_strncpyz(filename, va("sound/chars/%s/misc/sight1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 1: Q_strncpyz(filename, va("sound/chars/%s/misc/sight2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 2: Q_strncpyz(filename, va("sound/chars/%s/misc/sight3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 3: Q_strncpyz(filename, va("sound/chars/%s/misc/look1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 4: Q_strncpyz(filename, va("sound/chars/%s/misc/look2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 5: Q_strncpyz(filename, va("sound/chars/%s/misc/look3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 6: Q_strncpyz(filename, va("sound/chars/%s/misc/suspicious1.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 7: Q_strncpyz(filename, va("sound/chars/%s/misc/suspicious2.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 8: Q_strncpyz(filename, va("sound/chars/%s/misc/suspicious3.mp3", npc_sound_dir), sizeof(filename)); break;
+		case 9: Q_strncpyz(filename, va("sound/chars/%s/misc/suspicious4.mp3", npc_sound_dir), sizeof(filename)); break;
 		default:
-			strcpy(filename, va("sound/chars/%s/misc/suspicious5.mp3", npc_sound_dir));
+			Q_strncpyz(filename, va("sound/chars/%s/misc/suspicious5.mp3", npc_sound_dir), sizeof(filename));
 			break;
 		}
 	}
 
+	// ------------------------------------------------------------------
+	// Validate file exists
+	// ------------------------------------------------------------------
 	trap->FS_Open(filename, &f, FS_READ);
 
-	if (!f)
+	if (f == 0)
 	{
 		trap->FS_Close(f);
 		return;
@@ -16253,31 +16649,100 @@ static void bot_check_speak(gentity_t* self, const qboolean moving)
 
 	trap->Print("Bot sound file [%s] played.\n", filename);
 
-	// Play a taunt/etc...
+	// ------------------------------------------------------------------
+	// Play sound
+	// ------------------------------------------------------------------
 	G_SoundOnEnt(self, CHAN_VOICE_ATTEN, filename);
 
-	if (!moving)
+	// ------------------------------------------------------------------
+	// NEW FEATURE:
+	// Bots in the speaker's crosshair respond with speech.
+	// ------------------------------------------------------------------
+	{
+		vec3_t forward, start, end;
+		trace_t tr;
+
+		AngleVectors(self->client->ps.viewangles, forward, NULL, NULL);
+
+		VectorCopy(self->client->ps.origin, start);
+		start[2] += 24.0f;
+
+		VectorMA(start, 128.0f, forward, end);
+
+		trap->Trace(&tr,
+			start,
+			NULL,
+			NULL,
+			end,
+			self->s.number,
+			MASK_SHOT,
+			0,
+			0,
+			0);
+
+		if (tr.entityNum >= 0 && tr.entityNum < MAX_CLIENTS)
+		{
+			gentity_t* responder = &g_entities[tr.entityNum];
+
+			if ((responder->r.svFlags & SVF_BOT) != 0)
+			{
+				char replyFile[256];
+				fileHandle_t rf;
+
+				// Pick a reply sound
+				const int replyChoice = Q_irand(1, 3);
+				Q_strncpyz(replyFile,
+					va("sound/chars/%s/misc/taunt%i.mp3",
+						responder->client->botSoundDir,
+						replyChoice),
+					sizeof(replyFile));
+
+				// Validate reply file exists
+				trap->FS_Open(replyFile, &rf, FS_READ);
+				if (rf != 0)
+				{
+					trap->FS_Close(rf);
+					G_SoundOnEnt(responder, CHAN_VOICE_ATTEN, replyFile);
+				}
+				else
+				{
+					trap->FS_Close(rf);
+				}
+
+				// Optional: responder animation
+				npc_conversation_animation();
+			}
+		}
+	}
+
+	// ------------------------------------------------------------------
+	// Trigger animation if bot is idle
+	// ------------------------------------------------------------------
+	if (moving == qfalse)
 	{
 		npc_conversation_animation();
 	}
 }
 
-//Behavior to move to the given DestPosition
-//strafe = do some strafing while moving to this location
+// Behavior to move to the given DestPosition
+// strafe = do some strafing while moving to this location
 static void bot_moveto(bot_state_t* bs, const qboolean strafe)
 {
 	qboolean recalcroute = qfalse;
 	qboolean findwp = qfalse;
-	int badwp = -2;
+	int      badwp = -2;
 
-	if (!bs->wpCurrent)
+	// ------------------------------------------------------------------
+	// Waypoint validity checks
+	// ------------------------------------------------------------------
+	if (bs->wpCurrent == NULL)
 	{
-		////ok, we just did something other than wp navigation.  find the closest wp.
+		// We are not currently following a waypoint; find one.
 		findwp = qtrue;
 	}
 	else if (bs->wpSeenTime < level.time)
 	{
-		//lost track of the waypoint
+		// Lost track of the current waypoint.
 		findwp = qtrue;
 		badwp = bs->wpCurrent->index;
 		bs->wpDestination = NULL;
@@ -16285,117 +16750,151 @@ static void bot_moveto(bot_state_t* bs, const qboolean strafe)
 	}
 	else if (bs->wpTravelTime < level.time)
 	{
-		//spent too much time traveling to this point or lost sight for too long.
-		//recheck everything
+		// Spent too long traveling to this waypoint; re-evaluate.
 		findwp = qtrue;
 		badwp = bs->wpCurrent->index;
-
 		bs->wpDestination = NULL;
 		recalcroute = qtrue;
 	}
-	//Check to make sure we didn't get knocked way off course.
-	else if (!bs->wpSpecial)
+	else if (bs->wpSpecial == qfalse)
 	{
+		// Check if we were knocked far off course.
 		const float distthen = Distance(bs->wpCurrentLoc, bs->wpCurrent->origin);
 		const float distnow = Distance(bs->wpCurrent->origin, bs->origin);
-		if (2 * distthen < distnow)
+
+		if ((2.0f * distthen) < distnow)
 		{
-			//we're pretty far off the path, check to make sure we didn't get knocked way off course.
 			findwp = qtrue;
 		}
 	}
 
-	if (!VectorCompare(bs->DestPosition, bs->lastDestPosition) || !bs->wpDestination)
+	// ------------------------------------------------------------------
+	// Destination waypoint selection
+	// ------------------------------------------------------------------
+	if (VectorCompare(bs->DestPosition, bs->lastDestPosition) == qfalse || bs->wpDestination == NULL)
 	{
-		//The goal position has moved from last frame.  make sure it's not closer to a different
-		//destination WP
 		int destwp = get_nearest_visible_wpsje(bs, bs->DestPosition, bs->client, badwp);
 
 		if (destwp == -1)
 		{
-			//ok, don't have a wappoint that can see that point...ok, go to the closest wp and
-			//and try from there.
+			// No waypoint can see the destination; fall back to nearest waypoint.
 			destwp = get_nearest_wp(bs, bs->DestPosition, badwp);
 
 			if (destwp == -1)
 			{
-				//crap, this map has no wps.  try just autonaving it then
+				// No waypoints at all; fall back to direct movement.
 				bot_move(bs, bs->DestPosition, qfalse, strafe);
 				return;
 			}
 		}
 
-		if (!bs->wpDestination || bs->wpDestination->index != destwp)
+		if (bs->wpDestination == NULL || bs->wpDestination->index != destwp)
 		{
 			bs->wpDestination = gWPArray[destwp];
 			recalcroute = qtrue;
 		}
 	}
 
+	// ------------------------------------------------------------------
+	// Speech / chatter logic
+	// ------------------------------------------------------------------
 	bot_check_speak(&g_entities[bs->client], qtrue);
 
-	if (findwp)
+	// ------------------------------------------------------------------
+	// Acquire or update current waypoint
+	// ------------------------------------------------------------------
+	if (findwp == qtrue)
 	{
 		int wp = get_nearest_visible_wpsje(bs, bs->origin, bs->client, badwp);
+
 		if (wp == -1)
 		{
-			//can't find a visible
 			wp = get_nearest_wp(bs, bs->origin, badwp);
+
 			if (wp == -1)
 			{
-				//no waypoints
+				// No waypoints; move directly toward destination.
 				bot_move(bs, bs->DestPosition, qfalse, strafe);
 				return;
 			}
 		}
 
-		//got a waypoint, lock on and move towards it
 		bs->wpCurrent = gWPArray[wp];
 		reset_wp_timers(bs);
 		VectorCopy(bs->origin, bs->wpCurrentLoc);
-		if (!recalcroute && find_on_route(bs->wpCurrent->index, bs->botRoute) == -1)
+
+		if (recalcroute == qfalse &&
+			find_on_route(bs->wpCurrent->index, bs->botRoute) == -1)
 		{
-			//recalc route
 			recalcroute = qtrue;
 		}
 	}
 
-	if (recalcroute)
+	// ------------------------------------------------------------------
+	// If we still lack a valid current or destination waypoint, fall back.
+	// ------------------------------------------------------------------
+	if (bs->wpCurrent == NULL || bs->wpDestination == NULL)
 	{
-		if (find_ideal_pathto_wp(bs, bs->wpCurrent->index, bs->wpDestination->index, badwp, bs->botRoute) == -1)
+		bot_move(bs, bs->DestPosition, qfalse, strafe);
+		return;
+	}
+
+	// ------------------------------------------------------------------
+	// Route recalculation
+	// ------------------------------------------------------------------
+	if (recalcroute == qtrue)
+	{
+		if (find_ideal_pathto_wp(bs,
+			bs->wpCurrent->index,
+			bs->wpDestination->index,
+			badwp,
+			bs->botRoute) == -1)
 		{
-			//can't get to destination wp from current wp, wing it
+			// Cannot reach destination waypoint from current waypoint; wing it.
 			bs->wpCurrent = NULL;
 			clear_route(bs->botRoute);
 			bot_move(bs, bs->DestPosition, qfalse, strafe);
 			return;
 		}
-		//set wp timers
+
 		reset_wp_timers(bs);
 	}
 
-	//travelling to a waypoint
-	if ((bs->wpCurrent->index != bs->wpDestination->index || !bs->wpTouchedDest) && Distance(
-		bs->origin, bs->wpCurrent->origin) < BOT_WPTOUCH_DISTANCE
-		&& !bs->wpSpecial)
+	// ------------------------------------------------------------------
+	// Waypoint touch logic
+	// ------------------------------------------------------------------
+	if ((bs->wpCurrent->index != bs->wpDestination->index ||
+		bs->wpTouchedDest == qfalse) &&
+		Distance(bs->origin, bs->wpCurrent->origin) < BOT_WPTOUCH_DISTANCE &&
+		bs->wpSpecial == qfalse)
 	{
 		wp_touch(bs);
 	}
 
-	//if you're closer to your bs->DestPosition than you are to your next waypoint, just
-	//move to your bs->DestPosition.  This is to prevent the bots from backstepping when
-	//very close to their target
-	if (!bs->wpSpecial && (Distance(bs->origin, bs->wpCurrent->origin) > Distance(bs->origin, bs->DestPosition)
-		//closer to our destination than the next waypoint
-		|| bs->wpCurrent->index == bs->wpDestination->index && bs->wpTouchedDest))
-		//We've touched our final waypoint and should head towards the destination
+	// ------------------------------------------------------------------
+	// Decide whether to move to DestPosition directly or via waypoint
+	// ------------------------------------------------------------------
+	const float distToCurrentWP = Distance(bs->origin, bs->wpCurrent->origin);
+	const float distToDest = Distance(bs->origin, bs->DestPosition);
+
+	const qboolean closerToDest =
+		(distToCurrentWP > distToDest) ? qtrue : qfalse;
+
+	const qboolean atFinalWPAndTouched =
+		((bs->wpCurrent->index == bs->wpDestination->index) &&
+			(bs->wpTouchedDest == qtrue))
+		? qtrue
+		: qfalse;
+
+	if (bs->wpSpecial == qfalse &&
+		(closerToDest == qtrue || atFinalWPAndTouched == qtrue))
 	{
-		//move to DestPosition
+		// Move directly to destination.
 		bot_move(bs, bs->DestPosition, qfalse, strafe);
 	}
 	else
 	{
-		//move to next waypoint
+		// Move toward current waypoint.
 		bot_move(bs, bs->wpCurrent->origin, qtrue, strafe);
 	}
 }
@@ -16447,19 +16946,28 @@ void bot_behave_attack_move(bot_state_t* bs)
 	vec3_t ang;
 	vec3_t enemy_origin;
 
-	if (!bs->frame_Enemy_Vis && bs->enemySeenTime < level.time)
+	// ------------------------------------------------------------------
+	// If we cannot currently see the enemy AND the last seen time expired,
+	// we have lost track of the target.
+	// ------------------------------------------------------------------
+	if (bs->frame_Enemy_Vis == qfalse && bs->enemySeenTime < level.time)
 	{
-		//lost track of enemy
 		bs->currentEnemy = NULL;
 		return;
 	}
 
+	// ------------------------------------------------------------------
+	// Determine enemy position and distance
+	// ------------------------------------------------------------------
 	FindOrigin(bs->currentEnemy, enemy_origin);
 
 	const float range = TargetDistance(bs, bs->currentEnemy, enemy_origin);
 
-	//move towards DestPosition
-	if (VectorLength(bs->velocity) <= 16)
+	// ------------------------------------------------------------------
+	// Move toward DestPosition
+	// If velocity is low, use "precise" movement (qtrue), otherwise normal (qfalse)
+	// ------------------------------------------------------------------
+	if (VectorLength(bs->velocity) <= 16.0f)
 	{
 		bot_moveto(bs, qtrue);
 	}
@@ -16468,42 +16976,71 @@ void bot_behave_attack_move(bot_state_t* bs)
 		bot_moveto(bs, qfalse);
 	}
 
-	if (bs->wpSpecial)
+	// ------------------------------------------------------------------
+	// If following a special waypoint, do not interrupt movement
+	// ------------------------------------------------------------------
+	if (bs->wpSpecial == qtrue)
 	{
-		//in special wp move, don't do interrupt it.
 		return;
 	}
 
-	//adjust angle for target leading.
+	// ------------------------------------------------------------------
+	// Aim leading
+	// ------------------------------------------------------------------
 	const float leadamount = bot_weapon_can_lead(bs);
-
 	bot_aim_leading(bs, enemy_origin, leadamount);
 
-	//set viewangle
+	// ------------------------------------------------------------------
+	// Face enemy
+	// ------------------------------------------------------------------
 	VectorSubtract(enemy_origin, bs->eye, view_dir);
-
 	vectoangles(view_dir, ang);
 	VectorCopy(ang, bs->goalAngles);
 
-	if (bs->frame_Enemy_Vis && bs->cur_ps.weapon == bs->virtualWeapon && range < MaximumAttackDistance[bs->
-		virtualWeapon]
-		&& range > MinimumAttackDistance[bs->virtualWeapon]
-		&& (in_field_of_vision(bs->viewangles, 30, ang)
-			|| bs->virtualWeapon == WP_SABER && in_field_of_vision(bs->viewangles, 100, ang)))
+	// ------------------------------------------------------------------
+	// Attack conditions:
+	// 1. Enemy visible
+	// 2. Using correct weapon
+	// 3. Enemy within attack band
+	// 4. Enemy within field of vision
+	// ------------------------------------------------------------------
+	const qboolean enemyVisible = (bs->frame_Enemy_Vis == qtrue) ? qtrue : qfalse;
+	const qboolean correctWeapon = (bs->cur_ps.weapon == bs->virtualWeapon) ? qtrue : qfalse;
+
+	const qboolean inFOV_Narrow =
+		(in_field_of_vision(bs->viewangles, 30, ang) == qtrue) ? qtrue : qfalse;
+
+	const qboolean inFOV_Wide =
+		((bs->virtualWeapon == WP_SABER) &&
+			(in_field_of_vision(bs->viewangles, 100, ang) == qtrue))
+		? qtrue
+		: qfalse;
+
+	if (enemyVisible == qtrue &&
+		correctWeapon == qtrue &&
+		range < MaximumAttackDistance[bs->virtualWeapon] &&
+		range > MinimumAttackDistance[bs->virtualWeapon] &&
+		(inFOV_Narrow == qtrue || inFOV_Wide == qtrue))
 	{
-		//don't attack unless you're inside your AttackDistance band and actually pointing at your enemy.
-		if (bs->virtualWeapon != WP_SABER && bs->cur_ps.BlasterAttackChainCount >= MISHAPLEVEL_HEAVY)
+		// ------------------------------------------------------------------
+		// Non‑saber weapons: avoid firing when wildly inaccurate
+		// ------------------------------------------------------------------
+		if (bs->virtualWeapon != WP_SABER &&
+			bs->cur_ps.BlasterAttackChainCount >= MISHAPLEVEL_HEAVY)
 		{
-			//don't shoot like a retard if you're not going to hit anything
 			return;
 		}
 
-		//This is to prevent the bots from attackmoving with the saber @ 500 meters. :)
+		// ------------------------------------------------------------------
+		// Fire weapon
+		// ------------------------------------------------------------------
 		trap->EA_Attack(bs->client);
 
+		// ------------------------------------------------------------------
+		// Saber: walk while attacking
+		// ------------------------------------------------------------------
 		if (bs->virtualWeapon == WP_SABER)
 		{
-			//only walk while attacking with the saber.
 			bs->doWalk = qtrue;
 		}
 	}
@@ -16511,24 +17048,37 @@ void bot_behave_attack_move(bot_state_t* bs)
 
 void bot_behave_attack(bot_state_t* bs)
 {
+	// ------------------------------------------------------------------
+	// Determine the weapon the bot prefers for this enemy.
+	// qtrue/qfalse explicitly used for qboolean parameters.
+	// ------------------------------------------------------------------
 	const int desiredweap = favorite_weapon(bs, bs->currentEnemy, qtrue, qtrue, 0);
 
+	// ------------------------------------------------------------------
+	// If the enemy is too far away for the desired weapon,
+	// move toward the enemy instead of attacking in place.
+	// ------------------------------------------------------------------
 	if (bs->frame_Enemy_Len > MaximumAttackDistance[desiredweap])
 	{
-		//this should be an attack while moving function but for now we'll just use moveto
 		vec3_t enemyOrigin;
 		FindOrigin(bs->currentEnemy, enemyOrigin);
+
 		VectorCopy(enemyOrigin, bs->DestPosition);
 		bs->DestIgnore = bs->currentEnemy->s.number;
+
 		bot_behave_attack_move(bs);
 		return;
 	}
 
-	//we're going to go get in close so null out the wpCurrent so it will update when we're
-	//done.
+	// ------------------------------------------------------------------
+	// We are close enough to attack.
+	// Clear waypoint so it will be recalculated after combat.
+	// ------------------------------------------------------------------
 	bs->wpCurrent = NULL;
 
-	//use basic attack
+	// ------------------------------------------------------------------
+	// Perform the basic attack behaviour.
+	// ------------------------------------------------------------------
 	bot_behave_attack_basic(bs, bs->currentEnemy);
 }
 
@@ -16775,7 +17325,7 @@ int bot_ai_setup(const int restart)
 	trap->Cvar_Register(&bot_wp_distconnect, "bot_wp_distconnect", "1", 0);
 	trap->Cvar_Register(&bot_wp_visconnect, "bot_wp_visconnect", "1", 0);
 	trap->Cvar_Register(&bot_fps, "bot_fps", "20", CVAR_ARCHIVE);
-	
+
 	trap->Cvar_Register(&bot_startcredits, "bot_startcredits", "5", CVAR_ARCHIVE);
 	trap->Cvar_Update(&bot_startcredits);
 

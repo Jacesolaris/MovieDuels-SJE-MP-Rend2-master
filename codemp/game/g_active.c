@@ -2686,6 +2686,15 @@ extern qboolean Block_Button_Held(const gentity_t* defender);
 void WP_ReloadGun(gentity_t* ent);
 void CancelReload(gentity_t* ent);
 extern qboolean PM_RestAnim(int anim);
+extern void bot_check_speak(gentity_t* self, const qboolean moving);
+static void BotDelayedTauntReply(gentity_t* bot)
+{
+	bot_check_speak(bot, qfalse);
+
+	// Clear think function so it doesn't repeat
+	bot->think = NULL;
+	bot->nextthink = 0;
+}
 
 void G_SetTauntAnim(gentity_t* ent, int taunt)
 {
@@ -3705,6 +3714,43 @@ void G_SetTauntAnim(gentity_t* ent, int taunt)
 				NPC_SetAnim(ent, parts, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			}
 		}
+		// ----------------------------------------------------------------------
+		// BOT CROSSHAIR REPLY (player-only)
+		// ----------------------------------------------------------------------
+		if (BG_IsAlreadyinTauntAnim(ent->client->ps.torsoAnim))
+		{
+			vec3_t forward, start, end;
+			trace_t tr;
+
+			AngleVectors(ent->client->ps.viewangles, forward, NULL, NULL);
+
+			VectorCopy(ent->client->ps.origin, start);
+			start[2] += 24.0f;
+
+			VectorMA(start, 128.0f, forward, end);
+
+			trap->Trace(&tr,
+				start,
+				NULL,
+				NULL,
+				end,
+				ent->s.number,
+				MASK_SHOT,
+				0,
+				0,
+				0);
+
+			if (tr.entityNum >= 0 && tr.entityNum < MAX_CLIENTS)
+			{
+				gentity_t* bot = &g_entities[tr.entityNum];
+
+				if (bot->r.svFlags & SVF_BOT)
+				{
+					bot->think = BotDelayedTauntReply;
+					bot->nextthink = level.time + 2000;   // 2 seconds delay
+				}
+			}
+		}
 	}
 }
 
@@ -4026,9 +4072,8 @@ static qboolean Bot_Is_Saber_Class(gentity_t* ent)
 	case BCLASS_JEDIKNIGHT1:
 	case BCLASS_JEDIKNIGHT2:
 	case BCLASS_JEDIKNIGHT3:
-	case BCLASS_JEDICONSULAR1:
-	case BCLASS_JEDICONSULAR2:
-	case BCLASS_JEDICONSULAR3:
+	case BCLASS_SABERNOFP:
+	case BCLASS_MANDO_SABER_NO_FP_ARMOUR:
 	case BCLASS_SITHWORRIOR1:
 	case BCLASS_SITHWORRIOR2:
 	case BCLASS_SITHWORRIOR3:
@@ -4048,11 +4093,78 @@ static qboolean Bot_Is_Saber_Class(gentity_t* ent)
 	return qtrue;
 }
 
+qboolean Bot_Is_Allowed_to_use_force(gentity_t* ent)
+{
+	switch (ent->client->pers.botclass)
+	{
+	case BCLASS_ALORA:
+	case BCLASS_DESANN:
+	case BCLASS_CULTIST:
+	case BCLASS_JEDI:
+	case BCLASS_KYLE:
+	case BCLASS_JEDIMASTER:
+	case BCLASS_JEDITRAINER:
+	case BCLASS_DUELS:
+	case BCLASS_LUKE:
+	case BCLASS_MORGANKATARN:
+	case BCLASS_REBORN_TWIN:
+	case BCLASS_REBORN_MASTER:
+	case BCLASS_REBORN:
+	case BCLASS_ROSH_PENIN:
+	case BCLASS_SABER_DROID:
+	case BCLASS_TAVION:
+	case BCLASS_SHADOWTROOPER:
+	case BCLASS_SERENITY:
+	case BCLASS_CADENCE:
+	case BCLASS_YODA:
+	case BCLASS_PADAWAN:
+	case BCLASS_GRIEVOUS:
+	case BCLASS_SITHLORD:
+	case BCLASS_VADER:
+	case BCLASS_SITH:
+	case BCLASS_APPRENTICE:
+	case BCLASS_JEDIKNIGHT1:
+	case BCLASS_JEDIKNIGHT2:
+	case BCLASS_JEDIKNIGHT3:
+	case BCLASS_SMUGGLER3:
+	case BCLASS_SABERNOFP:
+	case BCLASS_MANDO_SABER_NO_FP_ARMOUR:
+	case BCLASS_PAZVIZSLA:
+	case BCLASS_SITHWORRIOR1:
+	case BCLASS_SITHWORRIOR2:
+	case BCLASS_SITHWORRIOR3:
+	case BCLASS_SITHINQUISITOR1:
+	case BCLASS_SITHINQUISITOR2:
+	case BCLASS_SITHINQUISITOR3:
+	case BCLASS_STAFFDARK:
+	case BCLASS_STAFF:
+	case BCLASS_UNSTABLESABER:
+	case BCLASS_OBIWAN:
+	case BCLASS_CHEWIE:
+	case BCLASS_ROCKETTROOPER:
+	case BCLASS_MANDOLORIAN:
+	case BCLASS_MANDOLORIAN1:
+	case BCLASS_MANDOLORIAN2:
+	case BCLASS_TROOPER3:
+	case BCLASS_BOUNTYHUNTER1:
+	case BCLASS_BOBAFETT:
+	case BCLASS_TUSKEN_RAIDER:
+	case BCLASS_WOOKIE:
+	case BCLASS_WOOKIEMELEE:
+	case BCLASS_FORCE_DARK_NO_SABER:
+		break;
+	default:
+		return qfalse;
+	}
+	return qtrue;
+}
+
 static qboolean Is_Oversized_Gunner(gentity_t* ent)
 {
 	gclient_t* client = ent->client;
 
 	if ((client->pers.botmodelscale == BOTZIZE_TALL ||
+		client->pers.botmodelscale == BOTZIZE_TALLISH ||
 		client->pers.botmodelscale == BOTZIZE_LARGE ||
 		client->pers.botmodelscale == BOTZIZE_LARGER ||
 		client->pers.botmodelscale == BOTZIZE_MASSIVE) && !Bot_Is_Saber_Class(ent))

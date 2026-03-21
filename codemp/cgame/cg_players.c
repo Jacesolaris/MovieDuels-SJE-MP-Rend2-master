@@ -1363,19 +1363,33 @@ static void CG_LoadClientInfo(clientInfo_t* ci)
 //Take care of initializing all the ghoul2 saber stuff based on clientinfo data. -rww
 static void CG_InitG2SaberData(const int saberNum, clientInfo_t* ci)
 {
-	trap->G2API_InitGhoul2Model(&ci->ghoul2Weapons[saberNum], ci->saber[saberNum].model, 0, ci->saber[saberNum].skin,
+	// ------------------------------------------------------------
+	// Initialize the active saber model
+	// ------------------------------------------------------------
+	trap->G2API_InitGhoul2Model(
+		&ci->ghoul2Weapons[saberNum],
+		ci->saber[saberNum].model,
 		0,
-		0, 0);
+		ci->saber[saberNum].skin,
+		0,
+		0,
+		0
+	);
 
 	if (ci->ghoul2Weapons[saberNum])
 	{
-		int k = 0;
-
+		// Apply skin if present
 		if (ci->saber[saberNum].skin)
 		{
-			trap->G2API_SetSkin(ci->ghoul2Weapons[saberNum], 0, ci->saber[saberNum].skin, ci->saber[saberNum].skin);
+			trap->G2API_SetSkin(
+				ci->ghoul2Weapons[saberNum],
+				0,
+				ci->saber[saberNum].skin,
+				ci->saber[saberNum].skin
+			);
 		}
 
+		// Bolt saber to wrist or standard bolt
 		if (ci->saber[saberNum].saberFlags & SFL_BOLT_TO_WRIST)
 		{
 			trap->G2API_SetBoltInfo(ci->ghoul2Weapons[saberNum], 0, 3 + saberNum);
@@ -1385,45 +1399,65 @@ static void CG_InitG2SaberData(const int saberNum, clientInfo_t* ci)
 			trap->G2API_SetBoltInfo(ci->ghoul2Weapons[saberNum], 0, saberNum);
 		}
 
-		while (k < ci->saber[saberNum].numBlades)
+		// --------------------------------------------------------
+		// Add blade bolts
+		// --------------------------------------------------------
+		for (int k = 0; k < ci->saber[saberNum].numBlades; k++)
 		{
-			const char* tag_name = va("*blade%i", k + 1);
-			int tag_bolt = trap->G2API_AddBolt(ci->ghoul2Weapons[saberNum], 0, tag_name);
+			const char* tagName = va("*blade%i", k + 1);
+			int tagBolt = trap->G2API_AddBolt(ci->ghoul2Weapons[saberNum], 0, tagName);
 
-			if (tag_bolt == -1)
+			if (tagBolt == -1)
 			{
+				// Fallback for old sabers using "*flash"
 				if (k == 0)
 				{
-					//guess this is an 0ldsk3wl saber
-					tag_bolt = trap->G2API_AddBolt(ci->ghoul2Weapons[saberNum], 0, "*flash");
+					tagBolt = trap->G2API_AddBolt(ci->ghoul2Weapons[saberNum], 0, "*flash");
 
-					if (tag_bolt == -1)
+					if (tagBolt == -1)
 					{
-						assert(0);
+#ifdef _DEBUG
+						Com_Printf("CG_InitG2SaberData: ERROR — missing blade tag '%s' and fallback '*flash' for saber %d\n",
+							tagName, saberNum);
+#endif
 					}
-					break;
 				}
-
-				if (tag_bolt == -1)
+				else
 				{
-					assert(0);
-					break;
+#ifdef _DEBUG
+					Com_Printf("CG_InitG2SaberData: ERROR — missing blade tag '%s' for saber %d\n",
+						tagName, saberNum);
+#endif
 				}
-			}
 
-			k++;
+				break; // Stop processing further blades
+			}
 		}
 	}
-	//init the holster model at the same time
-	trap->G2API_InitGhoul2Model(&ci->ghoul2HolsterWeapons[saberNum], ci->saber[saberNum].model, 0,
-		ci->saber[saberNum].skin, 0, 0, 0);
+
+	// ------------------------------------------------------------
+	// Initialize holstered saber model
+	// ------------------------------------------------------------
+	trap->G2API_InitGhoul2Model(
+		&ci->ghoul2HolsterWeapons[saberNum],
+		ci->saber[saberNum].model,
+		0,
+		ci->saber[saberNum].skin,
+		0,
+		0,
+		0
+	);
 
 	if (ci->ghoul2HolsterWeapons[saberNum])
 	{
 		if (ci->saber[saberNum].skin)
 		{
-			trap->G2API_SetSkin(ci->ghoul2HolsterWeapons[saberNum], 0, ci->saber[saberNum].skin,
-				ci->saber[saberNum].skin);
+			trap->G2API_SetSkin(
+				ci->ghoul2HolsterWeapons[saberNum],
+				0,
+				ci->saber[saberNum].skin,
+				ci->saber[saberNum].skin
+			);
 		}
 	}
 }
@@ -18717,8 +18751,8 @@ SkipTrueView:
 
 				{
 					float wv;
-					addspriteArgStruct_t fx_s_args;
-					vec3_t holo_center;
+					addspriteArgStruct_t fx_s_args = { 0 };
+					vec3_t holo_center = { 0 };
 
 					holo_center[0] = holo_ref.origin[0] + holo_ref.axis[2][0] * 18;
 					holo_center[1] = holo_ref.origin[1] + holo_ref.axis[2][1] * 18;

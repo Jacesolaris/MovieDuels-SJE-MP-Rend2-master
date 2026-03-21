@@ -7690,7 +7690,7 @@ static qboolean Jedi_AttackDecide(const int enemy_dist)
 					if (NPCS.NPC->client->ps.fd.blockPoints < BLOCKPOINTS_HALF)
 					{
 						// Back away while attacking...
-						const int rand = irand(0, 100);
+						const int rand = Q_irand(0, 100);
 
 						if (rand < 20)
 						{
@@ -7705,7 +7705,7 @@ static qboolean Jedi_AttackDecide(const int enemy_dist)
 					}
 					else
 					{
-						const int rand = irand(0, 100);
+						const int rand = Q_irand(0, 100);
 
 						Jedi_Advance();
 

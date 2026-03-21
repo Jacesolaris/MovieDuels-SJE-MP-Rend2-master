@@ -919,7 +919,7 @@ static void G_AddBot(const char* name, const float skill, const char* team, cons
 
 	Info_SetValueForKey(userinfo, "name", botname);
 	Info_SetValueForKey(userinfo, "rate", "25000");
-	Info_SetValueForKey(userinfo, "snaps", "20");
+	Info_SetValueForKey(userinfo, "snaps", "120");
 	Info_SetValueForKey(userinfo, "ip", "localhost");
 	Info_SetValueForKey(userinfo, "skill", va("%.2f", skill));
 

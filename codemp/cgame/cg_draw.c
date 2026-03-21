@@ -36,13 +36,13 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // active (after loading) gameplay
 
 #include "cg_local.h"
-
 #include "game/bg_saga.h"
-
 #include "ui/ui_shared.h"
 #include "ui/ui_public.h"
 #include <qcommon\q_math.h>
 #include <game\bg_public.h>
+#include <qcommon\q_platform.h>
+#include <qcommon\q_shared.h>
 
 extern float CG_RadiusForCent(const centity_t* cent);
 qboolean CG_WorldCoordToScreenCoordFloat(vec3_t world_coord, float* x, float* y);
@@ -53,14 +53,10 @@ extern qboolean PM_DeathCinAnim(int anim);
 
 // used for scoreboard
 extern displayContextDef_t cgDC;
-
 int sortedTeamPlayers[TEAM_MAXOVERLAY];
 int numSortedTeamPlayers;
-
 int lastvalidlockdif;
-
 extern float zoomFov; //this has to be global client-side
-
 char systemChat[256];
 char teamChat1[256];
 char teamChat2[256];
@@ -228,6 +224,9 @@ int CG_Text_Height(const char* text, const float scale, const int i_menu_font)
 }
 
 #include "qcommon/qfiles.h"	// for STYLE_BLINK etc
+#include <math.h>
+#include <rd-common\tr_types.h>
+#include <stdint.h>
 
 void CG_Text_Paint(const float x, const float y, const float scale, vec4_t color, const char* text, float adjust,
 	const int limit, const int style,
@@ -273,7 +272,7 @@ CG_DrawZoomMask
 */
 static void CG_DrawZoomMask(void)
 {
-	vec4_t color1;
+	vec4_t color1 = { 0 };
 	float level;
 	static qboolean flip = qtrue;
 
@@ -568,7 +567,7 @@ void CG_DrawFlagModel(float x, float y, float w, float h, const int team, const 
 		vec3_t maxs;
 		vec3_t mins;
 		vec3_t angles;
-		vec3_t origin;
+		vec3_t origin = { 0 };
 		x *= cgs.screenXScale;
 		y *= cgs.screenYScale;
 		w *= cgs.screenXScale;
@@ -1896,9 +1895,9 @@ static void CG_DrawCussaberfatigue(const menuDef_t* menu_hud)
 
 static void CG_DrawoldblockPoints(void)
 {
-	vec4_t aColor;
-	vec4_t b_color;
-	vec4_t cColor;
+	vec4_t aColor = { 0 };
+	vec4_t b_color = { 0 };
+	vec4_t cColor = { 0 };
 	float x = BPFUELBAR_X;
 	const float y = BPFUELBAR_Y;
 	float percent = (float)cg.snap->ps.fd.blockPoints / 100.0f * BPFUELBAR_H;
@@ -3716,7 +3715,7 @@ static qboolean ForcePower_Valid(const int i)
 CG_DrawForceSelect
 ===================
 */
-void CG_DrawForceSelect(void)
+static void CG_DrawForceSelect(void)
 {
 	int i;
 	int side_left_icon_cnt, side_right_icon_cnt;
@@ -3873,7 +3872,7 @@ void CG_DrawForceSelect(void)
 CG_DrawInventorySelect
 ===================
 */
-void cg_draw_inventory_select(void)
+static void cg_draw_inventory_select(void)
 {
 	int i;
 	int icon_cnt;
@@ -7151,7 +7150,7 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 		return;
 	}
 
-	if (cg.snap->ps.weapon == WP_MELEE || cg.snap->ps.weapon == WP_NONE)
+	if (cg.snap->ps.weapon == WP_NONE)
 	{
 		return;
 	}

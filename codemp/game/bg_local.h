@@ -75,7 +75,7 @@ qboolean PM_SaberInParry(int move);
 qboolean PM_SaberInKnockaway(int move);
 qboolean PM_SaberInReflect(int move);
 qboolean PM_SaberInStart(int move);
-qboolean PM_InSaberAnim(int anim);
+qboolean PM_InSaberAnim(const int anim);
 qboolean PM_InKnockDown(const playerState_t* ps);
 qboolean PM_PainAnim(int anim);
 qboolean PM_JumpingAnim(int anim);

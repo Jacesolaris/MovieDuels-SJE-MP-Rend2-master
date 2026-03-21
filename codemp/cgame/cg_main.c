@@ -880,10 +880,11 @@ static void CG_RegisterSounds(void)
 	trap->S_RegisterSound("sound/weapons/force/rage.mp3");
 	trap->S_RegisterSound("sound/weapons/force/lightning.mp3");
 	trap->S_RegisterSound("sound/weapons/force/lightning2.wav");
-	trap->S_RegisterSound("sound/weapons/force/lightning3.pm3");
-	trap->S_RegisterSound("sound/weapons/force/lightninghit1.pm3");
-	trap->S_RegisterSound("sound/weapons/force/lightninghit2.pm3");
-	trap->S_RegisterSound("sound/weapons/force/lightninghit3.pm3");
+	trap->S_RegisterSound("sound/weapons/force/lightning3.mp3");
+
+	trap->S_RegisterSound("sound/weapons/force/lightninghit1.mp3");
+	trap->S_RegisterSound("sound/weapons/force/lightninghit2.mp3");
+	trap->S_RegisterSound("sound/weapons/force/lightninghit3.mp3");
 	trap->S_RegisterSound("sound/weapons/force/drain.wav");
 	trap->S_RegisterSound("sound/weapons/force/jumpbuild.mp3");
 	trap->S_RegisterSound("sound/weapons/force/distract.wav");

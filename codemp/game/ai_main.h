@@ -556,7 +556,7 @@ typedef struct bot_state_s
 	int landingReleaseTime;
 	int kataDashSoundTime;
 	int kataRetreatChangeTime;
-	qboolean forceNoWalk; 
+	qboolean forceNoWalk;
 	int nextBuyTime;
 	qboolean startingCreditsGiven;
 	//end rww
