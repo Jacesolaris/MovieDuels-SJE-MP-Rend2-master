@@ -91,7 +91,7 @@ static qboolean NPC_Jump(vec3_t dest, const int goal_ent_num)
 	VectorSubtract(dest, NPCS.NPC->r.currentOrigin, target_dir);
 	const float targetDist = VectorNormalize(target_dir);
 	//make our shotSpeed reliant on the distance
-	float originalShotSpeed = targetDist; //DistanceHorizontal( dest, NPC->currentOrigin )/2.0f;
+	float originalShotSpeed = targetDist; //DistanceHorizontal( dest, NPC->r.currentOrigin )/2.0f;
 	if (originalShotSpeed > max_shot_speed)
 	{
 		originalShotSpeed = max_shot_speed;

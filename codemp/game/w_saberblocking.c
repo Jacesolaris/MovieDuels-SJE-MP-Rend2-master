@@ -49,7 +49,7 @@ extern qboolean BG_InSlowBounce(const playerState_t* ps);
 extern bot_state_t* botstates[MAX_CLIENTS];
 extern qboolean PM_SaberInTransitionAny(int move);
 extern qboolean PM_SuperBreakWinAnim(int anim);
-extern qboolean walk_check(const gentity_t* self);
+extern qboolean WalkCheck(const gentity_t* self);
 extern qboolean WP_SabersCheckLock(gentity_t* ent1, gentity_t* ent2);
 extern void PM_AddFatigue(playerState_t* ps, int fatigue);
 extern void G_AddVoiceEvent(const gentity_t* self, int event, int speak_debounce_time);
@@ -707,7 +707,7 @@ static qboolean sab_beh_attack_blocked(gentity_t* attacker, gentity_t* blocker, 
 static void sab_beh_add_balance(const gentity_t* self, int amount)
 {
 	// Running or moving fast reduces balance control
-	if (!walk_check(self))
+	if (!WalkCheck(self))
 	{
 		if (amount > 0)
 		{

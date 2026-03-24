@@ -203,8 +203,8 @@ XCVAR_DEF(g_Enhanced_saberBlockChanceScale, "0.5", NULL, CVAR_NONE, qtrue)
 XCVAR_DEF(g_Enhanced_saberBlockStanceParity, "3.0", NULL, CVAR_NONE, qtrue)
 XCVAR_DEF(g_Enhanced_SaberBlocking, "0", NULL, CVAR_NONE, qtrue)
 
-XCVAR_DEF(SJE_clientMOTD, "", NULL, CVAR_ARCHIVE, qfalse)
-XCVAR_DEF(SJE_MOTD, "", NULL, CVAR_ARCHIVE, qfalse)
+XCVAR_DEF(MovieDuels_ClientMOTD, "", NULL, CVAR_ARCHIVE, qfalse)
+XCVAR_DEF(MovieDuels_MOTD, "", NULL, CVAR_ARCHIVE, qfalse)
 
 XCVAR_DEF(g_remove_duel_radius, "1", NULL, CVAR_ARCHIVE, qtrue)
 XCVAR_DEF(g_AllowKnockDownPull, "1", NULL, CVAR_ARCHIVE, qfalse)

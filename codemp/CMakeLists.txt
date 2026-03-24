@@ -347,7 +347,7 @@ if(BuildMPEngine OR BuildMPDed)
 	source_group("sys" FILES ${MPEngineAndDedSysFiles})
 endif(BuildMPEngine OR BuildMPDed)
 
-#        Engine/Executable (SJE-mp.exe)
+#        Engine/Executable (MovieDuels-MP.exe)
 
 if(BuildMPEngine)
 	set(MPEngineLibraries ${MPEngineAndDedLibraries})

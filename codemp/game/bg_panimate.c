@@ -5580,10 +5580,11 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_rey",
 	"models/players/_humanoid_sbd",
 	"models/players/_humanoid_vader",
-	"models/players/_humanoid_yoda"
+	"models/players/_humanoid_yoda",
+	"models/players/darktrooper_tv"
 };
 
-static qboolean R_IsHumanoidAnimName(const char* animName)
+static qboolean R_IsHumanoidPath(const char* animName)
 {
 	if (!animName || !animName[0])
 		return qfalse;
@@ -5615,7 +5616,7 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 	// ------------------------------------------------------------
 	// HUMANOID NORMALIZATION USING PREFIX LIST
 	// ------------------------------------------------------------
-	if (R_IsHumanoidAnimName(filename))
+	if (R_IsHumanoidPath(filename))
 	{
 		filename = "models/players/_humanoid_mp/animation.cfg";
 	}
@@ -5636,7 +5637,7 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		// Allocate anim set if needed
 		if (!anim_set)
 		{
-			if (R_IsHumanoidAnimName(filename))
+			if (R_IsHumanoidPath(filename))
 			{
 				anim_set = bgHumanoidAnimations;
 				next_index = 0;

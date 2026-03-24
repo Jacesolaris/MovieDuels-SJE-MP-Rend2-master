@@ -53,6 +53,11 @@ USER INTERFACE MAIN
 #include <assert.h>
 #include <game\bg_public.h>
 #include <qcommon\q_platform.h>
+#include <game\anims.h>
+#include <math.h>
+#include <qcommon\q_math.h>
+#include "menudef.h"
+#include <search.h>
 
 extern void UI_SaberAttachToChar(itemDef_t* item);
 
@@ -314,7 +319,8 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_rey",
 	"models/players/_humanoid_sbd",
 	"models/players/_humanoid_vader",
-	"models/players/_humanoid_yoda"
+	"models/players/_humanoid_yoda",
+	"models/players/darktrooper_tv"
 };
 
 static qboolean UI_IsHumanoidPath(const char* path)

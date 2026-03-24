@@ -36,7 +36,7 @@ void SetGoal(gentity_t* goal, float rating)
 
 	if (goal)
 	{
-		//		Debug_NPCPrintf( NPC, d_npcai, DEBUG_LEVEL_INFO, "NPC_SetGoal: %s @ %s (%f)\n", goal->classname, vtos( goal->currentOrigin), rating );
+		//		Debug_NPCPrintf( NPC, d_npcai, DEBUG_LEVEL_INFO, "NPC_SetGoal: %s @ %s (%f)\n", goal->classname, vtos( goal->r.currentOrigin), rating );
 	}
 	else
 	{

@@ -513,10 +513,11 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_rey",
 	"models/players/_humanoid_sbd",
 	"models/players/_humanoid_vader",
-	"models/players/_humanoid_yoda"
+	"models/players/_humanoid_yoda",
+	"models/players/darktrooper_tv"
 };
 
-static qboolean R_IsHumanoidAnimName(const char* animName)
+static qboolean R_IsHumanoidPath(const char* animName)
 {
 	if (!animName || !animName[0])
 		return qfalse;
@@ -601,7 +602,7 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 	const char* animNameToUse = mdxm->animName;
 	qhandle_t   animIndex = 0;
 
-	if (R_IsHumanoidAnimName(mdxm->animName))
+	if (R_IsHumanoidPath(mdxm->animName))
 	{
 		const char* forcedHumanoid = "models/players/_humanoid_mp/_humanoid";
 

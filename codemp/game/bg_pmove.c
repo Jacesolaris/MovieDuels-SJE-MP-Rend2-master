@@ -6522,12 +6522,12 @@ static void PM_WalkMove(void)
 		//===================================================
 		/*if (wishspeed > 0.0f && pm->gent && !pml.walking)
 		{
-			if (gi.WE_GetWindGusting(pm->gent->currentOrigin))
+			if (gi.WE_GetWindGusting(pm->gent->r.currentOrigin))
 			{
 				vec3_t	windDir;
-				if (gi.WE_GetWindVector(windDir, pm->gent->currentOrigin))
+				if (gi.WE_GetWindVector(windDir, pm->gent->r.currentOrigin))
 				{
-					if (gi.WE_IsOutside(pm->gent->currentOrigin))
+					if (gi.WE_IsOutside(pm->gent->r.currentOrigin))
 					{
 						VectorScale(windDir, -1.0f, windDir);
 						accelerate *= (1.0f - (DotProduct(wishdir, windDir) * 0.55f));

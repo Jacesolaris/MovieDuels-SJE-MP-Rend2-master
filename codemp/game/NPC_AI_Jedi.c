@@ -5927,8 +5927,6 @@ static evasionType_t Jedi_CheckEvadeSpecialAttacks(void)
 
 extern float ShortestLineSegBewteen2LineSegs(vec3_t start1, vec3_t end1, vec3_t start2, vec3_t end2, vec3_t close_pnt1,
 	vec3_t close_pnt2);
-extern int wp_debug_saber_colour(saber_colors_t saber_color);
-
 static qboolean Jedi_SaberBlock(void)
 {
 	vec3_t hitloc, saberTipOld, saberTip, top, bottom, axisPoint, saberPoint, dir; //saberBase,

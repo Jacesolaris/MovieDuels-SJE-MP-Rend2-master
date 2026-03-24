@@ -107,7 +107,7 @@ void CGCam_Enable(void)
 	//	{//deactivate any active force powers
 	//		g_entities[0].client->ps.forcePowerDuration[i] = 0;
 	//		extern void WP_ForcePowerStop(gentity_t * self, forcePowers_t forcePower);
-	//		if (g_entities[0].client->ps.forcePowerDuration[i] || (g_entities[0].client->ps.forcePowersActive & (1 << i)))
+	//		if (g_entities[0].client->ps.forcePowerDuration[i] || (g_entities[0].client->ps.fd.forcePowersActive & (1 << i)))
 	//		{
 	//			WP_ForcePowerStop(&g_entities[0], (forcePowers_t)i);
 	//		}
@@ -587,7 +587,7 @@ void CGCam_Track(const int trackNum, const float speed, const float init_lerp)
 	{
 		//want to snap to first position
 		//Snap to trackEnt's origin
-		//VectorCopy( trackEnt->currentOrigin, client_camera.origin );
+		//VectorCopy( trackEnt->r.currentOrigin, client_camera.origin );
 		VectorCopy(trackEnt->currentState.origin, client_camera.origin);
 
 		//Set new moveDir if trackEnt has a next path_corner
@@ -600,7 +600,7 @@ void CGCam_Track(const int trackNum, const float speed, const float init_lerp)
 			gentity_t *newTrackEnt = G_Find( NULL, FOFS(targetname), trackEnt->target );
 			if ( newTrackEnt )
 			{
-				VectorSubtract( newTrackEnt->currentOrigin, client_camera.origin, client_camera.moveDir );
+				VectorSubtract( newTrackEnt->r.currentOrigin, client_camera.origin, client_camera.moveDir );
 			}
 		}*/
 	}
@@ -764,7 +764,7 @@ static void CGCam_FollowUpdate(void)
 				{//use interpolated origin?
 					if ( !VectorCompare( vec3_origin, fromCent->lerpOrigin ) )
 					{//hunh?  Somehow we've never seen this gentity on the client, so there is no lerpOrigin, so cheat over to the game and use the currentOrigin
-						VectorCopy( from->currentOrigin, focus[num_subjects] );
+						VectorCopy( from->r.currentOrigin, focus[num_subjects] );
 					}
 					else
 					{
@@ -773,7 +773,7 @@ static void CGCam_FollowUpdate(void)
 				}
 				else
 				{
-					VectorCopy(from->currentOrigin, focus[num_subjects]);
+					VectorCopy(from->r.currentOrigin, focus[num_subjects]);
 				}
 				//FIXME: make a list here of their s.numbers instead so we can do other stuff with the list below
 				if ( from->client )
@@ -887,7 +887,7 @@ static void CGCam_TrackEntUpdate(void)
 	if ( client_camera.trackEntNum >= 0 && client_camera.trackEntNum < ENTITYNUM_WORLD )
 	{//We're already heading to a path_corner
 		trackEnt = &g_entities[client_camera.trackEntNum];
-		VectorSubtract( trackEnt->currentOrigin, client_camera.origin, vec );
+		VectorSubtract( trackEnt->r.currentOrigin, client_camera.origin, vec );
 		dist = VectorLengthSquared( vec );
 		if ( dist < 256 )//16 squared
 		{//FIXME: who should be doing the using here?
@@ -933,7 +933,7 @@ static void CGCam_TrackEntUpdate(void)
 	{//Update will lerp this
 		client_camera.info_state |= CAMERA_TRACKING;
 		client_camera.trackEntNum = newTrackEnt->s.number;
-		VectorCopy( newTrackEnt->currentOrigin, client_camera.trackToOrg );
+		VectorCopy( newTrackEnt->r.currentOrigin, client_camera.trackToOrg );
 	}
 
 	client_camera.nextTrackEntUpdateTime = cg.time + 100;

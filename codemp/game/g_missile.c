@@ -83,7 +83,7 @@ extern float manual_npc_saberblocking(const gentity_t* defender);
 extern qboolean WP_BrokenBoltBlockKnockBack(gentity_t* victim);
 extern qboolean WP_SaberBlockBolt(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec3_t fwd);
-extern int WP_SaberBoltBlockCost(gentity_t* defender, const gentity_t* attacker);
+extern int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit_locs);
 extern void WP_BlockPointsDrain(const gentity_t* self, int fatigue);
 extern void G_KnockOver(gentity_t* self, const gentity_t* attacker, const vec3_t push_dir, float strength,
 	qboolean breakSaberLock);
@@ -2096,10 +2096,8 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 	gentity_t* prev_owner = G_GetEntitySafe(bolt->r.ownerNum);
 	const float distance = prev_owner ? vector_bolt_distance(blocker->r.currentOrigin, prev_owner->r.currentOrigin) : 99999.0f;
 
-	const qboolean manual_proj_blocking =
-		(blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
-	const qboolean accurate_missile_block =
-		(blocker->client->ps.ManualBlockingFlags & (1 << MBF_ACCURATEMISSILEBLOCKING)) ? qtrue : qfalse;
+	const qboolean manual_proj_blocking = (blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
+	const qboolean accurate_missile_block = (blocker->client->ps.ManualBlockingFlags & (1 << MBF_ACCURATEMISSILEBLOCKING)) ? qtrue : qfalse;
 
 	const int manual_run_blocking = manual_running_and_saberblocking(blocker);
 	const int npc_is_blocking = manual_npc_saberblocking(blocker);
@@ -2173,7 +2171,7 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 			}
 			else
 			{
-				block_points_used = WP_SaberBoltBlockCost(blocker, bolt);
+				block_points_used = WP_SaberBlockCost(blocker, bolt, bolt->r.currentOrigin);
 			}
 
 			if (blocker->client->ps.fd.blockPoints < block_points_used)
@@ -2222,7 +2220,7 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 			}
 			else
 			{
-				block_points_used = WP_SaberBoltBlockCost(blocker, bolt);
+				block_points_used = WP_SaberBlockCost(blocker, bolt, bolt->r.currentOrigin);
 			}
 
 			if (blocker->client->ps.fd.blockPoints < block_points_used)
@@ -2297,7 +2295,7 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 			}
 			else
 			{
-				block_points_used = WP_SaberBoltBlockCost(blocker, bolt);
+				block_points_used = WP_SaberBlockCost(blocker, bolt, bolt->r.currentOrigin);
 			}
 
 			if (blocker->client->ps.fd.blockPoints < block_points_used)

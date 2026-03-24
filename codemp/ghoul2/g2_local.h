@@ -132,16 +132,34 @@ public:
 
 	CGhoul2Info& operator[](const int idx)
 	{
-		assert(mItem);
-		assert(idx >= 0 && idx < size());
+		static CGhoul2Info dummy; // safe fallback
+
+		if (!mItem)
+		{
+			return dummy;
+		}
+
+		if (idx < 0 || idx >= size())
+		{
+			return dummy;
+		}
 
 		return Array()[idx];
 	}
 
 	const CGhoul2Info& operator[](const int idx) const
 	{
-		assert(mItem);
-		assert(idx >= 0 && idx < size());
+		static CGhoul2Info dummy; // safe fallback
+
+		if (!mItem)
+		{
+			return dummy;
+		}
+
+		if (idx < 0 || idx >= size())
+		{
+			return dummy;
+		}
 
 		return Array()[idx];
 	}

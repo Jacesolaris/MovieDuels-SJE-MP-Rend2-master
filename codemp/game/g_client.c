@@ -698,7 +698,6 @@ SelectNearestDeathmatchSpawnPoint
 Find the spot that we DON'T want to use
 ================
 */
-#define	MAX_SPAWN_POINTS	128
 static qboolean SafeSpawn_FindOffset(const vec3_t baseOrigin, vec3_t outOrigin);
 
 static gentity_t* SelectNearestDeathmatchSpawnPoint(vec3_t from)
@@ -2155,10 +2154,11 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_rey",
 	"models/players/_humanoid_sbd",
 	"models/players/_humanoid_vader",
-	"models/players/_humanoid_yoda"
+	"models/players/_humanoid_yoda",
+	"models/players/darktrooper_tv"
 };
 
-static qboolean BG_IsHumanoidModel(const char* path)
+static qboolean R_IsHumanoidPath(const char* path)
 {
 	if (!path || !path[0])
 	{
@@ -2357,7 +2357,7 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 				if (ent->s.number < MAX_CLIENTS &&
 					!G_PlayerHasCustomSkeleton(ent))
 				{
-					qboolean isHumanoid = BG_IsHumanoidModel(gla_name);
+					qboolean isHumanoid = R_IsHumanoidPath(gla_name);
 
 					// If a player model is not using any humanoid prefix, fall back to Kyle.
 					if (!isHumanoid)
@@ -2414,7 +2414,7 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 	Q_strncpyz(resolvedGLA, gla_name, sizeof(resolvedGLA));
 
 	// If this GLA is any humanoid-prefix path, force it to MP humanoid.
-	if (BG_IsHumanoidModel(resolvedGLA))
+	if (R_IsHumanoidPath(resolvedGLA))
 	{
 		Q_strncpyz(resolvedGLA, "models/players/_humanoid_mp/_humanoid", sizeof(resolvedGLA));
 	}
@@ -2440,7 +2440,7 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 		ent->localAnimIndex = -1;
 
 		// HUMANOID?
-		if (BG_IsHumanoidModel(resolvedGLA))
+		if (R_IsHumanoidPath(resolvedGLA))
 		{
 			// All humanoid-prefix models share index 0 (_humanoid_mp)
 			ent->localAnimIndex = 0;
@@ -3502,8 +3502,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
-		else if (Class_Model(model, "canderous")
-			|| Class_Model(model, "canderous_mando")
+		else if (Class_Model(model, "canderous_mando")
 			|| Class_Model(model, "OldRepSold")
 			|| Class_Model(model, "OpoChano")
 			|| Class_Model(model, "republic_officer"))
@@ -3514,12 +3513,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "calonord"))
-			{
-				client->pers.nextbotclass = BCLASS_BOUNTYHUNTER2;
-				client->pers.botmodelscale = BOTZIZE_TALL;
-				// Consolidated behavior:
-				client_userinfo_Message(clientNum);
-				}
+		{
+			client->pers.nextbotclass = BCLASS_BOUNTYHUNTER2;
+			client->pers.botmodelscale = BOTZIZE_TALL;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
 		else if (Class_Model(model, "gran/red"))
 		{
 			client->pers.nextbotclass = BCLASS_GRAN;
@@ -3614,9 +3613,6 @@ qboolean client_userinfo_changed(const int clientNum)
 		}
 		else if (Class_Model(model, "phasma")
 			|| Class_Model(model, "captainphasma")
-			|| Class_Model(model, "darktrooper_tv_mp")
-			|| Class_Model(model, "darktrooper_tv")
-			|| Class_Model(model, "darktrooper_tvp")
 			|| Class_Model(model, "md_shu_mai")
 			|| Class_Model(model, "shu_mai")
 			|| Class_Model(model, "CaptainPhasmaK"))
@@ -3803,6 +3799,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_st_tiplee/")
 			|| Class_Model(model, "Eeth_Koth/main")
 			|| Class_Model(model, "Eeth_Koth_mp")
+			|| Class_Model(model, "Eeth_Koth")
 			|| Class_Model(model, "eeth_koth_mp/cw")
 			|| Class_Model(model, "eeth_koth/cw")
 			|| Class_Model(model, "md_eeth_koth")
@@ -3993,6 +3990,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "juhani")
 			|| Class_Model(model, "jedi_tor")
 			|| Class_Model(model, "meetra")
+			|| Class_Model(model, "corran")
 			|| Class_Model(model, "sith_eradicator")
 			|| Class_Model(model, "koffi_arana/robed"))
 		{
@@ -4344,7 +4342,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "bodhi")
 			|| Class_Model(model, "niennunb")
 			|| Class_Model(model, "ackbar")
-			|| Class_Model(model, "baze")
 			|| Class_Model(model, "greef")
 			|| Class_Model(model, "caradune")
 			|| Class_Model(model, "bailorgana")
@@ -4611,12 +4608,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "yuthura"))
-			{
-				client->pers.nextbotclass = BCLASS_REBORN;
-				client->pers.botmodelscale = BOTZIZE_SMALL;
-				// Consolidated behavior:
-				client_userinfo_Message(clientNum);
-				}
+		{
+			client->pers.nextbotclass = BCLASS_REBORN;
+			client->pers.botmodelscale = BOTZIZE_SMALL;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
 		else if (Class_Model(model, "reelo")
 			|| Class_Model(model, "reelo/red")
 			|| Class_Model(model, "reelo/blue"))
@@ -4726,10 +4723,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
-		else if (Class_Model(model, "swamptrooper")
+		else if (Class_Model(model, "canderous")
+			|| Class_Model(model, "swamptrooper")
 			|| Class_Model(model, "resistance")
 			|| Class_Model(model, "republictrooper")
 			|| Class_Model(model, "swamptrooper/blue")
+			|| Class_Model(model, "baze")
 			|| Class_Model(model, "swamptrooper/red"))
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
@@ -4839,6 +4838,9 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "Itho2")
 			|| Class_Model(model, "Itho3")
 			|| Class_Model(model, "Itho4")
+			|| Class_Model(model, "darktrooper_tv_mp")
+			|| Class_Model(model, "darktrooper_tv")
+			|| Class_Model(model, "darktrooper_tvp")
 			|| Class_Model(model, "ithorian"))
 		{
 			client->pers.nextbotclass = BCLASS_STORMTROOPER;
@@ -4888,12 +4890,12 @@ qboolean client_userinfo_changed(const int clientNum)
 			client_userinfo_Message(clientNum);
 		}
 		else if (Class_Model(model, "scourge"))
-			{
-				client->pers.nextbotclass = BCLASS_TAVION;
-				client->pers.botmodelscale = BOTZIZE_TALLISH;
-				// Consolidated behavior:
-				client_userinfo_Message(clientNum);
-				}
+		{
+			client->pers.nextbotclass = BCLASS_TAVION;
+			client->pers.botmodelscale = BOTZIZE_TALLISH;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
 		else if (Class_Model(model, "trandoshan")
 			|| Class_Model(model, "trandoshan/blue")
 			|| Class_Model(model, "trandoshan/red")
@@ -5569,14 +5571,14 @@ qboolean client_userinfo_changed(const int clientNum)
 	Q_strncpyz(color1, Info_ValueForKey(userinfo, "color1"), sizeof color1);
 	Q_strncpyz(color2, Info_ValueForKey(userinfo, "color2"), sizeof color2);
 
-	s = Info_ValueForKey(userinfo, "SJE_clientplugin");
+	s = Info_ValueForKey(userinfo, "MovieDuels_Clientplugin");
 	if (!*s)
 	{
-		client->pers.SJE_clientplugin = qfalse;
+		client->pers.MovieDuels_Clientplugin = qfalse;
 	}
 	else if (strcmp(CURRENT_MD_CLIENTVERSION, s) == 0)
 	{
-		client->pers.SJE_clientplugin = qtrue;
+		client->pers.MovieDuels_Clientplugin = qtrue;
 	}
 
 	Q_strncpyz(rgb1, Info_ValueForKey(userinfo, "rgb_saber1"), sizeof rgb1);
@@ -6112,16 +6114,16 @@ void ClientBegin(const int clientNum, const qboolean allowTeamReset)
 	}
 	G_LogPrintf("ClientBegin: %i\n", clientNum);
 
-	if (client->pers.SJE_clientplugin)
+	if (client->pers.MovieDuels_Clientplugin)
 	{
 		//send this client the MOTD for clients using the right version of sje.
-		TextWrapCenterPrint(SJE_clientMOTD.string, motd);
+		TextWrapCenterPrint(MovieDuels_ClientMOTD.string, motd);
 		client->pers.plugindetect = qtrue;
 	}
 	else
 	{
 		//send this client the MOTD for clients aren't running sje or just not the right version.
-		TextWrapCenterPrint(SJE_MOTD.string, motd);
+		TextWrapCenterPrint(MovieDuels_MOTD.string, motd);
 		client->pers.plugindetect = qfalse;
 	}
 
@@ -6791,56 +6793,213 @@ void ClientSpawn(gentity_t* ent)
 	// find a spawn point
 	// do it before setting health back up, so farthest
 	// ranging doesn't count this client
+
+	// ------------------------------------------------------------
+	// 1. Spectators always use spectator spawn logic
+	// ------------------------------------------------------------
 	if (client->sess.sessionTeam == TEAM_SPECTATOR)
 	{
 		spawnPoint = SelectSpectatorSpawnPoint(spawn_origin, spawn_angles);
+		goto spawn_done;
 	}
-	else if (level.gametype == GT_CTF || level.gametype == GT_CTY)
+
+	// Determine if this entity is a bot
+	const qboolean isBot = ((ent->r.svFlags & SVF_BOT) != 0) ? qtrue : qfalse;
+
+	// ------------------------------------------------------------
+	// 2. CTF / CTY (team-based) spawn logic
+	// Bots get waypoint spawns first
+	// ------------------------------------------------------------
+	if (level.gametype == GT_CTF || level.gametype == GT_CTY)
 	{
-		// all base oriented team games use the CTF spawn points
-		spawnPoint = SelectCTFSpawnPoint(client->sess.sessionTeam, client->pers.teamState.state, spawn_origin,
-			spawn_angles, !!(ent->r.svFlags & SVF_BOT));
+		if (isBot == qtrue)
+		{
+			vec3_t wpSpawn;
+
+			if (client->sess.sessionTeam == TEAM_RED)
+			{
+				if (BOT_FindCTFWaypointSpawnPoint_red(ent, wpSpawn) == qtrue)
+				{
+					VectorCopy(wpSpawn, spawn_origin);
+					VectorClear(spawn_angles);
+					spawnPoint = NULL;
+					goto spawn_done;
+				}
+			}
+			else if (client->sess.sessionTeam == TEAM_BLUE)
+			{
+				if (BOT_FindCTFWaypointSpawnPoint_blue(ent, wpSpawn) == qtrue)
+				{
+					VectorCopy(wpSpawn, spawn_origin);
+					VectorClear(spawn_angles);
+					spawnPoint = NULL;
+					goto spawn_done;
+				}
+			}
+		}
+
+		// Fallback (humans AND bots if no waypoint spawns)
+		spawnPoint = SelectCTFSpawnPoint(
+			client->sess.sessionTeam,
+			client->pers.teamState.state,
+			spawn_origin,
+			spawn_angles,
+			isBot
+		);
+		goto spawn_done;
 	}
-	else if (level.gametype == GT_SIEGE)
+
+	// ------------------------------------------------------------
+	// 3. Siege spawn logic
+	// ------------------------------------------------------------
+	if (level.gametype == GT_SIEGE)
 	{
-		spawnPoint = SelectSiegeSpawnPoint(client->siegeClass, client->sess.sessionTeam, client->pers.teamState.state,
-			spawn_origin, spawn_angles, !!(ent->r.svFlags & SVF_BOT));
+		spawnPoint = SelectSiegeSpawnPoint(
+			client->siegeClass,
+			client->sess.sessionTeam,
+			client->pers.teamState.state,
+			spawn_origin,
+			spawn_angles,
+			isBot
+		);
+		goto spawn_done;
 	}
-	else if (level.gametype == GT_SINGLE_PLAYER)
+
+	// ------------------------------------------------------------
+	// 4. Single-player spawn logic
+	// ------------------------------------------------------------
+	if (level.gametype == GT_SINGLE_PLAYER)
 	{
 		spawnPoint = SelectSPSpawnPoint(spawn_origin, spawn_angles);
+		goto spawn_done;
 	}
-	else
+
+	// ------------------------------------------------------------
+	// 5. Duel / Powerduel spawn logic
+	// ------------------------------------------------------------
+	if (level.gametype == GT_POWERDUEL)
 	{
-		if (level.gametype == GT_POWERDUEL)
+		spawnPoint = SelectDuelSpawnPoint(
+			client->sess.duelTeam,
+			client->ps.origin,
+			spawn_origin,
+			spawn_angles,
+			isBot
+		);
+		goto spawn_done;
+	}
+
+	if (level.gametype == GT_DUEL)
+	{
+		spawnPoint = SelectDuelSpawnPoint(
+			DUELTEAM_SINGLE,
+			client->ps.origin,
+			spawn_origin,
+			spawn_angles,
+			isBot
+		);
+		goto spawn_done;
+	}
+
+	// ------------------------------------------------------------
+	// 6. Team FFA (GT_TEAM)
+	// Bots get waypoint spawns first
+	// ------------------------------------------------------------
+	if (level.gametype == GT_TEAM)
+	{
+		if (isBot == qtrue)
 		{
-			spawnPoint = SelectDuelSpawnPoint(client->sess.duelTeam, client->ps.origin, spawn_origin, spawn_angles,
-				!!(ent->r.svFlags & SVF_BOT));
+			vec3_t wpSpawn;
+
+			if (client->sess.sessionTeam == TEAM_RED)
+			{
+				if (BOT_FindCTFWaypointSpawnPoint_red(ent, wpSpawn) == qtrue)
+				{
+					VectorCopy(wpSpawn, spawn_origin);
+					VectorClear(spawn_angles);
+					spawnPoint = NULL;
+					goto spawn_done;
+				}
+			}
+			else if (client->sess.sessionTeam == TEAM_BLUE)
+			{
+				if (BOT_FindCTFWaypointSpawnPoint_blue(ent, wpSpawn) == qtrue)
+				{
+					VectorCopy(wpSpawn, spawn_origin);
+					VectorClear(spawn_angles);
+					spawnPoint = NULL;
+					goto spawn_done;
+				}
+			}
 		}
-		else if (level.gametype == GT_DUEL)
+
+		// Human fallback (and bot fallback)
+		if (client->pers.initialSpawn == qfalse && client->pers.localClient == qtrue)
 		{
-			// duel
-			spawnPoint = SelectDuelSpawnPoint(DUELTEAM_SINGLE, client->ps.origin, spawn_origin, spawn_angles,
-				!!(ent->r.svFlags & SVF_BOT));
+			client->pers.initialSpawn = qtrue;
+			spawnPoint = SelectInitialSpawnPoint(
+				spawn_origin,
+				spawn_angles,
+				client->sess.sessionTeam,
+				isBot
+			);
 		}
 		else
 		{
-			// the first spawn should be at a good looking spot
-			if (!client->pers.initialSpawn && client->pers.localClient)
-			{
-				client->pers.initialSpawn = qtrue;
-				spawnPoint = SelectInitialSpawnPoint(spawn_origin, spawn_angles, client->sess.sessionTeam,
-					!!(ent->r.svFlags & SVF_BOT));
-			}
-			else
-			{
-				// don't spawn near existing origin if possible
-				spawnPoint = SelectSpawnPoint(
-					client->ps.origin,
-					spawn_origin, spawn_angles, client->sess.sessionTeam, !!(ent->r.svFlags & SVF_BOT));
-			}
+			spawnPoint = SelectSpawnPoint(
+				client->ps.origin,
+				spawn_origin,
+				spawn_angles,
+				client->sess.sessionTeam,
+				isBot
+			);
+		}
+
+		goto spawn_done;
+	}
+
+	// ------------------------------------------------------------
+	// 7. FFA / Holocron / JediMaster / Other modes
+	// Bots get waypoint spawns first
+	// ------------------------------------------------------------
+	if (isBot == qtrue)
+	{
+		vec3_t wpSpawn;
+
+		if (BOT_FindFFAWaypointSpawnPoint(ent, wpSpawn) == qtrue)
+		{
+			VectorCopy(wpSpawn, spawn_origin);
+			VectorClear(spawn_angles);
+			spawnPoint = NULL;
+			goto spawn_done;
 		}
 	}
+
+	// Fallback (humans AND bots)
+	if (client->pers.initialSpawn == qfalse && client->pers.localClient == qtrue)
+	{
+		client->pers.initialSpawn = qtrue;
+
+		spawnPoint = SelectInitialSpawnPoint(
+			spawn_origin,
+			spawn_angles,
+			client->sess.sessionTeam,
+			isBot
+		);
+	}
+	else
+	{
+		spawnPoint = SelectSpawnPoint(
+			client->ps.origin,
+			spawn_origin,
+			spawn_angles,
+			client->sess.sessionTeam,
+			isBot
+		);
+	}
+
+spawn_done:
+
 	client->pers.teamState.state = TEAM_ACTIVE;
 
 	// toggle the teleport bit so the client knows to not lerp
@@ -9328,11 +9487,11 @@ qboolean LMS_EnoughPlayers()
 	return qtrue;
 }
 
-qboolean SJE_AllPlayersHaveClientPlugin(void)
+qboolean MovieDuels_AllPlayersHaveClientPlugin(void)
 {
 	for (int i = 0; i < level.maxclients; i++)
 	{
-		if (g_entities[i].inuse && !g_entities[i].client->pers.SJE_clientplugin)
+		if (g_entities[i].inuse && !g_entities[i].client->pers.MovieDuels_Clientplugin)
 		{
 			//a live player that doesn't have the plugin
 			return qfalse;

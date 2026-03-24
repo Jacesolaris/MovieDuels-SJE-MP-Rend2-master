@@ -22,6 +22,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include "bg_public.h"
+#include <qcommon\q_math.h>
+#include "g_local.h"
+#include <qcommon\q_platform.h>
 
 #define CTF_CAPTURE_BONUS		100		// what you get for capture
 #define CTF_TEAM_BONUS			25		// what your team gets for capture
@@ -67,11 +71,12 @@ void Team_ReturnFlag(int team);
 void Team_FreeEntity(const gentity_t* ent);
 gentity_t* SelectCTFSpawnPoint(team_t team, int teamstate, vec3_t origin, vec3_t angles, qboolean isbot);
 gentity_t* SelectSPSpawnPoint(vec3_t origin, vec3_t angles);
-gentity_t* SelectSiegeSpawnPoint(int siegeClass, team_t team, int teamstate, vec3_t origin, vec3_t angles,
-	qboolean isbot);
+gentity_t* SelectSiegeSpawnPoint(const int siegeClass, const team_t team, const int teamstate, vec3_t origin, vec3_t angles, const qboolean isbot);
 locationData_t* Team_GetLocation(const gentity_t* ent);
 qboolean Team_GetLocationMsg(const gentity_t* ent, char* loc, int loclen);
 void TeamplayInfoMessage(const gentity_t* ent);
 void CheckTeamStatus(void);
 
 int Pickup_Team(gentity_t* ent, const gentity_t* other);
+qboolean BOT_FindCTFWaypointSpawnPoint(gentity_t* bot, vec3_t outOrigin);
+qboolean BOT_FindFFAWaypointSpawnPoint(gentity_t* bot, vec3_t outOrigin);

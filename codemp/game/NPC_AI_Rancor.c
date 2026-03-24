@@ -1046,7 +1046,7 @@ static void Rancor_CheckAnimDamage()
 //	constexpr vec3_t trace_mins = { -4, -4, -4 };
 //	const vec3_t ranc_angles = { 0, NPC->client->ps.viewangles[YAW], 0 };
 //
-//	gi.G2API_GetBoltMatrix(NPC->ghoul2, NPC->playerModel, NPC->gutBolt,	&boltMatrix, ranc_angles, NPC->currentOrigin, cg.time ? cg.time : level.time,	nullptr, NPC->s.modelScale);
+//	gi.G2API_GetBoltMatrix(NPC->ghoul2, NPC->playerModel, NPC->gutBolt,	&boltMatrix, ranc_angles, NPC->r.currentOrigin, cg.time ? cg.time : level.time,	nullptr, NPC->s.modelScale);
 //
 //	gi.G2API_GiveMeVectorFromMatrix(boltMatrix, ORIGIN, start);
 //	gi.G2API_GiveMeVectorFromMatrix(boltMatrix, NEGATIVE_Z, dir);

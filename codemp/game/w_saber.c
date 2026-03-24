@@ -78,7 +78,7 @@ qboolean WP_SaberBladeDoTransitionDamage(const saberInfo_t* saber, int blade_num
 void WP_SaberAddG2Model(gentity_t* saberent, const char* saber_model, qhandle_t saber_skin);
 void WP_SaberRemoveG2Model(gentity_t* saberent);
 extern qboolean BG_SaberInNonIdleDamageMove(const playerState_t* ps, int anim_index);
-qboolean walk_check(const gentity_t* self);
+qboolean WalkCheck(const gentity_t* self);
 qboolean saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity);
 extern qboolean PM_SuperBreakWinAnim(int anim);
 extern stringID_table_t saber_moveTable[];
@@ -2857,52 +2857,74 @@ static qboolean IsMoving(const gentity_t* ent)
 	return qtrue;
 }
 
-int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit_loc)
+int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit_locs)
 {
-	// Final block cost accumulator
+	// Unified block‑cost system for saber‑vs‑saber and saber‑vs‑projectile.
 	float saber_block_cost = 0.0f;
 
-	//===========================
-	// Validate attacker pointer
-	//===========================
 	const qboolean attackerValid = (attacker && attacker->client) ? qtrue : qfalse;
+	const qboolean defenderValid = (defender && defender->client) ? qtrue : qfalse;
 
 	//===========================================================
-	// CASE 1: Attacker is NOT using a saber (blaster/projectile)
+	// Hard requirement: defender must be a valid client
 	//===========================================================
-	if (!attackerValid || attacker->client->ps.weapon != WP_SABER)
+	if (defenderValid == qfalse)
+	{
+		// No valid defender -> no meaningful block cost, avoid null deref.
+		return 0;
+	}
+
+	//===========================================================
+	// CASE 1: Projectile / non‑saber attacker
+	//===========================================================
+	if (attackerValid == qfalse || attacker->client->ps.weapon != WP_SABER)
 	{
 		saber_block_cost = DODGE_BOLTBLOCK;
 
-		// Special case: Bryar pistol
-		if (attacker && attacker->client && attacker->activator &&
-			attacker->activator->s.weapon == WP_BRYAR_PISTOL)
+		// Special pistol / SBD / Jawa tweaks
+		if (attacker && attacker->client && attacker->activator)
 		{
-			saber_block_cost = 4.0f;
+			const int actWpn = attacker->activator->s.weapon;
+
+			if (actWpn == WP_BRYAR_PISTOL ||
+				actWpn == WP_BRYAR_OLD)
+			{
+				saber_block_cost = 4.0f;
+			}
 		}
 
 		// Non‑flechette shots add +2
-		if (attackerValid && attacker->client->ps.weapon != WP_FLECHETTE)
+		if (attackerValid == qtrue && attacker->client->ps.weapon != WP_FLECHETTE)
 		{
 			saber_block_cost += 2.0f;
 		}
 
-		// Defender movement / force modifiers
-		if ((defender->client->ps.fd.forcePowersActive & (1 << FP_SPEED)) != 0)
+		// Defender movement / stance modifiers
+		if (defender->client->ps.weapon == WP_SABER)
 		{
-			saber_block_cost += 10.0f;
-		}
-		if (PM_RunningAnim(defender->client->ps.legsAnim))
-		{
-			saber_block_cost += 5.0f;
-		}
-		if (walk_check(defender) && IsMoving(defender))
-		{
-			saber_block_cost += 2.0f;
-		}
-		if (defender->client->ps.groundEntityNum == ENTITYNUM_NONE)
-		{
-			saber_block_cost += 10.0f;
+			// Force speed active
+			if ((defender->client->ps.fd.forcePowersActive & (1 << FP_SPEED)) != 0)
+			{
+				saber_block_cost += 10.0f;
+			}
+
+			// Running
+			if (PM_RunningAnim(defender->client->ps.legsAnim))
+			{
+				saber_block_cost += 5.0f;
+			}
+
+			// Airborne
+			if (defender->client->ps.groundEntityNum == ENTITYNUM_NONE)
+			{
+				saber_block_cost += 10.0f;
+			}
+
+			// Walking + moving
+			if (WalkCheck(defender) && IsMoving(defender))
+			{
+				saber_block_cost += 2.0f;
+			}
 		}
 
 		//===========================================================
@@ -2912,109 +2934,67 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 		{
 			const int actWpn = attacker->activator->s.weapon;
 
-			// Group of projectile weapons
-			if (actWpn == WP_BRYAR_PISTOL ||
-				actWpn == WP_BRYAR_OLD ||
-				actWpn == WP_REPEATER ||
-				actWpn == WP_BOWCASTER ||
-				actWpn == WP_DISRUPTOR ||
-				actWpn == WP_EMPLACED_GUN ||
-				actWpn == WP_FLECHETTE)
+			// Flechette
+			if (actWpn == WP_FLECHETTE)
 			{
-				//=====================
-				// Flechette behaviour
-				//=====================
-				if (actWpn == WP_FLECHETTE)
+				const float distance = VectorBlockDistance(attacker->activator->r.currentOrigin,
+					defender->r.currentOrigin);
+
+				saber_block_cost = (WalkCheck(defender) == qtrue) ? 2.0f : 4.0f;
+
+				if (defender->client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] >= FORCE_LEVEL_3 &&
+					defender->client->ps.saberAnimLevel != SS_MEDIUM)
 				{
-					const float distance = VectorBlockDistance(
-						attacker->activator->r.currentOrigin,
-						defender->r.currentOrigin);
-
-					saber_block_cost = (walk_check(defender)) ? 2.0f : 4.0f;
-
-					if (defender->client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] >= FORCE_LEVEL_3 &&
-						defender->client->ps.fd.saberAnimLevel != SS_MEDIUM)
-					{
-						saber_block_cost += 1.0f;
-					}
-
-					if (distance >= 200.0f)
-					{
-						saber_block_cost += 1.5f;
-					}
-
 					saber_block_cost += 1.0f;
 				}
-				//=====================
-				// Non‑bowcaster logic
-				//=====================
-				else if (actWpn != WP_BOWCASTER)
-				{
-					const float distance = VectorBlockDistance(
-						attacker->activator->r.currentOrigin,
-						defender->r.currentOrigin);
 
-					if (distance <= 125.0f)
-					{
-						saber_block_cost = DODGE_BOLTBLOCK * 3.0f;
-					}
-					else if (distance <= 300.0f)
-					{
-						saber_block_cost = DODGE_BOLTBLOCK * 2.0f;
-					}
-					else
-					{
-						saber_block_cost = DODGE_BOLTBLOCK;
-					}
+				if (distance >= 200.0f)
+				{
+					saber_block_cost += 1.5f;
+				}
 
-					if (actWpn == WP_REPEATER)
-					{
-						saber_block_cost = DODGE_REPEATERBLOCK;
-					}
-				}
-				//=====================
-				// Disruptor
-				//=====================
-				else if (actWpn == WP_DISRUPTOR)
+				saber_block_cost += 1.0f;
+			}
+			// Bowcaster
+			else if (actWpn == WP_BOWCASTER)
+			{
+				saber_block_cost = 3.0f;
+			}
+			// Disruptor
+			else if (actWpn == WP_DISRUPTOR)
+			{
+				saber_block_cost = 10.0f;
+			}
+			// Tusken / DEMP2
+			else if (actWpn == WP_DEMP2)
+			{
+				saber_block_cost = DODGE_TUSKENBLOCK * 3.0f;
+			}
+			// Repeater
+			else if (actWpn == WP_REPEATER)
+			{
+				saber_block_cost = DODGE_REPEATERBLOCK;
+			}
+			// General projectile logic
+			else if (
+				actWpn == WP_BRYAR_PISTOL ||
+				actWpn == WP_BRYAR_OLD ||
+				actWpn == WP_EMPLACED_GUN)
+			{
+				const float distance = VectorBlockDistance(attacker->activator->r.currentOrigin,
+					defender->r.currentOrigin);
+
+				if (distance <= 125.0f)
 				{
-					saber_block_cost = 10.0f;
+					saber_block_cost = DODGE_BOLTBLOCK * 3.0f;
 				}
-				//=====================
-				// DEMP2
-				//=====================
-				else if (actWpn == WP_DEMP2)
+				else if (distance <= 300.0f)
 				{
-					saber_block_cost = DODGE_TUSKENBLOCK * 3.0f;
+					saber_block_cost = DODGE_BOLTBLOCK * 2.0f;
 				}
 				else
 				{
-					saber_block_cost = 5.0f;
-				}
-
-				// Defender attacking while blocking
-				if (PM_SaberInAttack(defender->client->ps.saber_move) ||
-					PM_SaberInStart(defender->client->ps.saber_move))
-				{
-					if (actWpn == WP_FLECHETTE)
-					{
-						saber_block_cost *= 1.5f;
-					}
-					else
-					{
-						saber_block_cost *= 2.0f;
-					}
-				}
-
-				// Bowcaster override
-				if (actWpn == WP_BOWCASTER)
-				{
-					saber_block_cost = 3.0f;
-				}
-
-				// Fast stance reduces cost
-				if (defender->client->ps.fd.saberAnimLevel == SS_FAST)
-				{
-					saber_block_cost -= 1.0f;
+					saber_block_cost = DODGE_BOLTBLOCK;
 				}
 			}
 			// Blaster rifle
@@ -3026,6 +3006,26 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 			{
 				saber_block_cost = DODGE_BOLTBLOCK;
 			}
+
+			// Defender attacking while blocking
+			if (PM_SaberInAttack(defender->client->ps.saber_move) ||
+				PM_SaberInStart(defender->client->ps.saber_move))
+			{
+				if (actWpn == WP_FLECHETTE)
+				{
+					saber_block_cost *= 1.5f;
+				}
+				else
+				{
+					saber_block_cost *= 2.0f;
+				}
+			}
+
+			// Fast stance reduces cost
+			if (defender->client->ps.saberAnimLevel == SS_FAST)
+			{
+				saber_block_cost -= 1.0f;
+			}
 		}
 	}
 	//===========================================================
@@ -3033,25 +3033,22 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 	//===========================================================
 	else if (attacker->client->ps.saber_move == LS_A_LUNGE ||
 		attacker->client->ps.saber_move == LS_SPINATTACK ||
-		attacker->client->ps.saber_move == LS_SPINATTACK_DUAL ||
-		attacker->client->ps.saber_move == LS_SPINATTACK_GRIEV ||
-		attacker->client->ps.saber_move == LS_GRIEVOUS_SPECIAL)
+		attacker->client->ps.saber_move == LS_SPINATTACK_DUAL)
 	{
-		saber_block_cost = 0.75f * BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
+		saber_block_cost = 0.75f * BasicSaberBlockCost(attacker->client->ps.saberAnimLevel);
 	}
 	else if (attacker->client->ps.saber_move == LS_ROLL_STAB)
 	{
-		saber_block_cost = 2.0f * BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
+		saber_block_cost = 2.0f * BasicSaberBlockCost(attacker->client->ps.saberAnimLevel);
 	}
-	else if (attacker->client->ps.saber_move == LS_A_JUMP_T__B_ ||
-		attacker->client->ps.saber_move == LS_A_JUMP_PALP_)
+	else if (attacker->client->ps.saber_move == LS_A_JUMP_T__B_)
 	{
-		saber_block_cost = 4.0f * BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
+		saber_block_cost = 4.0f * BasicSaberBlockCost(attacker->client->ps.saberAnimLevel);
 	}
 	else if (attacker->client->ps.saber_move == LS_A_FLIP_STAB ||
 		attacker->client->ps.saber_move == LS_A_FLIP_SLASH)
 	{
-		saber_block_cost = 2.0f * BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
+		saber_block_cost = 2.0f * BasicSaberBlockCost(attacker->client->ps.saberAnimLevel);
 	}
 	//===========================================================
 	// CASE 3: Normal saber swings
@@ -3061,32 +3058,29 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 		const qboolean fakeAttack =
 			((attacker->client->ps.userInt3 & (1 << FLAG_ATTACKFAKE)) != 0) ? qtrue : qfalse;
 
-		if (fakeAttack)
+		if (fakeAttack == qtrue)
 		{
-			if (attacker->client->ps.fd.saberAnimLevel == SS_STRONG &&
-				!g_accurate_blocking(defender, attacker, hit_loc))
+			if (attacker->client->ps.saberAnimLevel == SS_STRONG &&
+				g_accurate_blocking(defender, attacker, hit_locs) == qfalse)
 			{
-				saber_block_cost =
-					BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel) * 1.35f;
+				saber_block_cost = BasicSaberBlockCost(attacker->client->ps.saberAnimLevel) * 1.35f;
 			}
 			else
 			{
-				saber_block_cost =
-					BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel) * 1.25f;
+				saber_block_cost = BasicSaberBlockCost(attacker->client->ps.saberAnimLevel) * 1.25f;
 			}
 		}
 		else
 		{
-			saber_block_cost =
-				BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
+			saber_block_cost = BasicSaberBlockCost(attacker->client->ps.saberAnimLevel);
 		}
 
-		// Running attack bonus (unless defender is slow‑bouncing)
-		if (!walk_check(attacker) &&
-			!(defender->client->ps.userInt3 & (1 << FLAG_SLOWBOUNCE)) &&
-			!(defender->client->ps.userInt3 & (1 << FLAG_OLDSLOWBOUNCE)))
+		// Running attack bonus
+		if (WalkCheck(attacker) == qfalse &&
+			(defender->client->ps.userInt3 & (1 << FLAG_SLOWBOUNCE)) == 0 &&
+			(defender->client->ps.userInt3 & (1 << FLAG_OLDSLOWBOUNCE)) == 0)
 		{
-			if (attacker->client->ps.fd.saberAnimLevel == SS_DUAL)
+			if (attacker->client->ps.saberAnimLevel == SS_DUAL)
 			{
 				saber_block_cost *= 3.0f;
 			}
@@ -3097,15 +3091,15 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 		}
 	}
 
-	//======================
+	//===========================================================
 	// Block Cost Modifiers
-	//======================
-	if (attackerValid)
+	//===========================================================
+	if (attackerValid == qtrue)
 	{
 		// Parry reduces cost
-		if (g_accurate_blocking(defender, attacker, hit_loc))
+		if (g_accurate_blocking(defender, attacker, hit_locs) == qtrue)
 		{
-			if (defender->client->ps.fd.saberAnimLevel == SS_FAST)
+			if (defender->client->ps.saberAnimLevel == SS_FAST)
 			{
 				saber_block_cost /= 3.25f;
 			}
@@ -3116,25 +3110,31 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 		}
 
 		// Attacker behind defender
-		if (!InFront(attacker->client->ps.origin,
+		if (InFront(attacker->client->ps.origin,
 			defender->client->ps.origin,
 			defender->client->ps.viewangles,
-			-0.7f))
+			-0.7f) == qfalse)
 		{
-			const int defLvl = defender->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE];
-			const int defStyle = defender->client->ps.fd.saberAnimLevel;
+			if (defender->client->ps.saberAnimLevel == SS_STAFF)
+			{
+				const int defLvl = defender->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE];
 
-			if (defStyle == SS_STAFF && defLvl == FORCE_LEVEL_3)
-			{
-				saber_block_cost *= 1.0f;
-			}
-			else if (defStyle != SS_STAFF && defLvl == FORCE_LEVEL_2)
-			{
-				saber_block_cost *= 1.50f;
-			}
-			else if (defStyle != SS_STAFF && defLvl == FORCE_LEVEL_1)
-			{
-				saber_block_cost *= 1.75f;
+				if (defLvl == FORCE_LEVEL_3)
+				{
+					saber_block_cost *= 1.0f;
+				}
+				else if (defLvl == FORCE_LEVEL_2)
+				{
+					saber_block_cost *= 1.50f;
+				}
+				else if (defLvl == FORCE_LEVEL_1)
+				{
+					saber_block_cost *= 1.75f;
+				}
+				else
+				{
+					saber_block_cost *= 2.0f;
+				}
 			}
 			else
 			{
@@ -3150,21 +3150,21 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 	}
 
 	// Stumble / broken parry
-	if (PM_SaberInBrokenParry(defender->client->ps.saber_move))
+	if (PM_SaberInBrokenParry(defender->client->ps.saber_move) == qtrue)
 	{
 		saber_block_cost *= 1.5f;
 	}
 
 	// Kicking
-	if (PM_KickingAnim(defender->client->ps.legsAnim))
+	if (PM_KickingAnim(defender->client->ps.legsAnim) == qtrue)
 	{
 		saber_block_cost *= 1.5f;
 	}
 
 	// Defender movement penalties
-	if (!walk_check(defender))
+	if (WalkCheck(defender) == qfalse)
 	{
-		if (defender->NPC)
+		if (defender->NPC != NULL)
 		{
 			saber_block_cost *= 1.0f;
 		}
@@ -3177,7 +3177,7 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 	// Airborne defender
 	if (defender->client->ps.groundEntityNum == ENTITYNUM_NONE)
 	{
-		if (defender->client->ps.fd.saberAnimLevel == SS_DUAL)
+		if (defender->client->ps.saberAnimLevel == SS_DUAL)
 		{
 			saber_block_cost *= 0.5f;
 		}
@@ -3188,297 +3188,11 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 	}
 
 	// Too soon after bolt block
-	if (defender->client->ps.ManualblockStartTime > level.time)
+	if (defender->client->ps.saberBlockingTime > level.time)
 	{
 		saber_block_cost *= 2.0f;
 	}
 
-	return (int)saber_block_cost;
-}
-
-int WP_SaberBoltBlockCost(gentity_t* defender, const gentity_t* attacker)
-{
-	//returns the cost to block this attack for this attacker/defender combo.
-	float saber_block_cost;
-	//===========================
-	// Determine Base Block Cost
-	//===========================
-
-	if (!attacker //don't have attacker
-		|| !attacker->client //attacker isn't a NPC/player
-		|| attacker->client->ps.weapon != WP_SABER) //or the player that is attacking isn't using a saber
-	{
-		//standard bolt block!
-		saber_block_cost = DODGE_BOLTBLOCK;
-
-		if (attacker && attacker->client && attacker->activator && attacker->activator->s.weapon == WP_BRYAR_PISTOL)
-		{
-			saber_block_cost = 4;
-		}
-		if (attacker->client && attacker->client->ps.weapon != WP_FLECHETTE)
-		{
-			saber_block_cost += 2;
-		}
-
-		if (defender->client->ps.fd.forcePowersActive & 1 << FP_SPEED)
-		{
-			saber_block_cost += 10; //Using force speed
-		}
-		if (PM_RunningAnim(defender->client->ps.legsAnim))
-		{
-			saber_block_cost += 5; //Running
-		}
-		if (walk_check(defender) && IsMoving(defender))
-		{
-			saber_block_cost++; //Walking
-		}
-		if (defender->client->ps.groundEntityNum == ENTITYNUM_NONE)
-		{
-			saber_block_cost += 10;
-		}
-
-		if (attacker->activator && attacker->activator->s.weapon == WP_BRYAR_PISTOL
-			|| attacker->activator && attacker->activator->s.weapon == WP_BRYAR_OLD
-			|| attacker->activator && attacker->activator->s.weapon == WP_REPEATER
-			|| attacker->activator && attacker->activator->s.weapon == WP_BOWCASTER
-			|| attacker->activator && attacker->activator->s.weapon == WP_DISRUPTOR
-			|| attacker->activator && attacker->activator->s.weapon == WP_EMPLACED_GUN
-			|| attacker->activator && attacker->activator->s.weapon == WP_FLECHETTE)
-		{
-			if (attacker->activator->s.weapon == WP_FLECHETTE)
-			{
-				const float distance = VectorBlockDistance(attacker->activator->r.currentOrigin,
-					defender->r.currentOrigin);
-
-				if (walk_check(defender))
-				{
-					saber_block_cost = 2;
-				}
-				else
-				{
-					saber_block_cost = 4;
-				}
-
-				if (defender->client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] >= FORCE_LEVEL_3 && defender->client->ps.
-					fd.saberAnimLevel != SS_MEDIUM)
-				{
-					saber_block_cost++;
-				}
-
-				if (distance >= 200.0f)
-				{
-					saber_block_cost += 1.5;
-				}
-				saber_block_cost += 1;
-			}
-			else if (attacker->activator->s.weapon != WP_BOWCASTER)
-			{
-				const float distance = VectorBlockDistance(attacker->activator->r.currentOrigin,
-					defender->r.currentOrigin);
-
-				if (distance <= 125.0f)
-				{
-					saber_block_cost = DODGE_BOLTBLOCK * 3;
-				}
-				else if (distance <= 300.0f)
-				{
-					saber_block_cost = DODGE_BOLTBLOCK * 2;
-				}
-				else
-				{
-					saber_block_cost = DODGE_BOLTBLOCK;
-				}
-
-				if (attacker->activator->s.weapon == WP_REPEATER)
-				{
-					saber_block_cost = DODGE_REPEATERBLOCK;
-				}
-			}
-			else if (attacker->activator->s.weapon == WP_DISRUPTOR)
-			{
-				saber_block_cost = 10;
-			}
-			else if (attacker->activator->s.weapon == WP_DEMP2)
-			{
-				saber_block_cost = DODGE_TUSKENBLOCK * 3;
-			}
-			else
-			{
-				saber_block_cost = 5;
-			}
-
-			if (PM_SaberInAttack(defender->client->ps.saber_move) || PM_SaberInStart(defender->client->ps.saber_move))
-			{
-				if (attacker->activator->s.weapon == WP_FLECHETTE)
-				{
-					saber_block_cost = saber_block_cost * 1.5;
-				}
-				else
-				{
-					saber_block_cost = saber_block_cost * 2;
-				}
-			}
-
-			if (attacker->activator->s.weapon == WP_BOWCASTER)
-			{
-				saber_block_cost = 3;
-			}
-
-			if (defender->client->ps.fd.saberAnimLevel == SS_FAST)
-			{
-				saber_block_cost--;
-			}
-		}
-		else if (attacker->activator && attacker->activator->s.weapon == WP_BLASTER)
-		{
-			saber_block_cost = 2;
-		}
-		else
-		{
-			saber_block_cost = DODGE_BOLTBLOCK;
-		}
-	}
-	else if (attacker->client->ps.saber_move == LS_A_LUNGE
-		|| attacker->client->ps.saber_move == LS_SPINATTACK
-		|| attacker->client->ps.saber_move == LS_SPINATTACK_DUAL
-		|| attacker->client->ps.saber_move == LS_SPINATTACK_GRIEV
-		|| attacker->client->ps.saber_move == LS_GRIEVOUS_SPECIAL)
-	{
-		//lunge attacks
-		saber_block_cost = .75 * BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
-	}
-	else if (attacker->client->ps.saber_move == LS_ROLL_STAB)
-	{
-		//roll stab
-		saber_block_cost = 2 * BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
-	}
-	else if (attacker->client->ps.saber_move == LS_A_JUMP_T__B_)
-	{
-		//DFA moves
-		saber_block_cost = 4 * BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
-	}
-	else if (attacker->client->ps.saber_move == LS_A_JUMP_PALP_)
-	{
-		//DFA moves
-		saber_block_cost = 4 * BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
-	}
-	else if (attacker->client->ps.saber_move == LS_A_FLIP_STAB
-		|| attacker->client->ps.saber_move == LS_A_FLIP_SLASH)
-	{
-		//flip stabs do more DP
-		saber_block_cost = 2 * BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
-	}
-	else
-	{
-		//"normal" swing moves
-		if (attacker->client->ps.userInt3 & 1 << FLAG_ATTACKFAKE)
-		{
-			//attacker is in an attack fake
-			saber_block_cost = BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel) * 1.25;
-		}
-		else
-		{
-			//normal saber block
-			saber_block_cost = BasicSaberBlockCost(attacker->client->ps.fd.saberAnimLevel);
-		}
-
-		//add running damage bonus to normal swings but don't apply if the defender is slowbouncing
-		if (!walk_check(attacker)
-			&& !(defender->client->ps.userInt3 & 1 << FLAG_SLOWBOUNCE)
-			&& !(defender->client->ps.userInt3 & 1 << FLAG_OLDSLOWBOUNCE))
-		{
-			if (attacker->client->ps.fd.saberAnimLevel == SS_DUAL)
-			{
-				saber_block_cost *= 3.0;
-			}
-			else
-			{
-				saber_block_cost *= 1.5;
-			}
-		}
-	}
-
-	//======================
-	// Block Cost Modifiers
-	//======================
-
-	if (attacker && attacker->client)
-	{
-		//attacker is a player so he must have just hit you with a saber blow.
-		if (!InFront(attacker->client->ps.origin, defender->client->ps.origin, defender->client->ps.viewangles, -0.7f))
-		{
-			//player is behind us, costs more to block
-			//staffs back block at normal cost.
-			if (defender->client->ps.fd.saberAnimLevel == SS_STAFF && defender->client->ps.fd.forcePowerLevel[
-				FP_SABER_DEFENSE] == FORCE_LEVEL_3)
-			{
-				// Having both staff and defense 3 allow no extra back hit damage
-				saber_block_cost *= 1;
-			}
-			else if (defender->client->ps.fd.saberAnimLevel != SS_STAFF && defender->client->ps.fd.forcePowerLevel[
-				FP_SABER_DEFENSE] == FORCE_LEVEL_2)
-			{
-				//level 2 defense lowers back damage more
-				saber_block_cost *= 1.50;
-			}
-			else if (defender->client->ps.fd.saberAnimLevel != SS_STAFF && defender->client->ps.fd.forcePowerLevel[
-				FP_SABER_DEFENSE] == FORCE_LEVEL_1)
-			{
-				//level 1 defense lowers back damage a bit
-				saber_block_cost *= 1.75;
-			}
-			else
-			{
-				saber_block_cost *= 2;
-			}
-		}
-
-		//clamp to body dodge cost since it wouldn't be fair to cost more than that.
-		if (saber_block_cost > BasicWeaponBlockCosts[MOD_SABER])
-		{
-			saber_block_cost = BasicWeaponBlockCosts[MOD_SABER];
-		}
-	}
-	if (PM_SaberInBrokenParry(defender->client->ps.saber_move))
-	{
-		//we're stunned/stumbling, increase DP cost
-		saber_block_cost *= 1.5;
-	}
-
-	if (PM_KickingAnim(defender->client->ps.legsAnim))
-	{
-		//kicking
-		saber_block_cost *= 1.5;
-	}
-
-	if (!walk_check(defender))
-	{
-		if (defender->NPC)
-		{
-			saber_block_cost *= 1.0;
-		}
-		else
-		{
-			saber_block_cost *= 2.5;
-		}
-	}
-	if (defender->client->ps.groundEntityNum == ENTITYNUM_NONE)
-	{
-		//in mid-air
-		if (defender->client->ps.fd.saberAnimLevel == SS_DUAL) //Ataru's other perk much less cost for air hit
-		{
-			saber_block_cost *= .5;
-		}
-		else
-		{
-			saber_block_cost *= 2;
-		}
-	}
-	if (defender->client->ps.ManualblockStartTime > level.time)
-	{
-		//attempting to block something too soon after a saber bolt block
-		saber_block_cost *= 2;
-	}
 	return (int)saber_block_cost;
 }
 
@@ -3606,7 +3320,7 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 	// ------------------------------------------------------------
 	// CAN'T BLOCK WHILE RUNNING IN FORCE SPEED
 	// ------------------------------------------------------------
-	if (!walk_check(self) &&
+	if (!WalkCheck(self) &&
 		(self->client->ps.fd.forcePowersActive & (1 << FP_SPEED)))
 	{
 		return 0;
@@ -3658,7 +3372,7 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 		}
 
 		// Can't block while running and hit from behind or mid-swing
-		if (!walk_check(self) &&
+		if (!WalkCheck(self) &&
 			(!InFront(atk->client->ps.origin,
 				self->client->ps.origin,
 				self->client->ps.viewangles,
@@ -3900,7 +3614,7 @@ int wp_player_must_dodge(const gentity_t* self, const gentity_t* shooter)
 		return qfalse;
 	}
 
-	if (!walk_check(self)
+	if (!WalkCheck(self)
 		|| PM_SaberInAttack(self->client->ps.saber_move)
 		|| PM_SaberInStart(self->client->ps.saber_move))
 	{
@@ -4004,7 +3718,7 @@ int wp_saber_must_bolt_block(gentity_t* self, const gentity_t* atk, const qboole
 		return 0;
 	}
 
-	if (!walk_check(self) && self->client->ps.fd.forcePowersActive & 1 << FP_SPEED)
+	if (!WalkCheck(self) && self->client->ps.fd.forcePowersActive & 1 << FP_SPEED)
 	{
 		//can't block while running in force speed.
 		return 0;
@@ -4057,7 +3771,7 @@ int wp_saber_must_bolt_block(gentity_t* self, const gentity_t* atk, const qboole
 			return 0;
 		}
 
-		if (!walk_check(self)
+		if (!WalkCheck(self)
 			&& (!InFront(atk->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, -0.7f)
 				|| PM_SaberInAttack(self->client->ps.saber_move)
 				|| PM_SaberInStart(self->client->ps.saber_move)))
@@ -4485,29 +4199,6 @@ float wp_saber_length(const gentity_t* ent)
 	return best_len;
 }
 
-int wp_debug_saber_colour(const saber_colors_t saber_color)
-{
-	switch ((int)saber_color)
-	{
-	case SABER_RED:
-		return 0x000000ff;
-	case SABER_ORANGE:
-		return 0x000088ff;
-	case SABER_YELLOW:
-		return 0x0000ffff;
-	case SABER_GREEN:
-		return 0x0000ff00;
-	case SABER_BLUE:
-		return 0x00ff0000;
-	case SABER_PURPLE:
-		return 0x00ff00ff;
-	case SABER_LIME:
-		return 0x0000ff00;
-	default:
-		return 0x00ffffff; //white
-	}
-}
-
 extern saberInfo_t* BG_MySaber(int clientNum, int saberNum);
 
 #define MAX_SABER_VICTIMS 8192
@@ -4738,7 +4429,7 @@ static void WP_SaberBounceOnWallSound(gentity_t* ent, const int saberNum, const 
 
 static QINLINE void G_SetViewLockDebounce(const gentity_t* self)
 {
-	if (!walk_check(self))
+	if (!WalkCheck(self))
 	{
 		//running pauses you longer
 		self->client->viewLockTime = level.time + 500;
@@ -4967,7 +4658,7 @@ qboolean WP_BrokenBoltBlockKnockBack(gentity_t* victim)
 }
 
 //Check to see if the player is actually walking or just standing
-qboolean walk_check(const gentity_t* self)
+qboolean WalkCheck(const gentity_t* self)
 {
 	if (PM_RunningAnim(self->client->ps.legsAnim))
 	{
@@ -5288,7 +4979,7 @@ qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int h
 			return qfalse;
 		}
 
-		if (!walk_check(self)
+		if (!WalkCheck(self)
 			|| PM_SaberInAttack(self->client->ps.saber_move)
 			|| PM_SaberInStart(self->client->ps.saber_move))
 		{
@@ -5914,7 +5605,7 @@ static qboolean G_DoSaberDodge(gentity_t* dodger, gentity_t* attacker, vec3_t dm
 			return qfalse;
 		}
 
-		if (!walk_check(dodger)
+		if (!WalkCheck(dodger)
 			|| PM_SaberInAttack(dodger->client->ps.saber_move)
 			|| PM_SaberInStart(dodger->client->ps.saber_move))
 		{
@@ -7287,7 +6978,7 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 		return;
 	}
 
-	if (!walk_check(self) &&
+	if (!WalkCheck(self) &&
 		(PM_SaberInAttack(self->client->ps.saber_move) ||
 			PM_SaberInStart(self->client->ps.saber_move)))
 	{
@@ -12722,7 +12413,7 @@ float manual_forceblocking(const gentity_t* defender)
 		ForceNoSaber = qtrue;
 	}
 
-	if (!walk_check(defender) || defender->client->ps.groundEntityNum == ENTITYNUM_NONE)
+	if (!WalkCheck(defender) || defender->client->ps.groundEntityNum == ENTITYNUM_NONE)
 	{
 		return 0.0f;
 	}
@@ -12740,7 +12431,7 @@ float manual_forceblocking(const gentity_t* defender)
 		|| pm_saber_in_special_attack(defender->client->ps.torsoAnim)
 		|| PM_InSpecialJump(defender->client->ps.torsoAnim)
 		|| defender->client->ps.groundEntityNum == ENTITYNUM_NONE
-		|| !walk_check(defender)
+		|| !WalkCheck(defender)
 		|| in_camera)
 	{
 		return 0.0f;
@@ -13071,7 +12762,7 @@ int PlayerCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can 
 		return qfalse;
 	}
 
-	if (!walk_check(defender))
+	if (!WalkCheck(defender))
 	{
 		// runners cant absorb kick
 		return qfalse;
@@ -13125,7 +12816,7 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 		return qfalse;
 	}
 
-	if (!walk_check(defender))
+	if (!WalkCheck(defender))
 	{
 		// runners cant absorb kick
 		return qfalse;
@@ -13224,7 +12915,7 @@ float manual_npc_kick_absorbing(const gentity_t* defender)
 		return qfalse;
 	}
 
-	if (!walk_check(defender))
+	if (!WalkCheck(defender))
 	{
 		//can't block while running.
 		return qfalse;

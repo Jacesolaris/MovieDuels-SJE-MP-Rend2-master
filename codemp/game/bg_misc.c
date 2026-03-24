@@ -2510,7 +2510,7 @@ qboolean BG_CanItemBeGrabbed(const int gametype, const entityState_t* ent, const
 			pm_entBot->s.botclass == BCLASS_FORCE_DARK_NO_SABER ||
 			pm_entBot->s.botclass == BCLASS_FORCE_LIGHT_NO_SABER))
 	{
-		if (item->giType == IT_WEAPON)
+		if (item->giType == IT_WEAPON || item->giType == IT_AMMO)
 		{
 			return qfalse;
 		}

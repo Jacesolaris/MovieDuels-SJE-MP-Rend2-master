@@ -398,11 +398,11 @@ static void Svcmd_ListIP_f(void)
 	trap->Print("%i bans.\n", count);
 }
 
-qboolean SJE_AllPlayersHaveClientPlugin(void);
+qboolean MovieDuels_AllPlayersHaveClientPlugin(void);
 char* ConcatArgs(int start);
 static void Svcmd_CenterSay_f(void)
 {
-	if (SJE_AllPlayersHaveClientPlugin())
+	if (MovieDuels_AllPlayersHaveClientPlugin())
 	{//just fire off the text without editting it for line breaks.
 		trap->SendServerCommand(-1, va("cp \"%s\n\"", ConcatArgs(1)));
 	}

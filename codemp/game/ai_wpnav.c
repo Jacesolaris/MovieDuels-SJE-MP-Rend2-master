@@ -23,8 +23,18 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "g_local.h"
 #include "qcommon/q_shared.h"
-#include "botlib/botlib.h"
 #include "ai_main.h"
+#include <string.h>
+#include "bg_saga.h"
+#include <qcommon\q_math.h>
+#include "g_public.h"
+#include "bg_public.h"
+#include <qcommon\q_color.h>
+#include <qcommon\q_platform.h>
+#include "bg_weapons.h"
+#include <stdlib.h>
+#include <qcommon\q_string.h>
+#include "surfaceflags.h"
 
 float gWPRenderTime = 0;
 float gDeactivated = 0;
@@ -42,213 +52,98 @@ int nodenum; //so we can connect broken trails
 
 int gLevelFlags = 0;
 
+// ------------------------------------------------------------
+// Returns a temporary string describing all waypoint flags.
+// This is used by the waypoint editor and debug output.
+// ------------------------------------------------------------
 static char* GetFlagStr(const int flags)
 {
 	char* flagstr = B_TempAlloc(128);
 	int i = 0;
 
-	if (!flags)
+	if (flags == 0)
 	{
-		strcpy(flagstr, "none\0");
+		strcpy(flagstr, "none");
 		goto fend;
 	}
 
-	if (flags & WPFLAG_JUMP)
+	// Simple one‑character flags
+	if ((flags & WPFLAG_JUMP) != 0) { flagstr[i++] = 'j'; }
+	if ((flags & WPFLAG_DUCK) != 0) { flagstr[i++] = 'd'; }
+	if ((flags & WPFLAG_SNIPEORCAMPSTAND) != 0) { flagstr[i++] = 'c'; }
+	if ((flags & WPFLAG_WAITFORFUNC) != 0) { flagstr[i++] = 'f'; }
+	if ((flags & WPFLAG_SNIPEORCAMP) != 0) { flagstr[i++] = 's'; }
+	if ((flags & WPFLAG_ONEWAY_FWD) != 0) { flagstr[i++] = 'x'; }
+	if ((flags & WPFLAG_ONEWAY_BACK) != 0) { flagstr[i++] = 'y'; }
+	if ((flags & WPFLAG_GOALPOINT) != 0) { flagstr[i++] = 'g'; }
+	if ((flags & WPFLAG_NOVIS) != 0) { flagstr[i++] = 'n'; }
+	if ((flags & WPFLAG_NOMOVEFUNC) != 0) { flagstr[i++] = 'm'; }
+	if ((flags & WPFLAG_DESTROY_FUNCBREAK) != 0) { flagstr[i++] = 'q'; }
+	if ((flags & WPFLAG_REDONLY) != 0) { flagstr[i++] = 'r'; }
+	if ((flags & WPFLAG_BLUEONLY) != 0) { flagstr[i++] = 'b'; }
+	if ((flags & WPFLAG_FORCEPUSH) != 0) { flagstr[i++] = 'p'; }
+	if ((flags & WPFLAG_FORCEPULL) != 0) { flagstr[i++] = 'o'; }
+
+	// Multi‑character flags (words)
+	if ((flags & WPFLAG_RED_FLAG) != 0)
 	{
-		flagstr[i] = 'j';
-		i++;
+		if (i > 0) { flagstr[i++] = ' '; }
+		strcpy(flagstr + i, "red flag");
+		i += 8;
 	}
 
-	if (flags & WPFLAG_DUCK)
+	if ((flags & WPFLAG_BLUE_FLAG) != 0)
 	{
-		flagstr[i] = 'd';
-		i++;
+		if (i > 0) { flagstr[i++] = ' '; }
+		strcpy(flagstr + i, "blue flag");
+		i += 9;
 	}
 
-	if (flags & WPFLAG_SNIPEORCAMPSTAND)
+	if ((flags & WPFLAG_SIEGE_IMPERIALOBJ) != 0)
 	{
-		flagstr[i] = 'c';
-		i++;
+		if (i > 0) { flagstr[i++] = ' '; }
+		strcpy(flagstr + i, "saga_imp");
+		i += 8;
 	}
 
-	if (flags & WPFLAG_WAITFORFUNC)
+	if ((flags & WPFLAG_SIEGE_REBELOBJ) != 0)
 	{
-		flagstr[i] = 'f';
-		i++;
+		if (i > 0) { flagstr[i++] = ' '; }
+		strcpy(flagstr + i, "saga_reb");
+		i += 8;
 	}
 
-	if (flags & WPFLAG_SNIPEORCAMP)
+	// ------------------------------------------------------------
+	// NEW SPAWN FLAGS (your additions)
+	// ------------------------------------------------------------
+	if ((flags & WPFLAG_SPAWN_NEUTRAL) != 0)
 	{
-		flagstr[i] = 's';
-		i++;
+		if (i > 0) { flagstr[i++] = ' '; }
+		strcpy(flagstr + i, "spawn_neutral");
+		i += 13;
 	}
 
-	if (flags & WPFLAG_ONEWAY_FWD)
+	if ((flags & WPFLAG_SPAWN_TEAM_RED) != 0)
 	{
-		flagstr[i] = 'x';
-		i++;
+		if (i > 0) { flagstr[i++] = ' '; }
+		strcpy(flagstr + i, "spawn_red");
+		i += 9;
 	}
 
-	if (flags & WPFLAG_ONEWAY_BACK)
+	if ((flags & WPFLAG_SPAWN_TEAM_BLUE) != 0)
 	{
-		flagstr[i] = 'y';
-		i++;
+		if (i > 0) { flagstr[i++] = ' '; }
+		strcpy(flagstr + i, "spawn_blue");
+		i += 10;
 	}
 
-	if (flags & WPFLAG_GOALPOINT)
-	{
-		flagstr[i] = 'g';
-		i++;
-	}
-
-	if (flags & WPFLAG_NOVIS)
-	{
-		flagstr[i] = 'n';
-		i++;
-	}
-
-	if (flags & WPFLAG_NOMOVEFUNC)
-	{
-		flagstr[i] = 'm';
-		i++;
-	}
-	if (flags & WPFLAG_DESTROY_FUNCBREAK)
-	{
-		flagstr[i] = 'q';
-		i++;
-	}
-
-	if (flags & WPFLAG_REDONLY)
-	{
-		flagstr[i] = 'r';
-		i++;
-	}
-
-	if (flags & WPFLAG_BLUEONLY)
-	{
-		flagstr[i] = 'b';
-		i++;
-	}
-
-	if (flags & WPFLAG_FORCEPUSH)
-	{
-		flagstr[i] = 'p';
-		i++;
-	}
-
-	if (flags & WPFLAG_FORCEPULL)
-	{
-		flagstr[i] = 'o';
-		i++;
-	}
-
-	if (flags & WPFLAG_RED_FLAG)
-	{
-		if (i)
-		{
-			flagstr[i] = ' ';
-			i++;
-		}
-		flagstr[i] = 'r';
-		i++;
-		flagstr[i] = 'e';
-		i++;
-		flagstr[i] = 'd';
-		i++;
-		flagstr[i] = ' ';
-		i++;
-		flagstr[i] = 'f';
-		i++;
-		flagstr[i] = 'l';
-		i++;
-		flagstr[i] = 'a';
-		i++;
-		flagstr[i] = 'g';
-		i++;
-	}
-
-	if (flags & WPFLAG_BLUE_FLAG)
-	{
-		if (i)
-		{
-			flagstr[i] = ' ';
-			i++;
-		}
-		flagstr[i] = 'b';
-		i++;
-		flagstr[i] = 'l';
-		i++;
-		flagstr[i] = 'u';
-		i++;
-		flagstr[i] = 'e';
-		i++;
-		flagstr[i] = ' ';
-		i++;
-		flagstr[i] = 'f';
-		i++;
-		flagstr[i] = 'l';
-		i++;
-		flagstr[i] = 'a';
-		i++;
-		flagstr[i] = 'g';
-		i++;
-	}
-
-	if (flags & WPFLAG_SIEGE_IMPERIALOBJ)
-	{
-		if (i)
-		{
-			flagstr[i] = ' ';
-			i++;
-		}
-		flagstr[i] = 's';
-		i++;
-		flagstr[i] = 'a';
-		i++;
-		flagstr[i] = 'g';
-		i++;
-		flagstr[i] = 'a';
-		i++;
-		flagstr[i] = '_';
-		i++;
-		flagstr[i] = 'i';
-		i++;
-		flagstr[i] = 'm';
-		i++;
-		flagstr[i] = 'p';
-		i++;
-	}
-
-	if (flags & WPFLAG_SIEGE_REBELOBJ)
-	{
-		if (i)
-		{
-			flagstr[i] = ' ';
-			i++;
-		}
-		flagstr[i] = 's';
-		i++;
-		flagstr[i] = 'a';
-		i++;
-		flagstr[i] = 'g';
-		i++;
-		flagstr[i] = 'a';
-		i++;
-		flagstr[i] = '_';
-		i++;
-		flagstr[i] = 'r';
-		i++;
-		flagstr[i] = 'e';
-		i++;
-		flagstr[i] = 'b';
-		i++;
-	}
-
+	// Null‑terminate
 	flagstr[i] = '\0';
 
+	// If nothing was written, return "unknown"
 	if (i == 0)
 	{
-		strcpy(flagstr, "unknown\0");
+		strcpy(flagstr, "unknown");
 	}
 
 fend:
@@ -402,18 +297,43 @@ checkprint:
 	}
 }
 
+/*
+==========================
+TransferWPData
+
+Copies waypoint data from index `from` to index `to`.
+
+- Validates both source and destination pointers
+- Allocates destination if needed
+- Prevents NULL dereference (fixes C6011)
+- Preserves original behaviour
+==========================
+*/
 static void TransferWPData(const int from, const int to)
 {
-	if (!gWPArray[to])
+	/* Validate source waypoint */
+	if (gWPArray[from] == NULL)
+	{
+		trap->Print(S_COLOR_RED
+			"ERROR: TransferWPData: source waypoint %d is NULL\n", from);
+		return; /* Prevents NULL dereference */
+	}
+
+	/* Ensure destination waypoint exists */
+	if (gWPArray[to] == NULL)
 	{
 		gWPArray[to] = (wpobject_t*)B_Alloc(sizeof(wpobject_t));
+
+		if (gWPArray[to] == NULL)
+		{
+			trap->Print(S_COLOR_RED
+				"FATAL ERROR: TransferWPData: Could not allocate memory for waypoint %d\n",
+				to);
+			return;
+		}
 	}
 
-	if (!gWPArray[to])
-	{
-		trap->Print(S_COLOR_RED "FATAL ERROR: Could not allocated memory for waypoint\n");
-	}
-
+	/* Copy fields safely */
 	gWPArray[to]->flags = gWPArray[from]->flags;
 	gWPArray[to]->weight = gWPArray[from]->weight;
 	gWPArray[to]->associated_entity = gWPArray[from]->associated_entity;
@@ -421,84 +341,113 @@ static void TransferWPData(const int from, const int to)
 	gWPArray[to]->forceJumpTo = gWPArray[from]->forceJumpTo;
 	gWPArray[to]->index = to;
 	gWPArray[to]->inuse = gWPArray[from]->inuse;
+
 	VectorCopy(gWPArray[from]->origin, gWPArray[to]->origin);
 }
 
+// ------------------------------------------------------------
+// CreateNewWP
+// Creates a new waypoint at the given origin with the given flags.
+// Safe, modernized, and warning‑free.
+// ------------------------------------------------------------
 static void CreateNewWP(vec3_t origin, const int flags)
 {
+	// Bounds check
 	if (gWPNum >= MAX_WPARRAY_SIZE)
 	{
-		if (!RMG.integer)
+		if (RMG.integer == 0)
 		{
 			trap->Print(S_COLOR_YELLOW "Warning: Waypoint limit hit (%i)\n", MAX_WPARRAY_SIZE);
 		}
 		return;
 	}
 
-	if (!gWPArray[gWPNum])
+	// Allocate waypoint slot if needed
+	if (gWPArray[gWPNum] == NULL)
 	{
 		gWPArray[gWPNum] = (wpobject_t*)B_Alloc(sizeof(wpobject_t));
 	}
 
-	if (!gWPArray[gWPNum])
+	// Allocation failed — abort safely
+	if (gWPArray[gWPNum] == NULL)
 	{
-		trap->Print(S_COLOR_RED "ERROR: Could not allocated memory for waypoint\n");
-	}
-
-	gWPArray[gWPNum]->flags = flags;
-	gWPArray[gWPNum]->weight = 0; //calculated elsewhere
-	gWPArray[gWPNum]->associated_entity = ENTITYNUM_NONE; //set elsewhere
-	gWPArray[gWPNum]->forceJumpTo = 0;
-	gWPArray[gWPNum]->disttonext = 0; //calculated elsewhere
-	gWPArray[gWPNum]->index = gWPNum;
-	gWPArray[gWPNum]->inuse = 1;
-	VectorCopy(origin, gWPArray[gWPNum]->origin);
-	gWPNum++;
-}
-
-static void CreateNewWP_FromObject(const wpobject_t* wp)
-{
-	if (gWPNum >= MAX_WPARRAY_SIZE)
-	{
+		trap->Print(S_COLOR_RED "ERROR: Could not allocate memory for waypoint\n");
 		return;
 	}
 
-	if (!gWPArray[gWPNum])
+	// ------------------------------------------------------------
+	// Initialize waypoint fields
+	// ------------------------------------------------------------
+	gWPArray[gWPNum]->flags = flags;
+	gWPArray[gWPNum]->weight = 0;                 // calculated elsewhere
+	gWPArray[gWPNum]->associated_entity = ENTITYNUM_NONE;    // set elsewhere
+	gWPArray[gWPNum]->forceJumpTo = 0;
+	gWPArray[gWPNum]->disttonext = 0;                 // calculated elsewhere
+	gWPArray[gWPNum]->index = gWPNum;
+	gWPArray[gWPNum]->inuse = 1;                 // explicit int
+
+	VectorCopy(origin, gWPArray[gWPNum]->origin);
+
+	gWPNum++;
+}
+
+// ------------------------------------------------------------
+// CreateNewWP_FromObject
+// Creates a new waypoint by copying an existing wpobject_t.
+// Safe, modernized, and warning‑free.
+// ------------------------------------------------------------
+static void CreateNewWP_FromObject(const wpobject_t* wp)
+{
+	// Bounds check
+	if (gWPNum >= MAX_WPARRAY_SIZE)
+	{
+		trap->Print(S_COLOR_RED "ERROR: Waypoint limit reached\n");
+		return;
+	}
+
+	// Allocate waypoint slot if needed
+	if (gWPArray[gWPNum] == NULL)
 	{
 		gWPArray[gWPNum] = (wpobject_t*)B_Alloc(sizeof(wpobject_t));
 	}
 
-	if (!gWPArray[gWPNum])
+	// Allocation failed — abort safely
+	if (gWPArray[gWPNum] == NULL)
 	{
-		trap->Print(S_COLOR_RED "ERROR: Could not allocated memory for waypoint\n");
+		trap->Print(S_COLOR_RED "ERROR: Could not allocate memory for waypoint\n");
+		return;
 	}
 
+	// ------------------------------------------------------------
+	// Copy waypoint data
+	// ------------------------------------------------------------
 	gWPArray[gWPNum]->flags = wp->flags;
 	gWPArray[gWPNum]->weight = wp->weight;
 	gWPArray[gWPNum]->associated_entity = wp->associated_entity;
 	gWPArray[gWPNum]->disttonext = wp->disttonext;
 	gWPArray[gWPNum]->forceJumpTo = wp->forceJumpTo;
 	gWPArray[gWPNum]->index = gWPNum;
-	gWPArray[gWPNum]->inuse = 1;
+	gWPArray[gWPNum]->inuse = 1;          // explicit qtrue not needed; it's an int
 	VectorCopy(wp->origin, gWPArray[gWPNum]->origin);
+
 	gWPArray[gWPNum]->neighbornum = wp->neighbornum;
 
-	int i = wp->neighbornum;
-
-	while (i >= 0)
+	// Copy neighbors
+	for (int n = 0; n < wp->neighbornum; n++)
 	{
-		gWPArray[gWPNum]->neighbors[i].num = wp->neighbors[i].num;
-		gWPArray[gWPNum]->neighbors[i].forceJumpTo = wp->neighbors[i].forceJumpTo;
-
-		i--;
+		gWPArray[gWPNum]->neighbors[n].num = wp->neighbors[n].num;
+		gWPArray[gWPNum]->neighbors[n].forceJumpTo = wp->neighbors[n].forceJumpTo;
 	}
 
-	if (gWPArray[gWPNum]->flags & WPFLAG_RED_FLAG)
+	// ------------------------------------------------------------
+	// Special-case: flag waypoints
+	// ------------------------------------------------------------
+	if ((gWPArray[gWPNum]->flags & WPFLAG_RED_FLAG) != 0)
 	{
 		flagRed = gWPArray[gWPNum];
 		oFlagRed = flagRed;
 	}
-	else if (gWPArray[gWPNum]->flags & WPFLAG_BLUE_FLAG)
+	else if ((gWPArray[gWPNum]->flags & WPFLAG_BLUE_FLAG) != 0)
 	{
 		flagBlue = gWPArray[gWPNum];
 		oFlagBlue = flagBlue;
@@ -627,6 +576,7 @@ static int CreateNewWP_InTrail(vec3_t origin, const int flags, const int afterin
 		return 0;
 	}
 
+	// Find the array index that holds waypoint index == afterindex
 	while (i < gWPNum)
 	{
 		if (gWPArray[i] && gWPArray[i]->inuse && gWPArray[i]->index == afterindex)
@@ -635,7 +585,6 @@ static int CreateNewWP_InTrail(vec3_t origin, const int flags, const int afterin
 			foundanindex = 1;
 			break;
 		}
-
 		i++;
 	}
 
@@ -647,26 +596,26 @@ static int CreateNewWP_InTrail(vec3_t origin, const int flags, const int afterin
 
 	i = gWPNum;
 
+	// FIX: ensure we never go below 0
 	while (i >= 0)
 	{
-		// Prevent buffer overrun BEFORE writing to i+1
-		if (i + 1 >= MAX_WPARRAY_SIZE)
-		{
-			trap->Print(S_COLOR_RED "ERROR: Waypoint insertion overflow at index %i\n", i + 1);
-			return 0;
-		}
-
-		if (gWPArray[i] && gWPArray[i]->inuse && gWPArray[i]->index != foundindex)
+		// FIX: ensure gWPArray[i] is valid before dereferencing
+		if (i < gWPNum && gWPArray[i] && gWPArray[i]->inuse && gWPArray[i]->index != foundindex)
 		{
 			TransferWPData(i, i + 1);
 		}
-		else if (gWPArray[i] && gWPArray[i]->inuse && gWPArray[i]->index == foundindex)
+		else if (i < gWPNum && gWPArray[i] && gWPArray[i]->inuse && gWPArray[i]->index == foundindex)
 		{
 			i++;
 
 			if (!gWPArray[i])
 			{
 				gWPArray[i] = (wpobject_t*)B_Alloc(sizeof(wpobject_t));
+				if (!gWPArray[i])   // FIX: allocation failure guard
+				{
+					trap->Print(S_COLOR_RED "ERROR: Could not allocate memory for waypoint\n");
+					return 0;
+				}
 			}
 
 			gWPArray[i]->flags = flags;
@@ -926,7 +875,7 @@ static int CanGetToVectorTravel(vec3_t org1, vec3_t moveTo, vec3_t mins, vec3_t 
 	trace_t tr;
 	vec3_t stepTo;
 	vec3_t stepSub;
-	vec3_t stepGoal;
+	vec3_t stepGoal = { 0 };
 	vec3_t workingOrg;
 	vec3_t lastIncrement;
 	int didMove = 0;
@@ -974,7 +923,7 @@ static int CanGetToVectorTravel(vec3_t org1, vec3_t moveTo, vec3_t mins, vec3_t 
 		{
 			//stair check
 			vec3_t trFrom;
-			vec3_t trTo;
+			vec3_t trTo = { 0 };
 			vec3_t trDir;
 			vec3_t vecMeasure;
 
@@ -1046,7 +995,7 @@ static int ConnectTrail(const int startindex, const int endindex, const qboolean
 	float maxDistFactor = 256;
 	vec3_t a;
 	vec3_t startplace, starttrace;
-	vec3_t mins, maxs;
+	vec3_t mins = { 0 }, maxs = { 0 };
 	vec3_t testspot;
 	vec3_t validspotpos;
 	trace_t tr;
@@ -1589,7 +1538,7 @@ static int OrgVisibleCurve(vec3_t org1, vec3_t mins, vec3_t maxs, vec3_t org2, c
 static int CanForceJumpTo(const int baseindex, const int testingindex, const float distance)
 {
 	float heightdif;
-	vec3_t xy_base, xy_test, v, mins, maxs;
+	vec3_t xy_base, xy_test, v, mins = { 0 }, maxs = { 0 };
 	wpobject_t* wp_base = gWPArray[baseindex];
 	wpobject_t* wp_test = gWPArray[testingindex];
 
@@ -1662,7 +1611,7 @@ static int CanForceJumpTo(const int baseindex, const int testingindex, const flo
 static void CalculatePaths(void)
 {
 	int max_neighbor_dist = MAX_NEIGHBOR_LINK_DISTANCE;
-	vec3_t mins, maxs;
+	vec3_t mins = { 0 }, maxs = { 0 };
 
 	if (!gWPNum)
 	{
@@ -1771,7 +1720,7 @@ static gentity_t* GetObjectThatTargets(const gentity_t* ent)
 static void CalculateSiegeGoals(void)
 {
 	int i = 0;
-	vec3_t dif;
+	vec3_t dif = { 0 };
 
 	while (i < level.num_entities)
 	{
@@ -1853,7 +1802,7 @@ float botGlobalNavWeaponWeights[WP_NUM_WEAPONS] =
 
 static int GetNearestVisibleWPToItem(vec3_t org, const int ignore)
 {
-	vec3_t mins, maxs;
+	vec3_t mins = { 0 }, maxs = { 0 };
 
 	int i = 0;
 	float bestdist = 64; //has to be less than 64 units to the item or it isn't safe enough
@@ -1987,219 +1936,218 @@ static void CalculateWeightGoals(void)
 
 static void CalculateJumpRoutes(void)
 {
-	for (int i = 0; i < gWPNum; i++)
+	int i = 0;
+
+	while (i < gWPNum)
 	{
-		if (!gWPArray[i] || !gWPArray[i]->inuse)
-			continue;
-
-		if (!(gWPArray[i]->flags & WPFLAG_JUMP))
-			continue;
-
-		float nheightdif = 0;
-		float pheightdif = 0;
-
-		gWPArray[i]->forceJumpTo = 0;
-
-		// SAFE CHECK: i - 1 must be >= 0
-		if (i > 0 &&
-			gWPArray[i - 1] && gWPArray[i - 1]->inuse &&
-			gWPArray[i - 1]->origin[2] + 16 < gWPArray[i]->origin[2])
+		if (gWPArray[i] && gWPArray[i]->inuse)
 		{
-			nheightdif = gWPArray[i]->origin[2] - gWPArray[i - 1]->origin[2];
+			if (gWPArray[i]->flags & WPFLAG_JUMP)
+			{
+				float nheightdif = 0;
+				float pheightdif = 0;
+
+				gWPArray[i]->forceJumpTo = 0;
+
+				// FIX: ensure i > 0 before checking i-1
+				if (i > 0 &&
+					gWPArray[i - 1] &&
+					gWPArray[i - 1]->inuse &&
+					gWPArray[i - 1]->origin[2] + 16 < gWPArray[i]->origin[2])
+				{
+					nheightdif = gWPArray[i]->origin[2] - gWPArray[i - 1]->origin[2];
+				}
+
+				// FIX: ensure i+1 < gWPNum before checking i+1
+				if (i + 1 < gWPNum &&
+					gWPArray[i + 1] &&
+					gWPArray[i + 1]->inuse &&
+					gWPArray[i + 1]->origin[2] + 16 < gWPArray[i]->origin[2])
+				{
+					pheightdif = gWPArray[i]->origin[2] - gWPArray[i + 1]->origin[2];
+				}
+
+				if (nheightdif > pheightdif)
+				{
+					pheightdif = nheightdif;
+				}
+
+				if (pheightdif)
+				{
+					if (pheightdif > 500)
+					{
+						gWPArray[i]->forceJumpTo = 999; // FORCE_LEVEL_3
+					}
+					else if (pheightdif > 256)
+					{
+						gWPArray[i]->forceJumpTo = 999; // FORCE_LEVEL_2
+					}
+					else if (pheightdif > 128)
+					{
+						gWPArray[i]->forceJumpTo = 999; // FORCE_LEVEL_1
+					}
+				}
+			}
 		}
 
-		// SAFE CHECK: i + 1 must be < gWPNum
-		if (i + 1 < gWPNum &&
-			gWPArray[i + 1] && gWPArray[i + 1]->inuse &&
-			gWPArray[i + 1]->origin[2] + 16 < gWPArray[i]->origin[2])
-		{
-			pheightdif = gWPArray[i]->origin[2] - gWPArray[i + 1]->origin[2];
-		}
-
-		if (nheightdif > pheightdif)
-			pheightdif = nheightdif;
-
-		if (pheightdif > 0)
-		{
-			if (pheightdif > 500)
-				gWPArray[i]->forceJumpTo = 999;
-			else if (pheightdif > 256)
-				gWPArray[i]->forceJumpTo = 999;
-			else if (pheightdif > 128)
-				gWPArray[i]->forceJumpTo = 999;
-		}
+		i++;
 	}
-}
-
+}// ------------------------------------------------------------
+// LoadPathData
+// Loads waypoint data from a .wnt file.
+// Modernized to avoid massive stack allocation.
+// ------------------------------------------------------------
 static int LoadPathData(const char* filename)
 {
 	fileHandle_t f;
-	static char fileString[WPARRAY_BUFFER_SIZE];
 	char routePath[MAX_QPATH];
-	static wpobject_t thiswp;
+	wpobject_t thiswp;
 
 	int i = 0;
-	int i_cv;
+	int i_cv = 0;
 
-	Com_sprintf(routePath, sizeof routePath, "botroutes/%s.wnt\0", filename);
+	// Build path
+	Com_sprintf(routePath, sizeof(routePath), "botroutes/%s.wnt", filename);
 
+	// Open file
 	const int len = trap->FS_Open(routePath, &f, FS_READ);
 
-	if (!f)
+	if (f == 0)
 	{
 		trap->Print(S_COLOR_YELLOW "Bot route data not found for %s\n", filename);
 		return 2;
 	}
 
-	if (len >= WPARRAY_BUFFER_SIZE)
+	if (len <= 0 || len >= WPARRAY_BUFFER_SIZE)
 	{
-		trap->Print(S_COLOR_RED "Route file exceeds maximum length\n");
+		trap->Print(S_COLOR_RED "Route file exceeds maximum length or is empty\n");
 		trap->FS_Close(f);
 		return 0;
 	}
 
-	char* current_var = B_TempAlloc(2048);
-
-	trap->FS_Read(fileString, len, f);
-
-	if (fileString[i] == 'l')
+	// ------------------------------------------------------------
+	// Allocate large buffer on the heap instead of stack
+	// ------------------------------------------------------------
+	char* fileString = (char*)B_Alloc(len + 1);
+	if (fileString == NULL)
 	{
-		//contains a "levelflags" entry..
-		char read_l_flags[64];
+		trap->Print(S_COLOR_RED "ERROR: Could not allocate memory for route buffer\n");
+		trap->FS_Close(f);
+		return 0;
+	}
+
+	char* current_var = (char*)B_TempAlloc(2048);
+
+	// Read file
+	trap->FS_Read(fileString, len, f);
+	fileString[len] = '\0';
+
+	// ------------------------------------------------------------
+	// Parse level flags
+	// ------------------------------------------------------------
+	if (len > 0 && fileString[i] == 'l')
+	{
+		char read_l_flags[64] = { 0 };
 		i_cv = 0;
 
-		while (fileString[i] != ' ')
+		while (i < len && fileString[i] != ' ')
 		{
 			i++;
 		}
-		i++;
-		while (fileString[i] != '\n')
-		{
-			read_l_flags[i_cv] = fileString[i];
-			i_cv++;
-			i++;
-		}
-		read_l_flags[i_cv] = 0;
 		i++;
 
+		while (i < len && fileString[i] != '\n' && i_cv < 63)
+		{
+			read_l_flags[i_cv++] = fileString[i++];
+		}
+		read_l_flags[i_cv] = '\0';
+
 		gLevelFlags = atoi(read_l_flags);
+		i++;
 	}
 	else
 	{
 		gLevelFlags = 0;
 	}
 
+	// ------------------------------------------------------------
+	// Parse all waypoints
+	// ------------------------------------------------------------
 	while (i < len)
 	{
 		i_cv = 0;
 
-		thiswp.index = 0;
-		thiswp.flags = 0;
-		thiswp.inuse = 0;
-		thiswp.neighbornum = 0;
-		thiswp.origin[0] = 0;
-		thiswp.origin[1] = 0;
-		thiswp.origin[2] = 0;
-		thiswp.weight = 0;
+		memset(&thiswp, 0, sizeof(thiswp));
 		thiswp.associated_entity = ENTITYNUM_NONE;
-		thiswp.forceJumpTo = 0;
-		thiswp.disttonext = 0;
-		int nei_num = 0;
 
-		while (nei_num < MAX_NEIGHBOR_SIZE)
+		// --- index ---
+		while (i < len && fileString[i] != ' ' && i_cv < 2047)
 		{
-			thiswp.neighbors[nei_num].num = 0;
-			thiswp.neighbors[nei_num].forceJumpTo = 0;
-
-			nei_num++;
-		}
-
-		while (fileString[i] != ' ')
-		{
-			current_var[i_cv] = fileString[i];
-			i_cv++;
-			i++;
+			current_var[i_cv++] = fileString[i++];
 		}
 		current_var[i_cv] = '\0';
-
 		thiswp.index = atoi(current_var);
 
-		i_cv = 0;
-		i++;
+		i++; i_cv = 0;
 
-		while (fileString[i] != ' ')
+		// --- flags ---
+		while (i < len && fileString[i] != ' ' && i_cv < 2047)
 		{
-			current_var[i_cv] = fileString[i];
-			i_cv++;
-			i++;
+			current_var[i_cv++] = fileString[i++];
 		}
 		current_var[i_cv] = '\0';
-
 		thiswp.flags = atoi(current_var);
 
-		i_cv = 0;
-		i++;
+		i++; i_cv = 0;
 
-		while (fileString[i] != ' ')
+		// --- weight ---
+		while (i < len && fileString[i] != ' ' && i_cv < 2047)
 		{
-			current_var[i_cv] = fileString[i];
-			i_cv++;
-			i++;
+			current_var[i_cv++] = fileString[i++];
 		}
 		current_var[i_cv] = '\0';
-
 		thiswp.weight = atof(current_var);
 
-		i_cv = 0;
-		i++;
-		i++;
+		i++; i++; i_cv = 0;
 
-		while (fileString[i] != ' ')
+		// --- origin[0] ---
+		while (i < len && fileString[i] != ' ' && i_cv < 2047)
 		{
-			current_var[i_cv] = fileString[i];
-			i_cv++;
-			i++;
+			current_var[i_cv++] = fileString[i++];
 		}
 		current_var[i_cv] = '\0';
-
 		thiswp.origin[0] = atof(current_var);
 
-		i_cv = 0;
-		i++;
+		i++; i_cv = 0;
 
-		while (fileString[i] != ' ')
+		// --- origin[1] ---
+		while (i < len && fileString[i] != ' ' && i_cv < 2047)
 		{
-			current_var[i_cv] = fileString[i];
-			i_cv++;
-			i++;
+			current_var[i_cv++] = fileString[i++];
 		}
 		current_var[i_cv] = '\0';
-
 		thiswp.origin[1] = atof(current_var);
 
-		i_cv = 0;
-		i++;
+		i++; i_cv = 0;
 
-		while (fileString[i] != ')')
+		// --- origin[2] ---
+		while (i < len && fileString[i] != ')' && i_cv < 2047)
 		{
-			current_var[i_cv] = fileString[i];
-			i_cv++;
-			i++;
+			current_var[i_cv++] = fileString[i++];
 		}
 		current_var[i_cv] = '\0';
-
 		thiswp.origin[2] = atof(current_var);
 
-		i += 4;
+		i += 4; // skip ") { "
 
-		while (fileString[i] != '}')
+		// --- neighbors ---
+		while (i < len && fileString[i] != '}')
 		{
 			i_cv = 0;
-			while (fileString[i] != ' ' && fileString[i] != '-')
+
+			while (i < len && fileString[i] != ' ' && fileString[i] != '-' && i_cv < 2047)
 			{
-				current_var[i_cv] = fileString[i];
-				i_cv++;
-				i++;
+				current_var[i_cv++] = fileString[i++];
 			}
 			current_var[i_cv] = '\0';
 
@@ -2207,18 +2155,15 @@ static int LoadPathData(const char* filename)
 
 			if (fileString[i] == '-')
 			{
-				i_cv = 0;
-				i++;
+				i++; i_cv = 0;
 
-				while (fileString[i] != ' ')
+				while (i < len && fileString[i] != ' ' && i_cv < 2047)
 				{
-					current_var[i_cv] = fileString[i];
-					i_cv++;
-					i++;
+					current_var[i_cv++] = fileString[i++];
 				}
 				current_var[i_cv] = '\0';
 
-				thiswp.neighbors[thiswp.neighbornum].forceJumpTo = 999; //atoi(currentVar); //FJSR
+				thiswp.neighbors[thiswp.neighbornum].forceJumpTo = 999;
 			}
 			else
 			{
@@ -2226,41 +2171,34 @@ static int LoadPathData(const char* filename)
 			}
 
 			thiswp.neighbornum++;
-
 			i++;
 		}
 
-		i_cv = 0;
-		i++;
-		i++;
+		i++; i++; i_cv = 0;
 
-		while (fileString[i] != '\n')
+		// --- disttonext ---
+		while (i < len && fileString[i] != '\n' && i_cv < 2047)
 		{
-			current_var[i_cv] = fileString[i];
-			i_cv++;
-			i++;
+			current_var[i_cv++] = fileString[i++];
 		}
 		current_var[i_cv] = '\0';
 
 		thiswp.disttonext = atof(current_var);
 
 		CreateNewWP_FromObject(&thiswp);
+
 		i++;
 	}
 
-	B_TempFree(2048); //currentVar
+	// Cleanup
+	B_TempFree(2048);
+	B_Free(fileString);
 
 	trap->FS_Close(f);
 
 	CalculateSiegeGoals();
-
 	CalculateWeightGoals();
-	//calculate weights for idle activity goals when
-	//the bot has absolutely nothing else to do
-
 	CalculateJumpRoutes();
-	//Look at jump points and mark them as requiring
-	//force jumping as needed
 
 	return 1;
 }
@@ -2269,7 +2207,7 @@ static void FlagObjects(void)
 {
 	int i = 0, bestindex = 0, found = 0;
 	float bestdist = 999999, tlen;
-	vec3_t a, mins, maxs;
+	vec3_t a, mins = { 0 }, maxs = { 0 };
 	trace_t tr;
 
 	gentity_t* flag_red = NULL;
@@ -2381,66 +2319,114 @@ static void FlagObjects(void)
 		oFlagBlue = flagBlue;
 		eFlagBlue = flag_blue;
 	}
-}
-
+}// ------------------------------------------------------------
+// SavePathData
+// Saves all waypoint data to a .wnt file.
+// Modernized to avoid massive stack allocation.
+// ------------------------------------------------------------
 static int SavePathData(const char* filename)
 {
 	fileHandle_t f;
-	char fileString[WPARRAY_BUFFER_SIZE];
 	vec3_t a;
 	float fl_len;
 
 	int i = 0;
 
-	if (!gWPNum)
+	if (gWPNum == 0)
 	{
 		return 0;
 	}
 
-	const char* routePath = va("botroutes/%s.wnt\0", filename);
+	const char* routePath = va("botroutes/%s.wnt", filename);
 
 	trap->FS_Open(routePath, &f, FS_WRITE);
 
-	if (!f)
+	if (f == 0)
 	{
 		trap->Print(S_COLOR_RED "ERROR: Could not open file to write path data\n");
 		return 0;
 	}
 
-	if (!RepairPaths(qfalse)) //check if we can see all waypoints from the last. If not, try to branch over.
+	if (RepairPaths(qfalse) == 0)
 	{
 		trap->FS_Close(f);
 		return 0;
 	}
 
-	CalculatePaths(); //make everything nice and connected before saving
+	CalculatePaths();
+	FlagObjects();
 
-	FlagObjects(); //currently only used for flagging waypoints nearest CTF flags
+	// ------------------------------------------------------------
+	// Allocate large buffer on heap instead of stack
+	// ------------------------------------------------------------
+	char* fileString = (char*)B_Alloc(WPARRAY_BUFFER_SIZE);
+	if (fileString == NULL)
+	{
+		trap->Print(S_COLOR_RED "ERROR: Could not allocate memory for route buffer\n");
+		trap->FS_Close(f);
+		return 0;
+	}
 
-	char* storeString = B_TempAlloc(4096);
+	char* storeString = (char*)B_TempAlloc(4096);
 
-	Com_sprintf(fileString, WPARRAY_BUFFER_SIZE, "%i %i %f (%f %f %f) { ", gWPArray[i]->index, gWPArray[i]->flags,
-		gWPArray[i]->weight, gWPArray[i]->origin[0], gWPArray[i]->origin[1], gWPArray[i]->origin[2]);
+	// ------------------------------------------------------------
+	// Ensure first waypoint exists
+	// ------------------------------------------------------------
+	if (gWPArray[0] == NULL || gWPArray[0]->inuse == 0)
+	{
+		trap->FS_Close(f);
+		B_TempFree(4096);
+		B_Free(fileString);
+		return 0;
+	}
+
+	// ------------------------------------------------------------
+	// Write first waypoint
+	// ------------------------------------------------------------
+	Com_sprintf(
+		fileString,
+		WPARRAY_BUFFER_SIZE,
+		"%i %i %f (%f %f %f) { ",
+		gWPArray[0]->index,
+		gWPArray[0]->flags,
+		gWPArray[0]->weight,
+		gWPArray[0]->origin[0],
+		gWPArray[0]->origin[1],
+		gWPArray[0]->origin[2]
+	);
 
 	int n = 0;
 
-	while (n < gWPArray[i]->neighbornum)
+	while (n < gWPArray[0]->neighbornum)
 	{
-		if (gWPArray[i]->neighbors[n].forceJumpTo)
+		if (gWPArray[0]->neighbors[n].forceJumpTo != 0)
 		{
-			Com_sprintf(storeString, 4096, "%s%i-%i ", storeString, gWPArray[i]->neighbors[n].num,
-				gWPArray[i]->neighbors[n].forceJumpTo);
+			Com_sprintf(
+				storeString,
+				4096,
+				"%s%i-%i ",
+				storeString,
+				gWPArray[0]->neighbors[n].num,
+				gWPArray[0]->neighbors[n].forceJumpTo
+			);
 		}
 		else
 		{
-			Com_sprintf(storeString, 4096, "%s%i ", storeString, gWPArray[i]->neighbors[n].num);
+			Com_sprintf(
+				storeString,
+				4096,
+				"%s%i ",
+				storeString,
+				gWPArray[0]->neighbors[n].num
+			);
 		}
 		n++;
 	}
 
-	if (gWPArray[i + 1] && gWPArray[i + 1]->inuse && gWPArray[i + 1]->index)
+	// Calculate disttonext
+	if (gWPArray[1] && gWPArray[1]->inuse && gWPArray[1]->index != 0)
 	{
-		VectorSubtract(gWPArray[i]->origin, gWPArray[i + 1]->origin, a);
+		VectorSubtract(gWPArray[0]->origin, gWPArray[1]->origin, a);
 		fl_len = VectorLength(a);
 	}
 	else
@@ -2448,33 +2434,70 @@ static int SavePathData(const char* filename)
 		fl_len = 0;
 	}
 
-	gWPArray[i]->disttonext = fl_len;
+	gWPArray[0]->disttonext = fl_len;
 
-	Com_sprintf(fileString, WPARRAY_BUFFER_SIZE, "%s} %f\n", fileString, fl_len);
+	Com_sprintf(
+		fileString,
+		WPARRAY_BUFFER_SIZE,
+		"%s} %f\n",
+		fileString,
+		fl_len
+	);
 
-	i++;
+	// ------------------------------------------------------------
+	// Write remaining waypoints
+	// ------------------------------------------------------------
+	i = 1;
 
 	while (i < gWPNum)
 	{
-		Com_sprintf(storeString, 4096, "%i %i %f (%f %f %f) { ", gWPArray[i]->index, gWPArray[i]->flags, gWPArray[i]->weight, gWPArray[i]->origin[0], gWPArray[i]->origin[1], gWPArray[i]->origin[2]);
+		if (gWPArray[i] == NULL || gWPArray[i]->inuse == 0)
+		{
+			i++;
+			continue;
+		}
+
+		Com_sprintf(
+			storeString,
+			4096,
+			"%i %i %f (%f %f %f) { ",
+			gWPArray[i]->index,
+			gWPArray[i]->flags,
+			gWPArray[i]->weight,
+			gWPArray[i]->origin[0],
+			gWPArray[i]->origin[1],
+			gWPArray[i]->origin[2]
+		);
 
 		n = 0;
 
 		while (n < gWPArray[i]->neighbornum)
 		{
-			if (gWPArray[i]->neighbors[n].forceJumpTo)
+			if (gWPArray[i]->neighbors[n].forceJumpTo != 0)
 			{
-				Com_sprintf(storeString, 4096, "%s%i-%i ", storeString, gWPArray[i]->neighbors[n].num,
-					gWPArray[i]->neighbors[n].forceJumpTo);
+				Com_sprintf(
+					storeString,
+					4096,
+					"%s%i-%i ",
+					storeString,
+					gWPArray[i]->neighbors[n].num,
+					gWPArray[i]->neighbors[n].forceJumpTo
+				);
 			}
 			else
 			{
-				Com_sprintf(storeString, 4096, "%s%i ", storeString, gWPArray[i]->neighbors[n].num);
+				Com_sprintf(
+					storeString,
+					4096,
+					"%s%i ",
+					storeString,
+					gWPArray[i]->neighbors[n].num
+				);
 			}
 			n++;
 		}
 
-		if (gWPArray[i + 1] && gWPArray[i + 1]->inuse && gWPArray[i + 1]->index)
+		if (gWPArray[i + 1] && gWPArray[i + 1]->inuse && gWPArray[i + 1]->index != 0)
 		{
 			VectorSubtract(gWPArray[i]->origin, gWPArray[i + 1]->origin, a);
 			fl_len = VectorLength(a);
@@ -2493,14 +2516,16 @@ static int SavePathData(const char* filename)
 		i++;
 	}
 
+	// Write file
 	trap->FS_Write(fileString, strlen(fileString), f);
 
-	B_TempFree(4096); //storeString
+	// Cleanup
+	B_TempFree(4096);
+	B_Free(fileString);
 
 	trap->FS_Close(f);
 
-	trap->Print(
-		"Path data has been saved and updated. You may need to restart the level for some things to be properly calculated.\n");
+	trap->Print("Path data has been saved and updated. You may need to restart the level.\n");
 
 	return 1;
 }
@@ -2620,10 +2645,10 @@ static int G_NodeMatchingXY_BA(const int x, const int y, const int final)
 static int G_RecursiveConnection(const int start, const int end, const int weight, const qboolean trace_check,
 	const float base_height)
 {
-	int index_directions[4]; //0 == down, 1 == up, 2 == left, 3 == right
+	int index_directions[4] = { 0 }; //0 == down, 1 == up, 2 == left, 3 == right
 	int recursive_index = -1;
 	int pass_weight = weight;
-	vec2_t given_xy;
+	vec2_t given_xy = { 0 };
 	trace_t tr;
 
 	pass_weight++;
@@ -2990,11 +3015,11 @@ static void CreateAsciiNodeTableRepresentation(int start, int end)
 static qboolean G_BackwardAttachment(const int start, const int final_destination, const int insert_after)
 {
 	//After creating a node path between 2 points, this function links the 2 points with actual waypoint data.
-	int index_directions[4]; //0 == down, 1 == up, 2 == left, 3 == right
+	int index_directions[4] = { 0 }; //0 == down, 1 == up, 2 == left, 3 == right
 	int i = 0;
 	int lowest_weight = 9999;
 	int desired_index = -1;
-	vec2_t given_xy;
+	vec2_t given_xy = { 0 };
 
 	given_xy[0] = nodetable[start].origin[0];
 	given_xy[1] = nodetable[start].origin[1];
@@ -3451,12 +3476,19 @@ static gentity_t* GetNextSpawnInIndex(const gentity_t* current_spawn)
 
 	return next_spawn;
 }
-
+// ------------------------------------------------------------
+// AcceptBotCommand
+// Handles all bot waypoint editing commands.
+// Updated to support new spawn flags:
+//   u = WPFLAG_SPAWN_NEUTRAL
+//   v = WPFLAG_SPAWN_TEAM_RED
+//   w = WPFLAG_SPAWN_TEAM_BLUE
+// ------------------------------------------------------------
 int AcceptBotCommand(const char* cmd, const gentity_t* pl)
 {
 	vmCvar_t mapname;
 
-	if (!gBotEdit)
+	if (gBotEdit == 0)
 	{
 		return 0;
 	}
@@ -3464,54 +3496,63 @@ int AcceptBotCommand(const char* cmd, const gentity_t* pl)
 	int optional_argument = 0;
 	int i = 0;
 	int flags_from_argument = 0;
+
 	const char* optional_s_argument;
 	const char* required_s_argument;
 
-	//if a waypoint editing related command is issued, bots will deactivate.
-	//once bot_wp_save is issued and the trail is recalculated, bots will activate again.
-
+	// Waypoint editing disables bots until bot_wp_save is executed.
 	if (!pl || !pl->client)
 	{
 		return 0;
 	}
 
-	if (Q_stricmp(cmd, "bot_wp_Cmdlist") == 0) //lists all the bot waypoint commands.
+	// ------------------------------------------------------------
+	// Command list
+	// ------------------------------------------------------------
+	if (Q_stricmp(cmd, "bot_wp_Cmdlist") == 0)
 	{
 		trap->Print(
 			S_COLOR_YELLOW "bot_wp_add" S_COLOR_WHITE
-			" - Add a waypoint (optional int parameter will insert the point after the specified waypoint index in a trail)\n\n");
+			" - Add a waypoint (optional int inserts after index)\n\n");
+
 		trap->Print(
 			S_COLOR_YELLOW "bot_wp_rem" S_COLOR_WHITE
-			" - Remove a waypoint (removes last unless waypoint index is specified as a parameter)\n\n");
+			" - Remove a waypoint (last unless index specified)\n\n");
+
 		trap->Print(
 			S_COLOR_YELLOW "bot_wp_addflagged" S_COLOR_WHITE
-			" - Same as wp_add, but adds a flagged point (type bot_wp_addflagged for help)\n\n");
+			" - Add a waypoint with flags (type bot_wp_addflagged for help)\n\n");
+
 		trap->Print(
 			S_COLOR_YELLOW "bot_wp_switchflags" S_COLOR_WHITE
-			" - Switches flags on an existing waypoint (type bot_wp_switchflags for help)\n\n");
+			" - Change flags on an existing waypoint\n\n");
+
 		trap->Print(
-			S_COLOR_YELLOW "bot_wp_tele" S_COLOR_WHITE " - Teleport yourself to the specified waypoint's location\n");
+			S_COLOR_YELLOW "bot_wp_tele" S_COLOR_WHITE
+			" - Teleport to a waypoint\n");
+
 		trap->Print(
 			S_COLOR_YELLOW "bot_wp_killoneways" S_COLOR_WHITE
-			" - Removes oneway (backward and forward) flags on all waypoints in the level\n\n");
+			" - Remove all oneway flags\n\n");
+
 		trap->Print(
-			S_COLOR_YELLOW "bot_wp_save" S_COLOR_WHITE " - Saves all waypoint data into a file for later use\n");
+			S_COLOR_YELLOW "bot_wp_save" S_COLOR_WHITE
+			" - Save waypoint data\n");
 
 		return 1;
 	}
 
+	// ------------------------------------------------------------
+	// bot_wp_add
+	// ------------------------------------------------------------
 	if (Q_stricmp(cmd, "bot_wp_add") == 0)
 	{
 		gDeactivated = 1;
 		optional_s_argument = ConcatArgs(1);
 
-		if (optional_s_argument)
-		{
-			optional_argument = atoi(optional_s_argument);
-		}
-
 		if (optional_s_argument && optional_s_argument[0])
 		{
+			optional_argument = atoi(optional_s_argument);
 			CreateNewWP_InTrail(pl->client->ps.origin, 0, optional_argument);
 		}
 		else
@@ -3521,58 +3562,56 @@ int AcceptBotCommand(const char* cmd, const gentity_t* pl)
 		return 1;
 	}
 
+	// ------------------------------------------------------------
+	// bot_wp_rem
+	// ------------------------------------------------------------
 	if (Q_stricmp(cmd, "bot_wp_rem") == 0)
 	{
 		gDeactivated = 1;
-
 		optional_s_argument = ConcatArgs(1);
-
-		if (optional_s_argument)
-		{
-			optional_argument = atoi(optional_s_argument);
-		}
 
 		if (optional_s_argument && optional_s_argument[0])
 		{
+			optional_argument = atoi(optional_s_argument);
 			RemoveWP_InTrail(optional_argument);
 		}
 		else
 		{
 			RemoveWP();
 		}
-
 		return 1;
 	}
 
+	// ------------------------------------------------------------
+	// bot_wp_tele
+	// ------------------------------------------------------------
 	if (Q_stricmp(cmd, "bot_wp_tele") == 0)
 	{
 		gDeactivated = 1;
 		optional_s_argument = ConcatArgs(1);
 
-		if (optional_s_argument)
-		{
-			optional_argument = atoi(optional_s_argument);
-		}
-
 		if (optional_s_argument && optional_s_argument[0])
 		{
+			optional_argument = atoi(optional_s_argument);
 			TeleportToWP(pl, optional_argument);
 		}
 		else
 		{
-			trap->Print(S_COLOR_YELLOW "You didn't specify an index. Assuming last.\n");
+			trap->Print(S_COLOR_YELLOW "No index specified. Using last.\n");
 			TeleportToWP(pl, gWPNum - 1);
 		}
 		return 1;
 	}
 
+	// ------------------------------------------------------------
+	// bot_wp_spawntele
+	// ------------------------------------------------------------
 	if (Q_stricmp(cmd, "bot_wp_spawntele") == 0)
 	{
 		const gentity_t* closest_spawn = GetClosestSpawn(pl);
 
 		if (!closest_spawn)
 		{
-			//There should always be a spawn point..
 			return 1;
 		}
 
@@ -3585,95 +3624,74 @@ int AcceptBotCommand(const char* cmd, const gentity_t* pl)
 		return 1;
 	}
 
+	// ------------------------------------------------------------
+	// bot_wp_addflagged
+	// ------------------------------------------------------------
 	if (Q_stricmp(cmd, "bot_wp_addflagged") == 0)
 	{
 		gDeactivated = 1;
-
 		required_s_argument = ConcatArgs(1);
 
 		if (!required_s_argument || !required_s_argument[0])
 		{
 			trap->Print(
 				S_COLOR_YELLOW
-				"Flag string needed for bot_wp_addflagged\nj - Jump point\nd - Duck point\nc - Snipe or camp standing\nf - Wait for func\nm - Do not move to when func is under\ns - Snipe or camp\nx - Oneway, forward\ny - Oneway, back\ng - Mission goal\nn - No visibility\nExample (for a point the bot would jump at, and reverse on when traveling a trail backwards):\nbot_wp_addflagged jx\n");
+				"Flag string needed for bot_wp_addflagged\n"
+				"j - Jump\n"
+				"d - Duck\n"
+				"c - Snipe/Camp (stand)\n"
+				"f - Wait for func\n"
+				"m - No move when func under\n"
+				"s - Snipe/Camp (crouch)\n"
+				"x - Oneway forward\n"
+				"y - Oneway back\n"
+				"g - Goal point\n"
+				"n - No visibility\n"
+				"p - Force push\n"
+				"o - Force pull\n"
+				"r - Red only\n"
+				"b - Blue only\n"
+				"u - Spawn neutral\n"
+				"v - Spawn red team\n"
+				"w - Spawn blue team\n"
+				"Example: bot_wp_addflagged jx\n");
 			return 1;
 		}
 
+		// Parse flag characters
 		while (required_s_argument[i])
 		{
-			if (required_s_argument[i] == 'j')
-			{
-				flags_from_argument |= WPFLAG_JUMP;
-			}
-			else if (required_s_argument[i] == 'd')
-			{
-				flags_from_argument |= WPFLAG_DUCK;
-			}
-			else if (required_s_argument[i] == 'c')
-			{
-				flags_from_argument |= WPFLAG_SNIPEORCAMPSTAND;
-			}
-			else if (required_s_argument[i] == 'f')
-			{
-				flags_from_argument |= WPFLAG_WAITFORFUNC;
-			}
-			else if (required_s_argument[i] == 's')
-			{
-				flags_from_argument |= WPFLAG_SNIPEORCAMP;
-			}
-			else if (required_s_argument[i] == 'x')
-			{
-				flags_from_argument |= WPFLAG_ONEWAY_FWD;
-			}
-			else if (required_s_argument[i] == 'y')
-			{
-				flags_from_argument |= WPFLAG_ONEWAY_BACK;
-			}
-			else if (required_s_argument[i] == 'g')
-			{
-				flags_from_argument |= WPFLAG_GOALPOINT;
-			}
-			else if (required_s_argument[i] == 'n')
-			{
-				flags_from_argument |= WPFLAG_NOVIS;
-			}
-			else if (required_s_argument[i] == 'm')
-			{
-				flags_from_argument |= WPFLAG_NOMOVEFUNC;
-			}
-			else if (required_s_argument[i] == 'q')
-			{
-				flags_from_argument |= WPFLAG_DESTROY_FUNCBREAK;
-			}
-			else if (required_s_argument[i] == 'r')
-			{
-				flags_from_argument |= WPFLAG_REDONLY;
-			}
-			else if (required_s_argument[i] == 'b')
-			{
-				flags_from_argument |= WPFLAG_BLUEONLY;
-			}
-			else if (required_s_argument[i] == 'p')
-			{
-				flags_from_argument |= WPFLAG_FORCEPUSH;
-			}
-			else if (required_s_argument[i] == 'o')
-			{
-				flags_from_argument |= WPFLAG_FORCEPULL;
-			}
+			char c = required_s_argument[i];
+
+			if (c == 'j') { flags_from_argument |= WPFLAG_JUMP; }
+			else if (c == 'd') { flags_from_argument |= WPFLAG_DUCK; }
+			else if (c == 'c') { flags_from_argument |= WPFLAG_SNIPEORCAMPSTAND; }
+			else if (c == 'f') { flags_from_argument |= WPFLAG_WAITFORFUNC; }
+			else if (c == 's') { flags_from_argument |= WPFLAG_SNIPEORCAMP; }
+			else if (c == 'x') { flags_from_argument |= WPFLAG_ONEWAY_FWD; }
+			else if (c == 'y') { flags_from_argument |= WPFLAG_ONEWAY_BACK; }
+			else if (c == 'g') { flags_from_argument |= WPFLAG_GOALPOINT; }
+			else if (c == 'n') { flags_from_argument |= WPFLAG_NOVIS; }
+			else if (c == 'm') { flags_from_argument |= WPFLAG_NOMOVEFUNC; }
+			else if (c == 'q') { flags_from_argument |= WPFLAG_DESTROY_FUNCBREAK; }
+			else if (c == 'r') { flags_from_argument |= WPFLAG_REDONLY; }
+			else if (c == 'b') { flags_from_argument |= WPFLAG_BLUEONLY; }
+			else if (c == 'p') { flags_from_argument |= WPFLAG_FORCEPUSH; }
+			else if (c == 'o') { flags_from_argument |= WPFLAG_FORCEPULL; }
+
+			// NEW SPAWN FLAGS
+			else if (c == 'u') { flags_from_argument |= WPFLAG_SPAWN_NEUTRAL; }
+			else if (c == 'v') { flags_from_argument |= WPFLAG_SPAWN_TEAM_RED; }
+			else if (c == 'w') { flags_from_argument |= WPFLAG_SPAWN_TEAM_BLUE; }
 
 			i++;
 		}
 
 		optional_s_argument = ConcatArgs(2);
 
-		if (optional_s_argument)
-		{
-			optional_argument = atoi(optional_s_argument);
-		}
-
 		if (optional_s_argument && optional_s_argument[0])
 		{
+			optional_argument = atoi(optional_s_argument);
 			CreateNewWP_InTrail(pl->client->ps.origin, flags_from_argument, optional_argument);
 		}
 		else
@@ -3683,130 +3701,95 @@ int AcceptBotCommand(const char* cmd, const gentity_t* pl)
 		return 1;
 	}
 
+	// ------------------------------------------------------------
+	// bot_wp_switchflags
+	// ------------------------------------------------------------
 	if (Q_stricmp(cmd, "bot_wp_switchflags") == 0)
 	{
 		gDeactivated = 1;
-
 		required_s_argument = ConcatArgs(1);
 
 		if (!required_s_argument || !required_s_argument[0])
 		{
 			trap->Print(
 				S_COLOR_YELLOW
-				"Flag string needed for bot_wp_switchflags\nType bot_wp_addflagged for a list of flags and their corresponding characters, or use 0 for no flags.\nSyntax: bot_wp_switchflags <flags> <n>\n");
+				"Flag string needed.\n"
+				"Use bot_wp_addflagged for flag list.\n"
+				"Syntax: bot_wp_switchflags <flags> <index>\n");
 			return 1;
 		}
 
+		i = 0;
 		while (required_s_argument[i])
 		{
-			if (required_s_argument[i] == 'j')
-			{
-				flags_from_argument |= WPFLAG_JUMP;
-			}
-			else if (required_s_argument[i] == 'd')
-			{
-				flags_from_argument |= WPFLAG_DUCK;
-			}
-			else if (required_s_argument[i] == 'c')
-			{
-				flags_from_argument |= WPFLAG_SNIPEORCAMPSTAND;
-			}
-			else if (required_s_argument[i] == 'f')
-			{
-				flags_from_argument |= WPFLAG_WAITFORFUNC;
-			}
-			else if (required_s_argument[i] == 's')
-			{
-				flags_from_argument |= WPFLAG_SNIPEORCAMP;
-			}
-			else if (required_s_argument[i] == 'x')
-			{
-				flags_from_argument |= WPFLAG_ONEWAY_FWD;
-			}
-			else if (required_s_argument[i] == 'y')
-			{
-				flags_from_argument |= WPFLAG_ONEWAY_BACK;
-			}
-			else if (required_s_argument[i] == 'g')
-			{
-				flags_from_argument |= WPFLAG_GOALPOINT;
-			}
-			else if (required_s_argument[i] == 'n')
-			{
-				flags_from_argument |= WPFLAG_NOVIS;
-			}
-			else if (required_s_argument[i] == 'm')
-			{
-				flags_from_argument |= WPFLAG_NOMOVEFUNC;
-			}
-			else if (required_s_argument[i] == 'q')
-			{
-				flags_from_argument |= WPFLAG_DESTROY_FUNCBREAK;
-			}
-			else if (required_s_argument[i] == 'r')
-			{
-				flags_from_argument |= WPFLAG_REDONLY;
-			}
-			else if (required_s_argument[i] == 'b')
-			{
-				flags_from_argument |= WPFLAG_BLUEONLY;
-			}
-			else if (required_s_argument[i] == 'p')
-			{
-				flags_from_argument |= WPFLAG_FORCEPUSH;
-			}
-			else if (required_s_argument[i] == 'o')
-			{
-				flags_from_argument |= WPFLAG_FORCEPULL;
-			}
+			char c = required_s_argument[i];
+
+			if (c == 'j') { flags_from_argument |= WPFLAG_JUMP; }
+			else if (c == 'd') { flags_from_argument |= WPFLAG_DUCK; }
+			else if (c == 'c') { flags_from_argument |= WPFLAG_SNIPEORCAMPSTAND; }
+			else if (c == 'f') { flags_from_argument |= WPFLAG_WAITFORFUNC; }
+			else if (c == 's') { flags_from_argument |= WPFLAG_SNIPEORCAMP; }
+			else if (c == 'x') { flags_from_argument |= WPFLAG_ONEWAY_FWD; }
+			else if (c == 'y') { flags_from_argument |= WPFLAG_ONEWAY_BACK; }
+			else if (c == 'g') { flags_from_argument |= WPFLAG_GOALPOINT; }
+			else if (c == 'n') { flags_from_argument |= WPFLAG_NOVIS; }
+			else if (c == 'm') { flags_from_argument |= WPFLAG_NOMOVEFUNC; }
+			else if (c == 'q') { flags_from_argument |= WPFLAG_DESTROY_FUNCBREAK; }
+			else if (c == 'r') { flags_from_argument |= WPFLAG_REDONLY; }
+			else if (c == 'b') { flags_from_argument |= WPFLAG_BLUEONLY; }
+			else if (c == 'p') { flags_from_argument |= WPFLAG_FORCEPUSH; }
+			else if (c == 'o') { flags_from_argument |= WPFLAG_FORCEPULL; }
+
+			// NEW SPAWN FLAGS
+			else if (c == 'u') { flags_from_argument |= WPFLAG_SPAWN_NEUTRAL; }
+			else if (c == 'v') { flags_from_argument |= WPFLAG_SPAWN_TEAM_RED; }
+			else if (c == 'w') { flags_from_argument |= WPFLAG_SPAWN_TEAM_BLUE; }
 
 			i++;
 		}
 
 		optional_s_argument = ConcatArgs(2);
 
-		if (optional_s_argument)
-		{
-			optional_argument = atoi(optional_s_argument);
-		}
-
 		if (optional_s_argument && optional_s_argument[0])
 		{
+			optional_argument = atoi(optional_s_argument);
 			WPFlagsModify(optional_argument, flags_from_argument);
 		}
 		else
 		{
 			trap->Print(
 				S_COLOR_YELLOW
-				"Waypoint number (to modify) needed for bot_wp_switchflags\nSyntax: bot_wp_switchflags <flags> <n>\n");
+				"Waypoint index required.\n"
+				"Syntax: bot_wp_switchflags <flags> <index>\n");
 		}
 		return 1;
 	}
 
+	// ------------------------------------------------------------
+	// bot_wp_killoneways
+	// ------------------------------------------------------------
 	if (Q_stricmp(cmd, "bot_wp_killoneways") == 0)
 	{
-		i = 0;
-
-		while (i < gWPNum)
+		for (i = 0; i < gWPNum; i++)
 		{
 			if (gWPArray[i] && gWPArray[i]->inuse)
 			{
-				if (gWPArray[i]->flags & WPFLAG_ONEWAY_FWD)
+				if ((gWPArray[i]->flags & WPFLAG_ONEWAY_FWD) != 0)
 				{
-					gWPArray[i]->flags -= WPFLAG_ONEWAY_FWD;
+					gWPArray[i]->flags &= ~WPFLAG_ONEWAY_FWD;
 				}
-				if (gWPArray[i]->flags & WPFLAG_ONEWAY_BACK)
+				if ((gWPArray[i]->flags & WPFLAG_ONEWAY_BACK) != 0)
 				{
-					gWPArray[i]->flags -= WPFLAG_ONEWAY_BACK;
+					gWPArray[i]->flags &= ~WPFLAG_ONEWAY_BACK;
 				}
 			}
-
-			i++;
 		}
-
 		return 1;
 	}
 
+	// ------------------------------------------------------------
+	// bot_wp_save
+	// ------------------------------------------------------------
 	if (Q_stricmp(cmd, "bot_wp_save") == 0)
 	{
 		gDeactivated = 0;

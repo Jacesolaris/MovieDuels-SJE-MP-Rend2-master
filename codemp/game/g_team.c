@@ -1198,6 +1198,191 @@ static gentity_t* SelectRandomTeamSpawnPoint(const int teamstate, const team_t t
 	return spots[selection];
 }
 
+#include "ai_main.h"
+qboolean BOT_FindCTFWaypointSpawnPoint_blue(gentity_t* bot, vec3_t outOrigin)
+{
+	// Validate bot entity and client
+	const qboolean botValid = (bot && bot->client) ? qtrue : qfalse;
+	if (botValid == qfalse)
+	{
+		return qfalse;
+	}
+
+	int spawnList[MAX_WPARRAY_SIZE] = { 0 };
+	int spawnCount = 0;
+
+	// ---------------------------------------------------------
+	// Scan all waypoints for NEUTRAL spawn flags only
+	// ---------------------------------------------------------
+	for (int i = 0; i < gWPNum; i++)
+	{
+		const wpobject_t* wp = gWPArray[i]; // gWPArray is an array of pointers
+		if (!wp)
+		{
+			continue;
+		}
+
+		// ignore unused entries
+		if (wp->inuse == qfalse)
+		{
+			continue;
+		}
+
+		// Must be a blue spawnpoint
+		if ((wp->flags & WPFLAG_SPAWN_TEAM_BLUE) == 0)
+		{
+			continue;
+		}
+
+		// Valid blue spawnpoint
+		spawnList[spawnCount++] = i;
+	}
+
+	// No valid blue waypoint spawnpoints — fallback to normal logic
+	if (spawnCount <= 0)
+	{
+		return qfalse;
+	}
+
+	// Pick a random waypoint spawnpoint
+	const int chosen = spawnList[Q_irand(0, spawnCount - 1)];
+
+	// Get pointer to the chosen waypoint and copy its origin
+	const wpobject_t* chosenWP = gWPArray[chosen];
+
+	if (!chosenWP)
+	{
+		return qfalse;
+	}
+
+	VectorCopy(chosenWP->origin, outOrigin);
+
+	return qtrue;
+}
+
+qboolean BOT_FindCTFWaypointSpawnPoint_red(gentity_t* bot, vec3_t outOrigin)
+{
+	// Validate bot entity and client
+	const qboolean botValid = (bot && bot->client) ? qtrue : qfalse;
+	if (botValid == qfalse)
+	{
+		return qfalse;
+	}
+
+	int spawnList[MAX_WPARRAY_SIZE] = { 0 };
+	int spawnCount = 0;
+
+	// ---------------------------------------------------------
+	// Scan all waypoints for NEUTRAL spawn flags only
+	// ---------------------------------------------------------
+	for (int i = 0; i < gWPNum; i++)
+	{
+		const wpobject_t* wp = gWPArray[i]; // gWPArray is an array of pointers
+		if (!wp)
+		{
+			continue;
+		}
+
+		// ignore unused entries
+		if (wp->inuse == qfalse)
+		{
+			continue;
+		}
+
+		// Must be a red spawnpoint
+		if ((wp->flags & WPFLAG_SPAWN_TEAM_RED) == 0)
+		{
+			continue;
+		}
+
+		// Valid red spawnpoint
+		spawnList[spawnCount++] = i;
+	}
+
+	// No valid red waypoint spawnpoints — fallback to normal logic
+	if (spawnCount <= 0)
+	{
+		return qfalse;
+	}
+
+	// Pick a random waypoint spawnpoint
+	const int chosen = spawnList[Q_irand(0, spawnCount - 1)];
+
+	// Get pointer to the chosen waypoint and copy its origin
+	const wpobject_t* chosenWP = gWPArray[chosen];
+
+	if (!chosenWP)
+	{
+		return qfalse;
+	}
+
+	VectorCopy(chosenWP->origin, outOrigin);
+
+	return qtrue;
+}
+
+qboolean BOT_FindFFAWaypointSpawnPoint(gentity_t* bot, vec3_t outOrigin)
+{
+	// Validate bot entity and client
+	const qboolean botValid = (bot && bot->client) ? qtrue : qfalse;
+	if (botValid == qfalse)
+	{
+		return qfalse;
+	}
+
+	int spawnList[MAX_WPARRAY_SIZE] = { 0 };
+	int spawnCount = 0;
+
+	// ---------------------------------------------------------
+	// Scan all waypoints for NEUTRAL spawn flags only
+	// ---------------------------------------------------------
+	for (int i = 0; i < gWPNum; i++)
+	{
+		const wpobject_t* wp = gWPArray[i]; // gWPArray is an array of pointers
+		if (!wp)
+		{
+			continue;
+		}
+
+		// ignore unused entries
+		if (wp->inuse == qfalse)
+		{
+			continue;
+		}
+
+		// Must be a neutral spawnpoint
+		if ((wp->flags & WPFLAG_SPAWN_NEUTRAL) == 0)
+		{
+			continue;
+		}
+
+		// Valid FFA spawnpoint
+		spawnList[spawnCount++] = i;
+	}
+
+	// No valid FFA waypoint spawnpoints — fallback to normal logic
+	if (spawnCount <= 0)
+	{
+		return qfalse;
+	}
+
+	// Pick a random waypoint spawnpoint
+	const int chosen = spawnList[Q_irand(0, spawnCount - 1)];
+
+	// Get pointer to the chosen waypoint and copy its origin
+	const wpobject_t* chosenWP = gWPArray[chosen];
+
+	if (!chosenWP)
+	{
+		return qfalse;
+	}
+
+	VectorCopy(chosenWP->origin, outOrigin);
+
+	return qtrue;
+}
+
+
 /*
 ===========
 SelectCTFSpawnPoint
@@ -1365,9 +1550,7 @@ SelectSiegeSpawnPoint
 
 ============
 */
-gentity_t* SelectSiegeSpawnPoint(const int siegeClass, const team_t team, const int teamstate, vec3_t origin,
-	vec3_t angles,
-	const qboolean isbot)
+gentity_t* SelectSiegeSpawnPoint(const int siegeClass, const team_t team, const int teamstate, vec3_t origin,vec3_t angles,	const qboolean isbot)
 {
 	gentity_t* spot = SelectRandomTeamSpawnPoint(teamstate, team, siegeClass);
 
@@ -1474,7 +1657,7 @@ void TeamplayInfoMessage(const gentity_t* ent)
 			{
 				h = a = 0;
 				//check to make sure that duplicate data isn't being transmitted to the clients.
-				if (ent->client->pers.SJE_clientplugin //don't use this method if the player doesn't have the client plugin
+				if (ent->client->pers.MovieDuels_Clientplugin //don't use this method if the player doesn't have the client plugin
 					&& oldOverLayData[i].location == player->client->pers.teamState.location
 					&& oldOverLayData[i].health == h
 					&& oldOverLayData[i].armor == a

@@ -5139,7 +5139,6 @@ static void move_toward_ideal_angles(bot_state_t* bs)
 }
 
 #define BOT_STRAFE_AVOIDANCE
-
 #ifdef BOT_STRAFE_AVOIDANCE
 #define STRAFEAROUND_RIGHT			1
 #define STRAFEAROUND_LEFT			2
@@ -11933,7 +11932,17 @@ void standard_bot_ai(bot_state_t* bs)
 
 	fj_halt = 0;
 
+#ifndef FORCEJUMP_INSTANTMETHOD
+	if (bs->forceJumpChargeTime > level.time)
+	{
+		use_the_force = 1;
+		forceHostile = 0;
+	}
+
+	if (bs->currentEnemy && bs->currentEnemy->client && bs->frame_Enemy_Vis && bs->forceJumpChargeTime < level.time)
+#else
 	if (bs->currentEnemy && bs->currentEnemy->client && bs->frame_Enemy_Vis)
+#endif
 	{
 		// Compute angle to enemy once
 		vec3_t toEnemyAngles;
@@ -13445,55 +13454,55 @@ void standard_bot_ai(bot_state_t* bs)
 #endif
 	}
 
-	//#ifndef FORCEJUMP_INSTANTMETHOD
-	//	if (bs->forceJumpChargeTime > level.time)
-	//	{
-	//		bs->jumpTime = 0;
-	//	}
-	//#endif
-	//
-	//	if (bs->jumpPrep > level.time)
-	//	{
-	//		bs->forceJumpChargeTime = 0;
-	//	}
-	//
-	//	if (bs->forceJumpChargeTime > level.time)
-	//	{
-	//		bs->jumpHoldTime = ((float)(bs->forceJumpChargeTime - level.time) * 0.5f) + level.time;
-	//		bs->forceJumpChargeTime = 0;
-	//	}
-	//
-	//	if (bs->jumpHoldTime > level.time)
-	//	{
-	//		bs->jumpTime = bs->jumpHoldTime;
-	//	}
-	//
-	//	if (bs->jumpTime > level.time && bs->jDelay < level.time)
-	//	{
-	//		if (bs->jumpHoldTime > level.time)
-	//		{
-	//			trap->EA_Jump(bs->client);
-	//			if (bs->wpCurrent)
-	//			{
-	//				if (bs->wpCurrent->origin[2] - bs->origin[2] < 64)
-	//				{
-	//					trap->EA_MoveForward(bs->client);
-	//				}
-	//			}
-	//			else
-	//			{
-	//				trap->EA_MoveForward(bs->client);
-	//			}
-	//			if (g_entities[bs->client].client->ps.groundEntityNum == ENTITYNUM_NONE)
-	//			{
-	//				g_entities[bs->client].client->ps.pm_flags |= PMF_JUMP_HELD;
-	//			}
-	//		}
-	//		else if (!(bs->cur_ps.pm_flags & PMF_JUMP_HELD))
-	//		{
-	//			trap->EA_Jump(bs->client);
-	//		}
-	//	}
+#ifndef FORCEJUMP_INSTANTMETHOD
+	if (bs->forceJumpChargeTime > level.time)
+	{
+		bs->jumpTime = 0;
+	}
+#endif
+
+	if (bs->jumpPrep > level.time)
+	{
+		bs->forceJumpChargeTime = 0;
+	}
+
+	if (bs->forceJumpChargeTime > level.time)
+	{
+		bs->jumpHoldTime = ((float)(bs->forceJumpChargeTime - level.time) * 0.5f) + level.time;
+		bs->forceJumpChargeTime = 0;
+	}
+
+	if (bs->jumpHoldTime > level.time)
+	{
+		bs->jumpTime = bs->jumpHoldTime;
+	}
+
+	if (bs->jumpTime > level.time && bs->jDelay < level.time)
+	{
+		if (bs->jumpHoldTime > level.time)
+		{
+			trap->EA_Jump(bs->client);
+			if (bs->wpCurrent)
+			{
+				if (bs->wpCurrent->origin[2] - bs->origin[2] < 64)
+				{
+					trap->EA_MoveForward(bs->client);
+				}
+			}
+			else
+			{
+				trap->EA_MoveForward(bs->client);
+			}
+			if (g_entities[bs->client].client->ps.groundEntityNum == ENTITYNUM_NONE)
+			{
+				g_entities[bs->client].client->ps.pm_flags |= PMF_JUMP_HELD;
+			}
+		}
+		else if (!(bs->cur_ps.pm_flags & PMF_JUMP_HELD))
+		{
+			trap->EA_Jump(bs->client);
+		}
+	}
 
 	if (bs->duckTime > level.time)
 	{
@@ -14088,10 +14097,18 @@ void Enhanced_bot_ai(bot_state_t* bs)
 	}
 
 	fj_halt = 0;
-	use_the_force = 0;
-	forceHostile = 0;
 
+#ifndef FORCEJUMP_INSTANTMETHOD
+	if (bs->forceJumpChargeTime > level.time)
+	{
+		use_the_force = 1;
+		forceHostile = 0;
+	}
+
+	if (bs->currentEnemy && bs->currentEnemy->client && bs->frame_Enemy_Vis && bs->forceJumpChargeTime < level.time)
+#else
 	if (bs->currentEnemy && bs->currentEnemy->client && bs->frame_Enemy_Vis)
+#endif
 	{
 		// Compute angle to enemy once
 		vec3_t toEnemyAngles;
@@ -15631,85 +15648,85 @@ void Enhanced_bot_ai(bot_state_t* bs)
 	// -----------------------------------------------------
 	// FORCE JUMP CHARGE CANCEL (Rule #6)
 	// -----------------------------------------------------
-//#ifndef FORCEJUMP_INSTANTMETHOD
-//	if (bs->forceJumpChargeTime > level.time)
-//	{
-//		// While charging force jump, normal jump is disabled
-//		bs->jumpTime = 0;
-//	}
-//#endif
-//
-//	// -----------------------------------------------------
-//	// PREP CANCELS FORCE JUMP (Rule #6)
-//	// -----------------------------------------------------
-//	if (bs->jumpPrep > level.time)
-//	{
-//		bs->forceJumpChargeTime = 0;
-//	}
-//
-//	// -----------------------------------------------------
-//	// FORCE JUMP CHARGE → HOLD CONVERSION (Rule #6)
-//	// -----------------------------------------------------
-//	if (bs->forceJumpChargeTime > level.time)
-//	{
-//		bs->jumpHoldTime =
-//			((bs->forceJumpChargeTime - level.time) * 0.5f) + level.time;
-//
-//		bs->forceJumpChargeTime = 0;
-//	}
-//
-//	// -----------------------------------------------------
-//	// HOLD → JUMP WINDOW (Rule #6)
-//	// -----------------------------------------------------
-//	if (bs->jumpHoldTime > level.time)
-//	{
-//		bs->jumpTime = bs->jumpHoldTime;
-//	}
-//
-//	// -----------------------------------------------------
-//	// EXECUTE JUMP (Rules #1, #4, #6, #7)
-//	// -----------------------------------------------------
-//	if (bs->jumpTime > level.time &&
-//		bs->jDelay < level.time &&
-//		!fj_halt)
-//	{
-//		// Saber bots walk, not sprint (Rule #1)
-//		if (bs->cur_ps.weapon == WP_SABER)
-//		{
-//			bs->doWalk = qtrue;
-//		}
-//
-//		// Held jump (force jump)
-//		if (bs->jumpHoldTime > level.time)
-//		{
-//			trap->EA_Jump(bs->client);
-//
-//			// Move forward only if it helps reach the waypoint
-//			if (bs->wpCurrent &&
-//				bs->wpCurrent->origin[2] - bs->origin[2] < 64)
-//			{
-//				trap->EA_MoveForward(bs->client);
-//			}
-//			else if (!bs->wpCurrent)
-//			{
-//				trap->EA_MoveForward(bs->client);
-//			}
-//
-//			// If airborne, keep jump held
-//			if (g_entities[bs->client].client->ps.groundEntityNum == ENTITYNUM_NONE)
-//			{
-//				g_entities[bs->client].client->ps.pm_flags |= PMF_JUMP_HELD;
-//			}
-//		}
-//		else
-//		{
-//			// Normal jump (not held)
-//			if (!(bs->cur_ps.pm_flags & PMF_JUMP_HELD))
-//			{
-//				trap->EA_Jump(bs->client);
-//			}
-//		}
-//	}
+#ifndef FORCEJUMP_INSTANTMETHOD
+	if (bs->forceJumpChargeTime > level.time)
+	{
+		// While charging force jump, normal jump is disabled
+		bs->jumpTime = 0;
+	}
+#endif
+
+	// -----------------------------------------------------
+	// PREP CANCELS FORCE JUMP (Rule #6)
+	// -----------------------------------------------------
+	if (bs->jumpPrep > level.time)
+	{
+		bs->forceJumpChargeTime = 0;
+	}
+
+	// -----------------------------------------------------
+	// FORCE JUMP CHARGE → HOLD CONVERSION (Rule #6)
+	// -----------------------------------------------------
+	if (bs->forceJumpChargeTime > level.time)
+	{
+		bs->jumpHoldTime =
+			((bs->forceJumpChargeTime - level.time) * 0.5f) + level.time;
+
+		bs->forceJumpChargeTime = 0;
+	}
+
+	// -----------------------------------------------------
+	// HOLD → JUMP WINDOW (Rule #6)
+	// -----------------------------------------------------
+	if (bs->jumpHoldTime > level.time)
+	{
+		bs->jumpTime = bs->jumpHoldTime;
+	}
+
+	// -----------------------------------------------------
+	// EXECUTE JUMP (Rules #1, #4, #6, #7)
+	// -----------------------------------------------------
+	if (bs->jumpTime > level.time &&
+		bs->jDelay < level.time &&
+		!fj_halt)
+	{
+		// Saber bots walk, not sprint (Rule #1)
+		if (bs->cur_ps.weapon == WP_SABER)
+		{
+			bs->doWalk = qtrue;
+		}
+
+		// Held jump (force jump)
+		if (bs->jumpHoldTime > level.time)
+		{
+			trap->EA_Jump(bs->client);
+
+			// Move forward only if it helps reach the waypoint
+			if (bs->wpCurrent &&
+				bs->wpCurrent->origin[2] - bs->origin[2] < 64)
+			{
+				trap->EA_MoveForward(bs->client);
+			}
+			else if (!bs->wpCurrent)
+			{
+				trap->EA_MoveForward(bs->client);
+			}
+
+			// If airborne, keep jump held
+			if (g_entities[bs->client].client->ps.groundEntityNum == ENTITYNUM_NONE)
+			{
+				g_entities[bs->client].client->ps.pm_flags |= PMF_JUMP_HELD;
+			}
+		}
+		else
+		{
+			// Normal jump (not held)
+			if (!(bs->cur_ps.pm_flags & PMF_JUMP_HELD))
+			{
+				trap->EA_Jump(bs->client);
+			}
+		}
+	}
 
 	if (bs->duckTime > level.time)
 	{

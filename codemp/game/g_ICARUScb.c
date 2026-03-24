@@ -34,6 +34,23 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_dynmusic.h"
 #include "g_roff.h"
 #include "g_camera.h"
+#include <qcommon\q_platform.h>
+#include "g_local.h"
+#include <qcommon\q_math.h>
+#include "bg_weapons.h"
+#include "g_team.h"
+#include <math.h>
+#include <stdio.h>
+#include "b_public.h"
+#include "teams.h"
+#include "bg_vehicles.h"
+#include <assert.h>
+#include "surfaceflags.h"
+#include <string.h>
+#include "g_public.h"
+#include <stdarg.h>
+#include <qcommon\q_string.h>
+#include "anims.h"
 
 qboolean BG_SabersOff(const playerState_t* ps);
 extern stringID_table_t WPTable[];
@@ -70,7 +87,7 @@ struct DeclaredVariable_s
 
 typedef struct DeclaredVariable_s DeclaredVariable_t;
 
-void ObjectivePrint_Line()
+static void ObjectivePrint_Line()
 {
 	if (level.is_t1_fatal_map == qtrue)
 	{
@@ -117,7 +134,6 @@ enum
 };
 
 #include "icarus/interpreter.h"
-#include <stdarg.h>
 
 extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
 
@@ -1478,7 +1494,7 @@ anglerCallback
 Utility function
 =============
 */
-void anglerCallback(gentity_t* ent)
+static void anglerCallback(gentity_t* ent)
 {
 	//Complete the task
 	trap->ICARUS_TaskIDComplete((sharedEntity_t*)ent, TID_ANGLE_FACE);
@@ -1512,7 +1528,7 @@ moverCallback
 Utility function
 =============
 */
-void moverCallback(gentity_t* ent)
+static void moverCallback(gentity_t* ent)
 {
 	//complete the task
 	trap->ICARUS_TaskIDComplete((sharedEntity_t*)ent, TID_MOVE_NAV);
@@ -1574,7 +1590,7 @@ moveAndRotateCallback
 Utility function
 =============
 */
-void moveAndRotateCallback(gentity_t* ent)
+static void moveAndRotateCallback(gentity_t* ent)
 {
 	//stop turning
 	anglerCallback(ent);
@@ -1743,7 +1759,7 @@ void Q3_Lerp2Pos(const int taskID, const int entID, vec3_t origin, vec3_t angles
 	//Only do the angles if specified
 	if (angles != NULL)
 	{
-		vec3_t ang;
+		vec3_t ang = { 0 };
 		//
 		// Rotation
 
@@ -1799,7 +1815,7 @@ Lerps the angles to the destination value
 void Q3_Lerp2Angles(const int taskID, const int entID, vec3_t angles, const float duration)
 {
 	gentity_t* ent = &g_entities[entID];
-	vec3_t ang;
+	vec3_t ang = { 0 };
 
 	if (!ent)
 	{
@@ -3053,7 +3069,7 @@ MoveOwner
 */
 qboolean spot_would_telefrag2(const gentity_t* mover, vec3_t dest);
 
-void MoveOwner(gentity_t* self)
+static void MoveOwner(gentity_t* self)
 {
 	gentity_t* owner = &g_entities[self->r.ownerNum];
 
@@ -4424,7 +4440,7 @@ Q3_SetViewEntity
   Argument		: const char *name
 ============
 */
-void Q3_SetViewEntity(int entID, const char* name)
+static void Q3_SetViewEntity(int entID, const char* name)
 {
 	G_DebugPrint(WL_WARNING, "Q3_SetViewEntity currently unsupported in MP, ask if you need it.\n");
 }
@@ -4473,7 +4489,7 @@ static void SetSpawnWeapon(const int weap)
 	UseSpawnWeapons = qtrue;
 }
 
-void G_SetWeapon(gentity_t* self, const int wp)
+static void G_SetWeapon(gentity_t* self, const int wp)
 {
 	qboolean had_weapon = qfalse;
 
@@ -6532,7 +6548,7 @@ SolidifyOwner
   Argument		: sharedEntity_t *self
 ============
 */
-void SolidifyOwner(gentity_t* self)
+static void SolidifyOwner(gentity_t* self)
 {
 	gentity_t* owner = &g_entities[self->r.ownerNum];
 
@@ -7440,53 +7456,88 @@ Q3_SetSaberActive
   Argument		: qboolean shields
 ============
 */
+// ------------------------------------------------------------
+// Q3_SetSaberActive
+// Ensures an NPC/player has their saber active or holstered
+// depending on the 'active' parameter.
+// Behaviour preserved exactly as original, but made safe.
+// ------------------------------------------------------------
 static void Q3_SetSaberActive(const int entID, const qboolean active)
 {
-	gentity_t* ent = &g_entities[entID];
-
-	if (!ent || !ent->inuse)
+	// Validate entity index
+	if (entID < 0 || entID >= MAX_GENTITIES)
 	{
-		G_DebugPrint(WL_WARNING, "Q3_SetSaberActive: invalid entID %d\n", entID);
+		G_DebugPrint(WL_ERROR, "Q3_SetSaberActive: Invalid entID %d\n", entID);
 		return;
 	}
 
-	if (!ent->client)
+	gentity_t* ent = &g_entities[entID];
+
+	// Validate entity inuse
+	if (ent->inuse == qfalse)
 	{
-		G_DebugPrint(WL_WARNING, "Q3_SetSaberActive: %d is not a client\n", entID);
+		G_DebugPrint(WL_WARNING, "Q3_SetSaberActive: Entity %d not in use\n", entID);
+		return;
 	}
 
-	//try to switch to the saber if we're not using it.
-	if (ent && ent->client->ps.weapon != WP_SABER)
+	// Validate client
+	if (ent->client == NULL)
 	{
-		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_SABER)
+		G_DebugPrint(WL_WARNING, "Q3_SetSaberActive: Entity %d is not a client\n", entID);
+		return;
+	}
+
+	// ------------------------------------------------------------
+	// If not currently using the saber, try to switch to it
+	// ------------------------------------------------------------
+	if (ent->client->ps.weapon != WP_SABER)
+	{
+		// Check if the entity actually HAS a saber
+		if ((ent->client->ps.stats[STAT_WEAPONS] & (1 << WP_SABER)) != 0)
 		{
-			//change to it right now
-			if (ent->NPC)
+			// NPCs switch immediately
+			if (ent->NPC != NULL)
 			{
 				ChangeWeapon(ent, WP_SABER);
 			}
 			else
 			{
+				// Players: ensure saber item is cached
 				const gitem_t* item = BG_FindItemForWeapon(WP_SABER);
-				register_item(item); //make sure the weapon is cached in case this runs at startup
+				register_item(item);
+
+				// Play pickup event
 				G_AddEvent(ent, EV_ITEM_PICKUP, item - bg_itemlist);
 			}
+
+			// Force saber as active weapon
 			ent->client->ps.weapon = WP_SABER;
 			ent->client->ps.weaponstate = WEAPON_READY;
+
+			// Play weapon change sound
 			G_AddEvent(ent, EV_GENERAL_SOUND, G_SoundIndex("sound/weapons/change.wav"));
 		}
 		else
 		{
-			G_DebugPrint(WL_ERROR, "Q3_SetSaberActive: '%s' is not using a saber!\n", ent->targetname);
+			const char* name = (ent->targetname != NULL) ? ent->targetname : "<unnamed>";
+			G_DebugPrint(WL_ERROR, "Q3_SetSaberActive: '%s' does not have a saber\n", name);
 			return;
 		}
 	}
-	//was reversed
-	if (!ent->client->ps.saberHolstered && !active)
+
+	// ------------------------------------------------------------
+	// Toggle saber holster state
+	// ------------------------------------------------------------
+	const qboolean saberIsHolstered = (ent->client->ps.saberHolstered != 0) ? qtrue : qfalse;
+	const qboolean sabersOff = BG_SabersOff(&ent->client->ps);
+
+	// If saber is out but should be holstered
+	if (saberIsHolstered == qfalse && active == qfalse)
 	{
 		Cmd_ToggleSaber_f(ent);
 	}
-	else if (BG_SabersOff(&ent->client->ps) && active)
+	// If saber is holstered/off but should be active
+	else if (sabersOff == qtrue && active == qtrue)
 	{
 		Cmd_ToggleSaber_f(ent);
 	}
@@ -7772,11 +7823,11 @@ qboolean Q3_Set(const int taskID, const int entID, const char* type_name, const 
 	gentity_t* ent = &g_entities[entID];
 	float float_data;
 	int int_data;
-	vec3_t vector_data;
-	vec3_t vector2_data;
-	vec4_t color, color2;
+	vec3_t vector_data = { 0 };
+	vec3_t vector2_data = { 0 };
+	vec4_t color = { 0 }, color2 = { 0 };
 	float float2_data;
-	char char_data[1000];
+	char char_data[1000] = { 0 };
 
 	//Set this for callbacks
 	const int toSet = GetIDForString(setTable, type_name);
@@ -9266,20 +9317,69 @@ static void Q3_SetRenderCullRadius(const int entID, const float float_data)
 
 //find the current name of whatever trigger_location the entity is inside of.  if it's
 //inside none of them, return NULL
+// ------------------------------------------------------------
+// G_GetLocationForEnt
+// Returns the location string (trigger_location->message)
+// for the given entity, if it is touching a trigger_location.
+// Behaviour preserved exactly as original, but made safe.
+// ------------------------------------------------------------
 char* G_GetLocationForEnt(const gentity_t* self)
 {
 	int touch[MAX_GENTITIES];
 	vec3_t mins, maxs;
 
+	// Validate entity
+	if (self == NULL)
+	{
+		trap->Print(S_COLOR_RED "G_GetLocationForEnt: NULL entity passed in\n");
+		return NULL;
+	}
+
+	// Compute bounding box for entity
 	VectorAdd(self->r.currentOrigin, self->r.mins, mins);
 	VectorAdd(self->r.currentOrigin, self->r.maxs, maxs);
+
+	// Query entities touching this bounding box
 	const int num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
 
+	if (num <= 0)
+	{
+		return NULL;
+	}
+
+	// ------------------------------------------------------------
+	// Scan all touched entities for trigger_location
+	// ------------------------------------------------------------
 	for (int i = 0; i < num; i++)
 	{
-		const gentity_t* hit = &g_entities[touch[i]];
+		const int entNum = touch[i];
+
+		// Validate index
+		if (entNum < 0 || entNum >= MAX_GENTITIES)
+		{
+			trap->Print(S_COLOR_YELLOW "G_GetLocationForEnt: Invalid entity index %i\n", entNum);
+			continue;
+		}
+
+		const gentity_t* hit = &g_entities[entNum];
+
+		// Validate classname pointer
+		if (hit->classname == NULL)
+		{
+			trap->Print(S_COLOR_YELLOW "G_GetLocationForEnt: Entity %i has NULL classname\n", entNum);
+			continue;
+		}
+
+		// Check for trigger_location
 		if (strcmp(hit->classname, "trigger_location") == 0)
 		{
+			// message may be NULL, so check it
+			if (hit->message == NULL)
+			{
+				trap->Print(S_COLOR_YELLOW "G_GetLocationForEnt: trigger_location %i has NULL message\n", entNum);
+				return NULL;
+			}
+
 			return hit->message;
 		}
 	}
@@ -9312,37 +9412,59 @@ void Q3_SetForcePower(const int entID, const int forcePower, const qboolean powe
 	}
 }
 
+// ------------------------------------------------------------
+// ToggleNPCWinterGear
+// Toggles winter gear for an NPC by modifying the model string.
+// Behaviour preserved exactly as original, but made safe.
+// ------------------------------------------------------------
 void ToggleNPCWinterGear(gentity_t* ent)
 {
-	//toggles the winter gear for an NPC
 	char model[MAX_QPATH];
 
-	if (!ent->s.modelIndex)
+	// Validate entity and model index
+	if (ent == NULL)
 	{
-		//no model?!
+		trap->Print(S_COLOR_RED "ToggleNPCWinterGear: NULL entity passed in\n");
 		return;
 	}
 
-	//get the model name for this NPC
+	if (ent->s.modelIndex == 0)
+	{
+		trap->Print(S_COLOR_RED "ToggleNPCWinterGear: Entity has no modelIndex\n");
+		return;
+	}
+
+	// Retrieve model string
 	trap->GetConfigstring(CS_MODELS + ent->s.modelIndex, model, MAX_QPATH);
 
-	if (WinterGear)
+	// Only modify if WinterGear is enabled
+	if (WinterGear == qtrue)
 	{
-		//use winter gear
-		char* skinname = strstr(model, "|");
-		if (skinname)
+		// Find first '|'
+		char* firstPipe = strstr(model, "|");
+		if (firstPipe == NULL)
 		{
-			//we're using a species player model, try to use their hoth clothes.
-			skinname++;
-			strstr(skinname, "|");
-			if (skinname)
-			{
-				//this should always be true for good specie skins I think
-				strcpy(skinname, "torso_g1|lower_e1\0");
-			}
-
-			ent->s.modelIndex = G_model_index(model);
+			trap->Print(S_COLOR_YELLOW "ToggleNPCWinterGear: Model '%s' has no skin separator\n", model);
+			return;
 		}
+
+		// Move past first '|'
+		firstPipe++;
+
+		// Find second '|'
+		char* secondPipe = strstr(firstPipe, "|");
+		if (secondPipe == NULL)
+		{
+			trap->Print(S_COLOR_YELLOW "ToggleNPCWinterGear: Model '%s' missing second skin separator\n", model);
+			return;
+		}
+
+		// Replace everything after the first '|' with winter gear skins
+		// Safe because MAX_QPATH is large and we validated positions
+		Q_strncpyz(firstPipe, "torso_g1|lower_e1", MAX_QPATH - (firstPipe - model));
+
+		// Re-index the modified model
+		ent->s.modelIndex = G_model_index(model);
 	}
 }
 

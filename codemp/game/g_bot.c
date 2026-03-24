@@ -1041,7 +1041,7 @@ static void G_AddBot(const char* name, const float skill, const char* team, cons
 	}
 	Info_SetValueForKey(userinfo, key, s);
 
-	Info_SetValueForKey(userinfo, "SJE_clientplugin", CURRENT_MD_CLIENTVERSION);
+	Info_SetValueForKey(userinfo, "MovieDuels_Clientplugin", CURRENT_MD_CLIENTVERSION);
 
 	gentity_t* bot = &g_entities[clientNum];
 

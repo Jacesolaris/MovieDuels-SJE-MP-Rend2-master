@@ -577,10 +577,11 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_rey",
 	"models/players/_humanoid_sbd",
 	"models/players/_humanoid_vader",
-	"models/players/_humanoid_yoda"
+	"models/players/_humanoid_yoda",
+	"models/players/darktrooper_tv"
 };
 
-static qboolean R_IsHumanoidAnimName(const char* animName)
+static qboolean R_IsHumanoidPath(const char* animName)
 {
 	if (!animName || !animName[0])
 		return qfalse;
@@ -696,7 +697,7 @@ retryModel:
 	// ------------------------------------------------------------
 	Q_strncpyz(resolvedGLA, gla_name, sizeof(resolvedGLA));
 
-	if (R_IsHumanoidAnimName(resolvedGLA))
+	if (R_IsHumanoidPath(resolvedGLA))
 	{
 		Q_strncpyz(resolvedGLA,
 			"models/players/_humanoid_mp/_humanoid",
@@ -706,7 +707,7 @@ retryModel:
 	// ------------------------------------------------------------
 	// HUMANOID DETECTION USING PREFIX LIST
 	// ------------------------------------------------------------
-	isHumanoidGLA = R_IsHumanoidAnimName(resolvedGLA);
+	isHumanoidGLA = R_IsHumanoidPath(resolvedGLA);
 
 	// Store final GLA name
 	Q_strncpyz(ci->glaName, resolvedGLA, sizeof(ci->glaName));
@@ -14074,7 +14075,7 @@ static void CG_G2AnimEntModelLoad(centity_t* cent)
 	// ------------------------------------------------------------
 	qboolean isHumanoid = qfalse;
 
-	if (ci->glaName[0] && R_IsHumanoidAnimName(ci->glaName))
+	if (ci->glaName[0] && R_IsHumanoidPath(ci->glaName))
 	{
 		isHumanoid = qtrue;
 	}
@@ -14515,7 +14516,7 @@ static void CG_ForceFPLSPlayerModel(centity_t* cent, clientInfo_t* ci)
 	// ------------------------------------------------------------
 	qboolean isHumanoid = qfalse;
 
-	if (ci->glaName[0] && R_IsHumanoidAnimName(ci->glaName))
+	if (ci->glaName[0] && R_IsHumanoidPath(ci->glaName))
 	{
 		isHumanoid = qtrue;
 	}

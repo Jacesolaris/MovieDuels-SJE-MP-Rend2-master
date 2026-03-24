@@ -49,7 +49,7 @@ extern vec3_t gPainPoint;
 //==================================================================
 
 // the "gameversion" client command will print this plus compile date
-#define	GAMEVERSION	"MovieDuels"
+#define	GAMEVERSION	"MovieDuels-MP"
 
 #define SECURITY_LOG "security.log"
 
@@ -660,7 +660,7 @@ typedef struct clientPersistant_s
 	bclass_t nextaccountclass;
 	qboolean botmodelscale;
 
-	qboolean SJE_clientplugin;
+	qboolean MovieDuels_Clientplugin;
 
 	int save_score;
 

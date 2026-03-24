@@ -2159,7 +2159,7 @@ void NPC_Think(gentity_t* self)
 		int addTime = GetTime(startTime);
 		if (addTime > 50)
 		{
-			gi.Printf(S_COLOR_RED"ERROR: NPC number %d, %s %s at %s, weaponnum: %d, using %d of AI time!!!\n", NPC->s.number, NPC->NPC_type, NPC->targetname, vtos(NPC->currentOrigin), NPC->s.weapon, addTime);
+			gi.Printf(S_COLOR_RED"ERROR: NPC number %d, %s %s at %s, weaponnum: %d, using %d of AI time!!!\n", NPC->s.number, NPC->NPC_type, NPC->targetname, vtos(NPC->r.currentOrigin), NPC->s.weapon, addTime);
 		}
 		AITime += addTime;
 #endif//	AI_TIMERS
