@@ -25,9 +25,22 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "cg_local.h"
 #include "fx_local.h"
-#include "ui/ui_shared.h"
 #include "ui/ui_public.h"
 #include "ghoul2/G2.h"
+#include <qcommon\qfiles.h>
+#include <stdlib.h>
+#include <game\surfaceflags.h>
+#include <assert.h>
+#include <game\bg_weapons.h>
+#include <qcommon\q_string.h>
+#include <qcommon\q_color.h>
+#include <game\bg_vehicles.h>
+#include <game\teams.h>
+#include <qcommon\q_shared.h>
+#include <string.h>
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
+#include <game\bg_public.h>
 //==========================================================================
 
 extern qboolean WP_SaberBladeUseSecondBladeStyle(const saberInfo_t* saber, int blade_num);
@@ -41,6 +54,7 @@ extern float ShortestLineSegBewteen2LineSegs(vec3_t start1, vec3_t end1, vec3_t 
 	vec3_t close_pnt2);
 
 extern int cg_siegeDeathTime;
+extern int cg_ffarespawntime;
 extern int cg_siegeDeathDelay;
 extern int cg_vehicleAmmoWarning;
 extern int cg_vehicleAmmoWarningTime;
@@ -2767,7 +2781,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 		if (cent->currentState.number >= MAX_CLIENTS && cent->currentState.eType != ET_NPC)
 		{
 			//special case for turret firing
-			vec3_t gunpoint, gunangle;
+			vec3_t gunpoint = { 0 }, gunangle = { 0 };
 			mdxaBone_t matrix;
 
 			weaponInfo_t* weapon_info = &cg_weapons[WP_TURRET];
@@ -3522,8 +3536,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					//h4q3ry
 					if (cent->currentState.eFlags & EF3_DUAL_WEAPONS)
 					{
-						CG_GetClientWeaponMuzzleBoltPointduals(cent->currentState.eventParm, cent->currentState.origin2,
-							qtrue);
+						CG_GetClientWeaponMuzzleBoltPointduals(cent->currentState.eventParm, cent->currentState.origin2, qtrue);
 					}
 					else
 					{
@@ -3571,8 +3584,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					//h4q3ry
 					if (cent->currentState.eFlags & EF3_DUAL_WEAPONS)
 					{
-						CG_GetClientWeaponMuzzleBoltPointduals(cent->currentState.eventParm, cent->currentState.origin2,
-							qtrue);
+						CG_GetClientWeaponMuzzleBoltPointduals(cent->currentState.eventParm, cent->currentState.origin2, qtrue);
 					}
 					else
 					{
@@ -4910,6 +4922,14 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 	case EV_BLOCKLINE:
 		DEBUGNAME("EV_BLOCKLINE");
 		CG_BlockLine(es->origin, es->origin2, es->time2, es->weapon, 1);
+		break;
+
+	case EV_FFASPAWN:
+		DEBUGNAME("EV_FFASPAWN");
+		if (es->owner == cg.predictedPlayerState.clientNum)
+		{
+			cg_ffarespawntime = es->time;
+		}
 		break;
 
 	default:

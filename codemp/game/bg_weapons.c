@@ -33,10 +33,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 // bg_weapons.c -- part of bg_pmove functionality
 
-#include "qcommon/q_shared.h"
-#include "bg_public.h"
-#include "bg_local.h"
 #include <qcommon\q_math.h>
+#include "bg_weapons.h"
 
 // Muzzle point table...
 vec3_t WP_muzzlePoint[WP_NUM_WEAPONS] =

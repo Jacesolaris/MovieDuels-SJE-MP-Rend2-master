@@ -38,6 +38,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_local.h"
 #include "botlib/be_aas.h"
 #include "qcommon/q_shared.h"
+#include "bg_weapons.h"
+#include "bg_public.h"
+#include "surfaceflags.h"
+#include <assert.h>
 
 static vec3_t forward, vright, up;
 static vec3_t muzzle;
@@ -4138,130 +4142,187 @@ void WP_FireStunBaton(gentity_t* ent, const qboolean alt_fire)
 //---------------------------------------------------------
 // FireMelee
 //---------------------------------------------------------
+//-----------------------------------------------------------------------------
+// WP_FireMelee
+//
+// Performs a short-range melee punch/strike:
+// - Uses current torso anim to decide which arm is used and checks broken limbs.
+// - Builds a small swept box in front of the attacker.
+// - Traces for a hit and applies damage with class/anim-based modifiers.
+// - Keeps original behaviour, but fixes precedence bugs and adds safety.
+//-----------------------------------------------------------------------------
 static void WP_FireMelee(gentity_t* ent, qboolean alt_fire)
 {
 	trace_t tr;
-	vec3_t mins, maxs, end;
-	vec3_t muzzle_punch;
+	vec3_t  mins;
+	vec3_t  maxs;
+	vec3_t  end;
+	vec3_t  muzzle_punch;
 
-	if (ent->client && ent->client->ps.torsoAnim == BOTH_MELEE2
-		|| ent->client && ent->client->ps.torsoAnim == BOTH_MELEE4
-		|| ent->client && ent->client->ps.torsoAnim == BOTH_MELEEUP
-		|| ent->client && ent->client->ps.torsoAnim == BOTH_WOOKIE_SLAP)
+	qboolean hasClient = qfalse;
+	qboolean usingRightArmAnim = qfalse;
+	qboolean rightArmBroken = qfalse;
+	qboolean leftArmBroken = qfalse;
+
+	(void)alt_fire; // unused, keep signature
+
+	if (ent == NULL)
 	{
-		//right
-		if (ent->client->ps.brokenLimbs & 1 << BROKENLIMB_RARM)
+		trap->Print("WP_FireMelee: ent is NULL\n");
+		return;
+	}
+
+	hasClient = (ent->client != NULL ? qtrue : qfalse);
+
+	// Determine which arm is used based on torso anim
+	if (hasClient == qtrue)
+	{
+		int torsoAnim = ent->client->ps.torsoAnim;
+
+		if (torsoAnim == BOTH_MELEE2 ||
+			torsoAnim == BOTH_MELEE4 ||
+			torsoAnim == BOTH_MELEEUP ||
+			torsoAnim == BOTH_WOOKIE_SLAP)
 		{
-			return;
+			usingRightArmAnim = qtrue;
+		}
+		else
+		{
+			usingRightArmAnim = qfalse;
 		}
 	}
 	else
 	{
-		//left
-		if (ent->client && ent->client->ps.brokenLimbs & 1 << BROKENLIMB_LARM)
+		usingRightArmAnim = qfalse;
+	}
+
+	// Broken limb checks
+	if (hasClient == qtrue)
+	{
+		rightArmBroken = ((ent->client->ps.brokenLimbs & (1 << BROKENLIMB_RARM)) != 0 ? qtrue : qfalse);
+		leftArmBroken = ((ent->client->ps.brokenLimbs & (1 << BROKENLIMB_LARM)) != 0 ? qtrue : qfalse);
+
+		if (usingRightArmAnim == qtrue && rightArmBroken == qtrue)
+		{
+			return;
+		}
+		if (usingRightArmAnim == qfalse && leftArmBroken == qtrue)
 		{
 			return;
 		}
 	}
 
-	if (!ent->client)
+	// Build muzzle position
+	if (hasClient == qfalse)
 	{
 		VectorCopy(ent->r.currentOrigin, muzzle_punch);
-		muzzle_punch[2] += 8;
+		muzzle_punch[2] += 8.0f;
 	}
 	else
 	{
 		VectorCopy(ent->client->ps.origin, muzzle_punch);
-		muzzle_punch[2] += ent->client->ps.viewheight - 6;
+		muzzle_punch[2] += ent->client->ps.viewheight - 6.0f;
 	}
 
+	// Slight forward/right offset from the body
 	VectorMA(muzzle_punch, 20.0f, forward, muzzle_punch);
 	VectorMA(muzzle_punch, 4.0f, vright, muzzle_punch);
 
+	// End point of the melee trace
 	VectorMA(muzzle_punch, MELEE_RANGE, forward, end);
 
-	VectorSet(maxs, 6, 6, 6);
-	VectorScale(maxs, -1, mins);
+	// Small box around the punch path
+	VectorSet(maxs, 6.0f, 6.0f, 6.0f);
+	VectorScale(maxs, -1.0f, mins);
 
-	trap->Trace(&tr, muzzle_punch, mins, maxs, end, ent->s.number, MASK_SHOT, qfalse, 0, 0);
+	trap->Trace(&tr,
+		muzzle_punch,
+		mins,
+		maxs,
+		end,
+		ent->s.number,
+		MASK_SHOT,
+		qfalse,
+		0,
+		0);
 
 	if (tr.entityNum != ENTITYNUM_NONE)
 	{
-		//hit something
 		gentity_t* tr_ent = &g_entities[tr.entityNum];
 
-		G_Sound(ent, CHAN_AUTO, G_SoundIndex(va("sound/weapons/melee/punch%d", Q_irand(1, 4))));
+		// Play punch sound on attacker
+		G_Sound(ent,
+			CHAN_AUTO,
+			G_SoundIndex(va("sound/weapons/melee/punch%d", Q_irand(1, 4))));
 
-		if (tr_ent->takedamage && tr_ent->client)
+		if (tr_ent->takedamage == qtrue && tr_ent->client != NULL)
 		{
-			//special duel checks
-			if (tr_ent->client->ps.duelInProgress &&
+			// Special duel checks
+			if (tr_ent->client->ps.duelInProgress == qtrue &&
 				tr_ent->client->ps.duelIndex != ent->s.number)
 			{
 				return;
 			}
 
-			if (ent->client &&
-				ent->client->ps.duelInProgress &&
+			if (hasClient == qtrue &&
+				ent->client->ps.duelInProgress == qtrue &&
 				ent->client->ps.duelIndex != tr_ent->s.number)
 			{
 				return;
 			}
 		}
 
-		if (tr_ent->takedamage)
+		if (tr_ent->takedamage == qtrue)
 		{
-			//damage them, do more damage if we're in the second right hook
 			int dmg = MELEE_SWING1_DAMAGE;
 
-			if (ent->client && ent->client->ps.torsoAnim == BOTH_MELEE2)
+			if (hasClient == qtrue)
 			{
-				//do a tad bit more damage on the second swing
-				dmg = MELEE_SWING2_DAMAGE;
-			}
-			if (ent->client->pers.botclass == BCLASS_GRAN)
-			{
-				//do a tad bit more damage IF WOOKIE CLASS // SERENITY
-				dmg = MELEE_SWING_EXTRA_DAMAGE;
-			}
-			if (ent->client->pers.botclass == BCLASS_CHEWIE)
-			{
-				//do a tad bit more damage IF WOOKIE CLASS // SERENITY
-				dmg = MELEE_SWING_WOOKIE_DAMAGE;
-			}
-			if (ent->client->pers.botclass == BCLASS_WOOKIE)
-			{
-				//do a tad bit more damage IF WOOKIE CLASS // SERENITY
-				dmg = MELEE_SWING_WOOKIE_DAMAGE;
-			}
-			if (ent->client->pers.botclass == BCLASS_WOOKIEMELEE)
-			{
-				//do a tad bit more damage IF WOOKIE CLASS // SERENITY
-				dmg = MELEE_SWING_WOOKIE_DAMAGE;
-			}
-			if (ent->client->pers.botclass == BCLASS_SBD)
-			{
-				//do a tad bit more damage IF WOOKIE CLASS // SERENITY
-				dmg = MELEE_SWING_EXTRA_DAMAGE;
-			}
-			if (ent->client->ps.torsoAnim == BOTH_WOOKIE_SLAP)
-			{
-				//do a tad bit more damage IF WOOKIE CLASS // SERENITY
-				dmg = MELEE_SWING_WOOKIE_DAMAGE;
-			}
-			if (ent->client->ps.torsoAnim == BOTH_MELEEUP)
-			{
-				//do a tad bit more damage IF WOOKIE CLASS // SERENITY
-				dmg = MELEE_SWING_EXTRA_DAMAGE;
+				// Base second-swing bonus
+				if (ent->client->ps.torsoAnim == BOTH_MELEE2)
+				{
+					dmg = MELEE_SWING2_DAMAGE;
+				}
+
+				// Class-based bonuses
+				if (ent->client->pers.botclass == BCLASS_GRAN)
+				{
+					dmg = MELEE_SWING_EXTRA_DAMAGE;
+				}
+				if (ent->client->pers.botclass == BCLASS_CHEWIE ||
+					ent->client->pers.botclass == BCLASS_WOOKIE ||
+					ent->client->pers.botclass == BCLASS_WOOKIEMELEE)
+				{
+					dmg = MELEE_SWING_WOOKIE_DAMAGE;
+				}
+				if (ent->client->pers.botclass == BCLASS_SBD)
+				{
+					dmg = MELEE_SWING_EXTRA_DAMAGE;
+				}
+				if (ent->client->ps.torsoAnim == BOTH_WOOKIE_SLAP)
+				{
+					dmg = MELEE_SWING_WOOKIE_DAMAGE;
+				}
+				if (ent->client->ps.torsoAnim == BOTH_MELEEUP)
+				{
+					dmg = MELEE_SWING_EXTRA_DAMAGE;
+				}
 			}
 
-			if (G_HeavyMelee(ent))
+			// Heavy melee doubles damage
+			if (G_HeavyMelee(ent) == qtrue)
 			{
-				//2x damage for heavy melee class
 				dmg *= 2;
 			}
 
-			G_Damage(tr_ent, ent, ent, forward, tr.endpos, dmg, DAMAGE_NO_ARMOR, MOD_MELEE);
+			G_Damage(tr_ent,
+				ent,
+				ent,
+				forward,
+				tr.endpos,
+				dmg,
+				DAMAGE_NO_ARMOR,
+				MOD_MELEE);
 		}
 	}
 }
@@ -4330,7 +4391,7 @@ void Weapon_HookThink(gentity_t* ent)
 {
 	if (ent->enemy)
 	{
-		vec3_t v, oldorigin;
+		vec3_t v = { 0 }, oldorigin;
 
 		VectorCopy(ent->r.currentOrigin, oldorigin);
 		v[0] = ent->enemy->r.currentOrigin[0] + (ent->enemy->r.mins[0] + ent->enemy->r.maxs[0]) * 0.5;

@@ -1543,11 +1543,11 @@ void ClientRespawn(gentity_t* ent)
 		{
 			if (ent->client->tempSpectate <= level.time)
 			{
-				int minDel = g_ffaRespawn.integer * 4000;
+				int minDel = g_ffaRespawn.integer * 2000;
 
-				if (minDel < 40000)
+				if (minDel < 2000)
 				{
-					minDel = 40000;
+					minDel = 2000;
 				}
 				g_Spectator(ent);
 
@@ -1556,7 +1556,7 @@ void ClientRespawn(gentity_t* ent)
 				// Respawn time.
 				if (ent->s.number < MAX_CLIENTS)
 				{
-					gentity_t* te = G_TempEntity(ent->client->ps.origin, EV_SIEGESPEC);
+					gentity_t* te = G_TempEntity(ent->client->ps.origin, EV_FFASPAWN);
 					te->s.time = g_ffaRespawnTimerCheck;
 					te->s.owner = ent->s.number;
 
@@ -7401,7 +7401,6 @@ spawn_done:
 					client->skillLevel[SK_ACROBATICS] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
-					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->ps.ammo[AMMO_THERMAL] = 4;
@@ -7732,6 +7731,7 @@ spawn_done:
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
+					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;

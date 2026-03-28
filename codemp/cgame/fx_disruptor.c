@@ -24,6 +24,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "cg_local.h"
 #include "fx_local.h"
+#include <qcommon\q_math.h>
+#include <qcommon\q_platform.h>
+#include <qcommon\q_shared.h>
 
 /*
 ---------------------------
@@ -77,7 +80,7 @@ FX_DisruptorAltMiss
 void FX_DisruptorAltMiss(vec3_t origin, vec3_t normal)
 {
 	vec3_t pos, c1, c2;
-	addbezierArgStruct_t b;
+	addbezierArgStruct_t b = { 0 };
 
 	VectorMA(origin, 4.0f, normal, c1);
 	VectorCopy(c1, c2);
@@ -159,7 +162,7 @@ void FX_DisruptorHitPlayer(vec3_t origin, vec3_t normal, const qboolean humanoid
 FX_KothosBeam
 ---------------------------
 */
-void fx_kothos_beam(vec3_t start, vec3_t end)
+static void fx_kothos_beam(vec3_t start, vec3_t end)
 {
 	trap->FX_AddLine(start, end, 0.1f, 10.0f, 0.0f,
 		1.0f, 0.0f, 0.0f,

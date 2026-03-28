@@ -17635,84 +17635,105 @@ void CG_Player(centity_t* cent)
 	// rww - Make sure weapons don't get set BEFORE cent->ghoul2 is initialized or else we'll have no
 	// weapon bolted on
 
+	// Update third-person weapon ghoul2 instances (including dual pistols)
 	if (cent->ghoul2 &&
-		(cent->currentState.eType != ET_NPC || cent->currentState.NPC_class != CLASS_VEHICLE &&
-			cent->currentState.NPC_class != CLASS_REMOTE && cent->currentState.NPC_class != CLASS_SEEKER) &&
-		(cent->ghoul2weapon != CG_G2WeaponInstance(cent, cent->currentState.weapon) ||
-			cent->ghoul2weapon2 != CG_G2WeaponInstance2(cent, cent->currentState.weapon) &&
-			cent->currentState.eFlags & EF3_DUAL_WEAPONS ||
-			cent->ghoul2weapon2 != NULL && !(cent->currentState.eFlags & EF3_DUAL_WEAPONS)) &&
-		!(cent->currentState.eFlags & EF_DEAD) && !cent->torsoBolt &&
-		cg.snap && (cent->currentState.number != cg.snap->ps.clientNum || cg.snap->ps.pm_flags & PMF_FOLLOW))
+		(cent->currentState.eType != ET_NPC ||
+			(cent->currentState.NPC_class != CLASS_VEHICLE &&
+				cent->currentState.NPC_class != CLASS_REMOTE &&
+				cent->currentState.NPC_class != CLASS_SEEKER)) &&
+		!(cent->currentState.eFlags & EF_DEAD) &&
+		!cent->torsoBolt &&
+		cg.snap &&
+		(cent->currentState.number != cg.snap->ps.clientNum ||
+			(cg.snap->ps.pm_flags & PMF_FOLLOW)))
 	{
 		if (ci->team == TEAM_SPECTATOR)
 		{
 			cent->ghoul2weapon = NULL;
+			cent->ghoul2weapon2 = NULL;
 			cent->weapon = 0;
 		}
 		else
 		{
-			CG_CopyG2WeaponInstance(cent, cent->currentState.weapon, cent->ghoul2);
+			const int weapon = cent->currentState.weapon;
+			const qboolean dual = (cent->currentState.eFlags & EF3_DUAL_WEAPONS) ? qtrue : qfalse;
 
-			if (cent->currentState.eType != ET_NPC)
+			// ---------------------------------------------------------
+			// NEW LOGIC: compute desired weapon instances FIRST
+			// ---------------------------------------------------------
+			void* desiredWeap = CG_G2WeaponInstance(cent, weapon);
+			void* desiredWeap2 = (dual == qtrue && weapon == WP_BRYAR_PISTOL)
+				? CG_G2WeaponInstance2(cent, weapon)
+				: NULL;
+
+			// ---------------------------------------------------------
+			// If anything changed, update the ghoul2 weapon models
+			// ---------------------------------------------------------
+			if (cent->ghoul2weapon != desiredWeap ||
+				cent->ghoul2weapon2 != desiredWeap2)
 			{
-				if (cent->weapon == WP_SABER
-					&& cent->weapon != cent->currentState.weapon
-					&& !cent->currentState.saberHolstered)
-				{
-					//switching away from the saber
-					if (ci->saber[0].soundOff
-						&& !cent->currentState.saberHolstered)
-					{
-						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO,
-							ci->saber[0].soundOff);
-					}
+				// Attach/copy weapon models into the player ghoul2
+				CG_CopyG2WeaponInstance(cent, weapon, cent->ghoul2);
 
-					if (ci->saber[1].soundOff &&
-						ci->saber[1].model[0] &&
+				// Saber sound logic preserved exactly as original
+				if (cent->currentState.eType != ET_NPC)
+				{
+					if (cent->weapon == WP_SABER &&
+						cent->weapon != weapon &&
 						!cent->currentState.saberHolstered)
 					{
-						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO,
-							ci->saber[1].soundOff);
+						if (ci->saber[0].soundOff)
+						{
+							trap->S_StartSound(cent->lerpOrigin,
+								cent->currentState.number,
+								CHAN_AUTO,
+								ci->saber[0].soundOff);
+						}
+
+						if (ci->saber[1].soundOff && ci->saber[1].model[0])
+						{
+							trap->S_StartSound(cent->lerpOrigin,
+								cent->currentState.number,
+								CHAN_AUTO,
+								ci->saber[1].soundOff);
+						}
+					}
+					else if (weapon == WP_SABER &&
+						cent->weapon != weapon &&
+						!cent->saberWasInFlight)
+					{
+						if (ci->saber[0].soundOn)
+						{
+							trap->S_StartSound(cent->lerpOrigin,
+								cent->currentState.number,
+								CHAN_AUTO,
+								ci->saber[0].soundOn);
+						}
+
+						if (ci->saber[1].soundOn)
+						{
+							trap->S_StartSound(cent->lerpOrigin,
+								cent->currentState.number,
+								CHAN_AUTO,
+								ci->saber[1].soundOn);
+						}
+
+						BG_SI_SetDesiredLength(&ci->saber[0], 0, -1);
+						BG_SI_SetDesiredLength(&ci->saber[1], 0, -1);
 					}
 				}
-				else if (cent->currentState.weapon == WP_SABER
-					&& cent->weapon != cent->currentState.weapon
-					&& !cent->saberWasInFlight)
-				{
-					//switching to the saber
-					if (ci->saber[0].soundOn)
-					{
-						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO,
-							ci->saber[0].soundOn);
-					}
 
-					if (ci->saber[1].soundOn)
-					{
-						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO,
-							ci->saber[1].soundOn);
-					}
-
-					BG_SI_SetDesiredLength(&ci->saber[0], 0, -1);
-					BG_SI_SetDesiredLength(&ci->saber[1], 0, -1);
-				}
-			}
-
-			cent->weapon = cent->currentState.weapon;
-			cent->ghoul2weapon = CG_G2WeaponInstance(cent, cent->currentState.weapon);
-			if (cent->currentState.eFlags & EF3_DUAL_WEAPONS && cent->currentState.weapon == WP_BRYAR_PISTOL)
-			{
-				cent->ghoul2weapon2 = CG_G2WeaponInstance2(cent, cent->currentState.weapon);
-			}
-			else
-			{
-				cent->ghoul2weapon2 = NULL;
+				// Commit the new weapon instances
+				cent->weapon = weapon;
+				cent->ghoul2weapon = desiredWeap;
+				cent->ghoul2weapon2 = desiredWeap2;
 			}
 		}
 	}
-	else if (cent->currentState.eFlags & EF_DEAD || cent->torsoBolt)
+	else if ((cent->currentState.eFlags & EF_DEAD) || cent->torsoBolt)
 	{
-		cent->ghoul2weapon = NULL; //be sure to update after respawning/getting limb regrown
+		cent->ghoul2weapon = NULL;
+		cent->ghoul2weapon2 = NULL;
 	}
 
 	CG_VisualWeaponsUpdate(cent, ci);
@@ -17997,8 +18018,8 @@ void CG_Player(centity_t* cent)
 		{
 			//<True View varibles
 			mdxaBone_t eye_matrix;
-			vec3_t eye_angles;
-			vec3_t eye_axis[3];
+			vec3_t eye_angles = { 0 };
+			vec3_t eye_axis[3] = { 0 };
 			vec3_t oldeye_origin;
 			qhandle_t eyes_bolt;
 			qboolean bone_based = qfalse;
@@ -18478,7 +18499,7 @@ SkipTrueView:
 	if (cent->currentState.powerups & 1 << PW_DISINT_4)
 	{
 		vec3_t t_ang;
-		vec3_t ef_org;
+		vec3_t ef_org = { 0 };
 
 		VectorSet(t_ang, cent->turAngles[PITCH], cent->turAngles[YAW], cent->turAngles[ROLL]);
 
@@ -18563,7 +18584,7 @@ SkipTrueView:
 		}
 		else
 		{
-			vec4_t pre_col;
+			vec4_t pre_col = { 0 };
 			int pre_rfx;
 
 			pre_rfx = legs.renderfx;
@@ -18624,7 +18645,7 @@ SkipTrueView:
 		{
 			vec3_t ef_org;
 			vec3_t t_ang, fx_ang;
-			matrix3_t axis;
+			matrix3_t axis = { 0 };
 
 			// Check if THIS entity is frozen
 			qboolean frozen = (cent->currentState.PlayerEffectFlags & (1 << PEF_FREEZING));
@@ -18752,7 +18773,7 @@ SkipTrueView:
 
 				{
 					float wv;
-					addspriteArgStruct_t fx_s_args = { 0 };
+					addspriteArgStruct_t fxSArgs = { 0 };
 					vec3_t holo_center = { 0 };
 
 					holo_center[0] = holo_ref.origin[0] + holo_ref.axis[2][0] * 18;
@@ -18761,38 +18782,38 @@ SkipTrueView:
 
 					wv = sin(cg.time * 0.004f) * 0.08f + 0.1f;
 
-					VectorCopy(holo_center, fx_s_args.origin);
-					VectorClear(fx_s_args.vel);
-					VectorClear(fx_s_args.accel);
-					fx_s_args.scale = wv * 60;
-					fx_s_args.dscale = wv * 60;
-					fx_s_args.sAlpha = wv * 12;
-					fx_s_args.eAlpha = wv * 12;
-					fx_s_args.rotation = 0.0f;
-					fx_s_args.bounce = 0.0f;
-					fx_s_args.life = 1.0f;
+					VectorCopy(holo_center, fxSArgs.origin);
+					VectorClear(fxSArgs.vel);
+					VectorClear(fxSArgs.accel);
+					fxSArgs.scale = wv * 60;
+					fxSArgs.dscale = wv * 60;
+					fxSArgs.sAlpha = wv * 12;
+					fxSArgs.eAlpha = wv * 12;
+					fxSArgs.rotation = 0.0f;
+					fxSArgs.bounce = 0.0f;
+					fxSArgs.life = 1.0f;
 
-					fx_s_args.flags = 0x08000000 | 0x00000001;
+					fxSArgs.flags = 0x08000000 | 0x00000001;
 
 					if (force_power_dark_light[i] == FORCE_DARKSIDE)
 					{
 						//dark
-						fx_s_args.sAlpha *= 3;
-						fx_s_args.eAlpha *= 3;
-						fx_s_args.shader = cgs.media.redSaberGlowShader;
-						trap->FX_AddSprite(&fx_s_args);
+						fxSArgs.sAlpha *= 3;
+						fxSArgs.eAlpha *= 3;
+						fxSArgs.shader = cgs.media.redSaberGlowShader;
+						trap->FX_AddSprite(&fxSArgs);
 					}
 					else if (force_power_dark_light[i] == FORCE_LIGHTSIDE)
 					{
 						//light
-						fx_s_args.sAlpha *= 1.5;
-						fx_s_args.eAlpha *= 1.5;
-						fx_s_args.shader = cgs.media.redSaberGlowShader;
-						trap->FX_AddSprite(&fx_s_args);
-						fx_s_args.shader = cgs.media.greenSaberGlowShader;
-						trap->FX_AddSprite(&fx_s_args);
-						fx_s_args.shader = cgs.media.blueSaberGlowShader;
-						trap->FX_AddSprite(&fx_s_args);
+						fxSArgs.sAlpha *= 1.5;
+						fxSArgs.eAlpha *= 1.5;
+						fxSArgs.shader = cgs.media.redSaberGlowShader;
+						trap->FX_AddSprite(&fxSArgs);
+						fxSArgs.shader = cgs.media.greenSaberGlowShader;
+						trap->FX_AddSprite(&fxSArgs);
+						fxSArgs.shader = cgs.media.blueSaberGlowShader;
+						trap->FX_AddSprite(&fxSArgs);
 					}
 					else
 					{
@@ -18802,19 +18823,19 @@ SkipTrueView:
 							i == FP_SABERTHROW)
 						{
 							//saber power
-							fx_s_args.sAlpha *= 1.5;
-							fx_s_args.eAlpha *= 1.5;
-							fx_s_args.shader = cgs.media.greenSaberGlowShader;
-							trap->FX_AddSprite(&fx_s_args);
+							fxSArgs.sAlpha *= 1.5;
+							fxSArgs.eAlpha *= 1.5;
+							fxSArgs.shader = cgs.media.greenSaberGlowShader;
+							trap->FX_AddSprite(&fxSArgs);
 						}
 						else
 						{
-							fx_s_args.sAlpha *= 0.5;
-							fx_s_args.eAlpha *= 0.5;
-							fx_s_args.shader = cgs.media.greenSaberGlowShader;
-							trap->FX_AddSprite(&fx_s_args);
-							fx_s_args.shader = cgs.media.blueSaberGlowShader;
-							trap->FX_AddSprite(&fx_s_args);
+							fxSArgs.sAlpha *= 0.5;
+							fxSArgs.eAlpha *= 0.5;
+							fxSArgs.shader = cgs.media.greenSaberGlowShader;
+							trap->FX_AddSprite(&fxSArgs);
+							fxSArgs.shader = cgs.media.blueSaberGlowShader;
+							trap->FX_AddSprite(&fxSArgs);
 						}
 					}
 				}
@@ -19176,7 +19197,7 @@ stillDoSaber:
 				vec3_t t_ang;
 				vec3_t ef_org;
 				float wv;
-				addspriteArgStruct_t fx_s_args;
+				addspriteArgStruct_t fxSArgs;
 
 				if (!cent->bolt2)
 				{
@@ -19341,19 +19362,19 @@ stillDoSaber:
 
 				wv = sin(cg.time * 0.003f) * 0.08f + 0.1f;
 
-				VectorCopy(ef_org, fx_s_args.origin);
-				VectorClear(fx_s_args.vel);
-				VectorClear(fx_s_args.accel);
-				fx_s_args.scale = 8.0f;
-				fx_s_args.dscale = 8.0f;
-				fx_s_args.sAlpha = wv;
-				fx_s_args.eAlpha = wv;
-				fx_s_args.rotation = 0.0f;
-				fx_s_args.bounce = 0.0f;
-				fx_s_args.life = 1.0f;
-				fx_s_args.shader = cgs.media.yellowDroppedSaberShader;
-				fx_s_args.flags = 0x08000000;
-				trap->FX_AddSprite(&fx_s_args);
+				VectorCopy(ef_org, fxSArgs.origin);
+				VectorClear(fxSArgs.vel);
+				VectorClear(fxSArgs.accel);
+				fxSArgs.scale = 8.0f;
+				fxSArgs.dscale = 8.0f;
+				fxSArgs.sAlpha = wv;
+				fxSArgs.eAlpha = wv;
+				fxSArgs.rotation = 0.0f;
+				fxSArgs.bounce = 0.0f;
+				fxSArgs.life = 1.0f;
+				fxSArgs.shader = cgs.media.yellowDroppedSaberShader;
+				fxSArgs.flags = 0x08000000;
+				trap->FX_AddSprite(&fxSArgs);
 			}
 		}
 		else
@@ -19572,80 +19593,6 @@ stillDoSaber:
 		legs.shaderRGBA[2] = 0;
 		legs.renderfx |= RF_MINLIGHT;
 	}
-
-	//if (cg.snap->ps.duelInProgress /*&& cent->currentState.number != cg.snap->ps.clientNum*/)
-	//{ //I guess go ahead and glow your own client too in a duel
-	//	if (cent->currentState.number != cg.snap->ps.duelIndex &&
-	//		cent->currentState.number != cg.snap->ps.clientNum)
-	//	{ //everyone not involved in the duel is drawn very dark
-	//		legs.shaderRGBA[0] /= 5.0f;
-	//		legs.shaderRGBA[1] /= 5.0f;
-	//		legs.shaderRGBA[2] /= 5.0f;
-	//		legs.renderfx |= RF_RGB_TINT;
-	//	}
-	//	else
-	//	{ //adjust the glow by how far away you are from your dueling partner
-	//		centity_t *duelEnt;
-
-	//		duelEnt = &cg_entities[cg.snap->ps.duelIndex];
-
-	//		if (duelEnt)
-	//		{
-	//			vec3_t vecSub;
-	//			float subLen = 0;
-
-	//			VectorSubtract(duelEnt->lerpOrigin, cg.snap->ps.origin, vecSub);
-	//			subLen = VectorLength(vecSub);
-
-	//			if (subLen < 1)
-	//			{
-	//				subLen = 1;
-	//			}
-
-	//			if (subLen > 1020)
-	//			{
-	//				subLen = 1020;
-	//			}
-
-	//			{
-	//				unsigned char savRGBA[3];
-	//				savRGBA[0] = legs.shaderRGBA[0];
-	//				savRGBA[1] = legs.shaderRGBA[1];
-	//				savRGBA[2] = legs.shaderRGBA[2];
-	//				legs.shaderRGBA[0] = Q_max(255-subLen/4,1);
-	//				legs.shaderRGBA[1] = Q_max(255-subLen/4,1);
-	//				legs.shaderRGBA[2] = Q_max(255-subLen/4,1);
-
-	//				legs.renderfx &= ~RF_RGB_TINT;
-	//				legs.renderfx &= ~RF_FORCE_ENT_ALPHA;
-	//				legs.customShader = cgs.media.forceShell;
-
-	//				trap->R_AddRefEntityToScene( &legs );	//draw the shell
-
-	//				legs.customShader = 0;	//reset to player model
-
-	//				legs.shaderRGBA[0] = Q_max(savRGBA[0]-subLen/8,1);
-	//				legs.shaderRGBA[1] = Q_max(savRGBA[1]-subLen/8,1);
-	//				legs.shaderRGBA[2] = Q_max(savRGBA[2]-subLen/8,1);
-	//			}
-
-	//			if (subLen <= 1024)
-	//			{
-	//				legs.renderfx |= RF_RGB_TINT;
-	//			}
-	//		}
-	//	}
-	//}
-	//else
-	//{
-	//	if (cent->currentState.bolt1 && !(cent->currentState.eFlags & EF_DEAD) && cent->currentState.number != cg.snap->ps.clientNum && (!cg.snap->ps.duelInProgress || cg.snap->ps.duelIndex != cent->currentState.number))
-	//	{
-	//		legs.shaderRGBA[0] = 50;
-	//		legs.shaderRGBA[1] = 50;
-	//		legs.shaderRGBA[2] = 50;
-	//		legs.renderfx |= RF_RGB_TINT;
-	//	}
-	//}
 
 	if (cent->currentState.eFlags & EF_DISINTEGRATION)
 	{
@@ -19882,9 +19829,28 @@ stillDoSaber:
 	//
 	if (cent->currentState.weapon != WP_EMPLACED_GUN)
 	{
-		if (cent->currentState.eFlags & EF3_DUAL_WEAPONS && cent->currentState.weapon == WP_BRYAR_PISTOL)
+		if ((cent->currentState.eFlags & EF3_DUAL_WEAPONS) &&
+			cent->currentState.weapon == WP_BRYAR_PISTOL)
 		{
-			cg_add_player_weaponduals(&legs, NULL, cent, root_angles, qtrue, qtrue);
+			// Right-hand world weapon (Ghoul2 index 1)
+			cg_add_player_weaponduals(
+				&legs,
+				NULL,
+				cent,
+				root_angles,
+				qtrue,      // third_person
+				qfalse      // right-hand
+			);
+
+			// Left-hand world weapon (Ghoul2 index 2)
+			cg_add_player_weaponduals(
+				&legs,
+				NULL,
+				cent,
+				root_angles,
+				qtrue,      // third_person
+				qtrue       // left-hand
+			);
 		}
 		else
 		{

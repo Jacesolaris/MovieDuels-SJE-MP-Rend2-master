@@ -2115,7 +2115,7 @@ static void G_SaberBounce(const gentity_t* attacker, gentity_t* victim)
 		return;
 	}
 
-	if (attacker->client->ps.saberFatigueChainCount < MISHAPLEVEL_TEN)
+	if (attacker->client->ps.saberFatigueChainCount < MISHAPLEVEL_HEAVY)
 	{
 		return;
 	}
@@ -2125,7 +2125,7 @@ static void G_SaberBounce(const gentity_t* attacker, gentity_t* victim)
 		return;
 	}
 
-	if (attacker->r.svFlags & SVF_BOT) //attacker is a bot dont do this
+	if (attacker->s.number >= MAX_CLIENTS && !G_ControlledByPlayer(attacker))
 	{
 		return;
 	}

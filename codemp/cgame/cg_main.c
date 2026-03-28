@@ -3003,6 +3003,35 @@ void CG_Init(const int serverMessageNum, const int serverCommandSequence, const 
 	cgs.media.messageLitOff = trap->R_RegisterShaderNoMip("gfx/hud/message_off");
 	cgs.media.messageObjCircle = trap->R_RegisterShaderNoMip("gfx/hud/objective_circle");
 
+	//movieduels hud
+	cgs.media.MDHUDLeftFrame = trap->R_RegisterShaderNoMip("gfx/hud/DF2-Left-Hud"); //horizontal
+	cgs.media.MDHUDLeftFramerotate = trap->R_RegisterShaderNoMip("gfx/hud/DF-Left-Hud");  //vertical
+	cgs.media.MDHUDLeftInnerRing = trap->R_RegisterShaderNoMip("gfx/hud/DF-Inner-Ring");
+	cgs.media.MDHUDLeftOuterRing = trap->R_RegisterShaderNoMip("gfx/hud/DF-Outer-Ring");
+
+	cgs.media.MDHUDRightFrame = trap->R_RegisterShaderNoMip("gfx/hud/DF2-Right-Hud");
+	cgs.media.MDHUDRightFramerotate = trap->R_RegisterShaderNoMip("gfx/hud/DF-Right-Hud"); //vertical
+	cgs.media.MDHUDRightInnerRing = trap->R_RegisterShaderNoMip("gfx/hud/DF-Inner-Ring");
+	cgs.media.MDHUDRightOuterRing = trap->R_RegisterShaderNoMip("gfx/hud/DF-Outer-Ring");
+
+	// weapons hud
+	cgs.media.weapontype_melee = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_melee.tga");
+	cgs.media.weapontype_stun_baton = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_stunbaton.tga");
+	cgs.media.weapontype_briar_pistol = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_briar.tga");
+	cgs.media.weapontype_sbd_blaster = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_sbdarm.tga");
+	cgs.media.weapontype_blaster_pistol = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_blaster_pistol.tga");
+	cgs.media.weapontype_blaster = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_blaster.tga");
+	cgs.media.weapontype_bowcaster = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_bowcaster.tga");
+	cgs.media.weapontype_concussion = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_c_rifle.tga");
+	cgs.media.weapontype_demp2 = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_demp2.tga");
+	cgs.media.weapontype_detpack = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_detpack.tga");
+	cgs.media.weapontype_disruptor = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_disruptor.tga");
+	cgs.media.weapontype_flachette = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_flechette.tga");
+	cgs.media.weapontype_repeater = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_repeater.tga");
+	cgs.media.weapontype_thermal = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_thermal.tga");
+	cgs.media.weapontype_rocket = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_merrsonn.tga");
+	cgs.media.weapontype_tripmine = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_tripmine.tga");
+
 	// Load tics
 	for (i = 0; i < MAX_TICS; i++)
 	{

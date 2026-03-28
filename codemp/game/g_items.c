@@ -24,6 +24,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_local.h"
 #include "ghoul2/G2.h"
 #include "qcommon/q_shared.h"
+#include <assert.h>
+#include <string.h>
+#include <qcommon\q_string.h>
 
 /*
 
@@ -833,7 +836,7 @@ static void pas_adjust_enemy(gentity_t* ent)
 
 void turret_die(gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, int mod);
 
-void sentryExpire(gentity_t* self)
+static void sentryExpire(gentity_t* self)
 {
 	turret_die(self, self, self, 1000, MOD_UNKNOWN);
 }
@@ -846,7 +849,7 @@ void pas_think(gentity_t* ent)
 	int iEntityList[MAX_GENTITIES];
 	int i = 0;
 	qboolean clTrapped = qfalse;
-	vec3_t testMins, testMaxs;
+	vec3_t testMins = { 0 }, testMaxs = { 0 };
 
 	testMins[0] = ent->r.currentOrigin[0] + ent->r.mins[0] + 4;
 	testMins[1] = ent->r.currentOrigin[1] + ent->r.mins[1] + 4;
@@ -1159,8 +1162,8 @@ void SP_PAS(gentity_t* base)
 void ItemUse_Sentry(gentity_t* ent)
 //------------------------------------------------------------------------
 {
-	vec3_t fwd, fwdorg;
-	vec3_t yawonly;
+	vec3_t fwd, fwdorg = { 0 };
+	vec3_t yawonly = { 0 };
 	vec3_t mins, maxs;
 
 	if (!ent || !ent->client)
@@ -1243,8 +1246,8 @@ void ItemUse_Sentry(gentity_t* ent)
 void ItemUse_Sentry2(gentity_t* ent)
 //------------------------------------------------------------------------
 {
-	vec3_t fwd, fwdorg;
-	vec3_t yawonly;
+	vec3_t yawonly = { 0 };
+	vec3_t fwd, fwdorg = { 0 };
 	vec3_t mins, maxs;
 
 	if (!ent || !ent->client)
@@ -1492,56 +1495,117 @@ void Jetpack_On(gentity_t* ent)
 }
 
 #define FLAMETHROWER_RADIUS 200
-#define FLAMETHROWER_DAMAGE	2
+#define FLAMETHROWER_DAMAGE 2
 
+//-----------------------------------------------------------------------------
+// Flamethrower_Fire
+//
+// Area/cone-based flamethrower damage in front of the firing player.
+// - Uses a box query to collect nearby entities.
+// - Filters by cone (dot product), distance, PVS, and LOS.
+// - Applies low, continuous damage and burn/throw reactions.
+// - Uses static buffers to avoid excessive stack usage.
+//-----------------------------------------------------------------------------
 void Flamethrower_Fire(gentity_t* self)
 {
-	trace_t tr;
+	static int        s_entityIndexList[MAX_GENTITIES];
+	static gentity_t* s_entityList[MAX_GENTITIES];
+	static trace_t    s_tr;
+
 	vec3_t forward;
-	vec3_t center, mins, maxs, v;
+	vec3_t center;
+	vec3_t mins = { 0 };
+	vec3_t maxs = { 0 };
+	vec3_t v = { 0 };
+	vec3_t size;
+	vec3_t ent_org;
+	vec3_t dir;
 
-	const float radius = FLAMETHROWER_RADIUS;
-	gentity_t* entity_list[MAX_GENTITIES];
-	int iEntityList[MAX_GENTITIES];
-	int i;
+	float radius;
+	int   num_listed_entities;
+	int   i;
+	int   e;
 
+	if (self == NULL || self->client == NULL)
+	{
+		G_Printf("Flamethrower_Fire: called with invalid self or missing client\n");
+		return;
+	}
+
+	radius = FLAMETHROWER_RADIUS;
+
+	// Direction the player is looking
 	AngleVectors(self->client->ps.viewangles, forward, NULL, NULL);
 	VectorNormalize(forward);
 
+	// Center of the search volume (player origin)
 	VectorCopy(self->client->ps.origin, center);
+
+	// Build an AABB around the player for the initial entity query
 	for (i = 0; i < 3; i++)
 	{
 		mins[i] = center[i] - radius;
 		maxs[i] = center[i] + radius;
 	}
-	const int num_listed_entities = trap->EntitiesInBox(mins, maxs, iEntityList, MAX_GENTITIES);
 
-	i = 0;
-	while (i < num_listed_entities)
+	// Collect entities in the box
+	num_listed_entities = trap->EntitiesInBox(mins, maxs, s_entityIndexList, MAX_GENTITIES);
+	if (num_listed_entities <= 0)
 	{
-		entity_list[i] = &g_entities[iEntityList[i]];
-
-		i++;
+		return;
+	}
+	if (num_listed_entities > MAX_GENTITIES)
+	{
+		num_listed_entities = MAX_GENTITIES;
 	}
 
-	for (int e = 0; e < num_listed_entities; e++)
+	// Resolve indices to gentity_t pointers (with bounds safety)
+	for (i = 0; i < num_listed_entities; i++)
 	{
-		vec3_t size;
-		vec3_t ent_org;
-		vec3_t dir;
-		float dot;
-		gentity_t* traceEnt = entity_list[e];
+		int entNum = s_entityIndexList[i];
 
-		if (!traceEnt)
+		if (entNum < 0 || entNum >= level.num_entities)
+		{
+			s_entityList[i] = NULL;
+		}
+		else
+		{
+			s_entityList[i] = &g_entities[entNum];
+		}
+	}
+
+	// Process each candidate entity
+	for (e = 0; e < num_listed_entities; e++)
+	{
+		gentity_t* traceEnt;
+		float      dot;
+		float      dist;
+		int        damage;
+
+		traceEnt = s_entityList[e];
+
+		if (traceEnt == NULL)
+		{
 			continue;
+		}
 		if (traceEnt == self)
+		{
 			continue;
+		}
 		if (!traceEnt->inuse)
+		{
 			continue;
+		}
 		if (!traceEnt->takedamage)
+		{
 			continue;
+		}
 		if (!g_friendlyFire.integer && OnSameTeam(self, traceEnt))
+		{
 			continue;
+		}
+
+		// Compute closest distance from center to the entity's bounding box
 		for (i = 0; i < 3; i++)
 		{
 			if (center[i] < traceEnt->r.absmin[i])
@@ -1554,64 +1618,90 @@ void Flamethrower_Fire(gentity_t* self)
 			}
 			else
 			{
-				v[i] = 0;
+				v[i] = 0.0f;
 			}
 		}
 
+		// Entity center
 		VectorSubtract(traceEnt->r.absmax, traceEnt->r.absmin, size);
-		VectorMA(traceEnt->r.absmin, 0.5, size, ent_org);
+		VectorMA(traceEnt->r.absmin, 0.5f, size, ent_org);
 
-		//see if they're in front of me
-		//must be within the forward cone
+		// Check cone: must be in front of the player
 		VectorSubtract(ent_org, center, dir);
 		VectorNormalize(dir);
-		if ((dot = DotProduct(dir, forward)) < 0.5)
+		dot = DotProduct(dir, forward);
+		if (dot < 0.5f)
+		{
 			continue;
+		}
 
-		//must be close enough
-		const float dist = VectorLength(v);
+		// Check radial distance
+		dist = VectorLength(v);
 		if (dist >= radius)
 		{
 			continue;
 		}
 
-		//in PVS?
+		// Must be in PVS (unless bmodel)
 		if (!traceEnt->r.bmodel && !trap->InPVS(ent_org, self->client->ps.origin))
 		{
-			//must be in PVS
 			continue;
 		}
 
-		//Now check and see if we can actually hit it
-		trap->Trace(&tr, self->client->ps.origin, vec3_origin, vec3_origin, ent_org, self->s.number, MASK_SHOT, qfalse, 0, 0);
+		// LOS trace from player to entity center
+		trap->Trace(&s_tr,
+			self->client->ps.origin,
+			vec3_origin,
+			vec3_origin,
+			ent_org,
+			self->s.number,
+			MASK_SHOT,
+			qfalse,
+			0,
+			0);
 
-		if (tr.fraction < 1.0f && tr.entityNum != traceEnt->s.number)
+		// Blocked by something else
+		if (s_tr.fraction < 1.0f && s_tr.entityNum != traceEnt->s.number)
 		{
-			//must have clear LOS
 			continue;
 		}
 
-		if (tr.entityNum < ENTITYNUM_WORLD && traceEnt->takedamage)
+		// Apply damage and reactions
+		if (s_tr.entityNum < ENTITYNUM_WORLD && traceEnt->takedamage)
 		{
-			const int damage = FLAMETHROWER_DAMAGE;
+			damage = FLAMETHROWER_DAMAGE;
 
-			G_Damage(traceEnt, self, self, dir, tr.endpos, damage, DAMAGE_NO_ARMOR | DAMAGE_NO_KNOCKBACK | DAMAGE_IGNORE_TEAM, MOD_BURNING);
+			G_Damage(traceEnt,
+				self,
+				self,
+				dir,
+				s_tr.endpos,
+				damage,
+				DAMAGE_NO_ARMOR | DAMAGE_NO_KNOCKBACK | DAMAGE_IGNORE_TEAM,
+				MOD_BURNING);
 
 			if (traceEnt->health > 0)
 			{
+				// Small push from the flame
 				g_throw(traceEnt, dir, 30);
 
-				if (traceEnt->client)
+				if (traceEnt->client != NULL)
 				{
+					// Impact FX and flinch animation
 					G_PlayBoltedEffect(G_EffectIndex("flamethrower/flame_impact"), traceEnt, "thoracic");
-
-					NPC_SetAnim(traceEnt, SETANIM_TORSO, BOTH_FACEPROTECT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					NPC_SetAnim(traceEnt,
+						SETANIM_TORSO,
+						BOTH_FACEPROTECT,
+						SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 				}
+
+				// Apply burning state
 				player_Burn(traceEnt);
 			}
 		}
 		else
 		{
+			// Maintain/clear burn state on non-direct-hit cases
 			Player_CheckBurn(traceEnt);
 		}
 	}
@@ -3816,7 +3906,7 @@ so the client will know which ones to precache
 */
 void save_registered_items(void)
 {
-	char string[MAX_ITEMS + 1];
+	char string[MAX_ITEMS + 1] = { 0 };
 
 	int count = 0;
 	for (int i = 0; i < bg_numItems; i++)

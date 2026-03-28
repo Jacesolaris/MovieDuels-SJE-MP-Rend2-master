@@ -1609,6 +1609,8 @@ typedef struct siegePers_s
 #define BLOCKPOINTS_FAIL            2
 #define	BLOCK_POINTS_MIN            1
 
+#define	PLAYER_FUEL_MAX            100
+
 #define DEFAULT_BLOCK_TIME_MAX_MILLISECONDS 300
 
 #define BOTZIZE_TINY    	55

@@ -784,7 +784,7 @@ void WP_InitForcePowers(gentity_t* ent)
 	{
 		if (ent->client->ps.fd.forcePowersKnown & 1 << i && !ent->client->ps.fd.forcePowerLevel[i])
 			ent->client->ps.fd.forcePowersKnown &= ~(1 << i);
-		else if (i != FP_LEVITATION && i != FP_SABER_OFFENSE && i != FP_SABER_DEFENSE && i != FP_SABERTHROW)
+		else if (i != FP_SABER_OFFENSE && i != FP_SABER_DEFENSE && i != FP_SABERTHROW)
 			last_fp_known = i;
 	}
 
@@ -8282,23 +8282,17 @@ static void JediMasterUpdate(gentity_t* self)
 
 qboolean WP_HasForcePowers(const playerState_t* ps)
 {
-	if (ps)
+	if (ps != NULL)
 	{
 		for (int i = 0; i < NUM_FORCE_POWERS; i++)
 		{
-			if (i == FP_LEVITATION)
-			{
-				if (ps->fd.forcePowerLevel[i] > FORCE_LEVEL_1)
-				{
-					return qtrue;
-				}
-			}
-			else if (ps->fd.forcePowerLevel[i] > FORCE_LEVEL_0)
+			if (ps->fd.forcePowerLevel[i] > FORCE_LEVEL_0)
 			{
 				return qtrue;
 			}
 		}
 	}
+
 	return qfalse;
 }
 
@@ -8405,19 +8399,6 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 	if (!self->client->ps.fd.saberAnimLevel)
 	{
 		self->client->ps.fd.saberAnimLevel = FORCE_LEVEL_1;
-	}
-
-	if (level.gametype != GT_SIEGE)
-	{
-		if (!(self->client->ps.fd.forcePowersKnown & 1 << FP_LEVITATION))
-		{
-			self->client->ps.fd.forcePowersKnown |= 1 << FP_LEVITATION;
-		}
-
-		if (self->client->ps.fd.forcePowerLevel[FP_LEVITATION] < FORCE_LEVEL_1)
-		{
-			self->client->ps.fd.forcePowerLevel[FP_LEVITATION] = FORCE_LEVEL_1;
-		}
 	}
 
 	if (self->client->ps.fd.forcePowerSelected < 0 || self->client->ps.fd.forcePowerSelected >= NUM_FORCE_POWERS)

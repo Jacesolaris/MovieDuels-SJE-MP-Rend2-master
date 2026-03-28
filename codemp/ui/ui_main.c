@@ -2413,41 +2413,45 @@ static void UI_SetForceDisabled(int force)
 {
 	int i = 0;
 
-	if (force)
+	if (force != 0)
 	{
 		while (i < NUM_FORCE_POWERS)
 		{
-			if (force & 1 << i)
+			if ((force & (1 << i)) != 0)
 			{
+				// Mark this power as disabled
 				uiForcePowersDisabled[i] = qtrue;
 
-				if (i != FP_LEVITATION && i != FP_SABER_OFFENSE && i != FP_SABER_DEFENSE)
+				// ------------------------------------------------------------
+				// No free powers at all — including FP_LEVITATION.
+				// Only Saber Offense/Defense keep Raven's special-case behaviour.
+				// ------------------------------------------------------------
+				if (i == FP_SABER_OFFENSE)
 				{
-					uiForcePowersRank[i] = 0;
+					uiForcePowersRank[i] = 3;   // Raven behaviour preserved
+				}
+				else if (i == FP_SABER_DEFENSE)
+				{
+					uiForcePowersRank[i] = 3;   // Raven behaviour preserved
 				}
 				else
 				{
-					if (i == FP_LEVITATION)
-					{
-						uiForcePowersRank[i] = 1;
-					}
-					else
-					{
-						uiForcePowersRank[i] = 3;
-					}
+					uiForcePowersRank[i] = 0;   // Everything else becomes 0
 				}
 			}
 			else
 			{
+				// Power is not disabled
 				uiForcePowersDisabled[i] = qfalse;
 			}
+
 			i++;
 		}
 	}
 	else
 	{
+		// No powers disabled — clear all flags
 		i = 0;
-
 		while (i < NUM_FORCE_POWERS)
 		{
 			uiForcePowersDisabled[i] = qfalse;

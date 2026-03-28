@@ -1764,7 +1764,7 @@ static void CG_General(centity_t* cent)
 	{
 		//this is an in-flight saber being rendered manually
 		float wv;
-		addspriteArgStruct_t fx_s_args = { 0 };
+		addspriteArgStruct_t fxSArgs = { 0 };
 
 		ent.customShader = cgs.media.solidWhite;
 		ent.renderfx = RF_RGB_TINT;
@@ -1779,20 +1779,20 @@ static void CG_General(centity_t* cent)
 			vec3_t org;
 			VectorMA(ent.origin, -i, ent.axis[2], org);
 
-			VectorCopy(org, fx_s_args.origin);
-			VectorClear(fx_s_args.vel);
-			VectorClear(fx_s_args.accel);
-			fx_s_args.scale = 5.5f;
-			fx_s_args.dscale = 5.5f;
-			fx_s_args.sAlpha = wv;
-			fx_s_args.eAlpha = wv;
-			fx_s_args.rotation = 0.0f;
-			fx_s_args.bounce = 0.0f;
-			fx_s_args.life = 1.0f;
-			fx_s_args.shader = cgs.media.yellowDroppedSaberShader;
-			fx_s_args.flags = 0x08000000;
+			VectorCopy(org, fxSArgs.origin);
+			VectorClear(fxSArgs.vel);
+			VectorClear(fxSArgs.accel);
+			fxSArgs.scale = 5.5f;
+			fxSArgs.dscale = 5.5f;
+			fxSArgs.sAlpha = wv;
+			fxSArgs.eAlpha = wv;
+			fxSArgs.rotation = 0.0f;
+			fxSArgs.bounce = 0.0f;
+			fxSArgs.life = 1.0f;
+			fxSArgs.shader = cgs.media.yellowDroppedSaberShader;
+			fxSArgs.flags = 0x08000000;
 
-			trap->FX_AddSprite(&fx_s_args);
+			trap->FX_AddSprite(&fxSArgs);
 		}
 	}
 	else if (cent->currentState.trickedentindex3)
@@ -1800,7 +1800,7 @@ static void CG_General(centity_t* cent)
 		//holocron special effects
 		vec3_t org;
 		float wv;
-		addspriteArgStruct_t fx_s_args = { 0 };
+		addspriteArgStruct_t fxSArgs = { 0 };
 
 		ent.customShader = cgs.media.solidWhite;
 		ent.renderfx = RF_RGB_TINT;
@@ -1855,38 +1855,38 @@ static void CG_General(centity_t* cent)
 
 		wv = sin(cg.time * 0.002f) * 0.08f + 0.1f; //* 0.08f + 0.1f;
 
-		VectorCopy(org, fx_s_args.origin);
-		VectorClear(fx_s_args.vel);
-		VectorClear(fx_s_args.accel);
-		fx_s_args.scale = wv * 120; //16.0f;
-		fx_s_args.dscale = wv * 120; //16.0f;
-		fx_s_args.sAlpha = wv * 12;
-		fx_s_args.eAlpha = wv * 12;
-		fx_s_args.rotation = 0.0f;
-		fx_s_args.bounce = 0.0f;
-		fx_s_args.life = 1.0f;
+		VectorCopy(org, fxSArgs.origin);
+		VectorClear(fxSArgs.vel);
+		VectorClear(fxSArgs.accel);
+		fxSArgs.scale = wv * 120; //16.0f;
+		fxSArgs.dscale = wv * 120; //16.0f;
+		fxSArgs.sAlpha = wv * 12;
+		fxSArgs.eAlpha = wv * 12;
+		fxSArgs.rotation = 0.0f;
+		fxSArgs.bounce = 0.0f;
+		fxSArgs.life = 1.0f;
 
-		fx_s_args.flags = 0x08000000 | 0x00000001;
+		fxSArgs.flags = 0x08000000 | 0x00000001;
 
 		if (cent->currentState.trickedentindex3 == 1)
 		{
 			//dark
-			fx_s_args.sAlpha *= 3;
-			fx_s_args.eAlpha *= 3;
-			fx_s_args.shader = cgs.media.redSaberGlowShader;
-			trap->FX_AddSprite(&fx_s_args);
+			fxSArgs.sAlpha *= 3;
+			fxSArgs.eAlpha *= 3;
+			fxSArgs.shader = cgs.media.redSaberGlowShader;
+			trap->FX_AddSprite(&fxSArgs);
 		}
 		else if (cent->currentState.trickedentindex3 == 2)
 		{
 			//light
-			fx_s_args.sAlpha *= 1.5;
-			fx_s_args.eAlpha *= 1.5;
-			fx_s_args.shader = cgs.media.redSaberGlowShader;
-			trap->FX_AddSprite(&fx_s_args);
-			fx_s_args.shader = cgs.media.greenSaberGlowShader;
-			trap->FX_AddSprite(&fx_s_args);
-			fx_s_args.shader = cgs.media.blueSaberGlowShader;
-			trap->FX_AddSprite(&fx_s_args);
+			fxSArgs.sAlpha *= 1.5;
+			fxSArgs.eAlpha *= 1.5;
+			fxSArgs.shader = cgs.media.redSaberGlowShader;
+			trap->FX_AddSprite(&fxSArgs);
+			fxSArgs.shader = cgs.media.greenSaberGlowShader;
+			trap->FX_AddSprite(&fxSArgs);
+			fxSArgs.shader = cgs.media.blueSaberGlowShader;
+			trap->FX_AddSprite(&fxSArgs);
 		}
 		else
 		{
@@ -1896,19 +1896,19 @@ static void CG_General(centity_t* cent)
 				s1->modelIndex + 128 == FP_SABERTHROW)
 			{
 				//saber power
-				fx_s_args.sAlpha *= 1.5;
-				fx_s_args.eAlpha *= 1.5;
-				fx_s_args.shader = cgs.media.greenSaberGlowShader;
-				trap->FX_AddSprite(&fx_s_args);
+				fxSArgs.sAlpha *= 1.5;
+				fxSArgs.eAlpha *= 1.5;
+				fxSArgs.shader = cgs.media.greenSaberGlowShader;
+				trap->FX_AddSprite(&fxSArgs);
 			}
 			else
 			{
-				fx_s_args.sAlpha *= 0.5;
-				fx_s_args.eAlpha *= 0.5;
-				fx_s_args.shader = cgs.media.greenSaberGlowShader;
-				trap->FX_AddSprite(&fx_s_args);
-				fx_s_args.shader = cgs.media.blueSaberGlowShader;
-				trap->FX_AddSprite(&fx_s_args);
+				fxSArgs.sAlpha *= 0.5;
+				fxSArgs.eAlpha *= 0.5;
+				fxSArgs.shader = cgs.media.greenSaberGlowShader;
+				trap->FX_AddSprite(&fxSArgs);
+				fxSArgs.shader = cgs.media.blueSaberGlowShader;
+				trap->FX_AddSprite(&fxSArgs);
 			}
 		}
 	}
@@ -3231,7 +3231,7 @@ static void CG_Missile(centity_t* cent)
 		// always make the saber glow when on the ground
 		float wv;
 		int i;
-		addspriteArgStruct_t fx_s_args = { 0 };
+		addspriteArgStruct_t fxSArgs = { 0 };
 
 		ent.customShader = cgs.media.solidWhite;
 		ent.renderfx = RF_RGB_TINT;
@@ -3246,20 +3246,20 @@ static void CG_Missile(centity_t* cent)
 			vec3_t org;
 			VectorMA(ent.origin, -i, ent.axis[2], org);
 
-			VectorCopy(org, fx_s_args.origin);
-			VectorClear(fx_s_args.vel);
-			VectorClear(fx_s_args.accel);
-			fx_s_args.scale = 5.5f;
-			fx_s_args.dscale = 5.5f;
-			fx_s_args.sAlpha = wv;
-			fx_s_args.eAlpha = wv;
-			fx_s_args.rotation = 0.0f;
-			fx_s_args.bounce = 0.0f;
-			fx_s_args.life = 1.0f;
-			fx_s_args.shader = cgs.media.yellowDroppedSaberShader;
-			fx_s_args.flags = 0x08000000;
+			VectorCopy(org, fxSArgs.origin);
+			VectorClear(fxSArgs.vel);
+			VectorClear(fxSArgs.accel);
+			fxSArgs.scale = 5.5f;
+			fxSArgs.dscale = 5.5f;
+			fxSArgs.sAlpha = wv;
+			fxSArgs.eAlpha = wv;
+			fxSArgs.rotation = 0.0f;
+			fxSArgs.bounce = 0.0f;
+			fxSArgs.life = 1.0f;
+			fxSArgs.shader = cgs.media.yellowDroppedSaberShader;
+			fxSArgs.flags = 0x08000000;
 
-			trap->FX_AddSprite(&fx_s_args);
+			trap->FX_AddSprite(&fxSArgs);
 		}
 
 		if (cgs.gametype == GT_JEDIMASTER)

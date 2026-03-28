@@ -30,7 +30,6 @@ FORCE INTERFACE
 
 // use this to get a demo build without an explicit demo build, i.e. to get the demo ui files to build
 #include "ui_local.h"
-#include "qcommon/qfiles.h"
 #include "ui_force.h"
 #include "keycodes.h"
 #include <stdlib.h>
@@ -57,7 +56,8 @@ qboolean gTouchedForce = qfalse;
 
 void Menu_ShowItemByName(menuDef_t* menu, const char* p, qboolean bShow);
 
-qboolean uiForcePowersDisabled[NUM_FORCE_POWERS] = {
+qboolean uiForcePowersDisabled[NUM_FORCE_POWERS] =
+{
 	qfalse,//FP_HEAL,//instant
 	qfalse,//FP_LEVITATION,//hold/duration
 	qfalse,//FP_SPEED,//duration
@@ -78,9 +78,10 @@ qboolean uiForcePowersDisabled[NUM_FORCE_POWERS] = {
 	qfalse//FP_SABERTHROW,
 };
 
-int uiForcePowersRank[NUM_FORCE_POWERS] = {
+int uiForcePowersRank[NUM_FORCE_POWERS] =
+{
 	0,//FP_HEAL = 0,//instant
-	1,//FP_LEVITATION,//hold/duration, this one defaults to 1 (gives a free point)
+	0,//FP_LEVITATION,//hold/duration, this one defaults to 1 (gives a free point)
 	0,//FP_SPEED,//duration
 	0,//FP_PUSH,//hold/duration
 	0,//FP_PULL,//hold/duration
@@ -94,8 +95,8 @@ int uiForcePowersRank[NUM_FORCE_POWERS] = {
 	0,//FP_TEAM_FORCE,
 	0,//FP_DRAIN,
 	0,//FP_SEE,
-	1,//FP_SABER_OFFENSE, //default to 1 point in attack
-	1,//FP_SABER_DEFENSE, //defualt to 1 point in defense
+	0,//FP_SABER_OFFENSE, //default to 1 point in attack
+	0,//FP_SABER_DEFENSE, //defualt to 1 point in defense
 	0//FP_SABERTHROW,
 };
 
@@ -310,32 +311,33 @@ void UI_SaveForceTemplate()
 	}
 }
 
-//
 extern qboolean UI_TrueJediEnabled(void);
+
 void UpdateForceUsed()
 {
-	// Currently we don't make a distinction between those that wish to play Jedi of lower than maximum skill.
+	// Always use max rank for point calculations
 	uiForceRank = uiMaxRank;
 
 	uiForceUsed = 0;
 	uiForceAvailable = forceMasteryPoints[uiForceRank];
 
-	// Make sure that we have one freebie in jump.
-	if (uiForcePowersRank[FP_LEVITATION] < 1)
-	{
-		uiForcePowersRank[FP_LEVITATION] = 1;
-	}
-
+	// ------------------------------------------------------------
+	// TRUE JEDI MODE HANDLING
+	// ------------------------------------------------------------
 	if (UI_TrueJediEnabled())
-	{//true jedi mode is set
+	{
 		if (uiJediNonJedi == -1)
 		{
 			int x = 0;
-			qboolean clear = qfalse, update = qfalse;
+			qboolean clear = qfalse;
+			qboolean update = qfalse;
+
 			uiJediNonJedi = FORCE_NONJEDI;
+
 			while (x < NUM_FORCE_POWERS)
-			{//if any force power is set, we must be a jedi
-				if (x == FP_LEVITATION || x == FP_SABER_OFFENSE)
+			{
+				// Saber Offense is the ONLY “Jedi indicator”
+				if (x == FP_SABER_OFFENSE)
 				{
 					if (uiForcePowersRank[x] > 1)
 					{
@@ -349,13 +351,17 @@ void UpdateForceUsed()
 				}
 				else if (uiForcePowersRank[x] > 0)
 				{
+					// Any other force power > 0 means Jedi
 					uiJediNonJedi = FORCE_JEDI;
 					break;
 				}
+
 				x++;
 			}
+
 			if (uiJediNonJedi == FORCE_JEDI)
 			{
+				// Jedi must have Saber Offense 1 minimum
 				if (uiForcePowersRank[FP_SABER_OFFENSE] < 1)
 				{
 					uiForcePowersRank[FP_SABER_OFFENSE] = 1;
@@ -364,36 +370,43 @@ void UpdateForceUsed()
 			}
 			else if (clear)
 			{
+				// Non‑Jedi cannot have ANY force powers
 				x = 0;
 				while (x < NUM_FORCE_POWERS)
-				{//clear all force
+				{
 					uiForcePowersRank[x] = 0;
 					x++;
 				}
 				update = qtrue;
 			}
+
 			if (update)
 			{
 				const int myTeam = (int)trap->Cvar_VariableValue("ui_myteam");
+
 				if (myTeam != TEAM_SPECTATOR)
 				{
-					UI_UpdateClientForcePowers(UI_TeamName(myTeam));//will cause him to respawn, if it's been 5 seconds since last one
+					UI_UpdateClientForcePowers(UI_TeamName(myTeam));
 				}
 				else
 				{
-					UI_UpdateClientForcePowers(NULL);//just update powers
+					UI_UpdateClientForcePowers(NULL);
 				}
 			}
 		}
 	}
 
+	// ------------------------------------------------------------
+	// SABER FREEBIE HANDLING
+	// ------------------------------------------------------------
 	menuDef_t* menu = Menus_FindByName("ingame_playerforce");
-	// Set the cost of the saberattack according to whether its free.
+
 	if (ui_freeSaber.integer)
-	{	// Make saber free
+	{
+		// Saber level 1 is free
 		bgForcePowerCost[FP_SABER_OFFENSE][FORCE_LEVEL_1] = 0;
 		bgForcePowerCost[FP_SABER_DEFENSE][FORCE_LEVEL_1] = 0;
-		// Make sure that we have one freebie in saber if applicable.
+
 		if (uiForcePowersRank[FP_SABER_OFFENSE] < 1)
 		{
 			uiForcePowersRank[FP_SABER_OFFENSE] = 1;
@@ -402,6 +415,7 @@ void UpdateForceUsed()
 		{
 			uiForcePowersRank[FP_SABER_DEFENSE] = 1;
 		}
+
 		if (menu)
 		{
 			Menu_ShowItemByName(menu, "setFP_SABER_DEFENSE", qtrue);
@@ -412,14 +426,16 @@ void UpdateForceUsed()
 		}
 	}
 	else
-	{	// Make saber normal cost
+	{
+		// Normal saber cost
 		bgForcePowerCost[FP_SABER_OFFENSE][FORCE_LEVEL_1] = 1;
 		bgForcePowerCost[FP_SABER_DEFENSE][FORCE_LEVEL_1] = 1;
-		// Also, check if there is no saberattack.  If there isn't, there had better not be any defense or throw!
+
 		if (uiForcePowersRank[FP_SABER_OFFENSE] < 1)
 		{
 			uiForcePowersRank[FP_SABER_DEFENSE] = 0;
 			uiForcePowersRank[FP_SABERTHROW] = 0;
+
 			if (menu)
 			{
 				Menu_ShowItemByName(menu, "setfp_saberdefend", qfalse);
@@ -442,33 +458,36 @@ void UpdateForceUsed()
 		}
 	}
 
-	// Make sure that we're still legal.
+	// ------------------------------------------------------------
+	// COST ACCRUAL
+	// ------------------------------------------------------------
 	for (int curpower = 0; curpower < NUM_FORCE_POWERS; curpower++)
-	{	// Make sure that our ranks are within legal limits.
+	{
+		// Clamp rank
 		if (uiForcePowersRank[curpower] < 0)
 			uiForcePowersRank[curpower] = 0;
 		else if (uiForcePowersRank[curpower] >= NUM_FORCE_POWER_LEVELS)
 			uiForcePowersRank[curpower] = NUM_FORCE_POWER_LEVELS - 1;
 
 		for (int currank = FORCE_LEVEL_1; currank <= uiForcePowersRank[curpower]; currank++)
-		{	// Check on this force power
+		{
 			if (uiForcePowersRank[curpower] > 0)
-			{	// Do not charge the player for the one freebie in jump, or if there is one in saber.
-				if (curpower == FP_LEVITATION && currank == FORCE_LEVEL_1 ||
-					curpower == FP_SABER_OFFENSE && currank == FORCE_LEVEL_1 && ui_freeSaber.integer ||
-					curpower == FP_SABER_DEFENSE && currank == FORCE_LEVEL_1 && ui_freeSaber.integer)
+			{
+				// Freebies: Saber Offense/Defense only
+				if ((curpower == FP_SABER_OFFENSE && currank == FORCE_LEVEL_1 && ui_freeSaber.integer) ||
+					(curpower == FP_SABER_DEFENSE && currank == FORCE_LEVEL_1 && ui_freeSaber.integer))
 				{
-					// Do nothing (written this way for clarity)
+					// Free rank — do nothing
 				}
 				else
-				{	// Check if we can accrue the cost of this power.
+				{
+					// Check cost
 					if (bgForcePowerCost[curpower][currank] > uiForceAvailable)
-					{	// We can't afford this power.  Break to the next one.
-						// Remove this power from the player's roster.
+					{
 						uiForcePowersRank[curpower] = currank - 1;
 						break;
 					}
-					// Sure we can afford it.
+
 					uiForceUsed += bgForcePowerCost[curpower][currank];
 					uiForceAvailable -= bgForcePowerCost[curpower][currank];
 				}
@@ -617,11 +636,6 @@ void UI_ReadLegalForce(void)
 			uiForcePowersRank[c]++;
 		}
 	}
-
-	if (uiForcePowersRank[FP_LEVITATION] < 1)
-	{
-		uiForcePowersRank[FP_LEVITATION] = 1;
-	}
 	if (uiForcePowersRank[FP_SABER_OFFENSE] < 1 && ui_freeSaber.integer)
 	{
 		uiForcePowersRank[FP_SABER_OFFENSE] = 1;
@@ -701,12 +715,6 @@ void UI_UpdateForcePowers()
 				readBuf[1] = '\0';
 				uiForcePowersRank[i_f] = atoi(readBuf);
 
-				if (i_f == FP_LEVITATION &&
-					uiForcePowersRank[i_f] < 1)
-				{
-					uiForcePowersRank[i_f] = 1;
-				}
-
 				if (i_f == FP_SABER_OFFENSE &&
 					uiForcePowersRank[i_f] < 1 &&
 					ui_freeSaber.integer)
@@ -740,14 +748,13 @@ validitycheck:
 	{
 		uiForceSide = 1;
 		uiForceRank = 1;
+
 		i = 0;
 		while (i < NUM_FORCE_POWERS)
 		{
-			if (i == FP_LEVITATION)
-			{
-				uiForcePowersRank[i] = 1;
-			}
-			else if (i == FP_SABER_OFFENSE && ui_freeSaber.integer)
+			// No free powers except saber offense/defense when free_saber is enabled
+
+			if (i == FP_SABER_OFFENSE && ui_freeSaber.integer)
 			{
 				uiForcePowersRank[i] = 1;
 			}
@@ -757,7 +764,7 @@ validitycheck:
 			}
 			else
 			{
-				uiForcePowersRank[i] = 0;
+				uiForcePowersRank[i] = 0;   // Everything else starts at 0, including FP_LEVITATION
 			}
 
 			i++;
@@ -768,6 +775,8 @@ validitycheck:
 
 	UpdateForceUsed();
 }
+
+
 extern int	uiSkinColor;
 extern int	uiHoldSkinColor;
 
@@ -935,11 +944,7 @@ qboolean UI_JediNonJedi_HandleKey(int flags, float* special, int key, int num, i
 			}
 		}
 		else if (num)
-		{//a jedi, set the minimums, hopefuly they know to set the rest!
-			if (uiForcePowersRank[FP_LEVITATION] < FORCE_LEVEL_1)
-			{//force jump 1 minimum
-				uiForcePowersRank[FP_LEVITATION] = FORCE_LEVEL_1;
-			}
+		{//a jedi, set the minimums, hopefuly they know to set the rest!			
 			if (uiForcePowersRank[FP_SABER_OFFENSE] < FORCE_LEVEL_1)
 			{//saber attack 1, minimum
 				uiForcePowersRank[FP_SABER_OFFENSE] = FORCE_LEVEL_1;
@@ -1022,11 +1027,6 @@ qboolean UI_ForcePowerRank_HandleKey(int flags, float* special, int key, int num
 			{
 				return qtrue;
 			}
-		}
-
-		if (type == UI_FORCE_RANK_LEVITATION)
-		{
-			min += 1;
 		}
 		if (type == UI_FORCE_RANK_SABERATTACK && ui_freeSaber.integer)
 		{
@@ -1120,7 +1120,7 @@ void UI_ForceConfigHandle(int oldindex, int newindex)
 	int c = 0;
 	char fcfBuffer[8192];
 	char singleBuf[64] = { 0 };
-	char info[MAX_INFO_VALUE];
+	char info[MAX_INFO_VALUE] = { 0 };
 	int forceTeam = 0;
 
 	if (oldindex == 0)
@@ -1263,25 +1263,6 @@ void UI_ForceConfigHandle(int oldindex, int newindex)
 	//clear out the existing powers
 	while (c < NUM_FORCE_POWERS)
 	{
-		/*
-		if (c==FP_LEVITATION)
-		{
-			uiForcePowersRank[c]=1;
-		}
-		else if (c==FP_SABER_OFFENSE && ui_freeSaber.integer)
-		{
-			uiForcePowersRank[c]=1;
-		}
-		else if (c==FP_SABER_DEFENSE && ui_freeSaber.integer)
-		{
-			uiForcePowersRank[c]=1;
-		}
-		else
-		{
-			uiForcePowersRank[c] = 0;
-		}
-		*/
-		//rww - don't need to do these checks. Just trust whatever the saber config says.
 		uiForcePowersRank[c] = 0;
 		c++;
 	}
@@ -1325,11 +1306,6 @@ void UI_ForceConfigHandle(int oldindex, int newindex)
 
 			uiForcePowersRank[c]++;
 		}
-	}
-
-	if (uiForcePowersRank[FP_LEVITATION] < 1)
-	{
-		uiForcePowersRank[FP_LEVITATION] = 1;
 	}
 	if (uiForcePowersRank[FP_SABER_OFFENSE] < 1 && ui_freeSaber.integer)
 	{

@@ -849,7 +849,7 @@ qboolean Jedi_StopKnockdown(gentity_t* self, const vec3_t push_dir)
 {
 	//certain NPCs can avoid knockdowns, check for that.
 	vec3_t pDir, fwd, right, ang;
-	usercmd_t temp_Cmd;
+	usercmd_t temp_Cmd = { 0 };
 	const int strafeTime = Q_irand(1000, 2000);
 
 	if (self->s.number < MAX_CLIENTS || !self->NPC)

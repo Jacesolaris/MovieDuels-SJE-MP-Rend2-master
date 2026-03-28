@@ -1604,11 +1604,40 @@ typedef struct cgMedia_s {
 	qhandle_t   JK2HUDSaberStyleStaff;
 	qhandle_t   JK2HUDSaberStyleDuels;
 
+	//movieduels hud
+	qhandle_t MDHUDLeftFrame;
+	qhandle_t MDHUDLeftFramerotate;
+	qhandle_t MDHUDLeftInnerRing;
+	qhandle_t MDHUDLeftOuterRing;
+
+	qhandle_t MDHUDRightFrame;
+	qhandle_t MDHUDRightFramerotate;
+	qhandle_t MDHUDRightInnerRing;
+	qhandle_t MDHUDRightOuterRing;
+
 	sfxHandle_t messageLitSound;
 
 	qhandle_t messageLitOn;
 	qhandle_t messageLitOff;
 	qhandle_t messageObjCircle;
+
+	// weapons
+	qhandle_t weapontype_melee;
+	qhandle_t weapontype_stun_baton;
+	qhandle_t weapontype_briar_pistol;
+	qhandle_t weapontype_sbd_blaster;
+	qhandle_t weapontype_blaster_pistol;
+	qhandle_t weapontype_blaster;
+	qhandle_t weapontype_bowcaster;
+	qhandle_t weapontype_concussion;
+	qhandle_t weapontype_demp2;
+	qhandle_t weapontype_detpack;
+	qhandle_t weapontype_disruptor;
+	qhandle_t weapontype_flachette;
+	qhandle_t weapontype_repeater;
+	qhandle_t weapontype_thermal;
+	qhandle_t weapontype_rocket;
+	qhandle_t weapontype_tripmine;
 } cgMedia_t;
 
 // Stored FX handles
@@ -2137,8 +2166,8 @@ void TurretClientRun(centity_t* ent);
 //
 // cg_weapons.c
 //
-void CG_GetClientWeaponMuzzleBoltPoint(int cl_index, vec3_t to);
-void CG_GetClientWeaponMuzzleBoltPointduals(int cl_index, vec3_t to, qboolean leftweap);
+void CG_GetClientWeaponMuzzleBoltPoint(const int cl_index, vec3_t to);
+void CG_GetClientWeaponMuzzleBoltPointduals(const int cl_index, vec3_t to, const qboolean leftweap);
 
 void CG_NextWeapon_f(void);
 void CG_PrevWeapon_f(void);

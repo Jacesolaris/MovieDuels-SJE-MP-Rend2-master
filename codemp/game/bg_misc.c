@@ -195,7 +195,7 @@ int forceMasteryPoints[NUM_FORCE_MASTERY_LEVELS] =
 int bgForcePowerCost[NUM_FORCE_POWERS][NUM_FORCE_POWER_LEVELS] = //0 == neutral
 {
 	{0, 2, 4, 6}, // Heal			// FP_HEAL
-	{0, 0, 2, 6}, // Jump			//FP_LEVITATION,//hold/duration
+	{0, 2, 4, 6}, // Jump			//FP_LEVITATION,//hold/duration
 	{0, 2, 4, 6}, // Speed		//FP_SPEED,//duration
 	{0, 1, 3, 6}, // Push			//FP_PUSH,//hold/duration
 	{0, 1, 3, 6}, // Pull			//FP_PULL,//hold/duration
@@ -211,7 +211,7 @@ int bgForcePowerCost[NUM_FORCE_POWERS][NUM_FORCE_POWER_LEVELS] = //0 == neutral
 	{0, 2, 5, 8}, // Sight		//FP_SEE,//duration
 	{0, 1, 5, 8}, // Saber Attack	//FP_SABER_OFFENSE,
 	{0, 1, 5, 8}, // Saber Defend	//FP_SABER_DEFENSE,
-	{0, 4, 6, 8} // Saber Throw	//FP_SABERTHROW,
+	{0, 2, 6, 8}  // Saber Throw	//FP_SABERTHROW,
 	//NUM_FORCE_POWERS
 };
 
@@ -542,37 +542,56 @@ fpDisabled is actually only expected (needed) from the server, because the ui di
 force power selection anyway when force powers are disabled on the server.
 ================
 */
-qboolean BG_LegalizedForcePowers(char* power_out, const size_t power_out_size, const int max_rank, const qboolean free_saber, const int team_force,
-	const int gametype, const int fp_disabled)
+qboolean BG_LegalizedForcePowers(
+	char* power_out,
+	const size_t power_out_size,
+	const int max_rank,
+	const qboolean free_saber,
+	const int team_force,
+	const int gametype,
+	const int fp_disabled)
 {
 	char power_buf[128];
 	char read_buf[128] = { 0 };
 	qboolean maintains_validity = qtrue;
-	const int power_len = strlen(power_out);
+	const int power_len = (int)strlen(power_out);
 	int i = 0;
 	int c = 0;
 
 	int final_powers[NUM_FORCE_POWERS] = { 0 };
 
-	if (power_len >= 128)
+	// ----------------------------------------------------------------------
+	// Basic validation and initial copy
+	// ----------------------------------------------------------------------
+	if (power_len >= (int)sizeof(power_buf))
 	{
-		//This should not happen. If it does, this is obviously a bogus string.
-		//They can have this string. Because I said so.
-		Q_strncpyz(power_buf, DEFAULT_FORCEPOWERS, sizeof power_buf);
+		// Bogus or too-long string: fall back to default powers
+		Q_strncpyz(power_buf, DEFAULT_FORCEPOWERS, sizeof(power_buf));
 		maintains_validity = qfalse;
 	}
 	else
-		Q_strncpyz(power_buf, power_out, sizeof power_buf); //copy it as the original
+	{
+		// Copy original string
+		Q_strncpyz(power_buf, power_out, sizeof(power_buf));
+	}
 
-	//first of all, print the max rank into the string as the rank
+	// ----------------------------------------------------------------------
+	// Start building output: write rank first
+	// ----------------------------------------------------------------------
 	Q_strncpyz(power_out, va("%i-", max_rank), power_out_size);
 
-	while (i < sizeof power_buf && power_buf[i] && power_buf[i] != '-')
+	// ----------------------------------------------------------------------
+	// Parse side from input string
+	// ----------------------------------------------------------------------
+	while (i < (int)sizeof(power_buf) && power_buf[i] && power_buf[i] != '-')
 	{
 		i++;
 	}
 	i++;
-	while (i < sizeof power_buf && power_buf[i] && power_buf[i] != '-')
+
+	while (i < (int)sizeof(power_buf) &&
+		power_buf[i] &&
+		power_buf[i] != '-')
 	{
 		read_buf[c] = power_buf[i];
 		c++;
@@ -580,33 +599,41 @@ qboolean BG_LegalizedForcePowers(char* power_out, const size_t power_out_size, c
 	}
 	read_buf[c] = 0;
 	i++;
-	//at this point, readBuf contains the intended side
+
+	// read_buf now contains the intended side
 	int final_side = atoi(read_buf);
 
 	if (final_side != FORCE_LIGHTSIDE &&
 		final_side != FORCE_DARKSIDE)
 	{
-		//Not a valid side. You will be dark. Because I said so. (this is something that should never actually happen unless you purposely feed in an invalid config)
+		// Invalid side: default to dark
 		final_side = FORCE_DARKSIDE;
 		maintains_validity = qfalse;
 	}
 
-	if (team_force)
+	// ----------------------------------------------------------------------
+	// Team-based side enforcement
+	// ----------------------------------------------------------------------
+	if (team_force != 0)
 	{
-		//If we are under force-aligned teams, make sure we're on the right side.
 		if (final_side != team_force)
 		{
 			final_side = team_force;
-			//maintainsValidity = qfalse;
-			//Not doing this, for now. Let them join the team with their filtered powers.
+			// We allow this without marking invalid to avoid punishing configs.
 		}
 	}
 
-	//Now we have established a valid rank, and a valid side.
-	//Read the force powers in, and cut them down based on the various rules supplied.
+	// ----------------------------------------------------------------------
+	// Read force powers from string into final_powers[]
+	// ----------------------------------------------------------------------
 	c = 0;
-	while (i < sizeof power_buf && power_buf[i] && power_buf[i] != '\n' && power_buf[i] != '\r'
-		&& power_buf[i] >= '0' && power_buf[i] <= '3' && c < NUM_FORCE_POWERS)
+	while (i < (int)sizeof(power_buf) &&
+		power_buf[i] &&
+		power_buf[i] != '\n' &&
+		power_buf[i] != '\r' &&
+		power_buf[i] >= '0' &&
+		power_buf[i] <= '3' &&
+		c < NUM_FORCE_POWERS)
 	{
 		read_buf[0] = power_buf[i];
 		read_buf[1] = 0;
@@ -615,39 +642,44 @@ qboolean BG_LegalizedForcePowers(char* power_out, const size_t power_out_size, c
 		i++;
 	}
 
-	//final_Powers now contains all the stuff from the string
-	//Set the maximum allowed points used based on the max rank level, and count the points actually used.
+	// ----------------------------------------------------------------------
+	// Side filtering and disabled powers
+	// ----------------------------------------------------------------------
 	const int allowed_points = forceMasteryPoints[max_rank];
 
 	i = 0;
 	while (i < NUM_FORCE_POWERS)
 	{
-		//if this power doesn't match the side we're on, then 0 it now.
-		if (final_powers[i] &&
-			force_power_dark_light[i] &&
+		// Remove powers that don't match our side
+		if (final_powers[i] != 0 &&
+			force_power_dark_light[i] != 0 &&
 			force_power_dark_light[i] != final_side)
 		{
 			final_powers[i] = 0;
-			//This is only likely to happen with g_forceBasedTeams. Let it slide.
 		}
 
-		if (final_powers[i] &&
-			fp_disabled & 1 << i)
+		// Remove powers disabled by server flags
+		if (final_powers[i] != 0 &&
+			(fp_disabled & (1 << i)) != 0)
 		{
-			//if this power is disabled on the server via said server option, then we don't get it.
 			final_powers[i] = 0;
 		}
 
 		i++;
 	}
 
+	// ----------------------------------------------------------------------
+	// Non-team gametypes: remove team powers
+	// ----------------------------------------------------------------------
 	if (gametype < GT_TEAM)
 	{
-		//don't bother with team powers then
 		final_powers[FP_TEAM_HEAL] = 0;
 		final_powers[FP_TEAM_FORCE] = 0;
 	}
 
+	// ----------------------------------------------------------------------
+	// Count used points
+	// ----------------------------------------------------------------------
 	int used_points = 0;
 	i = 0;
 	while (i < NUM_FORCE_POWERS)
@@ -656,29 +688,32 @@ qboolean BG_LegalizedForcePowers(char* power_out, const size_t power_out_size, c
 
 		while (count_down > 0)
 		{
-			used_points += bgForcePowerCost[i][count_down]; //[fp index][fp level]
-			//if this is jump, or we have a free saber and it's offense or defense, take the level back down on level 1
+			used_points += bgForcePowerCost[i][count_down];
+
+			// Level 1 jump, offense, defense can be free under certain conditions
 			if (count_down == 1 &&
-				(i == FP_LEVITATION ||
-					i == FP_SABER_OFFENSE && free_saber ||
-					i == FP_SABER_DEFENSE && free_saber))
+				((i == FP_SABER_OFFENSE && free_saber == qtrue) ||
+					(i == FP_SABER_DEFENSE && free_saber == qtrue)))
 			{
 				used_points -= bgForcePowerCost[i][count_down];
 			}
+
 			count_down--;
 		}
 
 		i++;
 	}
 
+	// ----------------------------------------------------------------------
+	// If over budget, trim powers according to Raven's heuristic
+	// ----------------------------------------------------------------------
 	if (used_points > allowed_points)
 	{
-		//Time to do the fancy stuff. (meaning, slowly cut parts off while taking a guess at what is most or least important in the config)
 		int attempted_cycles = 0;
 		int power_cycle = 2;
 		int min_pow = 0;
 
-		if (free_saber)
+		if (free_saber == qtrue)
 		{
 			min_pow = 1;
 		}
@@ -691,27 +726,28 @@ qboolean BG_LegalizedForcePowers(char* power_out, const size_t power_out_size, c
 
 			while (c < NUM_FORCE_POWERS && used_points > allowed_points)
 			{
-				if (final_powers[c] && final_powers[c] < power_cycle)
+				if (final_powers[c] != 0 &&
+					final_powers[c] < power_cycle)
 				{
-					//kill in order of lowest powers, because the higher powers are probably more important
+					// Prefer to remove lower-level powers first
 					if (c == FP_SABER_OFFENSE &&
-						(final_powers[FP_SABER_DEFENSE] > min_pow || final_powers[FP_SABERTHROW] > 0))
+						(final_powers[FP_SABER_DEFENSE] > min_pow ||
+							final_powers[FP_SABERTHROW] > 0))
 					{
-						//if we're on saber attack, only suck it down if we have no def or throw either
-						int which_one = FP_SABERTHROW; //first try throw
+						int which_one = FP_SABERTHROW;
 
-						if (!final_powers[which_one])
+						if (final_powers[which_one] == 0)
 						{
-							which_one = FP_SABER_DEFENSE; //if no throw, drain defense
+							which_one = FP_SABER_DEFENSE;
 						}
 
-						while (final_powers[which_one] > 0 && used_points > allowed_points)
+						while (final_powers[which_one] > 0 &&
+							used_points > allowed_points)
 						{
 							if (final_powers[which_one] > 1 ||
-								(which_one != FP_SABER_OFFENSE || !free_saber) &&
-								(which_one != FP_SABER_DEFENSE || !free_saber))
+								((which_one != FP_SABER_OFFENSE || free_saber == qfalse) &&
+									(which_one != FP_SABER_DEFENSE || free_saber == qfalse)))
 							{
-								//don't take attack or defend down on level 1 still, if it's free
 								used_points -= bgForcePowerCost[which_one][final_powers[which_one]];
 								final_powers[which_one]--;
 							}
@@ -723,10 +759,10 @@ qboolean BG_LegalizedForcePowers(char* power_out, const size_t power_out_size, c
 					}
 					else
 					{
-						while (final_powers[c] > 0 && used_points > allowed_points)
+						while (final_powers[c] > 0 &&
+							used_points > allowed_points)
 						{
 							if (final_powers[c] > 1 ||
-								c != FP_LEVITATION &&
 								(c != FP_SABER_OFFENSE || !free_saber) &&
 								(c != FP_SABER_DEFENSE || !free_saber))
 							{
@@ -749,77 +785,92 @@ qboolean BG_LegalizedForcePowers(char* power_out, const size_t power_out_size, c
 
 			if (attempted_cycles > NUM_FORCE_POWERS)
 			{
-				//I think this should be impossible. But just in case.
+				// Safety break
 				break;
 			}
 		}
 
 		if (used_points > allowed_points)
 		{
-			//Still? Fine then.. we will kill all of your powers, except the freebies.
+			// Wipe all powers except freebies
 			i = 0;
-
 			while (i < NUM_FORCE_POWERS)
 			{
 				final_powers[i] = 0;
-				if (i == FP_LEVITATION ||
-					i == FP_SABER_OFFENSE && free_saber ||
-					i == FP_SABER_DEFENSE && free_saber)
+
+				if ((i == FP_SABER_OFFENSE && free_saber == qtrue) ||
+					(i == FP_SABER_DEFENSE && free_saber == qtrue))
 				{
 					final_powers[i] = 1;
 				}
+
 				i++;
 			}
 		}
 	}
 
-	if (free_saber)
+	// ----------------------------------------------------------------------
+	// Free saber: enforce minimum offense/defense
+	// ----------------------------------------------------------------------
+	if (free_saber == qtrue)
 	{
 		if (final_powers[FP_SABER_OFFENSE] < 1)
+		{
 			final_powers[FP_SABER_OFFENSE] = 1;
+		}
 		if (final_powers[FP_SABER_DEFENSE] < 1)
+		{
 			final_powers[FP_SABER_DEFENSE] = 1;
+		}
 	}
-	if (final_powers[FP_LEVITATION] < 1)
-		final_powers[FP_LEVITATION] = 1;
 
+	// ----------------------------------------------------------------------
+	// Cap all powers to max level
+	// ----------------------------------------------------------------------
 	i = 0;
 	while (i < NUM_FORCE_POWERS)
 	{
 		if (final_powers[i] > FORCE_LEVEL_3)
+		{
 			final_powers[i] = FORCE_LEVEL_3;
+		}
 		i++;
 	}
 
-	if (fp_disabled)
+	// ----------------------------------------------------------------------
+	// Special handling when powers are disabled
+	// ----------------------------------------------------------------------
+	if (fp_disabled != 0)
 	{
-		//If we specifically have attack or def disabled, force them up to level 3. It's the way
-		//things work for the case of all powers disabled.
-		//If jump is disabled, down-cap it to level 1. Otherwise don't do a thing.
-		if (fp_disabled & 1 << FP_LEVITATION)
-			final_powers[FP_LEVITATION] = 1;
-		if (fp_disabled & 1 << FP_SABER_OFFENSE)
+		if ((fp_disabled & (1 << FP_SABER_OFFENSE)) != 0)
+		{
 			final_powers[FP_SABER_OFFENSE] = 3;
-		if (fp_disabled & 1 << FP_SABER_DEFENSE)
+		}
+		if ((fp_disabled & (1 << FP_SABER_DEFENSE)) != 0)
+		{
 			final_powers[FP_SABER_DEFENSE] = 3;
+		}
 	}
 
+	// ----------------------------------------------------------------------
+	// If no saber offense, remove saber defense and throw
+	// ----------------------------------------------------------------------
 	if (final_powers[FP_SABER_OFFENSE] < 1)
 	{
 		final_powers[FP_SABER_DEFENSE] = 0;
 		final_powers[FP_SABERTHROW] = 0;
 	}
 
-	//We finally have all the force powers legalized and stored locally.
-	//Put them all into the string and return the result. We already have
-	//the rank there, so print the side and the powers now.
+	// ----------------------------------------------------------------------
+	// Rebuild output string: rank already written, now side and powers
+	// ----------------------------------------------------------------------
 	Q_strcat(power_out, power_out_size, va("%i-", final_side));
 
-	i = strlen(power_out);
+	i = (int)strlen(power_out);
 	c = 0;
 	while (c < NUM_FORCE_POWERS)
 	{
-		Q_strncpyz(read_buf, va("%i", final_powers[c]), sizeof read_buf);
+		Q_strncpyz(read_buf, va("%i", final_powers[c]), sizeof(read_buf));
 		power_out[i] = read_buf[0];
 		c++;
 		i++;
@@ -2099,8 +2150,7 @@ qboolean BG_CanUseFPNow(const int gametype, const playerState_t* ps, const int t
 
 	if (ps->duelInProgress)
 	{
-		if (power != FP_SABER_OFFENSE && power != FP_SABER_DEFENSE && /*power != FP_SABERTHROW &&*/
-			power != FP_LEVITATION)
+		if (power != FP_SABER_OFFENSE && power != FP_SABER_DEFENSE)
 		{
 			if (!ps->saberLockFrame || power != FP_PUSH)
 			{
@@ -2674,6 +2724,15 @@ qboolean BG_CanItemBeGrabbed(const int gametype, const entityState_t* ent, const
 		{
 			return qfalse;
 		}
+
+		if (pm_entBot &&
+			(pm_entBot->s.botclass == BCLASS_SBD ||
+				pm_entBot->s.botclass == BCLASS_WOOKIEMELEE ||
+				pm_entBot->s.botclass == BCLASS_FORCE_DARK_NO_SABER ||
+				pm_entBot->s.botclass == BCLASS_FORCE_LIGHT_NO_SABER))
+		{
+			return qfalse;
+		}
 		return qtrue;
 
 	case IT_ARMOR:
@@ -3064,6 +3123,7 @@ const char* eventnames[] = {
 	"EV_STUNNED",
 	"EV_SABERLOCK", // Player is in saberlock (render sound/effects)
 	"EV_BLOCKLINE",
+	"EV_FFASPAWN",
 
 	//fixme, added a bunch that aren't here!
 };
@@ -3464,7 +3524,7 @@ void BG_PlayerStateToEntityState(playerState_t* ps, entityState_t* s, const qboo
 	s->communicatingflags = ps->communicatingflags;
 	s->frozenTime = ps->frozenTime;
 
-	s->PlayerEffectFlags = ps->PlayerEffectFlags;
+	s->PlayerEffectFlags = ps->PlayerEffectFlags; 
 
 	s->powerups = 0;
 	for (int i = 0; i < MAX_POWERUPS; i++)
