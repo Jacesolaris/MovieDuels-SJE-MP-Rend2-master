@@ -1181,6 +1181,7 @@ typedef struct cgMedia_s {
 	qhandle_t	bryarFrontFlash;
 	qhandle_t	greenFrontFlash;
 	qhandle_t	lightningFlash;
+	qhandle_t	cloneFrontFlash;
 
 	qhandle_t	itemHoloModel;
 	qhandle_t	redFlagModel;
@@ -1638,6 +1639,18 @@ typedef struct cgMedia_s {
 	qhandle_t weapontype_thermal;
 	qhandle_t weapontype_rocket;
 	qhandle_t weapontype_tripmine;
+
+	qhandle_t weapontype_battledroid;
+	qhandle_t weapontype_thefirstorder;
+	qhandle_t weapontype_clonecarbine;
+	qhandle_t weapontype_rebelblaster;
+	qhandle_t weapontype_clonerifle;
+	qhandle_t weapontype_clonecommando;
+	qhandle_t weapontype_rebelrifle;
+	qhandle_t weapontype_rey;
+	qhandle_t weapontype_jango;
+	qhandle_t weapontype_boba;
+	qhandle_t weapontype_clonepistol;
 } cgMedia_t;
 
 // Stored FX handles
@@ -1670,6 +1683,15 @@ typedef struct cgEffects_s {
 	fxHandle_t  blasterWallImpactEffect;
 	fxHandle_t  blasterFleshImpactEffect;
 	fxHandle_t  blasterDroidImpactEffect;
+
+	// Clone
+	fxHandle_t	cloneShotEffect;
+	fxHandle_t	clonePowerupShotEffect;
+	fxHandle_t	cloneOverchargeEffect;
+	fxHandle_t	cloneWallImpactEffect;
+	fxHandle_t	cloneWallImpactEffect2;
+	fxHandle_t	cloneWallImpactEffect3;
+	fxHandle_t	cloneFleshImpactEffect;
 
 	// EWEB
 	fxHandle_t  ewebShotEffect;
@@ -2014,20 +2036,6 @@ void CG_TestModelPrevSkin_f(void);
 void CG_AddBufferedSound(sfxHandle_t sfx);
 
 void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoPlayback);
-/*
-Ghoul2 Insert Start
-*/
-
-void CG_TestG2Model_f(void);
-void CG_TestModelSurfaceOnOff_f(void);
-void CG_ListModelSurfaces_f(void);
-void CG_ListModelBones_f(void);
-void CG_TestModelSetAnglespre_f(void);
-void CG_TestModelSetAnglespost_f(void);
-void CG_TestModelAnimate_f(void);
-/*
-Ghoul2 Insert End
-*/
 
 //
 // cg_drawtools.c
@@ -2352,6 +2360,14 @@ void FX_EwebProjectileThink(centity_t* cent, const struct weaponInfo_s* weapon);
 void FX_EwebAltFireThink(centity_t* cent, const struct weaponInfo_s* weapon);
 void FX_EwebWeaponHitWall(vec3_t origin, vec3_t normal);
 void FX_EwebWeaponHitPlayer(vec3_t origin, vec3_t normal, qboolean humanoid);
+
+void FX_CloneProjectileThink(centity_t* cent, const struct weaponInfo_s* weapon);
+void FX_CloneAltProjectileThink(centity_t* cent, const struct weaponInfo_s* weapon);
+void FX_CloneAltFireThink(centity_t* cent, const struct weaponInfo_s* weapon);
+void FX_CloneAltHitWall(vec3_t origin, vec3_t normal, int power);
+void FX_CloneWeaponHitWall(vec3_t origin, vec3_t normal);
+void FX_CloneWeaponHitPlayer(vec3_t origin, vec3_t normal, qboolean humanoid);
+void FX_CloneAltHitPlayer(vec3_t origin, vec3_t normal, qboolean humanoid);
 
 void		CG_Init_CG(void);
 void		CG_Init_CGents(void);

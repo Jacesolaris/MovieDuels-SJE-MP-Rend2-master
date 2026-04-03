@@ -262,5 +262,6 @@ XCVAR_DEF(com_rend2, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_textprintscale, "0.5f", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(g_SerenityJediEngineHudMode, "2", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_drawSelectionScrollBar, "1", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(sv_cheats, "1", NULL, CVAR_NONE)
 
 #undef XCVAR_DEF

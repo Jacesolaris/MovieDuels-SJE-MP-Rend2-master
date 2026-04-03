@@ -1796,8 +1796,22 @@ float botGlobalNavWeaponWeights[WP_NUM_WEAPONS] =
 	3, //WP_TRIP_MINE,
 	3, //WP_DET_PACK,
 	2, //WP_CONCUSSION,
+
+	3, //WP_BATTLEDROID,
+	3, //WP_THEFIRSTORDER,
+	3, //WP_CLONECARBINE,
+	3, //WP_REBELBLASTER,
+	3, //WP_CLONERIFLE,
+	3, //WP_CLONECOMMANDO,
+	3, //WP_REBELRIFLE,
+	0, //WP_REY,
+	0, //WP_JANGO,
+	0, //WP_BOBA,
+	0, //WP_CLONEPISTOL,
+
 	0, //WP_BRYAR_OLD,
-	0 //WP_EMPLACED_GUN,
+	0 ,//WP_EMPLACED_GUN,
+	0  //WP_TURRET,
 };
 
 static int GetNearestVisibleWPToItem(vec3_t org, const int ignore)

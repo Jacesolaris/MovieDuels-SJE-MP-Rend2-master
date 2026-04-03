@@ -663,7 +663,7 @@ int QDECL Com_sprintf(char* dest, int size, const char* fmt, ...)
 }
 
 int FloatAsInt(float f) {
-	byteAlias_t fi;
+	byteAlias_t fi = { 0 };
 	fi.f = f;
 	return fi.i;
 }
@@ -720,108 +720,257 @@ void Com_TruncateLongString(char* buffer, const char* s) {
   INFO STRINGS
 
 =====================================================================
+*//*
+===================
+Info_ValueForKey (modernized, safe)
+
+Searches an info string for a given key and returns the associated value.
+Returns an empty string ("") if the key is not found or if the input is invalid.
+
+Behaviour preserved:
+- Uses two alternating static buffers for returned values.
+- Returns "" on failure.
+- Stops parsing on malformed sequences.
+
+Fixes:
+- Added bounds checking.
+- Removed large stack arrays.
+- Added debug prints instead of asserts.
+- Eliminated implicit bool→qboolean conversions.
+===================
 */
+char* Info_ValueForKey(const char* s, const char* key)
+{
+	static char valueBuf[2][BIG_INFO_VALUE];
+	static int valueIndex = 0;
 
-/*
-===============
-Info_ValueForKey
+	char* out;
+	const char* p;
 
-Searches the string for the given
-key and returns the associated value, or an empty string.
-FIXME: overflow check?
-===============
-*/
-char* Info_ValueForKey(const char* s, const char* key) {
-	// work without stomping on each other
-	static	int	valueindex = 0;
-
-	if (!s || !key) {
+	// Validate parameters
+	if (s == NULL || key == NULL)
+	{
+		Com_Printf("Info_ValueForKey: NULL parameter\n");
 		return "";
 	}
 
-	if (strlen(s) >= BIG_INFO_STRING) {
+	// Oversize check (original behaviour kept)
+	if (strlen(s) >= BIG_INFO_STRING)
+	{
 		Com_Error(ERR_DROP, "Info_ValueForKey: oversize infostring");
+		return "";
 	}
 
-	valueindex ^= 1;
+	// Alternate between the two static buffers
+	valueIndex ^= 1;
+	out = valueBuf[valueIndex];
+
+	// Skip leading slash if present
 	if (*s == '\\')
-		s++;
-	while (1)
 	{
-		static	char value[2][BIG_INFO_VALUE];
-		char pkey[BIG_INFO_KEY];
-		char* o = pkey;
+		s++;
+	}
+
+	// Parse key/value pairs
+	while (qtrue)
+	{
+		char pkey[BIG_INFO_KEY] = { 0 };
+		char* k = pkey;
+		size_t klen = 0;
+
+		// -------------------------
+		// Parse key
+		// -------------------------
 		while (*s != '\\')
 		{
-			if (!*s)
+			if (*s == '\0')
+			{
+				// End of string, no more pairs
 				return "";
-			*o++ = *s++;
+			}
+
+			if (klen >= (BIG_INFO_KEY - 1))
+			{
+				Com_Printf("Info_ValueForKey: key overflow\n");
+				pkey[BIG_INFO_KEY - 1] = '\0';
+				return "";
+			}
+
+			*k = *s;
+			k++;
+			s++;
+			klen++;
 		}
-		*o = 0;
-		s++;
+		*k = '\0';
+		s++; // skip slash before value
 
-		o = value[valueindex];
+		// -------------------------
+		// Parse value
+		// -------------------------
+		p = s;
+		out[0] = '\0';
+		size_t vlen = 0;
 
-		while (*s != '\\' && *s)
+		while (*p != '\\' && *p != '\0')
 		{
-			*o++ = *s++;
+			if (vlen >= (BIG_INFO_VALUE - 1))
+			{
+				Com_Printf("Info_ValueForKey: value overflow\n");
+				out[BIG_INFO_VALUE - 1] = '\0';
+				return "";
+			}
+
+			out[vlen] = *p;
+			vlen++;
+			p++;
 		}
-		*o = 0;
+		out[vlen] = '\0';
 
+		// Compare keys
 		if (!Q_stricmp(key, pkey))
-			return value[valueindex];
+		{
+			return out;
+		}
 
-		if (!*s)
+		// End of string?
+		if (*p == '\0')
+		{
 			break;
-		s++;
+		}
+
+		// Move to next pair
+		s = p + 1;
 	}
 
 	return "";
 }
 
+
 /*
 ===================
 Info_NextPair
 
-Used to itterate through all the key/value pairs in an info string
-Return qfalse if we discover the infostring is invalid
+Iterates through key/value pairs in an info string.
+
+- On success:
+	- Writes a key and value into the provided buffers.
+	- Advances *head to the next position in the string.
+	- Returns qtrue.
+- On end of string with no more pairs:
+	- Leaves key/value empty.
+	- Advances *head to the end.
+	- Returns qfalse.
+- On malformed or overflow conditions:
+	- Returns qfalse.
+	- key/value contents are undefined for that call.
 ===================
 */
-qboolean Info_NextPair(const char** head, char* key, char* value) {
-	const char* s = *head;
+qboolean Info_NextPair(const char** head, char* key, char* value)
+{
+	const char* s;
+	char* o;
+	qboolean result = qfalse;
 
-	if (*s == '\\')
-		s++;
-	key[0] = 0;
-	value[0] = 0;
-
-	char* o = key;
-	while (*s != '\\') {
-		if (!*s) {
-			key[0] = 0;
-			*head = s;
-			return qtrue;
-		}
-		*o++ = *s++;
+	if (head == NULL || *head == NULL || key == NULL || value == NULL)
+	{
+		Com_Printf("Info_NextPair: NULL parameter(s) passed\n");
+		return qfalse;
 	}
-	*o = 0;
+
+	s = *head;
+
+	// Skip leading slash if present
+	if (*s == '\\')
+	{
+		s++;
+	}
+
+	key[0] = '\0';
+	value[0] = '\0';
+
+	// -------------------------
+	// Parse key
+	// -------------------------
+	o = key;
+	while (*s != '\0' && *s != '\\')
+	{
+		const ptrdiff_t keyLen = o - key;
+
+		if (keyLen >= (BIG_INFO_KEY - 1))
+		{
+			key[BIG_INFO_KEY - 1] = '\0';
+			Com_Printf("Info_NextPair: key overflow (limit %d)\n", BIG_INFO_KEY - 1);
+			*head = s;
+			return qfalse;
+		}
+
+		*o = *s;
+		o++;
+		s++;
+	}
+	*o = '\0';
+
+	// If we hit end of string before a slash:
+	// - If we have a non-empty key, treat as last key with empty value.
+	// - If key is empty, no more pairs.
+	if (*s == '\0')
+	{
+		*head = s;
+
+		if (key[0] != '\0')
+		{
+			// Last key with empty value is considered valid.
+			result = qtrue;
+		}
+		else
+		{
+			result = qfalse;
+		}
+
+		return (result == qtrue ? qtrue : qfalse);
+	}
+
+	// Skip slash before value
 	s++;
 
-	// If they key is empty at this point with a slash after it
-	// then this is considered invalid, possibly an attempt at hacked userinfo strings
-	if (!key[0])
+	// Empty key is invalid
+	if (key[0] == '\0')
+	{
+		Com_Printf("Info_NextPair: empty key encountered\n");
+		*head = s;
 		return qfalse;
-
-	o = value;
-	while (*s != '\\' && *s) {
-		*o++ = *s++;
 	}
-	*o = 0;
 
+	// -------------------------
+	// Parse value
+	// -------------------------
+	o = value;
+	while (*s != '\0' && *s != '\\')
+	{
+		const ptrdiff_t valueLen = o - value;
+
+		if (valueLen >= (BIG_INFO_VALUE - 1))
+		{
+			value[BIG_INFO_VALUE - 1] = '\0';
+			Com_Printf("Info_NextPair: value overflow (limit %d)\n", BIG_INFO_VALUE - 1);
+			*head = s;
+			return qfalse;
+		}
+
+		*o = *s;
+		o++;
+		s++;
+	}
+	*o = '\0';
+
+	// Update head for next iteration (points at slash or '\0')
 	*head = s;
 
-	return qtrue;
+	result = qtrue;
+	return (result == qtrue ? qtrue : qfalse);
 }
+
+
 
 /*
 ===================

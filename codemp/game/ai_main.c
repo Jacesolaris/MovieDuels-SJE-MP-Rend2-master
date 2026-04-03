@@ -56,7 +56,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_saga.h"
  //
 
-#define BOT_THINK_TIME	1000/bot_fps.integer
+#define BOT_THINK_TIME (1000.0f / (float)bot_fps.integer)
+
 //bot states
 bot_state_t* botstates[MAX_CLIENTS];
 int walktime[MAX_CLIENTS];
@@ -238,6 +239,7 @@ int ForcePowerforJump[NUM_FORCE_POWER_LEVELS] =
 int MinimumAttackDistance[WP_NUM_WEAPONS] =
 {
 	0, //WP_NONE,
+
 	0, //WP_STUN_BATON,
 	30, //WP_MELEE,
 	60, //WP_SABER,
@@ -253,6 +255,20 @@ int MinimumAttackDistance[WP_NUM_WEAPONS] =
 	100, //WP_TRIP_MINE,
 	0, //WP_DET_PACK,
 	0, //WP_CONCUSSION,
+
+	0, //WP_BATTLEDROID,
+	0, //WP_THEFIRSTORDER,
+	0, //WP_CLONECARBINE,
+	0, //WP_REBELBLASTER,
+	0, //WP_CLONERIFLE,
+	0, //WP_CLONECOMMANDO,
+	0, //WP_REBELRIFLE,
+
+	200, //WP_REY
+	200, //WP_JANGO
+	200, //WP_BOBA
+	200, //WP_CLONEPISTOL
+
 	0, //WP_BRYAR_OLD,
 	0, //WP_EMPLACED_GUN,
 	0 //WP_TURRET,
@@ -262,9 +278,10 @@ int MinimumAttackDistance[WP_NUM_WEAPONS] =
 int MaximumAttackDistance[WP_NUM_WEAPONS] =
 {
 	9999, //WP_NONE,
-	0, //WP_STUN_BATON,
-	100, //WP_MELEE,
-	160, //WP_SABER,
+
+	0,    //WP_STUN_BATON,
+	100,  //WP_MELEE,
+	160,  //WP_SABER,
 	9999, //WP_BRYAR_PISTOL,
 	9999, //WP_BLASTER,
 	9999, //WP_DISRUPTOR,
@@ -277,19 +294,34 @@ int MaximumAttackDistance[WP_NUM_WEAPONS] =
 	9999, //WP_TRIP_MINE,
 	9999, //WP_DET_PACK,
 	9999, //WP_CONCUSSION,
+
+	9999, //WP_BATTLEDROID,
+	9999, //WP_THEFIRSTORDER,
+	9999, //WP_CLONECARBINE,
+	9999, //WP_REBELBLASTER,
+	9999, //WP_CLONERIFLE,
+	9999, //WP_CLONECOMMANDO,
+
+	9999, //WP_REBELRIFLE,
+	9999, //WP_REY,
+	9999, //WP_JANGO,
+	9999, //WP_BOBA,
+	9999, //WP_CLONEPISTOL,
+
 	9999, //WP_BRYAR_OLD,
 	9999, //WP_EMPLACED_GUN,
-	9999 //WP_TURRET,
+	9999  //WP_TURRET,
 	//WP_NUM_WEAPONS
 };
 
 int IdealAttackDistance[WP_NUM_WEAPONS] =
 {
-	0, //WP_NONE,
-	0, //WP_STUN_BATON,
-	40, //WP_MELEE,
-	80, //WP_SABER,
-	350, //WP_BRYAR_PISTOL,
+	0,     //WP_NONE,
+
+	0,    //WP_STUN_BATON,
+	40,   //WP_MELEE,
+	80,   //WP_SABER,
+	350,  //WP_BRYAR_PISTOL,
 	1000, //WP_BLASTER,
 	1000, //WP_DISRUPTOR,
 	1000, //WP_BOWCASTER,
@@ -301,9 +333,23 @@ int IdealAttackDistance[WP_NUM_WEAPONS] =
 	1000, //WP_TRIP_MINE,
 	1000, //WP_DET_PACK,
 	1000, //WP_CONCUSSION,
+
+	1000, //WP_BATTLEDROID,
+	1000, //WP_THEFIRSTORDER,
+	1000, //WP_CLONECARBINE,
+	1000, //WP_REBELBLASTER,
+	1000, //WP_CLONERIFLE,
+	1000, //WP_CLONECOMMANDO,
+	1000, //WP_REBELRIFLE,
+
+	350, //WP_REY,
+	350, //WP_JANGO,
+	350, //WP_BOBA,
+	350, //WP_CLONEPISTOL,
+
 	1000, //WP_BRYAR_OLD,
 	1000, //WP_EMPLACED_GUN,
-	1000 //WP_TURRET,
+	1000  //WP_TURRET,
 	//WP_NUM_WEAPONS
 };
 
@@ -1761,11 +1807,17 @@ static int bot_ai(const int client, const float thinktime)
 	const int start = trap->Milliseconds();
 #endif
 
-	// Run AI
-	if (bs->settings.skill <= 3)
+	qboolean lowSkill = (bs->settings.skill <= 3 ? qtrue : qfalse);
+	qboolean notSaber = (bs->cur_ps.weapon != WP_SABER ? qtrue : qfalse);
+
+	if (lowSkill == qtrue || notSaber == qtrue)
+	{
 		standard_bot_ai(bs);
+	}
 	else
+	{
 		Enhanced_bot_ai(bs);
+	}
 
 #ifdef _DEBUG
 	const int end = trap->Milliseconds();
@@ -1887,6 +1939,18 @@ int bot_ai_setup_client(const int client, const struct bot_settings_s* settings)
 	bs->botWeaponWeights[WP_DET_PACK] = 0;
 	bs->botWeaponWeights[WP_CONCUSSION] = 15;
 	bs->botWeaponWeights[WP_BRYAR_OLD] = 19;
+
+	bs->botWeaponWeights[WP_BATTLEDROID] = 12;
+	bs->botWeaponWeights[WP_THEFIRSTORDER] = 12;
+	bs->botWeaponWeights[WP_CLONECARBINE] = 12;
+	bs->botWeaponWeights[WP_REBELBLASTER] = 12;
+	bs->botWeaponWeights[WP_CLONERIFLE] = 12;
+	bs->botWeaponWeights[WP_CLONECOMMANDO] = 12;
+	bs->botWeaponWeights[WP_REBELRIFLE] = 12;
+	bs->botWeaponWeights[WP_REY] = 11;
+	bs->botWeaponWeights[WP_JANGO] = 11;
+	bs->botWeaponWeights[WP_BOBA] = 11;
+	bs->botWeaponWeights[WP_CLONEPISTOL] = 11;
 
 	BotUtilizePersonality(bs);
 
@@ -5915,7 +5979,18 @@ static int scan_for_enemies(bot_state_t* bs)
 			else if (g_entities[bs->client].client->ps.weapon == WP_BLASTER ||
 				g_entities[bs->client].client->ps.weapon == WP_BRYAR_PISTOL ||
 				g_entities[bs->client].client->ps.weapon == WP_STUN_BATON ||
-				g_entities[bs->client].client->ps.weapon == WP_DEMP2)
+				g_entities[bs->client].client->ps.weapon == WP_DEMP2 ||
+				g_entities[bs->client].client->ps.weapon == WP_BATTLEDROID ||
+				g_entities[bs->client].client->ps.weapon == WP_THEFIRSTORDER ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONECARBINE ||
+				g_entities[bs->client].client->ps.weapon == WP_REBELBLASTER ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONERIFLE ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONECOMMANDO ||
+				g_entities[bs->client].client->ps.weapon == WP_REBELRIFLE ||
+				g_entities[bs->client].client->ps.weapon == WP_REY ||
+				g_entities[bs->client].client->ps.weapon == WP_JANGO ||
+				g_entities[bs->client].client->ps.weapon == WP_BOBA ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONEPISTOL)
 			{
 				//Cover me, I have a shitty weapon.
 				request_siege_assistance(bs, TACTICAL_COVERME);
@@ -5928,7 +6003,18 @@ static int scan_for_enemies(bot_state_t* bs)
 			else if (g_entities[i].client->ps.weapon == WP_BLASTER ||
 				g_entities[i].client->ps.weapon == WP_BRYAR_PISTOL ||
 				g_entities[i].client->ps.weapon == WP_STUN_BATON ||
-				g_entities[i].client->ps.weapon == WP_DEMP2)
+				g_entities[i].client->ps.weapon == WP_DEMP2 ||
+				g_entities[i].client->ps.weapon == WP_BATTLEDROID ||
+				g_entities[i].client->ps.weapon == WP_THEFIRSTORDER ||
+				g_entities[i].client->ps.weapon == WP_CLONECARBINE ||
+				g_entities[i].client->ps.weapon == WP_REBELBLASTER ||
+				g_entities[i].client->ps.weapon == WP_CLONERIFLE ||
+				g_entities[i].client->ps.weapon == WP_CLONECOMMANDO ||
+				g_entities[i].client->ps.weapon == WP_REBELRIFLE ||
+				g_entities[i].client->ps.weapon == WP_REY ||
+				g_entities[i].client->ps.weapon == WP_JANGO ||
+				g_entities[i].client->ps.weapon == WP_BOBA ||
+				g_entities[i].client->ps.weapon == WP_CLONEPISTOL)
 			{
 				//You have a shitty weapon. Follow me.
 				request_siege_assistance(bs, TACTICAL_FOLLOW);
@@ -6149,7 +6235,18 @@ static void advanced_scanfor_enemies(bot_state_t* bs)
 			else if (g_entities[bs->client].client->ps.weapon == WP_BLASTER ||
 				g_entities[bs->client].client->ps.weapon == WP_BRYAR_PISTOL ||
 				g_entities[bs->client].client->ps.weapon == WP_STUN_BATON ||
-				g_entities[bs->client].client->ps.weapon == WP_DEMP2)
+				g_entities[bs->client].client->ps.weapon == WP_DEMP2 ||
+				g_entities[bs->client].client->ps.weapon == WP_BATTLEDROID ||
+				g_entities[bs->client].client->ps.weapon == WP_THEFIRSTORDER ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONECARBINE ||
+				g_entities[bs->client].client->ps.weapon == WP_REBELBLASTER ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONERIFLE ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONECOMMANDO ||
+				g_entities[bs->client].client->ps.weapon == WP_REBELRIFLE ||
+				g_entities[bs->client].client->ps.weapon == WP_REY ||
+				g_entities[bs->client].client->ps.weapon == WP_JANGO ||
+				g_entities[bs->client].client->ps.weapon == WP_BOBA ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONEPISTOL)
 			{
 				//Cover me, I have a shitty weapon.
 				request_siege_assistance(bs, TACTICAL_COVERME);
@@ -6162,7 +6259,18 @@ static void advanced_scanfor_enemies(bot_state_t* bs)
 			else if (g_entities[i].client->ps.weapon == WP_BLASTER ||
 				g_entities[i].client->ps.weapon == WP_BRYAR_PISTOL ||
 				g_entities[i].client->ps.weapon == WP_STUN_BATON ||
-				g_entities[i].client->ps.weapon == WP_DEMP2)
+				g_entities[i].client->ps.weapon == WP_DEMP2 ||
+				g_entities[i].client->ps.weapon == WP_BATTLEDROID ||
+				g_entities[i].client->ps.weapon == WP_THEFIRSTORDER ||
+				g_entities[i].client->ps.weapon == WP_CLONECARBINE ||
+				g_entities[i].client->ps.weapon == WP_REBELBLASTER ||
+				g_entities[i].client->ps.weapon == WP_CLONERIFLE ||
+				g_entities[i].client->ps.weapon == WP_CLONECOMMANDO ||
+				g_entities[i].client->ps.weapon == WP_REBELRIFLE ||
+				g_entities[i].client->ps.weapon == WP_REY ||
+				g_entities[i].client->ps.weapon == WP_JANGO ||
+				g_entities[i].client->ps.weapon == WP_BOBA ||
+				g_entities[i].client->ps.weapon == WP_CLONEPISTOL)
 			{
 				//You have a shitty weapon. Follow me.
 				request_siege_assistance(bs, TACTICAL_FOLLOW);
@@ -6286,6 +6394,17 @@ int bot_get_weapon_range(const bot_state_t* bs)
 	case WP_BLASTER:
 	case WP_DISRUPTOR:
 	case WP_REPEATER:
+	case WP_BATTLEDROID:
+	case WP_THEFIRSTORDER:
+	case WP_CLONECARBINE:
+	case WP_CLONERIFLE:
+	case WP_CLONECOMMANDO:
+	case WP_REBELRIFLE:
+	case WP_REY:
+	case WP_JANGO:
+	case WP_BOBA:
+	case WP_CLONEPISTOL:
+	case WP_REBELBLASTER:
 		return BWEAPONRANGE_MID;
 	case WP_BOWCASTER:
 	case WP_DEMP2:
@@ -8997,12 +9116,6 @@ void bot_behave_attack_basic(bot_state_t* bs, const gentity_t* target)
 	{
 		//not switching weapons so attack
 		trap->EA_Attack(bs->client);
-
-		if (bs->virtualWeapon == WP_SABER)
-		{
-			//only walk while attacking with the saber.
-			bs->doWalk = qtrue;
-		}
 	}
 }
 
@@ -9277,11 +9390,6 @@ static void saber_combat_handling(bot_state_t* bs)
 		enemyInFOV == qtrue)
 	{
 		trap->EA_Attack(bs->client);
-
-		if (bs->cur_ps.weapon == WP_SABER)
-		{
-			bs->doWalk = qtrue;
-		}
 	}
 }
 
@@ -9452,11 +9560,6 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 		enemyInFOV == qtrue)
 	{
 		trap->EA_Attack(bs->client);
-
-		if (bs->cur_ps.weapon == WP_SABER)
-		{
-			bs->doWalk = qtrue;
-		}
 	}
 }
 
@@ -9469,6 +9572,17 @@ float bot_weapon_can_lead(const bot_state_t* bs)
 	case WP_BRYAR_PISTOL:
 		return 0.95f;
 	case WP_BLASTER:
+	case WP_BATTLEDROID:
+	case WP_THEFIRSTORDER:
+	case WP_CLONECARBINE:
+	case WP_REBELBLASTER:
+	case WP_CLONERIFLE:
+	case WP_CLONECOMMANDO:
+	case WP_REBELRIFLE:
+	case WP_REY:
+	case WP_JANGO:
+	case WP_BOBA:
+	case WP_CLONEPISTOL:
 		return 0.95f;
 	case WP_BOWCASTER:
 		return 0.95f;
@@ -9737,7 +9851,11 @@ static int should_secondary_fire(const bot_state_t* bs)
 		return 1;
 	}
 
-	if (weap == WP_BRYAR_PISTOL && bs->frame_Enemy_Len < 300)
+	if (weap == WP_BRYAR_PISTOL ||
+		weap == WP_REY ||
+		weap == WP_JANGO ||
+		weap == WP_BOBA ||
+		weap == WP_CLONEPISTOL && bs->frame_Enemy_Len < 300)
 	{
 		return 1;
 	}
@@ -9749,7 +9867,14 @@ static int should_secondary_fire(const bot_state_t* bs)
 	{
 		return 1;
 	}
-	if (weap == WP_BLASTER && bs->frame_Enemy_Len < 300)
+	if (weap == WP_BLASTER ||
+		weap == WP_THEFIRSTORDER ||
+		weap == WP_CLONECARBINE ||
+		weap == WP_REBELBLASTER ||
+		weap == WP_CLONERIFLE ||
+		weap == WP_CLONECOMMANDO ||
+		weap == WP_REBELRIFLE ||
+		weap == WP_BATTLEDROID && bs->frame_Enemy_Len < 300)
 	{
 		return 1;
 	}
@@ -10232,49 +10357,33 @@ static int bot_select_ideal_weapon(bot_state_t* bs)
 		i++;
 	}
 
-	if (bs->currentEnemy && bs->frame_Enemy_Len < 300 &&
-		(bestweapon == WP_BRYAR_PISTOL || bestweapon == WP_BLASTER || bestweapon == WP_BOWCASTER) &&
-		bs->cur_ps.stats[STAT_WEAPONS] & 1 << WP_SABER)
+	if (bs->currentEnemy && bs->frame_Enemy_Len < 300 && bs->cur_ps.stats[STAT_WEAPONS] & 1 << WP_SABER)
 	{
 		bestweapon = WP_SABER;
 		bestweight = 1;
 	}
 
-	if (bs->currentEnemy && bs->frame_Enemy_Len > 300 &&
-		bs->currentEnemy->client && bs->currentEnemy->client->ps.weapon != WP_SABER &&
+	if (bs->currentEnemy &&
+		bs->frame_Enemy_Len > 300 &&
+		bs->currentEnemy->client &&
+		bs->currentEnemy->client->ps.weapon != WP_SABER &&
 		bestweapon == WP_SABER)
 	{
-		//if the enemy is far away, and we have our saber selected, see if we have any good distance weapons instead
-		if (bot_weapon_selectable(bs, WP_DISRUPTOR))
-		{
-			bestweapon = WP_DISRUPTOR;
-			bestweight = 1;
-		}
-		else if (bot_weapon_selectable(bs, WP_ROCKET_LAUNCHER))
-		{
-			bestweapon = WP_ROCKET_LAUNCHER;
-			bestweight = 1;
-		}
-		else if (bot_weapon_selectable(bs, WP_BOWCASTER))
-		{
-			bestweapon = WP_BOWCASTER;
-			bestweight = 1;
-		}
-		else if (bot_weapon_selectable(bs, WP_BLASTER))
-		{
-			bestweapon = WP_BLASTER;
-			bestweight = 1;
-		}
-		else if (bot_weapon_selectable(bs, WP_REPEATER))
-		{
-			bestweapon = WP_REPEATER;
-			bestweight = 1;
-		}
-		else if (bot_weapon_selectable(bs, WP_DEMP2))
-		{
-			bestweapon = WP_DEMP2;
-			bestweight = 1;
-		}
+		// Enemy is far away and using a ranged weapon.
+		// We are a saber-only class. Close the distance.
+
+		// Set spacing mode to CLOSE (0 = HOLD, 1 = BACKUP, 2 = CLOSE)
+		bs->spacingState = 2;
+		// Force movement toward the enemy
+		bs->forceMove_Forward = 1;
+		bs->forceMove_Right = 0;
+		bs->forceMove_Up = 0;
+
+		// Set the goal position to the enemy's current location
+		VectorCopy(bs->currentEnemy->r.currentOrigin, bs->goalPosition);
+
+		// Keep saber selected
+		bestweight = 1;
 	}
 
 	if (bestweight != -1 && bs->cur_ps.weapon != bestweapon && bs->virtualWeapon != bestweapon)
@@ -12308,11 +12417,11 @@ void standard_bot_ai(bot_state_t* bs)
 				{
 					switch (rand() % 35)
 					{
-					case 5:  bot_buy_item(bs, "pistol"); break;
-					case 10: bot_buy_item(bs, "blaster"); break;
-					case 15: bot_buy_item(bs, "bowcaster"); break;
-					case 16: bot_buy_item(bs, "repeater"); break;
-					case 20: bot_buy_item(bs, "flechette"); break;
+					case 5:  bot_buy_item(bs, "BryarPistol"); break;
+					case 10: bot_buy_item(bs, "Blaster"); break;
+					case 15: bot_buy_item(bs, "Bowcaster"); break;
+					case 16: bot_buy_item(bs, "Repeater"); break;
+					case 20: bot_buy_item(bs, "Flechette"); break;
 					default: bot_buy_item(bs, "seeker"); break;
 					}
 				}
@@ -12329,19 +12438,31 @@ void standard_bot_ai(bot_state_t* bs)
 		{
 			if (g_entities[bs->client].client->ps.weapon == WP_BLASTER ||
 				g_entities[bs->client].client->ps.weapon == WP_BRYAR_PISTOL ||
-				g_entities[bs->client].client->ps.weapon == WP_BRYAR_OLD)
+				g_entities[bs->client].client->ps.weapon == WP_BRYAR_OLD ||
+				g_entities[bs->client].client->ps.weapon == WP_BATTLEDROID ||
+				g_entities[bs->client].client->ps.weapon == WP_THEFIRSTORDER ||
+				g_entities[bs->client].client->ps.weapon == WP_REBELBLASTER ||
+				g_entities[bs->client].client->ps.weapon == WP_REY ||
+				g_entities[bs->client].client->ps.weapon == WP_JANGO ||
+				g_entities[bs->client].client->ps.weapon == WP_REBELBLASTER)
 			{
 				bot_buy_item(bs, "energy");
 			}
 			else if (g_entities[bs->client].client->ps.weapon == WP_DISRUPTOR ||
 				g_entities[bs->client].client->ps.weapon == WP_BOWCASTER ||
-				g_entities[bs->client].client->ps.weapon == WP_DEMP2)
+				g_entities[bs->client].client->ps.weapon == WP_DEMP2 ||
+				g_entities[bs->client].client->ps.weapon == WP_REBELRIFLE ||
+				g_entities[bs->client].client->ps.weapon == WP_BOBA)
 			{
 				bot_buy_item(bs, "powercells");
 			}
 			else if (g_entities[bs->client].client->ps.weapon == WP_REPEATER ||
 				g_entities[bs->client].client->ps.weapon == WP_FLECHETTE ||
-				g_entities[bs->client].client->ps.weapon == WP_CONCUSSION)
+				g_entities[bs->client].client->ps.weapon == WP_CONCUSSION ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONECARBINE ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONERIFLE ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONECOMMANDO ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONEPISTOL)
 			{
 				bot_buy_item(bs, "bolts");
 			}
@@ -14500,11 +14621,11 @@ void Enhanced_bot_ai(bot_state_t* bs)
 				{
 					switch (rand() % 35)
 					{
-					case 5:  bot_buy_item(bs, "pistol"); break;
-					case 10: bot_buy_item(bs, "blaster"); break;
-					case 15: bot_buy_item(bs, "bowcaster"); break;
-					case 16: bot_buy_item(bs, "repeater"); break;
-					case 20: bot_buy_item(bs, "flechette"); break;
+					case 5:  bot_buy_item(bs, "BryarPistol"); break;
+					case 10: bot_buy_item(bs, "Blaster"); break;
+					case 15: bot_buy_item(bs, "Bowcaster"); break;
+					case 16: bot_buy_item(bs, "Repeater"); break;
+					case 20: bot_buy_item(bs, "Flechette"); break;
 					default: bot_buy_item(bs, "seeker"); break;
 					}
 				}
@@ -14521,19 +14642,31 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		{
 			if (g_entities[bs->client].client->ps.weapon == WP_BLASTER ||
 				g_entities[bs->client].client->ps.weapon == WP_BRYAR_PISTOL ||
-				g_entities[bs->client].client->ps.weapon == WP_BRYAR_OLD)
+				g_entities[bs->client].client->ps.weapon == WP_BRYAR_OLD ||
+				g_entities[bs->client].client->ps.weapon == WP_BATTLEDROID ||
+				g_entities[bs->client].client->ps.weapon == WP_THEFIRSTORDER ||
+				g_entities[bs->client].client->ps.weapon == WP_REBELBLASTER ||
+				g_entities[bs->client].client->ps.weapon == WP_REY ||
+				g_entities[bs->client].client->ps.weapon == WP_JANGO ||
+				g_entities[bs->client].client->ps.weapon == WP_REBELBLASTER)
 			{
 				bot_buy_item(bs, "energy");
 			}
 			else if (g_entities[bs->client].client->ps.weapon == WP_DISRUPTOR ||
 				g_entities[bs->client].client->ps.weapon == WP_BOWCASTER ||
-				g_entities[bs->client].client->ps.weapon == WP_DEMP2)
+				g_entities[bs->client].client->ps.weapon == WP_DEMP2 ||
+				g_entities[bs->client].client->ps.weapon == WP_REBELRIFLE ||
+				g_entities[bs->client].client->ps.weapon == WP_BOBA)
 			{
 				bot_buy_item(bs, "powercells");
 			}
 			else if (g_entities[bs->client].client->ps.weapon == WP_REPEATER ||
 				g_entities[bs->client].client->ps.weapon == WP_FLECHETTE ||
-				g_entities[bs->client].client->ps.weapon == WP_CONCUSSION)
+				g_entities[bs->client].client->ps.weapon == WP_CONCUSSION ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONECARBINE ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONERIFLE ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONECOMMANDO ||
+				g_entities[bs->client].client->ps.weapon == WP_CLONEPISTOL)
 			{
 				bot_buy_item(bs, "bolts");
 			}
@@ -15700,12 +15833,6 @@ void Enhanced_bot_ai(bot_state_t* bs)
 		bs->jDelay < level.time &&
 		!fj_halt)
 	{
-		// Saber bots walk, not sprint (Rule #1)
-		if (bs->cur_ps.weapon == WP_SABER)
-		{
-			bs->doWalk = qtrue;
-		}
-
 		// Held jump (force jump)
 		if (bs->jumpHoldTime > level.time)
 		{
@@ -17062,14 +17189,6 @@ void bot_behave_attack_move(bot_state_t* bs)
 		// Fire weapon
 		// ------------------------------------------------------------------
 		trap->EA_Attack(bs->client);
-
-		// ------------------------------------------------------------------
-		// Saber: walk while attacking
-		// ------------------------------------------------------------------
-		if (bs->virtualWeapon == WP_SABER)
-		{
-			bs->doWalk = qtrue;
-		}
 	}
 }
 

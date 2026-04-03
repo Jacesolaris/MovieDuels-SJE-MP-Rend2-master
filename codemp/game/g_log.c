@@ -80,6 +80,21 @@ int weaponFromMOD[MOD_MAX] =
 	WP_TRIP_MINE, //MOD_TRIP_MINE_SPLASH,
 	WP_TRIP_MINE, //MOD_TIMED_MINE_SPLASH,
 	WP_DET_PACK, //MOD_DET_PACK_SPLASH,
+
+	WP_BATTLEDROID,				//MOD_BATTLEDROID,
+	WP_THEFIRSTORDER,				//MOD_THEFIRSTORDER,
+	WP_CLONECARBINE,				//MOD_CLONECARBINE,
+	WP_REBELBLASTER,				//MOD_REBELBLASTER,
+	WP_CLONERIFLE,				//MOD_CLONERIFLE,
+	WP_CLONECOMMANDO,				//MOD_CLONECOMMANDO,
+	WP_REBELRIFLE,				//MOD_REBELRIFLE,
+	WP_REY,				//MOD_REY,
+	WP_REY,				//MOD_REY_ALT,
+	WP_JANGO,				//MOD_JANGO,
+	WP_BOBA,				//MOD_BOBA,
+	WP_CLONEPISTOL,				//MOD_CLONEPISTOL,
+	WP_CLONEPISTOL,				//MOD_CLONEPISTOL_ALT,
+
 	WP_NONE, //MOD_FORCE_DARK,
 	WP_NONE, //MOD_SENTRY,
 	WP_NONE, //MOD_WATER,
@@ -106,21 +121,37 @@ int weaponFromMOD[MOD_MAX] =
 
 char* weaponNameFromIndex[WP_NUM_WEAPONS] =
 {
-	"No Weapon",
-	"Stun Baton",
+	"NoWeapon",
+	"StunBaton",
+	"Melee",
 	"Saber",
-	"Bryar Pistol",
+	"BryarPistol",
 	"Blaster",
 	"Disruptor",
 	"Bowcaster",
 	"Repeater",
 	"Demp2",
 	"Flechette",
-	"Rocket Launcher",
+	"RocketLauncher",
 	"Thermal",
 	"Tripmine",
 	"Detpack",
-	"Emplaced gun",
+	"Concussion",
+
+	"Battledroid",
+	"TheFirstOrder",
+	"CloneCarbine",
+	"RebelBlaster",
+	"CloneRifle",
+	"CloneCommando",
+	"RebelRifle",
+	"Rey",
+	"Jango",
+	"Boba",
+	"ClonePistol",
+
+	"BryarOld",
+	"EmplacedGun",
 	"Turret"
 };
 
@@ -1005,7 +1036,7 @@ static qboolean CalculateTactician(const gentity_t* ent, int* kills)
 	int nBestPlayer = -1, nMostKills = 0;
 	int person, weapon;
 	int wasPickedUpBySomeone[WP_NUM_WEAPONS] = { 0 };
-	int killsWithWeapon[WP_NUM_WEAPONS];
+	int killsWithWeapon[WP_NUM_WEAPONS] = { 0 };
 	const int playTime = (level.time - ent->client->pers.enterTime) / 60000;
 
 	if (HasSetSaberOnly())

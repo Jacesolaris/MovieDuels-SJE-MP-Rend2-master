@@ -549,7 +549,6 @@ typedef struct bot_state_s
 	// ...
 	bot_route_t tempRoute; // reusable route buffer
 	int blockPoints;
-	int in_saber_combat;
 	qboolean inSaberFallback;
 	int nextStyleSwitchTime;
 	int landingReleaseTime;

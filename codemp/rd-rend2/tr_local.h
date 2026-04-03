@@ -3310,9 +3310,9 @@ public:
 	mdxmVBOMesh_t* vboMesh;
 
 	// tell the renderer to render shadows for this surface
-	qboolean genShadows;
-	int dlightBits;
-	int pshadowBits;
+	qboolean         genShadows;
+	int              dlightBits;
+	int              pshadowBits;
 
 	// pointer to surface data loaded into file - only used by client renderer
 	// DO NOT USE IN GAME SIDE - if there is a vid restart this will be out of
@@ -3324,32 +3324,48 @@ public:
 	srfG2GoreSurface_t* alternateTex;
 	void* goreChain;
 
-	float scale;
-	float fade;
+	float               scale;
+	float               fade;
 
 	// this is a number between 0 and 1 that dictates the progression of the
 	// bullet impact
-	float impactTime;
+	float               impactTime;
 #endif
 
-	CRenderableSurface& operator =(const CRenderableSurface& src)
+	// ---------------------------------------------------------
+	// Assignment operator
+	// ---------------------------------------------------------
+	CRenderableSurface& operator=(const CRenderableSurface& src)
 	{
 		ident = src.ident;
 		boneCache = src.boneCache;
+		vboMesh = src.vboMesh;
 		surfaceData = src.surfaceData;
+
+		genShadows = (src.genShadows == qtrue ? qtrue : qfalse);
+		dlightBits = src.dlightBits;
+		pshadowBits = src.pshadowBits;
+
 #ifdef _G2_GORE
 		alternateTex = src.alternateTex;
 		goreChain = src.goreChain;
+		scale = src.scale;
+		fade = src.fade;
+		impactTime = src.impactTime;
 #endif
-		vboMesh = src.vboMesh;
-
 		return *this;
 	}
 
+	// ---------------------------------------------------------
+	// Constructor — initialize EVERYTHING
+	// ---------------------------------------------------------
 	CRenderableSurface()
 		: ident(SF_MDX)
 		, boneCache(nullptr)
 		, vboMesh(nullptr)
+		, genShadows(qfalse)
+		, dlightBits(0)
+		, pshadowBits(0)
 		, surfaceData(nullptr)
 #ifdef _G2_GORE
 		, alternateTex(nullptr)
@@ -3358,19 +3374,30 @@ public:
 		, fade(0.0f)
 		, impactTime(0.0f)
 #endif
-	{}
+	{
+	}
 
+	// ---------------------------------------------------------
+	// Init() — optional re‑initializer
+	// ---------------------------------------------------------
 	void Init()
 	{
 		ident = SF_MDX;
 		boneCache = nullptr;
 		surfaceData = nullptr;
+		vboMesh = nullptr;
+
+		genShadows = qfalse;
+		dlightBits = 0;
+		pshadowBits = 0;
+
 #ifdef _G2_GORE
 		alternateTex = nullptr;
 		goreChain = nullptr;
+		scale = 1.0f;
+		fade = 0.0f;
+		impactTime = 0.0f;
 #endif
-		vboMesh = nullptr;
-		genShadows = qfalse;
 	}
 };
 

@@ -658,7 +658,7 @@ typedef struct clientPersistant_s
 	bclass_t nextbotclass;
 	bclass_t accountclass;
 	bclass_t nextaccountclass;
-	qboolean botmodelscale;
+	int botmodelscale; // was qboolean, needs to store BOTZIZE_* integer values
 
 	qboolean MovieDuels_Clientplugin;
 
@@ -1516,7 +1516,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 qboolean g_radius_damage(vec3_t origin, gentity_t* attacker, float damage, float radius, const gentity_t* ignore,
 	gentity_t* missile, int mod);
 void body_die(gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, int means_of_death);
-void TossClientWeapon(gentity_t* self, vec3_t direction, float speed);
+void TossClientWeapon(gentity_t* self, vec3_t direction, const float speed);
 void TossClientItems(gentity_t* self);
 void ExplodeDeath(gentity_t* self);
 void G_CheckForDismemberment(gentity_t* ent, const gentity_t* enemy, vec3_t point, int damage);
@@ -1650,7 +1650,7 @@ void ClientRespawn(gentity_t* ent);
 void BeginIntermission(void);
 void InitBodyQue(void);
 void ClientSpawn(gentity_t* ent);
-void player_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker, int damage, int means_of_death);
+void player_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker, const int damage, const int means_of_death);
 void AddScore(const gentity_t* ent, int score);
 void CalculateRanks(void);
 qboolean SpotWouldTelefrag(const gentity_t* spot);
@@ -1732,6 +1732,53 @@ void G_RunClient(gentity_t* ent);
 //
 qboolean OnSameTeam(const gentity_t* ent1, const gentity_t* ent2);
 void Team_CheckDroppedItem(const gentity_t* dropped);
+
+// Holocron table Externs.
+#define MAX_HOLOCRON_POSITIONS 50
+
+typedef enum
+{
+	HC_HEAL,
+	HC_LEVITATION,
+	HC_SPEED,
+	HC_PUSH,
+	HC_PULL,
+	HC_TELEPATHY,
+	HC_GRIP,
+	HC_LIGHTNING,
+	HC_RAGE,
+	HC_PROTECT,
+	HC_ABSORB,
+	HC_TEAM_HEAL,
+	HC_TEAM_FORCE,
+	HC_DRAIN,
+	HC_SEE,
+	HC_SABER_OFFENSE,
+	HC_SABER_DEFENSE,
+	HC_SABERTHROW,
+	HC_RANDOM,
+
+	NUM_HOLOCRON_TYPES
+} holocrontypes_t;
+
+typedef struct holocrons_s
+{
+	vec3_t origin;
+	qboolean inuse;
+	int type;
+} holocrons_t;
+
+/* Extern globals */
+extern holocrons_t holocrons[MAX_HOLOCRON_POSITIONS];
+extern int number_of_holocronpositions;
+extern qboolean holocrons_loaded;
+
+/* Function prototypes */
+void Holocron_Add(gentity_t* ent, const char* typeName);
+void Holocron_Savepositions(void);
+void Holocron_Loadpositions(void);
+gentity_t* Create_Holocron(gentity_t* owner, int type, const vec3_t origin);
+void Create_Holocrons(void);
 
 typedef struct teamgame_s {
 	float			last_flag_capture;

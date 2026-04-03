@@ -64,7 +64,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-28,Month-03,Year-26,BuildNum-06" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-03,Month-04,Year-26,BuildNum-01" // build date
 
 #define	STEPSIZE		18
 
@@ -1224,6 +1224,21 @@ typedef enum {
 	MOD_TRIP_MINE_SPLASH,
 	MOD_TIMED_MINE_SPLASH,
 	MOD_DET_PACK_SPLASH,
+
+	MOD_BATTLEDROID,
+	MOD_THEFIRSTORDER,
+	MOD_CLONECARBINE,
+	MOD_REBELBLASTER,
+	MOD_CLONERIFLE,
+	MOD_CLONECOMMANDO,
+	MOD_REBELRIFLE,
+	MOD_REY,
+	MOD_REY_ALT,
+	MOD_JANGO,
+	MOD_BOBA,
+	MOD_CLONEPISTOL,
+	MOD_CLONEPISTOL_ALT,
+
 	MOD_VEHICLE,
 	MOD_CONC,
 	MOD_CONC_ALT,

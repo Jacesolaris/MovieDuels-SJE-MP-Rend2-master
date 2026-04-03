@@ -495,8 +495,8 @@ static SOCKET NET_IPSocket(char* net_interface, const int port, int* err)
 	Com_Printf("----------------------- MovieDuels-SJE-SP -----------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Update 7.0 ---------------------------\n");
-	Com_Printf("--------------------- Build Date 28/03/2026 ---------------------\n");// build date
-	Com_Printf("---------------------------Build 06------------------------------\n");
+	Com_Printf("--------------------- Build Date 03/04/2026 ---------------------\n");// build date
+	Com_Printf("---------------------------Build 01------------------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Lightsaber ---------------------------\n");
 	Com_Printf("---------- An elegant weapon for a more civilized age -----------\n");
@@ -1113,58 +1113,73 @@ void NET_Shutdown(void)
 #endif
 }
 
+
 /*
 ====================
 NET_Event
 
-Called from NET_Sleep which uses select() to determine which sockets have seen action.
+Called from NET_Sleep which uses select() to determine which sockets
+have pending activity. This version avoids large stack allocations by
+using static storage for the network buffer and msg_t.
 ====================
 */
-
 static void NET_Event(fd_set* fdr)
 {
 	netadr_t from;
 
-	// Allocate the large buffer ONCE, not inside the loop.
-	byte    bufData[MAX_MSGLEN + 1];
-	msg_t   netmsg;
+	// Static buffer + message to avoid 50 KB stack usage.
+	static byte   s_bufData[MAX_MSGLEN + 1];
+	static msg_t  s_netmsg;
+	static qboolean s_initialized = qfalse;
 
-	MSG_Init(&netmsg, bufData, sizeof(bufData));
+	// Initialize the message structure once.
+	if (s_initialized == qfalse)
+	{
+		MSG_Init(&s_netmsg, s_bufData, sizeof(s_bufData));
+		s_initialized = qtrue;
+	}
 
+	// Process all pending packets.
 	while (qtrue)
 	{
-		// Reset message for each packet
-		netmsg.cursize = 0;
-		netmsg.readcount = 0;
+		// Reset message state for this packet.
+		s_netmsg.cursize = 0;
+		s_netmsg.readcount = 0;
 
-		if (NET_GetPacket(&from, &netmsg, fdr))
+		if (NET_GetPacket(&from, &s_netmsg, fdr))
 		{
-			// Drop simulation
+			// Optional packet drop simulation.
 			if (net_dropsim->value > 0.0f && net_dropsim->value <= 100.0f)
 			{
-				int dropThreshold = (int)((double)RAND_MAX / 100.0 * (double)net_dropsim->value);
+				const int dropThreshold =
+					(int)((double)RAND_MAX / 100.0 * (double)net_dropsim->value);
 
 				if (rand() < dropThreshold)
 				{
-					continue; // drop this packet
+					// Simulate dropped packet.
+					continue;
 				}
 			}
 
+			// Dispatch packet to server or client.
 			if (com_sv_running->integer)
 			{
-				Com_RunAndTimeServerPacket(&from, &netmsg);
+				Com_RunAndTimeServerPacket(&from, &s_netmsg);
 			}
 			else
 			{
-				CL_PacketEvent(from, &netmsg);
+				CL_PacketEvent(from, &s_netmsg);
 			}
 		}
 		else
 		{
+			// No more packets available.
 			break;
 		}
 	}
 }
+
+
 
 /*
 ====================

@@ -492,8 +492,8 @@ static void FX_DrawPortableShield(const centity_t* cent)
 	normal[0] = 1;
 	normal[1] = 1;
 
-	start[2] += height / 2;
-	end[2] += height / 2;
+	start[2] += height / 2.0f;
+	end[2] += height / 2.0f;
 
 	if (team == TEAM_RED)
 	{
@@ -2052,6 +2052,7 @@ static void CG_General(centity_t* cent)
 				ent.shaderRGBA[2] = 230;
 			}
 			else if (cent->currentState.botclass == BCLASS_BOBAFETT
+				|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 				|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 				|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 				|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -2129,6 +2130,7 @@ static void CG_General(centity_t* cent)
 					ent.shaderRGBA[2] = 230;
 				}
 				else if (cent->currentState.botclass == BCLASS_BOBAFETT
+					|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 					|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 					|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 					|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -2452,6 +2454,9 @@ static void CG_Item(centity_t* cent)
 		switch (item->giTag)
 		{
 		case WP_BLASTER:
+		case WP_BATTLEDROID:
+		case WP_THEFIRSTORDER:
+		case WP_REBELRIFLE:
 			cent->lerpOrigin[2] -= 12;
 			break;
 		case WP_DISRUPTOR:
@@ -2461,6 +2466,10 @@ static void CG_Item(centity_t* cent)
 			cent->lerpOrigin[2] -= 16;
 			break;
 		case WP_REPEATER:
+		case WP_CLONECARBINE:
+		case WP_CLONERIFLE:
+		case WP_CLONECOMMANDO:
+		case WP_REBELBLASTER:
 			cent->lerpOrigin[2] -= 12;
 			break;
 		case WP_DEMP2:

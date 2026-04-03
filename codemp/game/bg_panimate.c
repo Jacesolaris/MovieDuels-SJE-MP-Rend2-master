@@ -4767,7 +4767,8 @@ void BG_InitAnimsets(void)
 
 //ALWAYS call on game/cgame shutdown
 void BG_ClearAnimsets()
-{}
+{
+}
 
 static animation_t* BG_AnimsetAlloc(void)
 {
@@ -4778,7 +4779,8 @@ static animation_t* BG_AnimsetAlloc(void)
 }
 
 static void BG_AnimsetFree()
-{}
+{
+}
 
 #ifdef _CGAME //none of this is actually needed server side. Could just be moved to cgame code but it's here since it used to tie in a lot with the anim loading stuff.
 
@@ -5581,7 +5583,13 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_sbd",
 	"models/players/_humanoid_vader",
 	"models/players/_humanoid_yoda",
-	"models/players/darktrooper_tv"
+	"models/players/darktrooper_tv",
+	"models/players/hazardtrooper/hazardtrooper",
+	"models/players/rockettrooper/rockettrooper",
+	"models/players/protocol/protocol",
+	"models/players/assassin_droid/model",
+	"models/players/saber_droid/model",
+	"models/players/wampa/wampa"
 };
 
 static qboolean R_IsHumanoidPath(const char* animName)
@@ -6508,17 +6516,6 @@ qboolean BG_WeaponSprintAnim(const int anim)
 	{
 	case BOTH_SPRINT:
 	case BOTH_SPRINT_MP:
-	case BOTH_RUN1:
-	case BOTH_RUN2:
-	case BOTH_RUN3:
-	case BOTH_RUN3_MP:
-	case BOTH_RUN4:
-	case BOTH_RUN5:
-	case BOTH_RUN6:
-	case BOTH_RUN7:
-	case BOTH_RUN8:
-	case BOTH_RUN9:
-	case BOTH_RUN10:
 		return qtrue;
 	default:;
 	}

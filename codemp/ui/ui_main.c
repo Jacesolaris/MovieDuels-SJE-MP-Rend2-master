@@ -320,7 +320,13 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_sbd",
 	"models/players/_humanoid_vader",
 	"models/players/_humanoid_yoda",
-	"models/players/darktrooper_tv"
+	"models/players/darktrooper_tv",
+	"models/players/hazardtrooper/hazardtrooper",
+	"models/players/rockettrooper/rockettrooper",
+	"models/players/protocol/protocol",
+	"models/players/assassin_droid/model",
+	"models/players/saber_droid/model",
+	"models/players/wampa/wampa"
 };
 
 static qboolean UI_IsHumanoidPath(const char* path)
@@ -415,7 +421,13 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 		{
 			return -1;
 		}
-		if (len >= sizeof(UIPAFtext) - 1)
+		/* Defensive: FS_Open may return a negative length on error. */
+		if (len < 0)
+		{
+			trap->FS_Close(f);
+			return -1;
+		}
+		if (len >= (int)sizeof(UIPAFtext) - 1)
 		{
 			trap->FS_Close(f);
 			Com_Error(ERR_DROP, "%s exceeds the allowed ui-side animation buffer!", animFileName);
@@ -1528,16 +1540,6 @@ void UI_ParseMenu(const char* menuFile)
 			break;
 		}
 
-		//if ( Q_stricmp( token, "{" ) ) {
-		//	Com_Printf( "Missing { in menu file\n" );
-		//	break;
-		//}
-
-		//if ( menuCount == MAX_MENUS ) {
-		//	Com_Printf( "Too many menus!\n" );
-		//	break;
-		//}
-
 		if (token.string[0] == '}')
 		{
 			break;
@@ -2163,8 +2165,6 @@ qboolean UI_TrueJediEnabled(void)
 	trap->GetConfigString(CS_SERVERINFO, info, sizeof info);
 
 	//already have serverinfo at this point for stuff below. Don't bother trying to use ui_forcePowerDisable.
-	//if (ui_forcePowerDisable.integer)
-	//if (atoi(Info_ValueForKey(info, "g_forcePowerDisable")))
 	const int disabledForce = atoi(Info_ValueForKey(info, "g_forcePowerDisable"));
 	const qboolean allForceDisabled = UI_AllForceDisabled(disabledForce);
 	const int gametype = atoi(Info_ValueForKey(info, "g_gametype"));
@@ -2492,8 +2492,6 @@ static void UpdateForceStatus()
 		trap->GetConfigString(CS_SERVERINFO, info, sizeof info);
 
 		//already have serverinfo at this point for stuff below. Don't bother trying to use ui_forcePowerDisable.
-		//if (ui_forcePowerDisable.integer)
-		//if (atoi(Info_ValueForKey(info, "g_forcePowerDisable")))
 		const int disabledForce = atoi(Info_ValueForKey(info, "g_forcePowerDisable"));
 		const qboolean allForceDisabled = UI_AllForceDisabled(disabledForce);
 		const qboolean trueJedi = UI_TrueJediEnabled();
@@ -7780,10 +7778,6 @@ static void UI_RunMenuScript(char** args)
 		{
 			UI_ClampMaxPlayers();
 		}
-		else if (Q_stricmp(name, "LaunchSP") == 0)
-		{
-			// TODO for MAC_PORT
-		}
 		else if (Q_stricmp(name, "loadmissionselectmenu") == 0)
 		{
 			//used by menus to load up the approprate menus for the mission selection menus
@@ -7813,6 +7807,31 @@ static void UI_RunMenuScript(char** args)
 				trap->Cmd_ExecuteText(EXEC_APPEND, va("Adminpunish \"%i\"\n", uiInfo.playerIndexes[uiInfo.playerIndex]));
 			}
 		}
+		else if (Q_stricmp(name, "AdminMenuSpawnHolocron") == 0)
+		{
+			char typeBuf[MAX_QPATH];
+			const char* raw = UI_Cvar_VariableString("ui_selectedHolocron");
+
+			// Defensive: no value, bail
+			if (!raw || !raw[0])
+			{
+				return;
+			}
+
+			// Make a real copy, avoid dangling cvar pointer
+			Q_strncpyz(typeBuf, raw, sizeof(typeBuf));
+
+			if (!typeBuf[0])
+			{
+				return;
+			}
+
+			// Build command safely, no va()
+			char cmd[256];
+			Com_sprintf(cmd, sizeof(cmd), "addholocron \"%s\"\n", typeBuf);
+
+			trap->Cmd_ExecuteText(EXEC_APPEND, cmd);
+		}
 		else
 		{
 			Com_Printf("unknown UI script %s\n", name);
@@ -7821,7 +7840,8 @@ static void UI_RunMenuScript(char** args)
 }
 
 static void UI_GetTeamColor(vec4_t* color)
-{}
+{
+}
 static void UI_SetSiegeTeams(void)
 {
 	static char info[MAX_INFO_VALUE];
@@ -8880,6 +8900,8 @@ static int UI_FeederCount(float feederID)
 			}
 		}
 		return count;
+	case FEEDER_HOLOCRON_LIST:
+		return uiInfo.holocronCount;
 	default:;
 	}
 
@@ -9353,6 +9375,15 @@ static const char* UI_FeederItemText(float feederID, int index, int column,
 	{
 		return "";
 	}
+	else if (feederID == FEEDER_HOLOCRON_LIST)
+	{
+		if (index >= 0 && index < uiInfo.holocronCount)
+		{
+			return uiInfo.holocronNames[index];
+		}
+		return "";
+	}
+
 	return "";
 }
 
@@ -9982,6 +10013,12 @@ qboolean UI_FeederSelection(float feederFloat, int index, itemDef_t* item)
 			}
 		}
 	}
+	else if (feederID == FEEDER_HOLOCRON_LIST)
+	{
+		uiInfo.holocronIndex = index;  // store the selection
+		trap->Cvar_Set("ui_selectedHolocron", uiInfo.holocronNames[index]);
+	}
+
 	return qtrue;
 }
 
@@ -10652,7 +10689,7 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 		int  f = 0;
 		char fpath[MAX_QPATH];
 
-		dirlen = (int)strlen(dirptr);
+		dirlen = strlen(dirptr);
 
 		if (dirlen > 0)
 		{
@@ -11084,6 +11121,18 @@ static void UI_Init(qboolean inGameLoad)
 
 	trap->Cvar_Set("ui_actualNetGameType", va("%d", ui_netGametype.integer));
 	trap->Cvar_Update(&ui_actualNetGametype);
+
+	uiInfo.holocronCount = 10;
+	uiInfo.holocronNames[0] = "Push";
+	uiInfo.holocronNames[1] = "Pull";
+	uiInfo.holocronNames[2] = "Speed";
+	uiInfo.holocronNames[3] = "Grip";
+	uiInfo.holocronNames[4] = "Lightning";
+	uiInfo.holocronNames[5] = "Rage";
+	uiInfo.holocronNames[6] = "Protect";
+	uiInfo.holocronNames[7] = "Absorb";
+	uiInfo.holocronNames[8] = "Heal";
+	uiInfo.holocronNames[9] = "Sight";
 }
 
 static qhandle_t* uiCursors[] =
@@ -11108,10 +11157,6 @@ static void UI_Refresh(int realtime)
 {
 	static int index;
 	static int previousTimes[UI_FPS_FRAMES];
-
-	//if ( !( trap->Key_GetCatcher() & KEYCATCH_UI ) ) {
-	//	return;
-	//}
 
 	trap->G2API_SetTime(realtime, 0);
 	trap->G2API_SetTime(realtime, 1);
@@ -11344,7 +11389,7 @@ static void UI_PrintTime(char* buf, int bufsize, int time)
 void Text_PaintCenter(float x, float y, float scale, vec4_t color, const char* text, float adjust, int i_menu_font)
 {
 	const int len = Text_Width(text, scale, i_menu_font);
-	Text_Paint(x - len / 2, y, scale, color, text, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE, i_menu_font);
+	Text_Paint(x - len / 2.0f, y, scale, color, text, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE, i_menu_font);
 }
 
 static void UI_DisplayDownloadInfo(const char* downloadName, float centerPoint, float yStart, float scale,

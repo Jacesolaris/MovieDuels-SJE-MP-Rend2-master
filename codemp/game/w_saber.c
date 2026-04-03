@@ -2792,6 +2792,21 @@ int BasicWeaponBlockCosts[MOD_MAX] =
 	20, //MOD_TRIP_MINE_SPLASH,
 	20, //MOD_TIMED_MINE_SPLASH,
 	20, //MOD_DET_PACK_SPLASH,
+
+	20, //MOD_BATTLEDROID,
+	20, //MOD_THEFIRSTORDER,
+	20, //MOD_CLONECARBINE,
+	20, //MOD_REBELBLASTER,
+	20, //MOD_CLONERIFLE,
+	20, //MOD_CLONECOMMANDO,
+	20, //MOD_REBELRIFLE,
+	20, //MOD_REY,
+	10, //MOD_REY_ALT,
+	20, //MOD_JANGO,
+	20, //MOD_BOBA,
+	20, //MOD_CLONEPISTOL,
+	10, //MOD_CLONEPISTOL_ALT,
+
 	-1, //MOD_VEHICLE,
 	20, //MOD_CONC,
 	20, //MOD_CONC_ALT,
@@ -2887,7 +2902,11 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 			const int actWpn = attacker->activator->s.weapon;
 
 			if (actWpn == WP_BRYAR_PISTOL ||
-				actWpn == WP_BRYAR_OLD)
+				actWpn == WP_BRYAR_OLD ||
+				actWpn == WP_REY ||
+				actWpn == WP_JANGO ||
+				actWpn == WP_BOBA ||
+				actWpn == WP_CLONEPISTOL)
 			{
 				saber_block_cost = 4.0f;
 			}
@@ -2976,13 +2995,11 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 				saber_block_cost = DODGE_REPEATERBLOCK;
 			}
 			// General projectile logic
-			else if (
-				actWpn == WP_BRYAR_PISTOL ||
+			else if (actWpn == WP_BRYAR_PISTOL ||
 				actWpn == WP_BRYAR_OLD ||
 				actWpn == WP_EMPLACED_GUN)
 			{
-				const float distance = VectorBlockDistance(attacker->activator->r.currentOrigin,
-					defender->r.currentOrigin);
+				const float distance = VectorBlockDistance(attacker->activator->r.currentOrigin, defender->r.currentOrigin);
 
 				if (distance <= 125.0f)
 				{
@@ -2998,7 +3015,10 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 				}
 			}
 			// Blaster rifle
-			else if (actWpn == WP_BLASTER)
+			else if (actWpn == WP_BLASTER ||
+				actWpn == WP_BATTLEDROID ||
+				actWpn == WP_REBELBLASTER ||
+				actWpn == WP_REBELRIFLE)
 			{
 				saber_block_cost = 2.5f;
 			}
@@ -4939,6 +4959,7 @@ qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int h
 
 	if (self->r.svFlags & SVF_BOT
 		&& (self->client->ps.weapon != WP_SABER &&
+			self->client->pers.botclass != BCLASS_JANGO_NOJP &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN2 &&
@@ -5560,6 +5581,7 @@ static qboolean G_DoSaberDodge(gentity_t* dodger, gentity_t* attacker, vec3_t dm
 
 	if ((dodger->r.svFlags & SVF_BOT
 		&& dodger->client->ps.weapon != WP_SABER
+		&& dodger->client->pers.botclass != BCLASS_JANGO_NOJP
 		&& dodger->client->pers.botclass != BCLASS_MANDOLORIAN
 		&& dodger->client->pers.botclass != BCLASS_MANDOLORIAN1
 		&& dodger->client->pers.botclass != BCLASS_MANDOLORIAN2
@@ -5569,6 +5591,7 @@ static qboolean G_DoSaberDodge(gentity_t* dodger, gentity_t* attacker, vec3_t dm
 	}
 
 	if (dodger->r.svFlags & SVF_BOT
+		&& dodger->client->pers.botclass == BCLASS_JANGO_NOJP
 		&& dodger->client->pers.botclass == BCLASS_MANDOLORIAN
 		&& dodger->client->pers.botclass == BCLASS_MANDOLORIAN1
 		&& dodger->client->pers.botclass == BCLASS_MANDOLORIAN2
@@ -7219,6 +7242,7 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 				{
 					// TD is close enough to hurt me, I'm on the ground and the thing is at rest or behind me and about to blow up, or I don't have force-push so force-jump!
 					if (self->client->pers.botclass == BCLASS_BOBAFETT ||
+						self->client->pers.botclass == BCLASS_JANGO_NOJP ||
 						self->client->pers.botclass == BCLASS_MANDOLORIAN1 ||
 						self->client->pers.botclass == BCLASS_MANDOLORIAN2)
 					{
@@ -7229,6 +7253,7 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 				}
 				else if ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) &&
 					self->client->pers.botclass != BCLASS_BOBAFETT &&
+					self->client->pers.botclass != BCLASS_JANGO_NOJP &&
 					self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
 					self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 				{
@@ -7265,6 +7290,7 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 						// make the gesture
 						if ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) &&
 							self->client->pers.botclass != BCLASS_BOBAFETT &&
+							self->client->pers.botclass != BCLASS_JANGO_NOJP &&
 							self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
 							self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 						{
@@ -7491,6 +7517,7 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 					self->client->NPC_class != CLASS_ROCKETTROOPER &&
 					self->client->NPC_class != CLASS_REBORN &&
 					self->client->pers.botclass != BCLASS_BOBAFETT &&
+					self->client->pers.botclass != BCLASS_JANGO_NOJP &&
 					self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
 					self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 				{
@@ -12648,8 +12675,11 @@ qboolean manual_meleeblocking(const gentity_t* defender) //Is this guy blocking 
 
 qboolean manual_melee_dodging(const gentity_t* defender) //Is this guy dodgeing or not?
 {
-	if (defender->client->pers.botclass == BCLASS_BOBAFETT || defender->client->pers.botclass == BCLASS_MANDOLORIAN || defender->
-		client->pers.botclass == BCLASS_MANDOLORIAN1 || defender->client->pers.botclass == BCLASS_MANDOLORIAN2)
+	if (defender->client->pers.botclass == BCLASS_BOBAFETT ||
+		defender->client->pers.botclass == BCLASS_JANGO_NOJP ||
+		defender->client->pers.botclass == BCLASS_MANDOLORIAN ||
+		defender->client->pers.botclass == BCLASS_MANDOLORIAN1 ||
+		defender->client->pers.botclass == BCLASS_MANDOLORIAN2)
 	{
 		return qfalse;
 	}
@@ -14080,14 +14110,14 @@ static QINLINE int clamp_int(int v, int lo, int hi)
 {
 	return (v < lo) ? lo : (v > hi ? hi : v);
 }
-static QINLINE qboolean WP_BotFallbackBlock(gentity_t* self)
+static qboolean WP_BotFallbackBlock(gentity_t* self)
 {
 	return (self->health > 0 &&
 		(self->r.svFlags & SVF_BOT) &&
 		self->client->ps.weapon == WP_SABER);
 }
 
-static QINLINE void WP_PlayBlockAnim(gentity_t* self, const int* table)
+static void WP_PlayBlockAnim(gentity_t* self, const int* table)
 {
 	const int style = clamp_int(self->client->ps.fd.saberAnimLevel, 0, SS_STAFF);
 	const int anim = table[style];

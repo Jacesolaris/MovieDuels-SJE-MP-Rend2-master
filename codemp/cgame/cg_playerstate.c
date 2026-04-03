@@ -56,6 +56,17 @@ static void CG_CheckAmmo(void)
 		case WP_CONCUSSION:
 		case WP_BRYAR_OLD:
 		case WP_BLASTER:
+		case WP_BATTLEDROID:
+		case WP_THEFIRSTORDER:
+		case WP_CLONECARBINE:
+		case WP_REBELBLASTER:
+		case WP_CLONERIFLE:
+		case WP_CLONECOMMANDO:
+		case WP_REBELRIFLE:
+		case WP_REY:
+		case WP_JANGO:
+		case WP_BOBA:
+		case WP_CLONEPISTOL:
 		case WP_DISRUPTOR:
 		case WP_BOWCASTER:
 		case WP_REPEATER:
@@ -139,7 +150,7 @@ static void CG_DamageFeedback(const int yaw_byte, const int pitch_byte, const in
 	}
 	else
 	{
-		vec3_t angles;
+		vec3_t angles = { 0 };
 		vec3_t dir;
 		// positional
 		const float pitch = pitch_byte / 255.0 * 360;

@@ -136,15 +136,13 @@ void Create_Autosave(vec3_t origin, int size, const qboolean teleportPlayers)
 		newAutosave->spawnflags |= AUTOSAVE_EDITOR;
 		//indicate that this was manually created and should be rendered if we're in the coop editor.
 	}
-}
-
-void Load_Autosaves(void)
+}void Load_Autosaves(void)
 {
 	// load in our autosave from the .autosp
 	fileHandle_t f;
-	char buf[MAX_AUTOSAVE_FILESIZE];
+	static char buf[MAX_AUTOSAVE_FILESIZE + 1]; // +1 for guaranteed terminator
 	char loadPath[MAX_QPATH];
-	int sizeData;
+	int sizeData = 0;
 	vmCvar_t mapname;
 	qboolean teleportPlayers = qfalse;
 
@@ -154,33 +152,45 @@ void Load_Autosaves(void)
 	Com_sprintf(loadPath, MAX_QPATH, "maps/%s.autosp", mapname.string);
 
 	const int len = trap->FS_Open(loadPath, &f, FS_READ);
-	if (!f)
+	if (f == 0)
 	{
 		Com_Printf("^5No autosave file found.\n");
 		return;
 	}
-	if (!len)
+	if (len <= 0)
 	{
 		Com_Printf("^5Empty autosave file!\n");
 		trap->FS_Close(f);
 		return;
 	}
 
-	trap->FS_Read(buf, len, f);
+	// Read file safely
+	if (len >= MAX_AUTOSAVE_FILESIZE)
+	{
+		Com_Printf("^1Autosave file too large, truncating.\n");
+	}
+
+	const int readLen = (len < MAX_AUTOSAVE_FILESIZE ? len : MAX_AUTOSAVE_FILESIZE);
+	trap->FS_Read(buf, readLen, f);
 	trap->FS_Close(f);
+
+	// Guarantee null termination
+	buf[readLen] = '\0';
 
 	char* s = buf;
 
-	while (*s != '\0' && s - buf < len)
+	while (*s != '\0' && (s - buf) < readLen)
 	{
-		vec3_t positionData = { 0, 0, 0 };
+		vec3_t positionData = { 0.0f, 0.0f, 0.0f };
 
+		// Skip blank lines
 		if (*s == '\n')
 		{
 			s++;
 			continue;
 		}
 
+		// Parse line
 		int parsed = sscanf(
 			s,
 			"%f %f %f %i %i",
@@ -194,7 +204,7 @@ void Load_Autosaves(void)
 		if (parsed != 5)
 		{
 			// malformed line — skip safely
-			while (*s != '\n' && *s != '\0' && s - buf < len)
+			while (*s != '\n' && *s != '\0' && (s - buf) < readLen)
 			{
 				s++;
 			}
@@ -204,7 +214,7 @@ void Load_Autosaves(void)
 		Create_Autosave(positionData, sizeData, teleportPlayers);
 
 		// advance to end of line
-		while (*s != '\n' && *s != '\0' && s - buf < len)
+		while (*s != '\n' && *s != '\0' && (s - buf) < readLen)
 		{
 			s++;
 		}
@@ -239,32 +249,61 @@ extern qboolean G_PointInBounds(vec3_t point, vec3_t mins, vec3_t maxs);
 
 void Delete_Autosaves(const gentity_t* ent)
 {
-	int touch[MAX_GENTITIES];
-	gentity_t* hit;
-	vec3_t mins, maxs;
+	// Large buffer moved to static storage to avoid stack overflow
+	static int s_touchList[MAX_GENTITIES];
 
+	gentity_t* hit = NULL;
+	vec3_t mins;
+	vec3_t maxs;
+
+	if (ent == NULL)
+	{
+		Com_Printf("Delete_Autosaves: ent is NULL\n");
+		return;
+	}
+
+	// Build bounding box around entity
 	VectorAdd(ent->r.currentOrigin, ent->r.mins, mins);
 	VectorAdd(ent->r.currentOrigin, ent->r.maxs, maxs);
-	const int num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
 
+	const int num = trap->EntitiesInBox(mins, maxs, s_touchList, MAX_GENTITIES);
+
+	// ---------------------------------------------------------------------
+	// Pass 1: remove trigger_autosave entities inside the bounding box
+	// ---------------------------------------------------------------------
 	for (int i = 0; i < num; i++)
 	{
-		hit = &g_entities[touch[i]];
+		int entNum = s_touchList[i];
 
-		if (Q_stricmp(hit->classname, "trigger_autosave") == 0)
+		if (entNum < 0 || entNum >= level.num_entities)
 		{
-			//found a manually set autosave entity
+			continue;
+		}
+
+		hit = &g_entities[entNum];
+
+		if (hit->classname != NULL &&
+			Q_stricmp(hit->classname, "trigger_autosave") == 0)
+		{
 			G_FreeEntity(hit);
 		}
 	}
 
+	// ---------------------------------------------------------------------
+	// Pass 2: remove manually placed spawnpoints inside the box
+	// ---------------------------------------------------------------------
 	hit = NULL;
+
 	while ((hit = G_Find(hit, FOFS(classname), "info_player_deathmatch")) != NULL)
 	{
-		if (hit->spawnflags & 1
-			&& G_PointInBounds(hit->r.currentOrigin, mins, maxs))
+		qboolean isManualSpawn = qfalse;
+
+		// spawnflags & 1 means "manual spawnpoint"
+		isManualSpawn = ((hit->spawnflags & 1) != 0 ? qtrue : qfalse);
+
+		if (isManualSpawn == qtrue &&
+			G_PointInBounds(hit->r.currentOrigin, mins, maxs))
 		{
-			//found a manually set spawn point
 			G_FreeEntity(hit);
 		}
 	}

@@ -281,9 +281,20 @@ int WeaponReadyAnim[WP_NUM_WEAPONS] =
 	TORSO_WEAPONREADY10, //TORSO_WEAPONREADY11,//WP_TRIP_MINE,
 	TORSO_WEAPONREADY10, //TORSO_WEAPONREADY12,//WP_DET_PACK,
 	TORSO_WEAPONREADY4, //WP_CONCUSSION
-	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
 
-	//NOT VALID (e.g. should never really be used):
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_BATTLEDROID,
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_THEFIRSTORDER,
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_CLONECARBINE,
+	TORSO_WEAPONREADY2,//TORSO_WEAPONREADY6,//WP_REBELBLASTER,
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_CLONERIFLE,
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_CLONECOMMANDO,
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_REBELRIFLE,
+	TORSO_WEAPONREADY2,//WP_REY,
+	TORSO_WEAPONREADY2,//WP_JANGO,
+	TORSO_WEAPONREADY3,//WP_BOBA,
+	TORSO_WEAPONREADY2,//WP_CLONEPISTOL,
+
+	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -307,9 +318,20 @@ int WeaponReadyAnim2[WP_NUM_WEAPONS] =
 	TORSO_WEAPONREADY10, //TORSO_WEAPONREADY11,//WP_TRIP_MINE,
 	TORSO_WEAPONREADY10, //TORSO_WEAPONREADY12,//WP_DET_PACK,
 	TORSO_WEAPONREADY4, //WP_CONCUSSION
-	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
 
-	//NOT VALID (e.g. should never really be used):
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_BATTLEDROID,
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_THEFIRSTORDER,
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_CLONECARBINE,
+	BOTH_DUELPISTOL_STAND,//TORSO_WEAPONREADY6,//WP_REBELBLASTER,
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_CLONERIFLE,
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_CLONECOMMANDO,
+	TORSO_WEAPONREADY3,//TORSO_WEAPONREADY6,//WP_REBELRIFLE,
+	BOTH_DUELPISTOL_STAND,//WP_REY,
+	BOTH_DUELPISTOL_STAND,//WP_JANGO,
+	TORSO_WEAPONREADY2,//WP_BOBA,
+	BOTH_DUELPISTOL_STAND,//WP_CLONEPISTOL,
+
+	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -333,9 +355,20 @@ int WeaponReadyLegsAnim[WP_NUM_WEAPONS] =
 	BOTH_STAND1, //TORSO_WEAPONREADY11,//WP_TRIP_MINE,
 	BOTH_STAND1, //TORSO_WEAPONREADY12,//WP_DET_PACK,
 	BOTH_STAND1, //WP_CONCUSSION
-	BOTH_STAND1, //WP_BRYAR_OLD,
 
-	//NOT VALID (e.g. should never really be used):
+	BOTH_STAND1,//TORSO_WEAPONREADY6,//WP_BATTLEDROID,
+	BOTH_STAND1,//TORSO_WEAPONREADY6,//WP_THEFIRSTORDER,
+	BOTH_STAND1,//TORSO_WEAPONREADY6,//WP_CLONECARBINE,
+	BOTH_STAND1,//TORSO_WEAPONREADY6,//WP_REBELBLASTER,
+	BOTH_STAND1,//TORSO_WEAPONREADY6,//WP_CLONERIFLE,
+	BOTH_STAND1,//TORSO_WEAPONREADY6,//WP_CLONECOMMANDO,
+	BOTH_STAND1,//TORSO_WEAPONREADY6,//WP_REBELRIFLE,
+	BOTH_STAND1,//WP_REY,
+	BOTH_STAND1,//WP_JANGO,
+	BOTH_STAND1,//TORSO_WEAPONREADY6,//WP_BOBA,
+	BOTH_STAND1,//WP_CLONEPISTOL,
+
+	BOTH_STAND1, //WP_BRYAR_OLD,
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	BOTH_STAND1 //WP_TURRET,
 };
@@ -359,9 +392,20 @@ int WeaponAimingAnim[WP_NUM_WEAPONS] =
 	TORSO_WEAPONREADY10, //TORSO_WEAPONREADY11,//WP_TRIP_MINE,
 	TORSO_WEAPONREADY10, //TORSO_WEAPONREADY12,//WP_DET_PACK,
 	TORSO_WEAPONREADY4, //WP_CONCUSSION
-	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
 
-	//NOT VALID (e.g. should never really be used):
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_BATTLEDROID,
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_THEFIRSTORDER,
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_CLONECARBINE,
+	BOTH_ATTACK2,//TORSO_WEAPONREADY6,//WP_REBELBLASTER,
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_CLONERIFLE,
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_CLONECOMMANDO,
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_REBELRIFLE,
+	BOTH_ATTACK2,//WP_REY,
+	BOTH_ATTACK2,//WP_JANGO,
+	BOTH_ATTACK2,//TORSO_WEAPONREADY6,//WP_BOBA,
+	BOTH_ATTACK2,//WP_CLONEPISTOL,
+
+	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -385,9 +429,20 @@ int WeaponAimingAnim2[WP_NUM_WEAPONS] =
 	TORSO_WEAPONREADY10, //TORSO_WEAPONREADY11,//WP_TRIP_MINE,
 	TORSO_WEAPONREADY10, //TORSO_WEAPONREADY12,//WP_DET_PACK,
 	TORSO_WEAPONREADY4, //WP_CONCUSSION
-	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
 
-	//NOT VALID (e.g. should never really be used):
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_BATTLEDROID,
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_THEFIRSTORDER,
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_CLONECARBINE,
+	BOTH_DUELPISTOL_STAND,//TORSO_WEAPONREADY6,//WP_REBELBLASTER,
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_CLONERIFLE,
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_CLONECOMMANDO,
+	TORSO_WEAPONREADY4,//TORSO_WEAPONREADY6,//WP_REBELRIFLE,
+	BOTH_DUELPISTOL_STAND,//WP_REY,
+	BOTH_DUELPISTOL_STAND,//WP_JANGO,
+	BOTH_ATTACK2,//TORSO_WEAPONREADY6,//WP_BOBA,
+	BOTH_DUELPISTOL_STAND,//WP_CLONEPISTOL,
+
+	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -411,9 +466,20 @@ int WeaponAttackAnim[WP_NUM_WEAPONS] =
 	BOTH_ATTACK11, //BOTH_ATTACK11,//WP_TRIP_MINE,
 	BOTH_ATTACK11, //BOTH_ATTACK12,//WP_DET_PACK,
 	BOTH_ATTACK4, //WP_CONCUSSION,
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
 
-	//NOT VALID (e.g. should never really be used):
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_BATTLEDROID,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_THEFIRSTORDER,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_CLONECARBINE,
+	BOTH_ATTACK2,//BOTH_ATTACK6,//WP_REBELBLASTER,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_CLONERIFLE,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_CLONECOMMANDO,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_REBELRIFLE,
+	BOTH_ATTACK2,//WP_REY,
+	BOTH_ATTACK2,//WP_JANGO,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_BOBA,
+	BOTH_ATTACK2,//WP_CLONEPISTOL,
+
+	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	BOTH_ATTACK1 //WP_TURRET,
 };
@@ -437,9 +503,20 @@ int WeaponAttackAnim2[WP_NUM_WEAPONS] =
 	BOTH_ATTACK11, //BOTH_ATTACK11,//WP_TRIP_MINE,
 	BOTH_ATTACK11, //BOTH_ATTACK12,//WP_DET_PACK,
 	BOTH_ATTACK4, //WP_CONCUSSION,
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
 
-	//NOT VALID (e.g. should never really be used):
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_BATTLEDROID,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_THEFIRSTORDER,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_CLONECARBINE,
+	BOTH_ATTACK_DUAL,//BOTH_ATTACK6,//WP_REBELBLASTER,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_CLONERIFLE,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_CLONECOMMANDO,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_REBELRIFLE,
+	BOTH_ATTACK_DUAL,//WP_REY,
+	BOTH_ATTACK_DUAL,//WP_JANGO,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_BOBA,
+	BOTH_ATTACK_DUAL,//WP_CLONEPISTOL,
+
+	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	BOTH_ATTACK1 //WP_TURRET,
 };
@@ -463,9 +540,20 @@ int WeaponAltAttackAnim[WP_NUM_WEAPONS] =
 	BOTH_ATTACK11, //BOTH_ATTACK11,//WP_TRIP_MINE,
 	BOTH_ATTACK11, //BOTH_ATTACK12,//WP_DET_PACK,
 	BOTH_ATTACK3, //WP_CONCUSSION,
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
 
-	//NOT VALID (e.g. should never really be used):
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_BATTLEDROID,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_THEFIRSTORDER,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_CLONECARBINE,
+	BOTH_ATTACK2,//BOTH_ATTACK6,//WP_REBELBLASTER,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_CLONERIFLE,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_CLONECOMMANDO,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_REBELRIFLE,
+	BOTH_ATTACK2,//WP_REY,
+	BOTH_ATTACK2,//WP_JANGO,
+	BOTH_ATTACK3,//BOTH_ATTACK6,//WP_BOBA,
+	BOTH_ATTACK2,//WP_CLONEPISTOL,
+
+	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	BOTH_ATTACK1 //WP_TURRET,
 };
@@ -1846,20 +1934,221 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 	"" // description
 },
 
-//
-// AMMO ITEMS
-//
-
-/*QUAKED ammo_force (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
-Don't place this
+//new weapons below here
+/*QUAKED weapon_battledroid (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
 */
 {
-	"ammo_force",
-	"sound/player/pickupenergy.wav",
+	"battledroid",
+	"sound/weapons/w_pkup.wav",
+   {
+	   "models/weapons2/sad_e5/e5_w.glm", 0, 0, 0
+   },
+	/* view */		"models/weapons2/sad_e5/e5.md3",
+	/* icon */		"gfx/hud/w_icon_droidblaster",
+	/* pickup *///	"E-5 Carbine",
+	100,
+	IT_WEAPON,
+	WP_BATTLEDROID,
+	/* precache */ "",
+	/* sounds */ "",
+	"@MENUS_THE_PRIMARY_WEAPON_OF"				// description
+ },
+
+	/*QUAKED weapon_thefirstorder (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	*/
 	{
-		"models/items/energy_cell.md3",
-		0, 0, 0
+		"F11d_blaster",
+		"sound/weapons/w_pkup.wav",
+		{
+			"models/weapons2/f11d_blaster/blaster_w.GLM",
+			0, 0, 0
+			},
+	/* view */		"models/weapons2/f11d_blaster/blaster.md3",
+	/* icon */		"gfx/hud/w_icon_f11d",
+	/* pickup *///	"F-11D",
+	100,
+	IT_WEAPON,
+	WP_THEFIRSTORDER,
+	/* precache */ "",
+	/* sounds */ "",
+	"@MENUS_THE_PRIMARY_WEAPON_OF"				// description
+},
+
+/*QUAKED weapon_clonecarbine (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+*/
+{
+	"DC-15s",
+	"sound/weapons/w_pkup.wav",
+   { "models/weapons2/dc-15s/dc-15s_w.glm",
+		0, 0, 0},
+		/* view */		"models/weapons2/dc-15s/dc-15s.md3",
+		/* icon */		"gfx/hud/w_icon_dc-15s",
+		/* pickup *///	"DC-15 Carbine",
+				100,
+				IT_WEAPON,
+				WP_CLONECARBINE,
+				/* precache */ "",
+				/* sounds */ "",
+						"@MENUS_THE_PRIMARY_WEAPON_OF"				// description
 	},
+
+	/*QUAKED weapon_rebelblaster (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	*/
+	{
+		"DH-17",
+		"sound/weapons/w_pkup.wav",
+					  { "models/weapons2/dh-17/dh-17_w.glm",
+		0, 0, 0},
+		/* view */		"models/weapons2/dh-17/dh-17.md3",
+		/* icon */		"gfx/hud/w_icon_dh-17",
+		/* pickup *///	"DH-17",
+				100,
+				IT_WEAPON,
+				WP_REBELBLASTER,
+				/* precache */ "",
+				/* sounds */ "",
+						"@MENUS_THE_PRIMARY_WEAPON_OF"				// description
+	},
+
+	/*QUAKED weapon_clonerifle (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	*/
+	{
+		"DC-15a",
+		"sound/weapons/w_pkup.wav",
+						 { "models/weapons2/dc-15a/dc-15a_w.glm",
+		0, 0, 0},
+		/* view */		"models/weapons2/dc-15a/dc-15a.md3",
+		/* icon */		"gfx/hud/w_icon_clonerifle",
+		/* pickup *///	"DC-15 Rifle",
+				100,
+				IT_WEAPON,
+				WP_CLONERIFLE,
+				/* precache */ "",
+				/* sounds */ "",
+						"@MENUS_THE_PRIMARY_WEAPON_OF"				// description
+	},
+
+	/*QUAKED weapon_clonecommando (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	*/
+	{
+		"DC-17m",
+		"sound/weapons/w_pkup.wav",
+							{ "models/weapons2/DC-17m/blaster_w.glm",
+		0, 0, 0},
+		/* view */		"models/weapons2/DC-17m/blaster.md3",
+		/* icon */		"gfx/hud/w_icon_dc-17m",
+		/* pickup *///	"DC-17M",
+				100,
+				IT_WEAPON,
+				WP_CLONECOMMANDO,
+				/* precache */ "",
+				/* sounds */ "",
+						"@MENUS_THE_PRIMARY_WEAPON_OF"				// description
+	},
+
+	/*QUAKED weapon_rebelrifle (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	*/
+	{
+		"A280",
+		"sound/weapons/w_pkup.wav",
+							{ "models/weapons2/A280/a280_w.glm", 0, 0, 0},
+							/* view */		"models/weapons2/A280/a280.md3",
+							/* icon */		"gfx/hud/w_icon_A280",
+							/* pickup *///	"A280",
+									100,
+									IT_WEAPON,
+									WP_REBELRIFLE,
+									/* precache */ "",
+									/* sounds */ "",
+											"@MENUS_THE_PRIMARY_WEAPON_OF"				// description
+	},
+
+	/*QUAKED weapon_rey (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	Don't place this
+	*/
+	{
+		"LPA_nn-14",
+		"sound/weapons/w_pkup.wav",
+			  { "models/weapons2/lpa_nn-14/blaster_pistol_w.glm",
+		0, 0, 0},
+		/* view */		"models/weapons2/lpa_nn-14/blaster_pistol.md3",
+		/* icon */		"gfx/hud/w_icon_lpa_nn-14",//"gfx/hud/w_icon_lpa_nn-14",
+		/* pickup *///	"LPA NN-14",
+				100,
+				IT_WEAPON,
+				WP_REY,
+				/* precache */ "",
+				/* sounds */ "",
+						"@SP_INGAME_REY"					// description
+	},
+
+	/*QUAKED weapon_jango (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	*/
+	{
+		"Westar_if",
+		"sound/weapons/w_pkup.wav",
+							{ "models/weapons2/westar_if/westar_w.glm", 0, 0, 0},
+							/* view */		"models/weapons2/westar_if/westar.md3",
+							/* icon */		"gfx/hud/w_icon_westar",
+							/* pickup *///	"Westar 34",
+									100,
+									IT_WEAPON,
+									WP_JANGO,
+									/* precache */ "",
+									/* sounds */ "",
+											"@MENUS_THE_PRIMARY_WEAPON_OF"				// description
+	},
+
+	/*QUAKED weapon_boba (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	*/
+	{
+		"EE-3carbine",
+		"sound/weapons/w_pkup.wav",
+							{ "models/weapons2/ee-3carbine/ee3rotj_w.glm", 0, 0, 0},
+							/* view */		"models/weapons2/ee-3carbine/ee3rotj.md3",
+							/* icon */		"gfx/hud/w_icon_ee-3",
+							/* pickup *///	"EE-3",
+									100,
+									IT_WEAPON,
+									WP_BOBA,
+									/* precache */ "",
+									/* sounds */ "",
+											"@MENUS_THE_PRIMARY_WEAPON_OF"				// description
+	},
+
+	/*QUAKED weapon_clonepistol (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	Don't place this
+	*/
+	{
+		"DC-17",
+		"sound/weapons/w_pkup.wav",
+				 { "models/weapons2/dc-17/dc-17_w.glm",
+		0, 0, 0},
+		/* view */		"models/weapons2/dc-17/dc-17.md3",
+		/* icon */		"gfx/hud/w_icon_clonepistol",//"gfx/hud/w_icon_clonepistol",
+		/* pickup *///	"DC-17 Hand Pistol",
+				100,
+				IT_WEAPON,
+				WP_CLONEPISTOL,
+				/* precache */ "",
+				/* sounds */ "",
+						"@SP_INGAME_CLONEPISTOL"					// description
+	},
+
+	//
+	// AMMO ITEMS
+	//
+
+	/*QUAKED ammo_force (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	Don't place this
+	*/
+	{
+		"ammo_force",
+		"sound/player/pickupenergy.wav",
+		{
+			"models/items/energy_cell.md3",
+			0, 0, 0
+		},
 	/* view */ NULL,
 	/* icon */ "gfx/hud/w_icon_blaster",
 	/* pickup */ //	"Force??",
@@ -3524,7 +3813,7 @@ void BG_PlayerStateToEntityState(playerState_t* ps, entityState_t* s, const qboo
 	s->communicatingflags = ps->communicatingflags;
 	s->frozenTime = ps->frozenTime;
 
-	s->PlayerEffectFlags = ps->PlayerEffectFlags; 
+	s->PlayerEffectFlags = ps->PlayerEffectFlags;
 
 	s->powerups = 0;
 	for (int i = 0; i < MAX_POWERUPS; i++)
@@ -3728,6 +4017,8 @@ void BG_PlayerStateToEntityStateExtraPolate(playerState_t* ps, entityState_t* s,
 	s->grappletimeplayer = ps->grappletimeplayer;
 	s->grapplestartTime = ps->grapplestartTime;
 	s->grapplelaststartTime = ps->grapplelaststartTime;
+
+	s->botclass = ps->botclass;
 
 	s->communicatingflags = ps->communicatingflags;
 	s->frozenTime = ps->frozenTime;
@@ -3992,6 +4283,11 @@ qboolean BG_IsUsingMediumWeap(const playerState_t* ps)
 	switch (ps->weapon)
 	{
 	case WP_BLASTER:
+	case WP_BATTLEDROID:
+	case WP_REBELRIFLE:
+	case WP_BOBA:
+	case WP_JANGO:
+	case WP_THEFIRSTORDER:
 	case WP_DISRUPTOR:
 		return qtrue;
 	default:

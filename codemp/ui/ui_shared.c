@@ -4227,7 +4227,8 @@ static void Item_StartCapture(itemDef_t* item, const int key)
 }
 
 static void Item_StopCapture(itemDef_t* item)
-{}
+{
+}
 
 static qboolean Item_Slider_HandleKey(itemDef_t* item, const int key, qboolean down)
 {
@@ -5363,6 +5364,10 @@ static const char* g_bindCommands[] = {
 	"+button20",
 	"weather",
 	"saberdown",
+	"addholocron",
+	"saveholocrons",
+	"spawnholocron",
+	"loadholocrons",
 	//emotes
 	"myhead",
 	"cower",
@@ -7437,18 +7442,12 @@ void Menu_Paint(menuDef_t* menu, const qboolean forcePaint)
 
 	if (debugMode)
 	{
-		vec4_t color;
+		vec4_t color = { 0 };
 		color[0] = color[2] = color[3] = 1;
 		color[1] = 0;
 		DC->drawRect(menu->window.rect.x, menu->window.rect.y, menu->window.rect.w, menu->window.rect.h, 1, color);
 	}
 }
-
-/*
-===============
-Item_ValidateTypeData
-===============
-*/
 /*
 ==========================
 Item_ValidateTypeData
@@ -7463,8 +7462,16 @@ for the item's specific type.
 */
 static void Item_ValidateTypeData(itemDef_t* item)
 {
-	/* If already allocated, nothing to do */
-	if (item->typeData.data != NULL)
+	qboolean alreadyAllocated = qfalse;
+
+	if (item == NULL)
+	{
+		Com_Printf("Item_ValidateTypeData: item is NULL\n");
+		return;
+	}
+
+	alreadyAllocated = (item->typeData.data != NULL ? qtrue : qfalse);
+	if (alreadyAllocated == qtrue)
 	{
 		return;
 	}
@@ -7481,10 +7488,13 @@ static void Item_ValidateTypeData(itemDef_t* item)
 		if (ptr == NULL)
 		{
 			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for LISTBOX");
-			return; /* static analyzer safety */
+			return;
 		}
 
 		memset(ptr, 0, sizeof(listBoxDef_t));
+
+		/* Write to BOTH union views to silence analyzer */
+		item->typeData.data = ptr;
 		item->typeData.listbox = ptr;
 		break;
 	}
@@ -7511,6 +7521,8 @@ static void Item_ValidateTypeData(itemDef_t* item)
 		}
 
 		memset(ptr, 0, sizeof(editFieldDef_t));
+
+		item->typeData.data = ptr;
 		item->typeData.edit = ptr;
 
 		/* Only EDITFIELD and NUMERICFIELD use maxPaintChars */
@@ -7537,6 +7549,8 @@ static void Item_ValidateTypeData(itemDef_t* item)
 		}
 
 		memset(ptr, 0, sizeof(multiDef_t));
+
+		item->typeData.data = ptr;
 		item->typeData.multi = ptr;
 		break;
 	}
@@ -7556,6 +7570,8 @@ static void Item_ValidateTypeData(itemDef_t* item)
 		}
 
 		memset(ptr, 0, sizeof(modelDef_t));
+
+		item->typeData.data = ptr;
 		item->typeData.model = ptr;
 		break;
 	}
@@ -7574,6 +7590,8 @@ static void Item_ValidateTypeData(itemDef_t* item)
 		}
 
 		memset(ptr, 0, sizeof(textScrollDef_t));
+
+		item->typeData.data = ptr;
 		item->typeData.textscroll = ptr;
 		break;
 	}
@@ -10439,7 +10457,7 @@ int Display_CursorType(const int x, const int y)
 {
 	for (int i = 0; i < menuCount; i++)
 	{
-		rectDef_t r2;
+		rectDef_t r2 = { 0 };
 		r2.x = Menus[i].window.rect.x - 3;
 		r2.y = Menus[i].window.rect.y - 3;
 		r2.w = r2.h = 7;

@@ -618,7 +618,8 @@ void ItemUse_Shield(gentity_t* ent)
 #define PAS_DAMAGE	2
 
 static void SentryTouch(gentity_t* ent, gentity_t* other, trace_t* trace)
-{}
+{
+}
 
 extern qboolean PM_CrouchAnim(int anim);
 extern qboolean PM_InKnockDown(const playerState_t* ps);
@@ -3747,14 +3748,6 @@ void FinishSpawningItem(gentity_t* ent)
 	// useing an item causes it to respawn
 	ent->use = Use_Item;
 
-	// create a Ghoul2 model if the world model is a glm
-	/*	item = &bg_itemlist[ ent->s.modelIndex ];
-		if (!Q_stricmp(&item->world_model[0][strlen(item->world_model[0]) - 4], ".glm"))
-		{
-			trap->G2API_InitGhoul2Model(&ent->s, item->world_model[0], G_model_index(item->world_model[0] ), 0, 0, 0, 0);
-			ent->s.radius = 60;
-		}
-	*/
 	if (ent->spawnflags & ITMSF_SUSPEND)
 	{
 		// suspended
@@ -3802,20 +3795,6 @@ void FinishSpawningItem(gentity_t* ent)
 		return;
 	}
 
-	// powerups don't spawn in for a while
-	/*
-	if ( ent->item->giType == IT_POWERUP ) {
-		float	respawn;
-
-		respawn = 45 + Q_flrand(-1.0f, 1.0f) * 15;
-		ent->s.eFlags |= EF_NODRAW;
-		ent->r.contents = 0;
-		ent->nextthink = level.time + respawn * 1000;
-		ent->think = RespawnItem;
-		return;
-	}
-	*/
-
 	trap->LinkEntity((sharedEntity_t*)ent);
 }
 
@@ -3857,18 +3836,35 @@ void clear_registered_items(void)
 	memset(itemRegistered, 0, sizeof itemRegistered);
 
 	// players always start with the base weapon
-	register_item(BG_FindItemForWeapon(WP_BRYAR_PISTOL));
 	register_item(BG_FindItemForWeapon(WP_STUN_BATON));
 	register_item(BG_FindItemForWeapon(WP_MELEE));
 	register_item(BG_FindItemForWeapon(WP_SABER));
+	register_item(BG_FindItemForWeapon(WP_BRYAR_PISTOL));
 	//addition possible starting weapons
 	register_item(BG_FindItemForWeapon(WP_BLASTER));
-	register_item(BG_FindItemForWeapon(WP_THERMAL));
-	register_item(BG_FindItemForWeapon(WP_ROCKET_LAUNCHER));
+	register_item(BG_FindItemForWeapon(WP_DISRUPTOR));
 	register_item(BG_FindItemForWeapon(WP_BOWCASTER));
 	register_item(BG_FindItemForWeapon(WP_REPEATER));
-	register_item(BG_FindItemForWeapon(WP_DISRUPTOR));
+	register_item(BG_FindItemForWeapon(WP_DEMP2));
+	register_item(BG_FindItemForWeapon(WP_FLECHETTE));
+	register_item(BG_FindItemForWeapon(WP_ROCKET_LAUNCHER));
+	register_item(BG_FindItemForWeapon(WP_THERMAL));
+	register_item(BG_FindItemForWeapon(WP_TRIP_MINE));
+	register_item(BG_FindItemForWeapon(WP_DET_PACK));
 	register_item(BG_FindItemForWeapon(WP_CONCUSSION));
+	register_item(BG_FindItemForWeapon(WP_BRYAR_OLD));
+
+	register_item(BG_FindItemForWeapon(WP_BATTLEDROID));
+	register_item(BG_FindItemForWeapon(WP_THEFIRSTORDER));
+	register_item(BG_FindItemForWeapon(WP_CLONECARBINE));
+	register_item(BG_FindItemForWeapon(WP_REBELBLASTER));
+	register_item(BG_FindItemForWeapon(WP_CLONERIFLE));
+	register_item(BG_FindItemForWeapon(WP_CLONECOMMANDO));
+	register_item(BG_FindItemForWeapon(WP_REBELRIFLE));
+	register_item(BG_FindItemForWeapon(WP_REY));
+	register_item(BG_FindItemForWeapon(WP_JANGO));
+	register_item(BG_FindItemForWeapon(WP_BOBA));
+	register_item(BG_FindItemForWeapon(WP_CLONEPISTOL));
 
 	if (level.gametype == GT_SIEGE)
 	{//kind of cheesy, maybe check if siege class with disp's is gonna be on this map too
@@ -3957,6 +3953,11 @@ static qboolean G_AmmoDisabled(const int wDisable, const gitem_t* item)
 	{
 		if (!(wDisable & 1 << WP_BRYAR_PISTOL)
 			|| !(wDisable & 1 << WP_BLASTER)
+			|| !(wDisable & 1 << WP_BATTLEDROID)
+			|| !(wDisable & 1 << WP_THEFIRSTORDER)
+			|| !(wDisable & 1 << WP_REBELBLASTER)
+			|| !(wDisable & 1 << WP_REY)
+			|| !(wDisable & 1 << WP_JANGO)
 			|| !(wDisable & 1 << WP_BRYAR_OLD))
 		{
 			return qfalse;
@@ -3967,6 +3968,8 @@ static qboolean G_AmmoDisabled(const int wDisable, const gitem_t* item)
 	{
 		if (!(wDisable & 1 << WP_DISRUPTOR)
 			|| !(wDisable & 1 << WP_BOWCASTER)
+			|| !(wDisable & 1 << WP_REBELRIFLE)
+			|| !(wDisable & 1 << WP_BOBA)
 			|| !(wDisable & 1 << WP_DEMP2))
 		{
 			return qfalse;
@@ -3976,6 +3979,10 @@ static qboolean G_AmmoDisabled(const int wDisable, const gitem_t* item)
 	case AMMO_METAL_BOLTS:
 	{
 		if (!(wDisable & 1 << WP_REPEATER)
+			|| !(wDisable & 1 << WP_CLONECARBINE)
+			|| !(wDisable & 1 << WP_CLONERIFLE)
+			|| !(wDisable & 1 << WP_CLONECOMMANDO)
+			|| !(wDisable & 1 << WP_CLONEPISTOL)
 			|| !(wDisable & 1 << WP_FLECHETTE))
 		{
 			return qfalse;

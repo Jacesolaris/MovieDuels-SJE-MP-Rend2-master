@@ -101,7 +101,7 @@ CG_TransitionSnapshot instead.
 FIXME: Also called by map_restart?
 ==================
 */
-void CG_SetInitialSnapshot(snapshot_t* snap)
+static void CG_SetInitialSnapshot(snapshot_t* snap)
 {
 	cg.snap = snap;
 
@@ -110,7 +110,7 @@ void CG_SetInitialSnapshot(snapshot_t* snap)
 	{
 		trap->G2API_DuplicateGhoul2Instance(cgs.clientinfo[snap->ps.clientNum].ghoul2Model,
 			&cg_entities[snap->ps.clientNum].ghoul2);
-		CG_CopyG2WeaponInstance(&cg_entities[snap->ps.clientNum], FIRST_WEAPON,
+		CG_CopyG2WeaponInstance(&cg_entities[snap->ps.clientNum], FIRST_SELECTABLE_WEAPON,
 			cg_entities[snap->ps.clientNum].ghoul2);
 
 		if (trap->G2API_AddBolt(cg_entities[snap->ps.clientNum].ghoul2, 0, "face") == -1)

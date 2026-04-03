@@ -1489,15 +1489,20 @@ static void CG_RegisterGraphics(void)
 
 	cgs.media.itemHoloModel = trap->R_RegisterModel("models/map_objects/mp/holo.md3");
 
-	if (cgs.gametype == GT_HOLOCRON || com_buildScript.integer)
+	//
+	// Register holocron models.
+	// Reason:
+	// - GT_HOLOCRON requires them (vanilla behavior)
+	// - Admin can spawn holocrons in any gametype
+	// - Registration is cheap and renderer‑safe
+	// - Prevents missing-model bugs outside GT_HOLOCRON
+	//
+	for (i = 0; i < NUM_FORCE_POWERS; i++)
 	{
-		for (i = 0; i < NUM_FORCE_POWERS; i++)
+		if (forceHolocronModels[i] != NULL &&
+			forceHolocronModels[i][0] != '\0')
 		{
-			if (forceHolocronModels[i] &&
-				forceHolocronModels[i][0])
-			{
-				trap->R_RegisterModel(forceHolocronModels[i]);
-			}
+			trap->R_RegisterModel(forceHolocronModels[i]);
 		}
 	}
 
@@ -1737,8 +1742,6 @@ static void CG_RegisterGraphics(void)
 			CG_RegisterWeapon(i);
 		}
 	}
-
-	//	CG_LoadingString( "BSP instances" );
 
 	for (i = 1; i < MAX_SUB_BSP; i++)
 	{
@@ -2907,7 +2910,7 @@ void CG_Init(const int serverMessageNum, const int serverCommandSequence, const 
 	cg.messageLitActive = qfalse;
 
 	int i = WP_NONE + 1;
-	while (i <= LAST_USEABLE_WEAPON)
+	while (i <= LAST_SELECTABLE_WEAPON)
 	{
 		item = BG_FindItemForWeapon(i);
 
@@ -3031,6 +3034,18 @@ void CG_Init(const int serverMessageNum, const int serverCommandSequence, const 
 	cgs.media.weapontype_thermal = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_thermal.tga");
 	cgs.media.weapontype_rocket = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_merrsonn.tga");
 	cgs.media.weapontype_tripmine = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_tripmine.tga");
+
+	cgs.media.weapontype_battledroid = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_droidblaster.tga");
+	cgs.media.weapontype_thefirstorder = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_f11d.tga");
+	cgs.media.weapontype_clonecarbine = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_dc-15s.tga");
+	cgs.media.weapontype_rebelblaster = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_dh-17.tga");
+	cgs.media.weapontype_clonerifle = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_clonerifle.tga");
+	cgs.media.weapontype_clonecommando = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_dc-17m.tga");
+	cgs.media.weapontype_rebelrifle = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_A280.tga");
+	cgs.media.weapontype_rey = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_lpa_nn-14.tga");
+	cgs.media.weapontype_jango = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_westar.tga");
+	cgs.media.weapontype_boba = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_ee-3.tga");
+	cgs.media.weapontype_clonepistol = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_clonepistol.tga");
 
 	// Load tics
 	for (i = 0; i < MAX_TICS; i++)

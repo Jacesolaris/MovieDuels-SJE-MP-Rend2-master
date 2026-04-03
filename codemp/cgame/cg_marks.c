@@ -153,12 +153,12 @@ void CG_ImpactMark(const qhandle_t mark_shader, const vec3_t origin, const vec3_
 	const float orientation, const float red, const float green, const float blue, const float alpha,
 	const qboolean alphaFade, const float radius, const qboolean temporary)
 {
-	matrix3_t axis;
-	vec3_t original_points[4];
-	byte colors[4];
+	matrix3_t axis = { 0 };
+	vec3_t original_points[4] = { 0 };
+	byte colors[4] = { 0 };
 	int i, j;
 	markFragment_t markFragments[MAX_MARK_FRAGMENTS], * mf;
-	vec3_t markPoints[MAX_MARK_POINTS];
+	vec3_t markPoints[MAX_MARK_POINTS] = { 0 };
 	vec3_t projection;
 
 	if (!cg_marks.integer)
@@ -206,7 +206,7 @@ void CG_ImpactMark(const qhandle_t mark_shader, const vec3_t origin, const vec3_
 	for (i = 0, mf = markFragments; i < numFragments; i++, mf++)
 	{
 		polyVert_t* v;
-		polyVert_t verts[MAX_VERTS_ON_POLY];
+		polyVert_t verts[MAX_VERTS_ON_POLY] = { 0 };
 
 		// we have an upper limit on the complexity of polygons
 		// that we store persistantly
@@ -260,7 +260,7 @@ CG_AddMarks
 void CG_AddMarks(void)
 {
 	int j;
-	markPoly_t* next;
+	markPoly_t* next = { 0 };
 
 	if (!cg_marks.integer)
 	{

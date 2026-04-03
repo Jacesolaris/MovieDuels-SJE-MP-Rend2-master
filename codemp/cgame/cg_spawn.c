@@ -486,7 +486,7 @@ qboolean CG_ParseSpawnVars(void)
 
 extern float cg_linearFogOverride; // cg_view.c
 extern float cg_radarRange; // cg_draw.c
-void SP_worldspawn(void)
+static void SP_worldspawn(void)
 {
 	char* s;
 

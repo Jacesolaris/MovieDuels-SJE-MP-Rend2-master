@@ -865,6 +865,62 @@ void BotUtilizePersonality(bot_state_t* bs)
 		{
 			bs->botWeaponWeights[WP_BRYAR_OLD] = atoi(readbuf);
 		}
+		//new weapons
+
+		if (GetPairedValue(group, "WP_BATTLEDROID", readbuf))
+		{
+			bs->botWeaponWeights[WP_BATTLEDROID] = atoi(readbuf);
+		}
+
+		if (GetPairedValue(group, "WP_THEFIRSTORDER", readbuf))
+		{
+			bs->botWeaponWeights[WP_THEFIRSTORDER] = atoi(readbuf);
+		}
+
+		if (GetPairedValue(group, "WP_CLONECARBINE", readbuf))
+		{
+			bs->botWeaponWeights[WP_CLONECARBINE] = atoi(readbuf);
+		}
+
+		if (GetPairedValue(group, "WP_REBELBLASTER", readbuf))
+		{
+			bs->botWeaponWeights[WP_REBELBLASTER] = atoi(readbuf);
+		}
+
+		if (GetPairedValue(group, "WP_CLONERIFLE", readbuf))
+		{
+			bs->botWeaponWeights[WP_CLONERIFLE] = atoi(readbuf);
+		}
+
+		if (GetPairedValue(group, "WP_CLONECOMMANDO", readbuf))
+		{
+			bs->botWeaponWeights[WP_CLONECOMMANDO] = atoi(readbuf);
+		}
+
+		if (GetPairedValue(group, "WP_REBELRIFLE", readbuf))
+		{
+			bs->botWeaponWeights[WP_REBELRIFLE] = atoi(readbuf);
+		}
+
+		if (GetPairedValue(group, "WP_REY", readbuf))
+		{
+			bs->botWeaponWeights[WP_REY] = atoi(readbuf);
+		}
+
+		if (GetPairedValue(group, "WP_JANGO", readbuf))
+		{
+			bs->botWeaponWeights[WP_JANGO] = atoi(readbuf);
+		}
+
+		if (GetPairedValue(group, "WP_BOBA", readbuf))
+		{
+			bs->botWeaponWeights[WP_BOBA] = atoi(readbuf);
+		}
+
+		if (GetPairedValue(group, "WP_CLONEPISTOL", readbuf))
+		{
+			bs->botWeaponWeights[WP_CLONEPISTOL] = atoi(readbuf);
+		}
 	}
 	if (!bs->saberSpecialist)
 	{
@@ -895,6 +951,11 @@ void BotUtilizePersonality(bot_state_t* bs)
 			switch (i)
 			{
 			case WP_BRYAR_PISTOL:
+			case WP_REY:
+			case WP_JANGO:
+			case WP_BOBA:
+			case WP_CLONEPISTOL:
+			case WP_REBELBLASTER:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_PISTOL + 4] = '0' + skillLevel;
 				break;
 
@@ -903,6 +964,12 @@ void BotUtilizePersonality(bot_state_t* bs)
 				break;
 
 			case WP_BLASTER:
+			case WP_BATTLEDROID:
+			case WP_THEFIRSTORDER:
+			case WP_CLONECARBINE:
+			case WP_CLONERIFLE:
+			case WP_CLONECOMMANDO:
+			case WP_REBELRIFLE:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_BLASTER + 4] = '0' + skillLevel;
 				break;
 

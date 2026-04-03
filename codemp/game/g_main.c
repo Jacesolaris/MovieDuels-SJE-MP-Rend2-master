@@ -703,6 +703,12 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		}
 	}
 
+	if (level.gametype == GT_HOLOCRON)
+	{
+		//load in all the manually added holocrons
+		Create_Holocrons();
+	}
+
 	if (level.gametype == GT_SINGLE_PLAYER)
 	{
 		//load in all the manually added savepoints
@@ -1941,7 +1947,7 @@ qboolean g_dontFrickinCheck = qfalse;
 
 static void RemovePowerDuelLosers(void)
 {
-	int remClients[3];
+	int remClients[3] = { 0 };
 	int remNum = 0;
 	int i = 0;
 
@@ -3185,7 +3191,7 @@ static void CheckLMS()
 		&& LMS_EnoughPlayers())
 	{
 		//check to see if there's only one LAST MAN STANDING!
-		int counts[TEAM_NUM_TEAMS];
+		int counts[TEAM_NUM_TEAMS] = { 0 };
 		counts[TEAM_FREE] = 0;
 		counts[TEAM_RED] = 0;
 		counts[TEAM_BLUE] = 0;
@@ -3780,7 +3786,7 @@ static void CheckTournament(void)
 
 		if (level.gametype > GT_TEAM)
 		{
-			int counts[TEAM_NUM_TEAMS];
+			int counts[TEAM_NUM_TEAMS] = { 0 };
 			counts[TEAM_BLUE] = TeamCount(-1, TEAM_BLUE);
 			counts[TEAM_RED] = TeamCount(-1, TEAM_RED);
 
@@ -4122,7 +4128,7 @@ static void CheckCvars(void)
 
 	if (g_password.modificationCount != lastMod)
 	{
-		char password[MAX_INFO_STRING];
+		char password[MAX_INFO_STRING] = { 0 };
 		char* c = password;
 		lastMod = g_password.modificationCount;
 

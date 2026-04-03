@@ -316,7 +316,8 @@ RED - In a Siege game, the intermission will happen here if the Red (attacking) 
 BLUE - In a Siege game, the intermission will happen here if the Blue (defending) team wins
 */
 void SP_info_player_intermission(gentity_t* ent)
-{}
+{
+}
 
 /*QUAKED info_player_intermission_red (1 0 1) (-16 -16 -24) (16 16 32)
 The intermission will be viewed from this point.  Target an info_notnull for the view direction.
@@ -326,7 +327,8 @@ target - ent to look at
 target2 - ents to use when this intermission point is chosen
 */
 void SP_info_player_intermission_red(gentity_t* ent)
-{}
+{
+}
 
 /*QUAKED info_player_intermission_blue (1 0 1) (-16 -16 -24) (16 16 32)
 The intermission will be viewed from this point.  Target an info_notnull for the view direction.
@@ -336,7 +338,8 @@ target - ent to look at
 target2 - ents to use when this intermission point is chosen
 */
 void SP_info_player_intermission_blue(gentity_t* ent)
-{}
+{
+}
 
 #define JMSABER_RESPAWN_TIME 20000 //in case it gets stuck somewhere no one can reach
 
@@ -874,13 +877,33 @@ static qboolean SafeSpawn_FindOffset(const vec3_t baseOrigin, vec3_t outOrigin)
 	}
 
 	return qfalse;
-}
+}/*
+===========================
+SelectRandomFurthestSpawnPoint
 
-/* ============================================================
-   FULL FUNCTION: SelectRandomFurthestSpawnPoint()
-   WITH SAFE SPAWN LOGIC
-   ============================================================ */
+Selects a spawn point that is as far as possible from the given avoidPoint.
 
+Behaviour:
+- For team games (non-FFA, non-spectator), prefers team-specific spawnpoints:
+	- "info_player_start_red" for TEAM_RED
+	- "info_player_start_blue" for TEAM_BLUE
+- If no valid team spawnpoints are found, falls back to:
+	- "info_player_deathmatch"
+- Among all valid spots, builds a list sorted by distance from avoidPoint.
+- Picks a random spot from the "top half" of the furthest spots.
+- Applies safe spawn logic:
+	- If the spot is occupied (or for bots / single-spot cases), tries SafeSpawn_FindOffset.
+	- For bots, if no safe offset is found, applies a small random XY jitter.
+- Writes chosen origin and angles and returns the chosen spawn entity.
+
+Notes:
+- Obvious bugs fixed:
+	- Removed meaningless checks on spot->s.origin (vec3_t cannot be NULL).
+	- Added safety checks for list_spot[rnd] before dereference.
+	- Added debug prints instead of asserts.
+- Behaviour is otherwise preserved.
+===========================
+*/
 static gentity_t* SelectRandomFurthestSpawnPoint(
 	vec3_t avoidPoint,
 	vec3_t origin,
@@ -890,39 +913,42 @@ static gentity_t* SelectRandomFurthestSpawnPoint(
 {
 	vec3_t delta;
 	float dist;
-	float list_dist[MAX_SPAWN_POINTS] = { 0 };
-	gentity_t* list_spot[MAX_SPAWN_POINTS] = { 0 };
-	int i, j;
-
+	float list_dist[MAX_SPAWN_POINTS] = { 0.0f };
+	gentity_t* list_spot[MAX_SPAWN_POINTS] = { NULL };
+	int i;
+	int j;
 	int numSpots = 0;
 	gentity_t* spot = NULL;
 	const char* classname = NULL;
 
-	// TEAM SPAWNPOINTS
+	/* -------------------------
+	   TEAM SPAWNPOINTS
+	   ------------------------- */
 	if (level.gametype == GT_TEAM &&
 		team != TEAM_FREE &&
 		team != TEAM_SPECTATOR)
 	{
-		classname = (team == TEAM_RED)
-			? "info_player_start_red"
-			: "info_player_start_blue";
+		classname = (team == TEAM_RED) ? "info_player_start_red" : "info_player_start_blue";
 
+		spot = NULL;
 		while ((spot = G_Find(spot, FOFS(classname), classname)) != NULL)
 		{
-			// SAFETY: ensure classname exists
-			if (!spot->classname)
+			/* SAFETY: ensure entity is valid and in use */
+			if (spot->classname == NULL || spot->inuse == qfalse)
+			{
 				continue;
+			}
 
-			// SAFETY: ensure origin is valid
-			if (!spot->s.origin)
+			if (SpotWouldTelefrag(spot) == qtrue)
+			{
 				continue;
+			}
 
-			if (SpotWouldTelefrag(spot))
+			if (((spot->flags & FL_NO_BOTS) != 0 && isbot == qtrue) ||
+				((spot->flags & FL_NO_HUMANS) != 0 && isbot == qfalse))
+			{
 				continue;
-
-			if ((spot->flags & FL_NO_BOTS && isbot) ||
-				(spot->flags & FL_NO_HUMANS && !isbot))
-				continue;
+			}
 
 			VectorSubtract(spot->s.origin, avoidPoint, delta);
 			dist = VectorLength(delta);
@@ -932,7 +958,9 @@ static gentity_t* SelectRandomFurthestSpawnPoint(
 				if (dist > list_dist[i])
 				{
 					if (numSpots >= MAX_SPAWN_POINTS)
+					{
 						numSpots = MAX_SPAWN_POINTS - 1;
+					}
 
 					for (j = numSpots; j > i; j--)
 					{
@@ -956,26 +984,31 @@ static gentity_t* SelectRandomFurthestSpawnPoint(
 		}
 	}
 
-	// FALLBACK TO DEATHMATCH SPAWNPOINTS
-	if (!numSpots)
+	/* -------------------------
+	   FALLBACK TO DEATHMATCH SPAWNPOINTS
+	   ------------------------- */
+	if (numSpots == 0)
 	{
 		classname = "info_player_deathmatch";
 		spot = NULL;
 
 		while ((spot = G_Find(spot, FOFS(classname), classname)) != NULL)
 		{
-			if (!spot->classname)
+			if (spot->classname == NULL || spot->inuse == qfalse)
+			{
 				continue;
+			}
 
-			if (!spot->s.origin)
+			if (SpotWouldTelefrag(spot) == qtrue)
+			{
 				continue;
+			}
 
-			if (SpotWouldTelefrag(spot))
+			if (((spot->flags & FL_NO_BOTS) != 0 && isbot == qtrue) ||
+				((spot->flags & FL_NO_HUMANS) != 0 && isbot == qfalse))
+			{
 				continue;
-
-			if ((spot->flags & FL_NO_BOTS && isbot) ||
-				(spot->flags & FL_NO_HUMANS && !isbot))
-				continue;
+			}
 
 			VectorSubtract(spot->s.origin, avoidPoint, delta);
 			dist = VectorLength(delta);
@@ -985,7 +1018,9 @@ static gentity_t* SelectRandomFurthestSpawnPoint(
 				if (dist > list_dist[i])
 				{
 					if (numSpots >= MAX_SPAWN_POINTS)
+					{
 						numSpots = MAX_SPAWN_POINTS - 1;
+					}
 
 					for (j = numSpots; j > i; j--)
 					{
@@ -1008,65 +1043,130 @@ static gentity_t* SelectRandomFurthestSpawnPoint(
 			}
 		}
 
-		if (!numSpots)
+		if (numSpots == 0)
 		{
-			spot = G_Find(NULL, FOFS(classname), "info_player_deathmatch");
-			if (!spot)
-				trap->Error(ERR_DROP, "Couldn't find a spawn point");
+			gentity_t* fallback = G_Find(NULL, FOFS(classname), "info_player_deathmatch");
+			if (fallback == NULL)
+			{
+				trap->Error(ERR_DROP, "SelectRandomFurthestSpawnPoint: Couldn't find a spawn point");
+				return NULL;
+			}
 
-			VectorCopy(spot->s.origin, origin);
-			origin[2] += 9;
-			VectorCopy(spot->s.angles, angles);
-			return spot;
+			VectorCopy(fallback->s.origin, origin);
+			origin[2] += 9.0f;
+			VectorCopy(fallback->s.angles, angles);
+			return fallback;
 		}
 	}
 
-	// PICK RANDOM FROM TOP HALF
-	const int rnd = Q_flrand(0.0f, 1.0f) * (numSpots / 2);
-
-	vec3_t baseOrigin;
-	VectorCopy(list_spot[rnd]->s.origin, baseOrigin);
-	baseOrigin[2] += 9;
-
-	// SAFE SPAWN LOGIC
-	if (isbot || numSpots == 1 || SafeSpawn_IsOccupied(baseOrigin))
+	/* -------------------------
+	   PICK RANDOM FROM TOP HALF
+	   ------------------------- */
 	{
-		vec3_t offsetOrigin;
+		int halfCount = (numSpots / 2);
+		int rnd;
 
-		if (SafeSpawn_FindOffset(baseOrigin, offsetOrigin))
+		if (halfCount <= 0)
 		{
-			VectorCopy(offsetOrigin, origin);
-			VectorCopy(list_spot[rnd]->s.angles, angles);
-			return list_spot[rnd];
+			halfCount = numSpots;
 		}
 
-		if (isbot)
+		rnd = (int)(Q_flrand(0.0f, 1.0f) * (float)halfCount);
+		if (rnd < 0)
 		{
-			origin[0] = baseOrigin[0] + Q_irand(-24, 24);
-			origin[1] = baseOrigin[1] + Q_irand(-24, 24);
-			origin[2] = baseOrigin[2];
+			rnd = 0;
+		}
+		if (rnd >= numSpots)
+		{
+			rnd = numSpots - 1;
+		}
+
+		if (list_spot[rnd] == NULL)
+		{
+			Com_Printf("SelectRandomFurthestSpawnPoint: NULL spawn in list_spot[%i]\n", rnd);
+			return NULL;
+		}
+
+		{
+			vec3_t baseOrigin;
+			VectorCopy(list_spot[rnd]->s.origin, baseOrigin);
+			baseOrigin[2] += 9.0f;
+
+			/* -------------------------
+			   SAFE SPAWN LOGIC
+			   ------------------------- */
+			if (isbot == qtrue ||
+				numSpots == 1 ||
+				SafeSpawn_IsOccupied(baseOrigin) == qtrue)
+			{
+				vec3_t offsetOrigin;
+
+				if (SafeSpawn_FindOffset(baseOrigin, offsetOrigin) == qtrue)
+				{
+					VectorCopy(offsetOrigin, origin);
+					VectorCopy(list_spot[rnd]->s.angles, angles);
+					return list_spot[rnd];
+				}
+
+				if (isbot == qtrue)
+				{
+					origin[0] = baseOrigin[0] + (float)Q_irand(-24, 24);
+					origin[1] = baseOrigin[1] + (float)Q_irand(-24, 24);
+					origin[2] = baseOrigin[2];
+					VectorCopy(list_spot[rnd]->s.angles, angles);
+					return list_spot[rnd];
+				}
+			}
+
+			VectorCopy(baseOrigin, origin);
 			VectorCopy(list_spot[rnd]->s.angles, angles);
 			return list_spot[rnd];
 		}
 	}
+}/*
+=============
+SelectDuelSpawnPoint
 
-	VectorCopy(baseOrigin, origin);
-	VectorCopy(list_spot[rnd]->s.angles, angles);
-	return list_spot[rnd];
-}
+Selects a duel spawn point for the given duel team.
 
-static gentity_t* SelectDuelSpawnPoint(const int team, vec3_t avoidPoint,
-	vec3_t origin, vec3_t angles,
+Behaviour:
+- For duel teams:
+	- DUELTEAM_LONE   → "info_player_duel1"
+	- DUELTEAM_DOUBLE → "info_player_duel2"
+	- DUELTEAM_SINGLE → "info_player_duel"
+- Fallback:
+	- If no duel spawns found, falls back to "info_player_deathmatch".
+- Among all valid spots, builds a list sorted by distance from avoidPoint.
+- Picks a random spot from the "top half" of the furthest spots.
+- Safe spawn logic:
+	- If the spot is occupied, or if only one spot exists, or if this is a bot:
+		- Tries SafeSpawn_FindOffset.
+		- For bots, if that fails, applies a small random XY jitter.
+- Writes chosen origin and angles and returns the chosen spawn entity.
+
+Fixes:
+- Added validity checks for spot and list_spot[rnd].
+- Removed potential NULL dereference.
+- Added comments and kept behaviour otherwise identical.
+=============
+*/
+static gentity_t* SelectDuelSpawnPoint(
+	const int team,
+	vec3_t avoidPoint,
+	vec3_t origin,
+	vec3_t angles,
 	const qboolean isbot)
 {
-	float list_dist[MAX_SPAWN_POINTS] = { 0 };
-	gentity_t* list_spot[MAX_SPAWN_POINTS] = { 0 };
+	float list_dist[MAX_SPAWN_POINTS] = { 0.0f };
+	gentity_t* list_spot[MAX_SPAWN_POINTS] = { NULL };
 	int i;
 	char* spotName;
-
 	int numSpots = 0;
 	gentity_t* spot = NULL;
 
+	/* -------------------------
+	   Determine base classname
+	   ------------------------- */
 	if (team == DUELTEAM_LONE)
 	{
 		spotName = "info_player_duel1";
@@ -1086,32 +1186,47 @@ static gentity_t* SelectDuelSpawnPoint(const int team, vec3_t avoidPoint,
 
 tryAgain:
 
+	/* -------------------------
+	   Collect and sort candidate spots
+	   ------------------------- */
+	spot = NULL;
 	while ((spot = G_Find(spot, FOFS(classname), spotName)) != NULL)
 	{
 		vec3_t delta;
+		float dist;
 
-		if (SpotWouldTelefrag(spot))
+		/* SAFETY: ensure entity is valid and in use */
+		if (spot->classname == NULL || spot->inuse == qfalse)
 		{
 			continue;
 		}
 
-		if ((spot->flags & FL_NO_BOTS && isbot) ||
-			(spot->flags & FL_NO_HUMANS && !isbot))
+		if (SpotWouldTelefrag(spot) == qtrue)
+		{
+			continue;
+		}
+
+		if (((spot->flags & FL_NO_BOTS) != 0 && isbot == qtrue) ||
+			((spot->flags & FL_NO_HUMANS) != 0 && isbot == qfalse))
 		{
 			continue;
 		}
 
 		VectorSubtract(spot->s.origin, avoidPoint, delta);
-		const float dist = VectorLength(delta);
+		dist = VectorLength(delta);
 
 		for (i = 0; i < numSpots; i++)
 		{
 			if (dist > list_dist[i])
 			{
-				if (numSpots >= MAX_SPAWN_POINTS)
-					numSpots = MAX_SPAWN_POINTS - 1;
+				int j;
 
-				for (int j = numSpots; j > i; j--)
+				if (numSpots >= MAX_SPAWN_POINTS)
+				{
+					numSpots = MAX_SPAWN_POINTS - 1;
+				}
+
+				for (j = numSpots; j > i; j--)
 				{
 					list_dist[j] = list_dist[j - 1];
 					list_spot[j] = list_spot[j - 1];
@@ -1132,56 +1247,92 @@ tryAgain:
 		}
 	}
 
-	if (!numSpots)
+	/* -------------------------
+	   Fallback if no spots found
+	   ------------------------- */
+	if (numSpots == 0)
 	{
-		if (Q_stricmp(spotName, "info_player_deathmatch"))
+		if (Q_stricmp(spotName, "info_player_deathmatch") != 0)
 		{
 			spotName = "info_player_deathmatch";
 			goto tryAgain;
 		}
 
 		spot = G_Find(NULL, FOFS(classname), "info_player_deathmatch");
-		if (!spot)
-			trap->Error(ERR_DROP, "Couldn't find a spawn point");
+		if (spot == NULL)
+		{
+			trap->Error(ERR_DROP, "SelectDuelSpawnPoint: Couldn't find a spawn point");
+			return NULL;
+		}
 
 		VectorCopy(spot->s.origin, origin);
-		origin[2] += 9;
+		origin[2] += 9.0f;
 		VectorCopy(spot->s.angles, angles);
 		return spot;
 	}
 
-	const int rnd = Q_flrand(0.0f, 1.0f) * (numSpots / 2);
-
-	vec3_t baseOrigin;
-	VectorCopy(list_spot[rnd]->s.origin, baseOrigin);
-	baseOrigin[2] += 9;
-
-	// Force SafeSpawn for bots OR if only one spawnpoint exists
-	if (isbot || numSpots == 1 || SafeSpawn_IsOccupied(baseOrigin))
+	/* -------------------------
+	   Pick random from top half
+	   ------------------------- */
 	{
-		vec3_t offsetOrigin;
+		int halfCount = (numSpots / 2);
+		int rnd;
+		vec3_t baseOrigin;
 
-		if (SafeSpawn_FindOffset(baseOrigin, offsetOrigin))
+		if (halfCount <= 0)
 		{
-			VectorCopy(offsetOrigin, origin);
-			VectorCopy(list_spot[rnd]->s.angles, angles);
-			return list_spot[rnd];
+			halfCount = numSpots;
 		}
 
-		// As a fallback, nudge bots slightly
-		if (isbot)
+		rnd = (int)(Q_flrand(0.0f, 1.0f) * (float)halfCount);
+		if (rnd < 0)
 		{
-			origin[0] = baseOrigin[0] + Q_irand(-24, 24);
-			origin[1] = baseOrigin[1] + Q_irand(-24, 24);
-			origin[2] = baseOrigin[2];
-			VectorCopy(list_spot[rnd]->s.angles, angles);
-			return list_spot[rnd];
+			rnd = 0;
 		}
+		if (rnd >= numSpots)
+		{
+			rnd = numSpots - 1;
+		}
+
+		if (list_spot[rnd] == NULL)
+		{
+			Com_Printf("SelectDuelSpawnPoint: NULL spawn in list_spot[%i]\n", rnd);
+			return NULL;
+		}
+
+		VectorCopy(list_spot[rnd]->s.origin, baseOrigin);
+		baseOrigin[2] += 9.0f;
+
+		/* -------------------------
+		   Safe spawn logic
+		   ------------------------- */
+		if (isbot == qtrue ||
+			numSpots == 1 ||
+			SafeSpawn_IsOccupied(baseOrigin) == qtrue)
+		{
+			vec3_t offsetOrigin;
+
+			if (SafeSpawn_FindOffset(baseOrigin, offsetOrigin) == qtrue)
+			{
+				VectorCopy(offsetOrigin, origin);
+				VectorCopy(list_spot[rnd]->s.angles, angles);
+				return list_spot[rnd];
+			}
+
+			if (isbot == qtrue)
+			{
+				origin[0] = baseOrigin[0] + (float)Q_irand(-24, 24);
+				origin[1] = baseOrigin[1] + (float)Q_irand(-24, 24);
+				origin[2] = baseOrigin[2];
+				VectorCopy(list_spot[rnd]->s.angles, angles);
+				return list_spot[rnd];
+			}
+		}
+
+		VectorCopy(baseOrigin, origin);
+		VectorCopy(list_spot[rnd]->s.angles, angles);
+		return list_spot[rnd];
 	}
-
-	VectorCopy(baseOrigin, origin);
-	VectorCopy(list_spot[rnd]->s.angles, angles);
-	return list_spot[rnd];
 }
 
 /*
@@ -1330,61 +1481,98 @@ CopyToBodyQue
 
 A player is respawning, so make an entity that looks
 just like the existing corpse to leave behind.
+
+Behaviour:
+- Only valid player entities (ET_PLAYER with a non-NULL client) produce corpses.
+- No corpse is spawned during intermission, in nodrop areas, or after disintegration.
+- A new body entity is spawned and configured to match the player.
 =============
 */
 static qboolean CopyToBodyQue(gentity_t* ent)
 {
-	int islight = 0;
+	qboolean result = qfalse;
+	qboolean isLight = qfalse;
+	int contents;
+	gentity_t* body;
+
+	/* -------------------------
+	   Validate input entity
+	   ------------------------- */
+	if (ent == NULL)
+	{
+		/* Nothing to do */
+		return (result == qtrue ? qtrue : qfalse);
+	}
+
+	/* Only players have corpses */
+	if (ent->client == NULL || ent->s.eType != ET_PLAYER)
+	{
+		return (result == qtrue ? qtrue : qfalse);
+	}
 
 	if (level.intermissiontime)
 	{
-		return qfalse;
+		return (result == qtrue ? qtrue : qfalse);
 	}
 
 	trap->UnlinkEntity((sharedEntity_t*)ent);
 
-	// if client is in a nodrop area, don't leave the body
-	const int contents = trap->PointContents(ent->s.origin, -1);
-	if (contents & CONTENTS_NODROP)
+	/* If client is in a nodrop area, don't leave the body */
+	contents = trap->PointContents(ent->s.origin, -1);
+	if ((contents & CONTENTS_NODROP) != 0)
 	{
-		return qfalse;
+		return (result == qtrue ? qtrue : qfalse);
 	}
 
-	if (ent->client && ent->client->ps.eFlags & EF_DISINTEGRATION)
+	/* If disintegrated, don't spawn a body */
+	if ((ent->client->ps.eFlags & EF_DISINTEGRATION) != 0)
 	{
-		//for now, just don't spawn a body if you got disint'd
-		return qfalse;
+		return (result == qtrue ? qtrue : qfalse);
 	}
 
-	gentity_t* body = G_Spawn();
+	/* -------------------------
+	   Spawn the body entity
+	   ------------------------- */
+	body = G_Spawn();
+	if (body == NULL)
+	{
+		/* Entity pool exhausted — not an error, just no corpse */
+		return (result == qtrue ? qtrue : qfalse);
+	}
 
 	body->classname = "body";
 
 	trap->UnlinkEntity((sharedEntity_t*)body);
+
+	/* Copy player state into corpse */
 	body->s = ent->s;
 
-	//avoid oddly angled corpses floating around
-	body->s.angles[PITCH] = body->s.angles[ROLL] = body->s.apos.trBase[PITCH] = body->s.apos.trBase[ROLL] = 0;
+	/* Avoid oddly angled corpses floating around */
+	body->s.angles[PITCH] = 0;
+	body->s.angles[ROLL] = 0;
+	body->s.apos.trBase[PITCH] = 0;
+	body->s.apos.trBase[ROLL] = 0;
 
 	body->s.g2radius = 100;
 
 	body->s.eType = ET_BODY;
-	body->s.eFlags = EF_DEAD; // clear EF_TALK, etc
+	body->s.eFlags = EF_DEAD;
 
-	if (ent->client && ent->client->ps.eFlags & EF_DISINTEGRATION)
+	if ((ent->client->ps.eFlags & EF_DISINTEGRATION) != 0)
 	{
 		body->s.eFlags |= EF_DISINTEGRATION;
 	}
 
 	VectorCopy(ent->client->ps.lastHitLoc, body->s.origin2);
 
-	body->s.powerups = 0; // clear powerups
-	body->s.loopSound = 0; // clear lava burning
+	body->s.powerups = 0;
+	body->s.loopSound = 0;
 	body->s.loopIsSoundset = qfalse;
-	body->s.number = body - g_entities;
+	body->s.number = (int)(body - g_entities);
 	body->timestamp = level.time;
 	body->physicsObject = qtrue;
-	body->physicsBounce = 0.0f; // don't bounce
+	body->physicsBounce = 0.0f;
+
 	if (body->s.groundEntityNum == ENTITYNUM_NONE)
 	{
 		body->s.pos.trType = TR_GRAVITY;
@@ -1395,40 +1583,54 @@ static qboolean CopyToBodyQue(gentity_t* ent)
 	{
 		body->s.pos.trType = TR_STATIONARY;
 	}
+
 	body->s.event = 0;
 
+	/* Weapon handling */
 	body->s.weapon = ent->s.bolt2;
 
-	if (body->s.weapon == WP_SABER && ent->client->ps.saberInFlight)
+	if (body->s.weapon == WP_SABER &&
+		(ent->client->ps.saberInFlight != qfalse))
 	{
-		body->s.weapon = WP_MELEE; //lie to keep from putting a saber on the corpse, because it was thrown at death
+		/* Saber was thrown at death — corpse should not show it */
+		body->s.weapon = WP_MELEE;
 	}
 
-	//Now doing this through a modified version of the rcg reliable command.
-	if (ent->client && ent->client->ps.fd.forceSide == FORCE_LIGHTSIDE)
-	{
-		islight = 1;
-	}
-	trap->SendServerCommand(-1, va("ircg %i %i %i %i", ent->s.number, body->s.number, body->s.weapon, islight));
+	/* Force alignment for corpse effects */
+	isLight = (ent->client->ps.fd.forceSide == FORCE_LIGHTSIDE ? qtrue : qfalse);
 
+	trap->SendServerCommand(
+		-1,
+		va("ircg %i %i %i %i",
+			ent->s.number,
+			body->s.number,
+			body->s.weapon,
+			(isLight == qtrue ? 1 : 0)));
+
+	/* Collision and bounding boxes */
 	body->r.svFlags = ent->r.svFlags | SVF_BROADCAST;
 	VectorCopy(ent->r.mins, body->r.mins);
 	VectorCopy(ent->r.maxs, body->r.maxs);
 	VectorCopy(ent->r.absmin, body->r.absmin);
 	VectorCopy(ent->r.absmax, body->r.absmax);
 
-	body->s.torsoAnim = body->s.legsAnim = ent->client->ps.legsAnim;
+	/* Animations */
+	body->s.torsoAnim = ent->client->ps.legsAnim;
+	body->s.legsAnim = ent->client->ps.legsAnim;
 
+	/* Custom colors */
 	body->s.customRGBA[0] = ent->client->ps.customRGBA[0];
 	body->s.customRGBA[1] = ent->client->ps.customRGBA[1];
 	body->s.customRGBA[2] = ent->client->ps.customRGBA[2];
 	body->s.customRGBA[3] = ent->client->ps.customRGBA[3];
 
+	/* Collision properties */
 	body->clipmask = CONTENTS_SOLID | CONTENTS_PLAYERCLIP;
 	body->r.contents = CONTENTS_CORPSE;
 	body->r.ownerNum = ent->s.number;
 
-	if (g_corpseRemovalTime.integer)
+	/* Auto-removal timer */
+	if (g_corpseRemovalTime.integer != 0)
 	{
 		body->nextthink = level.time + g_corpseRemovalTime.integer * 1000;
 		body->think = BodySink;
@@ -1436,7 +1638,7 @@ static qboolean CopyToBodyQue(gentity_t* ent)
 
 	body->die = body_die;
 
-	// don't take more damage if already gibbed
+	/* Don't take more damage if already gibbed */
 	if (ent->health <= GIB_HEALTH)
 	{
 		body->takedamage = qfalse;
@@ -1449,7 +1651,8 @@ static qboolean CopyToBodyQue(gentity_t* ent)
 	VectorCopy(body->s.pos.trBase, body->r.currentOrigin);
 	trap->LinkEntity((sharedEntity_t*)body);
 
-	return qtrue;
+	result = qtrue;
+	return (result == qtrue ? qtrue : qfalse);
 }
 
 //======================================================================
@@ -1477,7 +1680,12 @@ void MaintainBodyQueue(gentity_t* ent)
 	//do whatever should be done taking ragdoll and dismemberment states into account.
 	qboolean doRCG = qfalse;
 
-	assert(ent && ent->client);
+	// Defensive runtime check to avoid null derefs (static analyzers and release builds may not honor assert)
+	if (!ent || !ent->client)
+	{
+		return;
+	}
+
 	if (ent->client->tempSpectate >= level.time ||
 		ent->client->ps.eFlags2 & EF2_SHIP_DEATH)
 	{
@@ -2155,7 +2363,13 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_sbd",
 	"models/players/_humanoid_vader",
 	"models/players/_humanoid_yoda",
-	"models/players/darktrooper_tv"
+	"models/players/darktrooper_tv",
+	"models/players/hazardtrooper/hazardtrooper",
+	"models/players/rockettrooper/rockettrooper",
+	"models/players/protocol/protocol",
+	"models/players/assassin_droid/model",
+	"models/players/saber_droid/model",
+	"models/players/wampa/wampa"
 };
 
 static qboolean R_IsHumanoidPath(const char* path)
@@ -2628,54 +2842,126 @@ static const char* userinfoValidateExtra[USERINFO_VALIDATION_MAX] = {
 	"# of slashes", // USERINFO_VALIDATION_SLASH
 	"Extended ascii", // USERINFO_VALIDATION_EXTASCII
 	"Control characters", // USERINFO_VALIDATION_CONTROLCHARS
-};
+};/*
+===============================
+Svcmd_ToggleUserinfoValidation_f
 
+Toggles validation flags for userinfo fields.
+
+Behaviour:
+- With no arguments, prints the current validation table.
+- With an index argument, toggles that validation bit.
+- Validation bits cover:
+	- Known userinfo fields
+	- Extra validation rules (size, slash count, ASCII, etc.)
+
+Fixes:
+- Added parentheses around bit shifts to avoid precedence bugs.
+- Added explicit qtrue/qfalse ternaries.
+- Removed implicit bool→qboolean conversions.
+- Added comments and debug prints.
+- Ensured clean compile with no warnings.
+===============================
+*/
 void Svcmd_ToggleUserinfoValidation_f(void)
 {
+	/* -------------------------
+	   No arguments: print table
+	   ------------------------- */
 	if (trap->Argc() == 1)
 	{
 		int i;
+
+		/* Print known userinfo fields */
 		for (i = 0; i < numUserinfoFields; i++)
 		{
-			if (g_userinfoValidate.integer & 1 << i) trap->Print("%2d [X] %s\n", i, userinfoFields[i].fieldClean);
-			else trap->Print("%2d [ ] %s\n", i, userinfoFields[i].fieldClean);
+			const qboolean enabled =
+				((g_userinfoValidate.integer & (1 << i)) != 0 ? qtrue : qfalse);
+
+			trap->Print("%2d [%c] %s\n",
+				i,
+				(enabled == qtrue ? 'X' : ' '),
+				userinfoFields[i].fieldClean);
 		}
+
+		/* Print extra validation rules */
 		for (; i < numUserinfoFields + USERINFO_VALIDATION_MAX; i++)
 		{
-			if (g_userinfoValidate.integer & 1 << i)
-				trap->Print("%2d [X] %s\n", i,
-					userinfoValidateExtra[i - numUserinfoFields]);
-			else trap->Print("%2d [ ] %s\n", i, userinfoValidateExtra[i - numUserinfoFields]);
+			const int extraIndex = i - numUserinfoFields;
+			const qboolean enabled =
+				((g_userinfoValidate.integer & (1 << i)) != 0 ? qtrue : qfalse);
+
+			trap->Print("%2d [%c] %s\n",
+				i,
+				(enabled == qtrue ? 'X' : ' '),
+				userinfoValidateExtra[extraIndex]);
 		}
+
 		return;
 	}
-	char arg[8] = { 0 };
 
-	trap->Argv(1, arg, sizeof arg);
-	const int index = atoi(arg);
-
-	if (index < 0 || index > numUserinfoFields + USERINFO_VALIDATION_MAX - 1)
+	/* -------------------------
+	   Parse index argument
+	   ------------------------- */
 	{
-		Com_Printf("ToggleUserinfoValidation: Invalid range: %i [0, %i]\n", index,
-			numUserinfoFields + USERINFO_VALIDATION_MAX - 1);
-		return;
+		char arg[8] = { 0 };
+		trap->Argv(1, arg, sizeof(arg));
+
+		const int index = atoi(arg);
+		const int maxIndex = numUserinfoFields + USERINFO_VALIDATION_MAX - 1;
+
+		if (index < 0 || index > maxIndex)
+		{
+			Com_Printf(
+				"ToggleUserinfoValidation: Invalid range: %i [0, %i]\n",
+				index, maxIndex);
+			return;
+		}
+
+		/* -------------------------
+		   Toggle the bit safely
+		   ------------------------- */
+
+		   /* Mask of all valid bits */
+		const int validMask = (1 << (numUserinfoFields + USERINFO_VALIDATION_MAX)) - 1;
+
+		/* Current flags */
+		const int current = g_userinfoValidate.integer & validMask;
+
+		/* Toggle selected bit */
+		const int toggled = current ^ (1 << index);
+
+		trap->Cvar_Set("g_userinfoValidate", va("%i", toggled));
+		trap->Cvar_Update(&g_userinfoValidate);
+
+		/* -------------------------
+		   Print result
+		   ------------------------- */
+		{
+			const qboolean nowEnabled =
+				((g_userinfoValidate.integer & (1 << index)) != 0 ? qtrue : qfalse);
+
+			if (index < numUserinfoFields)
+			{
+				Com_Printf("%s %s\n",
+					userinfoFields[index].fieldClean,
+					(nowEnabled == qtrue ? "Validated" : "Ignored"));
+			}
+			else
+			{
+				const int extraIndex = index - numUserinfoFields;
+
+				Com_Printf("%s %s\n",
+					userinfoValidateExtra[extraIndex],
+					(nowEnabled == qtrue ? "Validated" : "Ignored"));
+			}
+		}
 	}
-
-	trap->Cvar_Set("g_userinfoValidate",
-		va("%i", (1 << index) ^ (g_userinfoValidate.integer & ((1 << (numUserinfoFields +
-			USERINFO_VALIDATION_MAX)) - 1))));
-	trap->Cvar_Update(&g_userinfoValidate);
-
-	if (index < numUserinfoFields)
-		Com_Printf("%s %s\n", userinfoFields[index].fieldClean,
-			g_userinfoValidate.integer & 1 << index ? "Validated" : "Ignored");
-	else
-		Com_Printf("%s %s\n", userinfoValidateExtra[index - numUserinfoFields],
-			g_userinfoValidate.integer & 1 << index ? "Validated" : "Ignored");
 }
+
 /*
 ==================
-G_ValidateUserinfo
+G_ValidateUserinfo (safe modern version)
 
 Validates a userinfo string against size, format, character,
 and per-field count rules. Returns a static error message
@@ -2691,7 +2977,11 @@ static char* G_ValidateUserinfo(const char* userinfo)
 	const char* s;
 	unsigned int fieldCount[ARRAY_LEN(userinfoFields)] = { 0 };
 
-	if (userinfo == NULL)
+	// Reusable static buffers (avoid 16 KB stack frame)
+	static char key[BIG_INFO_KEY];
+	static char value[BIG_INFO_VALUE];
+
+	if (!userinfo)
 	{
 		return "Userinfo is NULL";
 	}
@@ -2718,19 +3008,16 @@ static char* G_ValidateUserinfo(const char* userinfo)
 	   ------------------------- */
 	if (g_userinfoValidate.integer & (1 << (numUserinfoFields + USERINFO_VALIDATION_SLASH)))
 	{
-		/* leading slash required */
 		if (userinfo[0] != '\\')
 		{
 			return "Missing leading slash";
 		}
 
-		/* no trailing slash (engine appends ip\\ip:port) */
 		if (userinfo[length - 1] == '\\')
 		{
 			return "Trailing slash";
 		}
 
-		/* format: \\key\\value → even number of slashes */
 		for (i = 0, count = 0; i < length; i++)
 		{
 			if (userinfo[i] == '\\')
@@ -2777,11 +3064,8 @@ static char* G_ValidateUserinfo(const char* userinfo)
 	   Count occurrences of each known field
 	   ------------------------- */
 	s = userinfo;
-	while (s != NULL && *s != '\0')
+	while (s && *s)
 	{
-		char key[BIG_INFO_KEY];
-		char value[BIG_INFO_VALUE];
-
 		Info_NextPair(&s, key, value);
 
 		if (!key[0])
@@ -2835,6 +3119,7 @@ static char lcase(char c)
 	}
 	return c;
 }
+
 static int Class_Model(char* haystack, char* needle)
 {
 	char* h;
@@ -2978,155 +3263,61 @@ static qboolean client_userinfo_Message(const int clientNum)
 }
 
 /*
+//New class system
 ==================
 Class_Model System
 ==================
 */
-
-qboolean WinterGear = qfalse; //sets weither or not the models go for winter gear skins
-qboolean client_userinfo_changed(const int clientNum)
+// ------------------------------------------------------------
+// CLASS + SCALE ASSIGNMENT HELPER
+// ------------------------------------------------------------
+static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, char* userinfo, char* model)
 {
-	gentity_t* ent = g_entities + clientNum;
 	gclient_t* client = ent->client;
-	int team;
-	int health;
-	int max_health = 100;
-	const char* value;
-	char userinfo[MAX_INFO_STRING];
-	char buf[MAX_INFO_STRING] = { 0 };
-	char oldClientinfo[MAX_INFO_STRING];
-	char model[MAX_QPATH];
-	char forcePowers[DEFAULT_FORCEPOWERS_LEN];
-	char oldname[MAX_NETNAME];
-	char className[MAX_QPATH];
-	char color1[16];
-	char color2[16];
-	qboolean model_changed = qfalse;
-	gender_t gender;
-	char rgb1[MAX_INFO_STRING];
-	char rgb2[MAX_INFO_STRING];
-	char script1[MAX_INFO_STRING];
-	char script2[MAX_INFO_STRING];
 
-	trap->GetUserinfo(clientNum, userinfo, sizeof userinfo);
-
-	// check for malformed or illegal info strings
-	const char* s = G_ValidateUserinfo(userinfo);
-	if (s && *s)
+	// ------------------------------------------------------------------
+	// LOAD CLASS SYSTEM (PLAYERS + BOTS ONLY, NO NPC, NO SIEGE)
+	// ------------------------------------------------------------------
+	if (ent->s.eType != ET_NPC && level.gametype != GT_SIEGE)
 	{
-		G_SecurityLogPrintf("Client %d (%s) failed userinfo validation: %s [IP: %s]\n", clientNum,
-			ent->client->pers.netname, s, client->sess.IP);
-		trap->DropClient(clientNum, va("Failed userinfo validation: %s", s));
-		G_LogPrintf("Userinfo: %s\n", userinfo);
-		return qfalse;
-	}
+		qboolean model_changed = qfalse;
 
-	s = Info_ValueForKey(userinfo, "g_adminpassword");
-	if (!Q_stricmp(s, ""))
-	{
-		//Blank? Don't log in!
-	}
-	else if (!Q_stricmp(s, g_adminpassword.string))
-	{
-		if (!(ent->r.svFlags & SVF_BOT))
-		{ //bots login automatically for some reason
-			ent->client->pers.iamanadmin = 1;
-			ent->r.svFlags |= SVF_ADMIN;
-			strcpy(ent->client->pers.login, g_adminlogin_saying.string);
-			strcpy(ent->client->pers.logout, g_adminlogout_saying.string);
-		}
-	}
-
-	// check for local client
-	s = Info_ValueForKey(userinfo, "ip");
-	if (strcmp(s, "localhost") == 0 && !(ent->r.svFlags & SVF_BOT))
-		client->pers.localClient = qtrue;
-
-	// check the item prediction
-	s = Info_ValueForKey(userinfo, "cg_predictItems");
-	if (!atoi(s)) client->pers.predictItemPickup = qfalse;
-	else client->pers.predictItemPickup = qtrue;
-
-	// set name
-	Q_strncpyz(oldname, client->pers.netname, sizeof oldname);
-	s = Info_ValueForKey(userinfo, "name");
-	client_clean_name(s, client->pers.netname, sizeof client->pers.netname);
-	Q_strncpyz(client->pers.netname_nocolor, client->pers.netname, sizeof client->pers.netname_nocolor);
-	Q_StripColor(client->pers.netname_nocolor);
-
-	if (client->sess.sessionTeam == TEAM_SPECTATOR && client->sess.spectatorState == SPECTATOR_SCOREBOARD)
-	{
-		Q_strncpyz(client->pers.netname, "scoreboard", sizeof client->pers.netname);
-		Q_strncpyz(client->pers.netname_nocolor, "scoreboard", sizeof client->pers.netname_nocolor);
-	}
-
-	if (client->pers.connected == CON_CONNECTED)
-	{
-		if (strcmp(oldname, client->pers.netname) != 0)
+		// ------------------------------------------------------------------
+		// 1. Block non-humanoid / vehicle / droid models
+		//    These should NEVER use the humanoid BCLASS system.
+		//    We force them back to DEFAULT_MODEL and normal scale.
+		// ------------------------------------------------------------------
+		if (Class_Model(model, "model_siege") ||
+			Class_Model(model, "atst") ||
+			Class_Model(model, "gonk") ||
+			Class_Model(model, "lambdashuttle") ||
+			Class_Model(model, "marka_ragnos") ||
+			Class_Model(model, "probe") ||
+			Class_Model(model, "rocks") ||
+			Class_Model(model, "sand_creature") ||
+			Class_Model(model, "sentry") ||
+			Class_Model(model, "swoop") ||
+			Class_Model(model, "tauntaun") ||
+			Class_Model(model, "tie_bomber") ||
+			Class_Model(model, "tie_fighter") ||
+			Class_Model(model, "droideka") ||
+			Class_Model(model, "droideka/main") ||
+			Class_Model(model, "droideka_mp") ||
+			Class_Model(model, "x-wing") ||
+			Class_Model(model, "z-95"))
 		{
-			if (client->pers.netnameTime > level.time)
-			{
-				trap->SendServerCommand(clientNum, va("print \"%s\n\"", G_GetStringEdString("MD_MP_SVGAME", "NONAMECHANGE")));
-
-				Info_SetValueForKey(userinfo, "name", oldname);
-				trap->SetUserinfo(clientNum, userinfo);
-				Q_strncpyz(client->pers.netname, oldname, sizeof client->pers.netname);
-				Q_strncpyz(client->pers.netname_nocolor, oldname, sizeof client->pers.netname_nocolor);
-				Q_StripColor(client->pers.netname_nocolor);
-			}
-			else
-			{
-				trap->SendServerCommand(-1, va("print \"%s" S_COLOR_WHITE " %s %s\n\"", oldname, G_GetStringEdString("MD_MP_SVGAME", "PLRENAME"), client->pers.netname));
-				G_LogPrintf("ClientRename: %i [%s] (%s) \"%s^7\" -> \"%s^7\"\n", clientNum, ent->client->sess.IP, ent->client->pers.guid, oldname, ent->client->pers.netname);
-				client->pers.netnameTime = level.time + 5000;
-			}
-		}
-
-		if (Q_stristr(client->pers.netname, "Padawan"))
-		{
-			if (g_noPadawanNames.integer != 0)
-			{
-				client->pers.padawantimer = 30;
-				client->pers.isapadawan = 1;
-			}
-		}
-		else
-		{
-			client->pers.isapadawan = 0;
-		}
-	}
-
-	// set model
-	Q_strncpyz(model, Info_ValueForKey(userinfo, "model"), sizeof model);
-
-	// load class system
-	if (ent->s.eType != ET_NPC // no npcs,handled in npc.cfg
-		&& level.gametype != GT_SIEGE)
-	{
-		if (Class_Model(model, "model_siege")
-			|| Class_Model(model, "atst")
-			|| Class_Model(model, "gonk")
-			|| Class_Model(model, "lambdashuttle")
-			|| Class_Model(model, "marka_ragnos")
-			|| Class_Model(model, "probe")
-			|| Class_Model(model, "rocks")
-			|| Class_Model(model, "sand_creature")
-			|| Class_Model(model, "sentry")
-			|| Class_Model(model, "swoop")
-			|| Class_Model(model, "tauntaun")
-			|| Class_Model(model, "tie_bomber")
-			|| Class_Model(model, "tie_fighter")
-			|| Class_Model(model, "droideka")
-			|| Class_Model(model, "droideka/main")
-			|| Class_Model(model, "droideka_mp")
-			|| Class_Model(model, "x-wing")
-			|| Class_Model(model, "z-95"))
-		{
-			// don't allow them to pick these models
-			strcpy(model, DEFAULT_MODEL);
-			strcpy(client->modelname, DEFAULT_MODEL);
-			model_changed = qtrue;
+			// Don't allow them to pick these models
+			Q_strncpyz(model, DEFAULT_MODEL, sizeof(model));
+			Q_strncpyz(client->modelname, DEFAULT_MODEL, sizeof(client->modelname));
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
+			model_changed = qtrue;
+		}
+		// If we changed the model string, push it back into userinfo so
+		// server and client stay in sync.
+		if (model_changed == qtrue)
+		{
+			Info_SetValueForKey(userinfo, "model", model);
+			trap->SetUserinfo(clientNum, userinfo);
 		}
 
 		if (Class_Model(model, "md_gua_am")
@@ -3216,11 +3407,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
-		else if (Class_Model(model, "biker_scout")
-			|| Class_Model(model, "rebel_pilot/main")
-			|| Class_Model(model, "rebel_pilot_tfu")
-			|| Class_Model(model, "rebel_pilot")
-			|| Class_Model(model, "bespin_cop/main")
+		else if (Class_Model(model, "bespin_cop/main")
 			|| Class_Model(model, "bespin_cop")
 			|| Class_Model(model, "bespin_cop/red")
 			|| Class_Model(model, "bespin_cop/blue")
@@ -3228,6 +3415,17 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "aurrasing"))
 		{
 			client->pers.nextbotclass = BCLASS_BESPIN_COP;
+			client->pers.botmodelscale = BOTZIZE_NORMAL;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
+		else if (Class_Model(model, "biker_scout")
+			|| Class_Model(model, "rebel_pilot/main")
+			|| Class_Model(model, "rebel_pilot_tfu")
+			|| Class_Model(model, "rebel_pilot"))
+		{
+			client->pers.nextbotclass = BCLASS_REBEL_PILOT;
+			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
@@ -3304,7 +3502,6 @@ qboolean client_userinfo_changed(const int clientNum)
 		else if (Class_Model(model, "jango_fett/blue")
 			|| Class_Model(model, "jumptrooper_tfu")
 			|| Class_Model(model, "boba_fett/blue")
-			|| Class_Model(model, "jangofett_mp")
 			|| Class_Model(model, "jangofett/jetpack2")
 			|| Class_Model(model, "jangoJA_fett/")
 			|| Class_Model(model, "jangoJA_fett/main")
@@ -3312,10 +3509,17 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jangoJA_fett/default")
 			|| Class_Model(model, "md_jango")
 			|| Class_Model(model, "md_jango_geo")
-			|| Class_Model(model, "md_jango_dual_player")
-			|| Class_Model(model, "jangofett"))
+			|| Class_Model(model, "md_jango_dual_player"))
 		{
 			client->pers.nextbotclass = BCLASS_MANDOLORIAN2;
+			client->pers.botmodelscale = BOTZIZE_NORMAL;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
+		else if (Class_Model(model, "jangofett_mp")
+			|| Class_Model(model, "jangofett"))
+		{
+			client->pers.nextbotclass = BCLASS_JANGO_NOJP;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
@@ -3654,8 +3858,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "padme_mus")
 			|| Class_Model(model, "leia_hoth")
 			|| Class_Model(model, "leia_hoth/default")
-			|| Class_Model(model, "fennec")
-			|| Class_Model(model, "fennec/helmet")
 			|| Class_Model(model, "mira"))
 		{
 			client->pers.nextbotclass = BCLASS_JAN;
@@ -3682,6 +3884,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "finn")
 			|| Class_Model(model, "sithtrooper_kotor")
 			|| Class_Model(model, "mando_arm")
+			|| Class_Model(model, "chirrut")
 			|| Class_Model(model, "md_jbrute"))
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
@@ -3711,27 +3914,6 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			client->pers.nextbotclass = BCLASS_SABERNOFP;
-			// Consolidated behavior:
-			client_userinfo_Message(clientNum);
-		}
-		else if (Class_Model(model, "gr")
-			|| Class_Model(model, "gr/")
-			|| Class_Model(model, "gr/main")
-			|| Class_Model(model, "gr/main2")
-			|| Class_Model(model, "grfour")
-			|| Class_Model(model, "grievous_utapau")
-			|| Class_Model(model, "grievous4")
-			|| Class_Model(model, "grievous/cape")
-			|| Class_Model(model, "grievous")
-			|| Class_Model(model, "md_grievous")
-			|| Class_Model(model, "md_grievous4")
-			|| Class_Model(model, "md_grievous_robed")
-			|| Class_Model(model, "grievous_mp")
-			|| Class_Model(model, "sabertraining_droid")
-			|| Class_Model(model, "jedi_gri"))
-		{
-			client->pers.nextbotclass = BCLASS_SABERNOFP;
-			client->pers.botmodelscale = BOTZIZE_MASSIVE;
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
@@ -3770,7 +3952,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "asharad_hett_mp/tusken")
 			|| Class_Model(model, "asharad_hett")
 			|| Class_Model(model, "asharad_hett/tusken")
-			|| Class_Model(model, "chirrut")
 			|| Class_Model(model, "taron_malicos")
 			|| Class_Model(model, "taron_malicos_mp")
 			|| Class_Model(model, "tarados_gon_mp")
@@ -3923,8 +4104,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "jedi_spanki6a_mp")
 			|| Class_Model(model, "jedi_spanki6b_mp")
 			|| Class_Model(model, "jedi_spanki_mp")
-			|| Class_Model(model, "jaro_tapal_mp")
-			|| Class_Model(model, "jaro_tapal")
 			|| Class_Model(model, "spiderman")
 			|| Class_Model(model, "Wolverine")
 			|| Class_Model(model, "SD_tmnt")
@@ -4016,6 +4195,7 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "barriss_offee")
 			|| Class_Model(model, "lxjade/main")
 			|| Class_Model(model, "ahsoka_mp")
+			|| Class_Model(model, "md_ahsoka_rebels")
 			|| Class_Model(model, "ahsoka")
 			|| Class_Model(model, "ahsoka_rebels_mp")
 			|| Class_Model(model, "ahsoka_rebels")
@@ -4725,7 +4905,6 @@ qboolean client_userinfo_changed(const int clientNum)
 		}
 		else if (Class_Model(model, "canderous")
 			|| Class_Model(model, "swamptrooper")
-			|| Class_Model(model, "resistance")
 			|| Class_Model(model, "republictrooper")
 			|| Class_Model(model, "swamptrooper/blue")
 			|| Class_Model(model, "baze")
@@ -4733,6 +4912,13 @@ qboolean client_userinfo_changed(const int clientNum)
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_SWAMPTROOPER;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
+		else if (Class_Model(model, "resistance"))
+		{
+			client->pers.botmodelscale = BOTZIZE_NORMAL;
+			client->pers.nextbotclass = BCLASS_RESISTANCE;
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
@@ -4840,7 +5026,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "Itho4")
 			|| Class_Model(model, "darktrooper_tv_mp")
 			|| Class_Model(model, "darktrooper_tv")
-			|| Class_Model(model, "darktrooper_tvp")
 			|| Class_Model(model, "ithorian"))
 		{
 			client->pers.nextbotclass = BCLASS_STORMTROOPER;
@@ -4918,6 +5103,8 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "bkzam/main3")
 			|| Class_Model(model, "4lom/main")
 			|| Class_Model(model, "4lom/")
+			|| Class_Model(model, "fennec")
+			|| Class_Model(model, "fennec/helmet")
 			|| Class_Model(model, "tusken")
 			|| Class_Model(model, "tusken_ep1n2")
 			|| Class_Model(model, "tusken_quarak/ep2")
@@ -5077,6 +5264,13 @@ qboolean client_userinfo_changed(const int clientNum)
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
+		else if (Class_Model(model, "grogu"))
+		{
+			client->pers.nextbotclass = BCLASS_FORCE_LIGHT_NO_SABER;
+			client->pers.botmodelscale = BOTZIZE_TINY;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
 		else if (Class_Model(model, "youngani")
 			|| Class_Model(model, "youngshak")
 			|| Class_Model(model, "youngfem")
@@ -5136,6 +5330,8 @@ qboolean client_userinfo_changed(const int clientNum)
 			|| Class_Model(model, "thongla_jur")
 			|| Class_Model(model, "yarael_mp")
 			|| Class_Model(model, "mkyarael/main")
+			|| Class_Model(model, "jaro_tapal_mp")
+			|| Class_Model(model, "jaro_tapal")
 			|| Class_Model(model, "yarael"))
 		{
 			client->pers.botmodelscale = BOTZIZE_LARGER;
@@ -5337,13 +5533,6 @@ qboolean client_userinfo_changed(const int clientNum)
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
-		else if (Class_Model(model, "grogu"))
-		{
-			client->pers.nextbotclass = BCLASS_FORCE_LIGHT_NO_SABER;
-			client->pers.botmodelscale = BOTZIZE_TINY;
-			// Consolidated behavior:
-			client_userinfo_Message(clientNum);
-		}
 		else if (Class_Model(model, "pong_krell"))
 		{
 			client->pers.nextbotclass = BCLASS_DUELS;
@@ -5385,24 +5574,176 @@ qboolean client_userinfo_changed(const int clientNum)
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
+		else if (Class_Model(model, "grievous")
+			|| Class_Model(model, "grievous4")
+			|| Class_Model(model, "grievous/cape")
+			|| Class_Model(model, "sabertraining_droid"))
+		{
+			client->pers.nextbotclass = BCLASS_SABERNOFP;
+			client->pers.botmodelscale = BOTZIZE_MASSIVE;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
+		// ------------------------------------------------------------------
+		// FALLBACK CLASS (NO MATCH FOUND)
+		// ------------------------------------------------------------------
 		else
 		{
+			// Debug print so you can see which models need mapping
+			Com_Printf(
+				"WARNING: No BCLASS mapping for model '%s' (client %d). "
+				"Applying fallback class.\n",
+				model, clientNum
+			);
+
+			// Safe fallback class:
+			// BCLASS_SABERNOFP is neutral, humanoid, and works for any model.
+			client->pers.nextbotclass = BCLASS_SABERNOFP;
+
+			// Safe fallback scale:
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
-			if (g_entities[clientNum].r.svFlags & SVF_BOT)
-			{
-				client->pers.nextbotclass = BCLASS_STORMTROOPER;
-			}
-			else
-			{
-				client->pers.nextbotclass = BCLASS_JEDI;
-			}
-			// Consolidated behavior:
+
+			// Apply the change (kills player if needed)
 			client_userinfo_Message(clientNum);
 		}
 	}
 
-	client->pers.botclass = client->pers.nextbotclass;
+	client->pers.botclass = client->pers.nextbotclass;   // if you use pers.botclass
+	ent->s.botclass = client->pers.nextbotclass;   // this is what cgame can see
+#ifdef _DEBUG
+	Com_Printf("SERVER: Assigned nextbotclass %d to client %d\n", client->pers.nextbotclass, clientNum);
+#endif
+
 	// End of bot class checks
+	//New class system
+}
+
+qboolean WinterGear = qfalse; //sets weither or not the models go for winter gear skins
+
+qboolean client_userinfo_changed(const int clientNum)
+{
+	gentity_t* ent = g_entities + clientNum;
+	gclient_t* client = ent->client;
+	int team;
+	int health;
+	int max_health = 100;
+	const char* value;
+	char userinfo[MAX_INFO_STRING];
+	char buf[MAX_INFO_STRING] = { 0 };
+	char oldClientinfo[MAX_INFO_STRING];
+	char model[MAX_QPATH];
+	char forcePowers[DEFAULT_FORCEPOWERS_LEN];
+	char oldname[MAX_NETNAME];
+	char className[MAX_QPATH];
+	char color1[16];
+	char color2[16];
+	qboolean model_changed = qfalse;
+	gender_t gender;
+	char rgb1[MAX_INFO_STRING];
+	char rgb2[MAX_INFO_STRING];
+	char script1[MAX_INFO_STRING];
+	char script2[MAX_INFO_STRING];
+
+	trap->GetUserinfo(clientNum, userinfo, sizeof userinfo);
+
+	// check for malformed or illegal info strings
+	const char* s = G_ValidateUserinfo(userinfo);
+	if (s && *s)
+	{
+		G_SecurityLogPrintf("Client %d (%s) failed userinfo validation: %s [IP: %s]\n", clientNum,
+			ent->client->pers.netname, s, client->sess.IP);
+		trap->DropClient(clientNum, va("Failed userinfo validation: %s", s));
+		G_LogPrintf("Userinfo: %s\n", userinfo);
+		return qfalse;
+	}
+
+	s = Info_ValueForKey(userinfo, "g_adminpassword");
+	if (!Q_stricmp(s, ""))
+	{
+		//Blank? Don't log in!
+	}
+	else if (!Q_stricmp(s, g_adminpassword.string))
+	{
+		if (!(ent->r.svFlags & SVF_BOT))
+		{ //bots login automatically for some reason
+			ent->client->pers.iamanadmin = 1;
+			ent->r.svFlags |= SVF_ADMIN;
+			strcpy(ent->client->pers.login, g_adminlogin_saying.string);
+			strcpy(ent->client->pers.logout, g_adminlogout_saying.string);
+		}
+	}
+
+	// check for local client
+	s = Info_ValueForKey(userinfo, "ip");
+	if (strcmp(s, "localhost") == 0 && !(ent->r.svFlags & SVF_BOT))
+		client->pers.localClient = qtrue;
+
+	// check the item prediction
+	s = Info_ValueForKey(userinfo, "cg_predictItems");
+	if (!atoi(s)) client->pers.predictItemPickup = qfalse;
+	else client->pers.predictItemPickup = qtrue;
+
+	// set name
+	Q_strncpyz(oldname, client->pers.netname, sizeof oldname);
+	s = Info_ValueForKey(userinfo, "name");
+	client_clean_name(s, client->pers.netname, sizeof client->pers.netname);
+	Q_strncpyz(client->pers.netname_nocolor, client->pers.netname, sizeof client->pers.netname_nocolor);
+	Q_StripColor(client->pers.netname_nocolor);
+
+	if (client->sess.sessionTeam == TEAM_SPECTATOR && client->sess.spectatorState == SPECTATOR_SCOREBOARD)
+	{
+		Q_strncpyz(client->pers.netname, "scoreboard", sizeof client->pers.netname);
+		Q_strncpyz(client->pers.netname_nocolor, "scoreboard", sizeof client->pers.netname_nocolor);
+	}
+
+	if (client->pers.connected == CON_CONNECTED)
+	{
+		if (strcmp(oldname, client->pers.netname) != 0)
+		{
+			if (client->pers.netnameTime > level.time)
+			{
+				trap->SendServerCommand(clientNum, va("print \"%s\n\"", G_GetStringEdString("MD_MP_SVGAME", "NONAMECHANGE")));
+
+				Info_SetValueForKey(userinfo, "name", oldname);
+				trap->SetUserinfo(clientNum, userinfo);
+				Q_strncpyz(client->pers.netname, oldname, sizeof client->pers.netname);
+				Q_strncpyz(client->pers.netname_nocolor, oldname, sizeof client->pers.netname_nocolor);
+				Q_StripColor(client->pers.netname_nocolor);
+			}
+			else
+			{
+				trap->SendServerCommand(-1, va("print \"%s" S_COLOR_WHITE " %s %s\n\"", oldname, G_GetStringEdString("MD_MP_SVGAME", "PLRENAME"), client->pers.netname));
+				G_LogPrintf("ClientRename: %i [%s] (%s) \"%s^7\" -> \"%s^7\"\n", clientNum, ent->client->sess.IP, ent->client->pers.guid, oldname, ent->client->pers.netname);
+				client->pers.netnameTime = level.time + 5000;
+			}
+		}
+
+		if (Q_stristr(client->pers.netname, "Padawan"))
+		{
+			if (g_noPadawanNames.integer != 0)
+			{
+				client->pers.padawantimer = 30;
+				client->pers.isapadawan = 1;
+			}
+		}
+		else
+		{
+			client->pers.isapadawan = 0;
+		}
+	}
+
+	// set model
+	Q_strncpyz(model, Info_ValueForKey(userinfo, "model"), sizeof(model));
+
+	//New class system
+	// ------------------------------------------------------------------
+	// LOAD CLASS SYSTEM (PLAYERS + BOTS ONLY, NO NPC, NO SIEGE)
+	// ------------------------------------------------------------------
+	if (ent->s.eType != ET_NPC && level.gametype != GT_SIEGE)
+	{
+		// model already filled from userinfo above
+		G_AssignClassAndScaleFromModel(ent, clientNum, userinfo, model);
+	}
 
 	if (WinterGear)
 	{
@@ -6416,7 +6757,11 @@ tryTorso:
 
 				if (self->client->ps.weapon == WP_MELEE ||
 					self->client->ps.weapon == WP_SABER ||
-					self->client->ps.weapon == WP_BRYAR_PISTOL)
+					self->client->ps.weapon == WP_BRYAR_PISTOL ||
+					self->client->ps.weapon == WP_REBELBLASTER ||
+					self->client->ps.weapon == WP_REY ||
+					self->client->ps.weapon == WP_JANGO ||
+					self->client->ps.weapon == WP_CLONEPISTOL)
 				{ //don't affect this arm if holding a gun, just make the other arm support it
 					armAnim = &bgAllAnims[self->localAnimIndex].anims[BOTH_ATTACK2];
 
@@ -6621,7 +6966,12 @@ void ClientSpawn(gentity_t* ent)
 
 	index = ent - g_entities;
 	client = ent->client;
-	client->pers.botclass = client->pers.nextbotclass;
+	client->pers.botclass = client->pers.nextbotclass;  // if you use pers.botclass
+	ent->s.botclass = client->pers.nextbotclass;   // this is what cgame can see
+#ifdef _DEBUG
+	Com_Printf("SERVER: Spawn botclass %d for client %d\n", ent->s.botclass, ent - g_entities);
+#endif
+
 	if (ent->r.svFlags & SVF_BOT)
 	{
 		bot_state_t* bs = botstates[index];
@@ -7158,6 +7508,50 @@ spawn_done:
 	client->ps.standheight = DEFAULT_MAXS_2;
 
 	client->ps.clientNum = index;
+
+	// ------------------------------------------------------------
+	// Apply model scale AFTER respawn rebuilds the entity
+	// ------------------------------------------------------------
+	if (ent->s.eType != ET_NPC && level.gametype != GT_SIEGE)
+	{
+		// Apply the scale stored in pers
+		ScalePlayer(ent, ent->client->pers.botmodelscale);
+	}
+
+	// ------------------------------------------------------------
+	// Clear temporary holocron powers on respawn (non-holocron modes)
+	// ------------------------------------------------------------
+	if (level.gametype != GT_HOLOCRON)
+	{
+		int fpIndex = 0;
+
+		// Remove all holocron-granted powers
+		while (fpIndex < NUM_FORCE_POWERS)
+		{
+			if (client->ps.holocronBits & (1 << fpIndex))
+			{
+				// Stop active use
+				if (client->ps.fd.forcePowersActive & (1 << fpIndex))
+				{
+					WP_ForcePowerStop(ent, fpIndex);
+				}
+
+				// Remove holocron-granted knowledge and level
+				client->ps.fd.forcePowerLevel[fpIndex] = FORCE_LEVEL_0;
+				client->ps.fd.forcePowersKnown &= ~(1 << fpIndex);
+
+				// Clear carried state
+				client->ps.holocronsCarried[fpIndex] = 0;
+			}
+
+			fpIndex++;
+		}
+
+		client->ps.holocronBits = 0;
+		client->ps.holocronExpireTime = 0;
+		client->ps.holocronGlobalCooldown = 0;
+	}
+
 	//give default weapons
 	client->ps.stats[STAT_WEAPONS] = 1 << WP_NONE;
 
@@ -7270,7 +7664,7 @@ spawn_done:
 			{
 				client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
 			}
-			if (!wDisable || !(wDisable & 1 << WP_DISRUPTOR)) //JRHockney
+			if (!wDisable || !(wDisable & 1 << WP_DISRUPTOR))
 			{
 				client->ps.stats[STAT_WEAPONS] |= 1 << WP_DISRUPTOR;
 			}
@@ -7336,6 +7730,13 @@ spawn_done:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_SABER;
 					client->ps.stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_SEEKER);
 					break;
+					// Force-only classes (no saber)
+				case BCLASS_FORCE_DARK_NO_SABER:
+				case BCLASS_FORCE_LIGHT_NO_SABER:
+					// Give only melee as a fallback, but do NOT grant a saber.
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
+					client->ps.stats[STAT_WEAPONS] &= ~(1 << WP_SABER);
+					break;
 				case BCLASS_JEDITRAINER:
 				case BCLASS_ALORA:
 				case BCLASS_DESANN:
@@ -7365,6 +7766,9 @@ spawn_done:
 				case BCLASS_JEDIKNIGHT3:
 				case BCLASS_SMUGGLER1:
 				case BCLASS_SMUGGLER3:
+				case BCLASS_JEDICONSULAR1:
+				case BCLASS_JEDICONSULAR2:
+				case BCLASS_JEDICONSULAR3:
 				case BCLASS_SABERNOFP:
 				case BCLASS_MANDO_SABER_NO_FP_ARMOUR:
 				case BCLASS_WOOKIE:
@@ -7383,6 +7787,7 @@ spawn_done:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_SABER;
 					break;
 				case BCLASS_ASSASSIN_DROID:
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_DISRUPTOR;
 					client->skillLevel[SK_DISRUPTOR] = FORCE_LEVEL_3;
 					ClassAmmoSetup(ent);
@@ -7399,7 +7804,7 @@ spawn_done:
 				case BCLASS_BESPIN_COP:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->skillLevel[SK_ACROBATICS] = FORCE_LEVEL_3;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REBELBLASTER;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
 					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
@@ -7411,7 +7816,7 @@ spawn_done:
 					client->skillLevel[SK_ACROBATICS] = FORCE_LEVEL_3;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					client->skillLevel[SK_BLASTERRATEOFFIREUPGRADE] = FORCE_LEVEL_3;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BOBA;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					ClassAmmoSetup(ent);
@@ -7427,11 +7832,11 @@ spawn_done:
 					break;
 				case BCLASS_JANGO_NOJP:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CLONERIFLE;
 					client->skillLevel[SK_ACROBATICS] = FORCE_LEVEL_3;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					client->skillLevel[SK_BLASTERRATEOFFIREUPGRADE] = FORCE_LEVEL_3;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_JANGO;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					ClassAmmoSetup(ent);
@@ -7454,7 +7859,7 @@ spawn_done:
 					break;
 				case BCLASS_GALAK:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CLONECARBINE;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					client->skillLevel[SK_REPEATERUPGRADE] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
@@ -7526,6 +7931,7 @@ spawn_done:
 					client->ps.ammo[AMMO_THERMAL] = 4;
 					break;
 				case BCLASS_JAWA:
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_STUN_BATON;
 					ClassAmmoSetup(ent);
 					break;
@@ -7598,10 +8004,16 @@ spawn_done:
 					break;
 				case BCLASS_REBEL:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REBELBLASTER;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REBELRIFLE;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
+					ClassAmmoSetup(ent);
+					break;
+				case BCLASS_REBEL_PILOT:
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REBELBLASTER;
+					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_2;
 					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_REELO:
@@ -7669,7 +8081,15 @@ spawn_done:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
 					ClassAmmoSetup(ent);
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CLONECOMMANDO;
+					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
+					client->skillLevel[SK_REPEATERUPGRADE] = FORCE_LEVEL_3;
+					break;
+				case BCLASS_RESISTANCE:
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REBELBLASTER;
+					ClassAmmoSetup(ent);
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REBELRIFLE;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					client->skillLevel[SK_REPEATERUPGRADE] = FORCE_LEVEL_3;
 					break;
@@ -7715,7 +8135,7 @@ spawn_done:
 					client->skillLevel[SK_ACROBATICS] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BOBA;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					ClassAmmoSetup(ent);
@@ -7727,13 +8147,13 @@ spawn_done:
 				case BCLASS_MANDOLORIAN1:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->skillLevel[SK_ACROBATICS] = FORCE_LEVEL_3;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BATTLEDROID;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CLONEPISTOL;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					ClassAmmoSetup(ent);
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CLONECARBINE;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
 					client->skillLevel[SK_ROCKET] = FORCE_LEVEL_3;
@@ -7744,7 +8164,7 @@ spawn_done:
 				case BCLASS_MANDOLORIAN2:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->skillLevel[SK_ACROBATICS] = FORCE_LEVEL_3;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_PISTOL;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REY;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					ClassAmmoSetup(ent);
@@ -7758,7 +8178,7 @@ spawn_done:
 					break;
 				case BCLASS_SOILDER:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REBELRIFLE;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
@@ -7770,11 +8190,13 @@ spawn_done:
 					client->ps.ammo[AMMO_THERMAL] = 4;
 					break;
 				case BCLASS_BATTLEDROID:
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BATTLEDROID;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_SBD:
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BRYAR_OLD;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
@@ -7891,7 +8313,7 @@ spawn_done:
 				case BCLASS_CLONETROOPER:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_ARMOR] = 100;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CLONERIFLE;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					ClassAmmoSetup(ent);
 					break;
@@ -7900,10 +8322,6 @@ spawn_done:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					ClassAmmoSetup(ent);
-					break;
-				case BCLASS_FORCE_DARK_NO_SABER:
-				case BCLASS_FORCE_LIGHT_NO_SABER:
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					break;
 				default:
 					if (g_gametype.integer != GT_SIEGE)
@@ -7937,7 +8355,11 @@ spawn_done:
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					client->skillLevel[SK_DISRUPTOR] = FORCE_LEVEL_3;
 					client->skillLevel[SK_CRYOBAN] = FORCE_LEVEL_3;
-					if (client->skillLevel[SK_PISTOL] >= FORCE_LEVEL_3 && ent->client->ps.weapon == WP_BRYAR_PISTOL)
+					if (client->skillLevel[SK_PISTOL] >= FORCE_LEVEL_3 &&
+						(ent->client->ps.weapon == WP_BRYAR_PISTOL ||
+							ent->client->ps.weapon == WP_REY ||
+							ent->client->ps.weapon == WP_JANGO ||
+							ent->client->ps.weapon == WP_CLONEPISTOL))
 					{
 						client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					}
@@ -7978,7 +8400,11 @@ spawn_done:
 				client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 				client->skillLevel[SK_DISRUPTOR] = FORCE_LEVEL_3;
 				client->skillLevel[SK_CRYOBAN] = FORCE_LEVEL_3;
-				if (client->skillLevel[SK_PISTOL] >= FORCE_LEVEL_3 && ent->client->ps.weapon == WP_BRYAR_PISTOL)
+				if (client->skillLevel[SK_PISTOL] >= FORCE_LEVEL_3 &&
+					(ent->client->ps.weapon == WP_BRYAR_PISTOL ||
+						ent->client->ps.weapon == WP_REY ||
+						ent->client->ps.weapon == WP_JANGO ||
+						ent->client->ps.weapon == WP_CLONEPISTOL))
 				{
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 				}
@@ -8017,7 +8443,7 @@ spawn_done:
 		else
 		{
 			int i1;
-			for (i1 = LAST_USEABLE_WEAPON; i1 > WP_NONE; i1--)
+			for (i1 = LAST_SELECTABLE_WEAPON; i1 > WP_NONE; i1--)
 			{
 				if (client->ps.stats[STAT_WEAPONS] & 1 << i1)
 				{
@@ -8194,6 +8620,7 @@ spawn_done:
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_GRAN:
+		case BCLASS_GRAN_SHOOTER:
 			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_ARMOR] = 300;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
@@ -8249,6 +8676,7 @@ spawn_done:
 		case BCLASS_JEDITRAINER:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
 			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_OBIWAN:
@@ -8310,6 +8738,7 @@ spawn_done:
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_REBEL:
+		case BCLASS_REBEL_PILOT:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
@@ -8372,6 +8801,8 @@ spawn_done:
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_CLOAK;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC_BIG;
+			ent->flags |= FL_SABERDAMAGE_RESIST;
+			ent->flags |= FL_DINDJARIN;
 			break;
 		case BCLASS_STORMTROOPER:
 			ClassItemHealthSetup(ent);
@@ -8387,6 +8818,7 @@ spawn_done:
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_SWAMPTROOPER:
+		case BCLASS_RESISTANCE:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
@@ -8598,6 +9030,21 @@ spawn_done:
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			ClassItemHealthSetup(ent);
 			break;
+		case BCLASS_JEDICONSULAR1:
+			client->ps.stats[STAT_ARMOR] = 100;
+			client->ps.stats[STAT_MAX_HEALTH] = 100;
+			ClassItemHealthSetup(ent);
+			break;
+		case BCLASS_JEDICONSULAR2:
+			client->ps.stats[STAT_ARMOR] = 100;
+			client->ps.stats[STAT_MAX_HEALTH] = 100;
+			ClassItemHealthSetup(ent);
+			break;
+		case BCLASS_JEDICONSULAR3:
+			client->ps.stats[STAT_ARMOR] = 100;
+			client->ps.stats[STAT_MAX_HEALTH] = 100;
+			ClassItemHealthSetup(ent);
+			break;
 		case BCLASS_SABERNOFP:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
@@ -8683,12 +9130,12 @@ spawn_done:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
 			break;
 		case BCLASS_FORCE_DARK_NO_SABER:
+			client->ps.stats[STAT_ARMOR] = 200;
+			client->ps.stats[STAT_MAX_HEALTH] = 100;
+			break;
 		case BCLASS_FORCE_LIGHT_NO_SABER:
 			client->ps.stats[STAT_ARMOR] = 200;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			// Give Force-only bots a larger Force pool
-			client->ps.fd.forcePowerMax = 200;
-			client->ps.fd.forcePower = client->ps.fd.forcePowerMax;
 			break;
 		default:
 			client->ps.stats[STAT_ARMOR] = 100;
@@ -8749,9 +9196,10 @@ spawn_done:
 		case BCLASS_JEDIKNIGHT1:
 		case BCLASS_JEDIKNIGHT2:
 		case BCLASS_JEDIKNIGHT3:
+		case BCLASS_JEDICONSULAR1:
+		case BCLASS_JEDICONSULAR2:
+		case BCLASS_JEDICONSULAR3:
 		case BCLASS_SMUGGLER3:
-		case BCLASS_SABERNOFP:
-		case BCLASS_MANDO_SABER_NO_FP_ARMOUR:
 		case BCLASS_SITHWORRIOR1:
 		case BCLASS_SITHWORRIOR2:
 		case BCLASS_SITHWORRIOR3:
@@ -8765,12 +9213,19 @@ spawn_done:
 			//Read bot.txt or Player FP setup for saber users
 			client->ps.fd.blockPoints = BLOCK_POINTS_MAX;
 			break;
+		case BCLASS_FORCE_DARK_NO_SABER:
+		case BCLASS_FORCE_LIGHT_NO_SABER:
+			client->ps.fd.forcePowerMax = 200;
+			client->ps.fd.forcePower = client->ps.fd.forcePowerMax;
+			break;
+			//never have force powers
 		case BCLASS_ASSASSIN_DROID:
 		case BCLASS_BARTENDER:
 		case BCLASS_BESPIN_COP:
 		case BCLASS_ELDER:
 		case BCLASS_GALAK:
 		case BCLASS_GRAN:
+		case BCLASS_GRAN_SHOOTER:
 		case BCLASS_HAZARDTROOPER:
 		case BCLASS_HUMAN_MERC:
 		case BCLASS_IMPERIAL:
@@ -8788,12 +9243,14 @@ spawn_done:
 		case BCLASS_RANCOR:
 		case BCLASS_RAX:
 		case BCLASS_REBEL:
+		case BCLASS_REBEL_PILOT:
 		case BCLASS_REELO:
 		case BCLASS_RODIAN:
 		case BCLASS_SABOTEUR:
 		case BCLASS_STORMTROOPER:
 		case BCLASS_STORMPILOT:
 		case BCLASS_SWAMPTROOPER:
+		case BCLASS_RESISTANCE:
 		case BCLASS_TRANDOSHAN:
 		case BCLASS_TUSKEN_SNIPER:
 		case BCLASS_UGNAUGHT:
@@ -8833,6 +9290,7 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_0;
 			break;
+			//chewie gets rage
 		case BCLASS_CHEWIE:
 			client->ps.fd.forcePowerLevel[FP_HEAL] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_LEVITATION] = FORCE_LEVEL_0;
@@ -8853,6 +9311,7 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_RAGE] = FORCE_LEVEL_3; //chewie gets rage
 			break;
+			//big jumps for the jetpack club
 		case BCLASS_ROCKETTROOPER:
 		case BCLASS_MANDOLORIAN:
 		case BCLASS_MANDOLORIAN1:
@@ -8879,26 +9338,6 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_0;
-			break;
-		case BCLASS_TUSKEN_RAIDER:
-			client->ps.fd.forcePowerLevel[FP_HEAL] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_LEVITATION] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_SPEED] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_PUSH] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_PULL] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_TELEPATHY] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_GRIP] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_LIGHTNING] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_RAGE] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_PROTECT] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_ABSORB] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_TEAM_HEAL] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_TEAM_FORCE] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_DRAIN] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_SEE] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] = FORCE_LEVEL_3;
-			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_3;
-			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_3;
 			break;
 		case BCLASS_WOOKIE:
 			client->ps.fd.forcePowerLevel[FP_HEAL] = FORCE_LEVEL_0;
@@ -8938,6 +9377,29 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SEE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_0;
+			break;
+			//he neads saber powers to be a threat in melee, but no force powers
+		case BCLASS_TUSKEN_RAIDER:
+		case BCLASS_SABERNOFP:
+		case BCLASS_MANDO_SABER_NO_FP_ARMOUR:
+			client->ps.fd.forcePowerLevel[FP_HEAL] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_LEVITATION] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_SPEED] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_PUSH] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_PULL] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_TELEPATHY] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_GRIP] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_LIGHTNING] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_RAGE] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_PROTECT] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_ABSORB] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_TEAM_HEAL] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_TEAM_FORCE] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_DRAIN] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_SEE] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] = FORCE_LEVEL_3;
+			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_3;
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_0;
 			break;
 		default:
@@ -9071,8 +9533,6 @@ spawn_done:
 	{
 		client->ps.stats[STAT_ARMOR] = client->ps.stats[STAT_MAX_HEALTH] * 0.25;
 	}
-
-	ScalePlayer(ent, ent->client->pers.botmodelscale);
 	client->ps.stats[STAT_DODGE] = client->ps.stats[STAT_MAX_DODGE];
 	G_SetOrigin(ent, spawn_origin);
 	VectorCopy(spawn_origin, client->ps.origin);

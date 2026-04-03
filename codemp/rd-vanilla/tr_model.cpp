@@ -803,7 +803,13 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_sbd",
 	"models/players/_humanoid_vader",
 	"models/players/_humanoid_yoda",
-	"models/players/darktrooper_tv"
+	"models/players/darktrooper_tv",
+	"models/players/hazardtrooper/hazardtrooper",
+	"models/players/rockettrooper/rockettrooper",
+	"models/players/protocol/protocol",
+	"models/players/assassin_droid/model",
+	"models/players/saber_droid/model",
+	"models/players/wampa/wampa"
 };
 
 static qboolean R_IsHumanoidPath(const char* animName)

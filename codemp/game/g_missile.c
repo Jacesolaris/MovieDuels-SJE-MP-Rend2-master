@@ -928,6 +928,17 @@ static void g_missile_bounce_effect(gentity_t* ent, vec3_t org, vec3_t dir, cons
 	case WP_BLASTER:
 	case WP_BRYAR_PISTOL:
 	case WP_BRYAR_OLD:
+	case WP_BATTLEDROID:
+	case WP_THEFIRSTORDER:
+	case WP_CLONECARBINE:
+	case WP_REBELBLASTER:
+	case WP_CLONERIFLE:
+	case WP_CLONECOMMANDO:
+	case WP_REBELRIFLE:
+	case WP_REY:
+	case WP_JANGO:
+	case WP_BOBA:
+	case WP_CLONEPISTOL:
 		G_PlayEffectID(G_EffectIndex("blaster/deflect"), ent->r.currentOrigin, dir);
 		break;
 	case WP_REPEATER:
@@ -956,6 +967,17 @@ void g_missile_reflect_effect(gentity_t* ent, vec3_t dir)
 	case WP_BLASTER:
 	case WP_BRYAR_PISTOL:
 	case WP_BRYAR_OLD:
+	case WP_BATTLEDROID:
+	case WP_THEFIRSTORDER:
+	case WP_CLONECARBINE:
+	case WP_REBELBLASTER:
+	case WP_CLONERIFLE:
+	case WP_CLONECOMMANDO:
+	case WP_REBELRIFLE:
+	case WP_REY:
+	case WP_JANGO:
+	case WP_BOBA:
+	case WP_CLONEPISTOL:
 		G_PlayEffectID(G_EffectIndex("blaster/deflect"), ent->r.currentOrigin, dir);
 		break;
 	case WP_REPEATER:

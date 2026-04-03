@@ -361,6 +361,7 @@ void SP_misc_maglock(gentity_t* self);
 void SP_misc_faller(gentity_t* ent);
 
 void SP_misc_holocron(gentity_t* ent);
+void SP_Holocron(gentity_t* ent);
 
 void SP_reference_tag(gentity_t* ent);
 
@@ -604,6 +605,7 @@ spawn_t spawns[] = {
 	{"misc_faller", SP_misc_faller},
 	{"misc_G2model", SP_misc_G2model},
 	{"misc_holocron", SP_misc_holocron},
+	{"holocron", SP_Holocron },
 	{"misc_maglock", SP_misc_maglock},
 	{"misc_model", SP_misc_model},
 	{"misc_model_ammo_power_converter", SP_misc_model_ammo_power_converter},
@@ -784,6 +786,7 @@ spawn_t spawns[] = {
 	{"waypoint_small", SP_waypoint_small},
 	{"emplaced_eweb", SP_emplaced_eweb},
 	{"fx_weather", SP_CreateWeather},
+
 };
 
 /*

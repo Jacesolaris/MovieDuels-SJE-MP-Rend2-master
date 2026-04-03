@@ -166,5 +166,6 @@ XCVAR_DEF(cg_SFXSabersCoreSizeCSM, "1.0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(ui_char_model_angle, "180", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(com_rend2, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(g_cursor, "0", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(ui_selectedHolocron, "", NULL, CVAR_ARCHIVE | CVAR_INTERNAL)
 
 #undef XCVAR_DEF

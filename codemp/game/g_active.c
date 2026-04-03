@@ -938,90 +938,108 @@ G_TouchTriggers
 Find all trigger entities that ent's current position touches.
 Spectators will only interact with teleporters.
 ============
-*/
-static void G_TouchTriggers(gentity_t* ent)
+*/static void G_TouchTriggers(gentity_t* ent)
 {
-	int touch[MAX_GENTITIES];
-	trace_t trace;
-	vec3_t mins, maxs;
-	static vec3_t range = { 40, 40, 52 };
+	// Large buffers moved to static storage to avoid stack overflow
+	static int   s_touchList[MAX_GENTITIES];
+	static trace_t s_trace;
 
-	if (!ent->client)
+	vec3_t mins;
+	vec3_t maxs;
+	static vec3_t range = { 40.0f, 40.0f, 52.0f };
+
+	qboolean hasClient = qfalse;
+
+	if (ent == NULL)
+	{
+		Com_Printf("G_TouchTriggers: ent is NULL\n");
+		return;
+	}
+
+	hasClient = (ent->client != NULL ? qtrue : qfalse);
+	if (hasClient == qfalse)
 	{
 		return;
 	}
 
-	// dead clients don't activate triggers!
+	// dead clients don't activate triggers
 	if (ent->client->ps.stats[STAT_HEALTH] <= 0)
 	{
 		return;
 	}
 
+	// Build initial query box
 	VectorSubtract(ent->client->ps.origin, range, mins);
 	VectorAdd(ent->client->ps.origin, range, maxs);
 
-	const int num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
+	const int num = trap->EntitiesInBox(mins, maxs, s_touchList, MAX_GENTITIES);
 
-	// can't use ent->r.absmin, because that has a one unit pad
+	// Use precise bounding box for contact tests
 	VectorAdd(ent->client->ps.origin, ent->r.mins, mins);
 	VectorAdd(ent->client->ps.origin, ent->r.maxs, maxs);
 
 	for (int i = 0; i < num; i++)
 	{
-		gentity_t* hit = &g_entities[touch[i]];
+		int entNum = s_touchList[i];
 
-		if (!hit->touch && !ent->touch)
-		{
-			continue;
-		}
-		if (!(hit->r.contents & CONTENTS_TRIGGER))
+		if (entNum < 0 || entNum >= level.num_entities)
 		{
 			continue;
 		}
 
-		// ignore most entities if a spectator
+		gentity_t* hit = &g_entities[entNum];
+
+		if (hit->touch == NULL && ent->touch == NULL)
+		{
+			continue;
+		}
+		if ((hit->r.contents & CONTENTS_TRIGGER) == 0)
+		{
+			continue;
+		}
+
+		// Spectator restrictions
 		if (ent->client->sess.sessionTeam == TEAM_SPECTATOR)
 		{
 			if (hit->s.eType != ET_TELEPORT_TRIGGER &&
-				// this is ugly but adding a new ET_? type will
-				// most likely cause network incompatibilities
 				hit->touch != Touch_DoorTrigger)
 			{
 				continue;
 			}
 		}
 
-		// use seperate code for determining if an item is picked up
-		// so you don't have to actually contact its bounding box
+		// Item pickup uses special logic
 		if (hit->s.eType == ET_ITEM)
 		{
-			if (!BG_PlayerTouchesItem(&ent->client->ps, &hit->s, level.time))
+			qboolean touchesItem = (BG_PlayerTouchesItem(&ent->client->ps, &hit->s, level.time) ? qtrue : qfalse);
+			if (touchesItem == qfalse)
 			{
 				continue;
 			}
 		}
 		else
 		{
-			if (!trap->EntityContact(mins, maxs, (sharedEntity_t*)hit, qfalse))
+			qboolean contact = (trap->EntityContact(mins, maxs, (sharedEntity_t*)hit, qfalse) ? qtrue : qfalse);
+			if (contact == qfalse)
 			{
 				continue;
 			}
 		}
 
-		memset(&trace, 0, sizeof trace);
+		memset(&s_trace, 0, sizeof(s_trace));
 
-		if (hit->touch)
+		if (hit->touch != NULL)
 		{
-			hit->touch(hit, ent, &trace);
+			hit->touch(hit, ent, &s_trace);
 		}
 
-		if (ent->r.svFlags & SVF_BOT && ent->touch)
+		if ((ent->r.svFlags & SVF_BOT) && ent->touch != NULL)
 		{
-			ent->touch(ent, hit, &trace);
+			ent->touch(ent, hit, &s_trace);
 		}
 	}
 
-	// if we didn't touch a jump pad this pmove frame
+	// If we didn't touch a jump pad this pmove frame
 	if (ent->client->ps.jumppad_frame != ent->client->ps.pmove_framecount)
 	{
 		ent->client->ps.jumppad_frame = 0;
@@ -1036,39 +1054,62 @@ G_MoverTouchTriggers
 Find all trigger entities that ent's current position touches.
 Spectators will only interact with teleporters.
 ============
-*/
+*///-----------------------------------------------------------------------------
+// g_mover_touch_push_triggers
+//
+// Sweeps a moving mover along its path and fires any ET_PUSH_TRIGGER
+// it intersects with.
+// - Uses stepwise sampling along the movement vector.
+// - Uses a box query around each sample point.
+// - Large locals moved to static storage to avoid excessive stack usage.
+//-----------------------------------------------------------------------------
 void g_mover_touch_push_triggers(gentity_t* ent, vec3_t old_org)
 {
-	trace_t trace;
-	vec3_t dir, size;
-	const vec3_t range = { 40, 40, 52 };
+	static int     s_touchList[MAX_GENTITIES];
+	static trace_t s_trace;
 
-	// non-moving movers don't hit triggers!
-	if (!VectorLengthSquared(ent->s.pos.trDelta))
+	vec3_t dir;
+	vec3_t size;
+	const vec3_t range = { 40.0f, 40.0f, 52.0f };
+
+	qboolean isMoving = qfalse;
+
+	if (ent == NULL)
+	{
+		Com_Printf("g_mover_touch_push_triggers: ent is NULL\n");
+		return;
+	}
+
+	// non-moving movers don't hit triggers
+	isMoving = (VectorLengthSquared(ent->s.pos.trDelta) != 0.0f ? qtrue : qfalse);
+	if (isMoving == qfalse)
 	{
 		return;
 	}
 
+	// step size based on mover bounds
 	VectorSubtract(ent->r.mins, ent->r.maxs, size);
 	float stepSize = VectorLength(size);
-	if (stepSize < 1)
+	if (stepSize < 1.0f)
 	{
-		stepSize = 1;
+		stepSize = 1.0f;
 	}
 
+	// movement direction and distance
 	VectorSubtract(ent->r.currentOrigin, old_org, dir);
 	const float dist = VectorNormalize(dir);
-	for (float step = 0; step <= dist; step += stepSize)
+
+	for (float step = 0.0f; step <= dist; step += stepSize)
 	{
 		vec3_t checkSpot;
 		vec3_t maxs;
 		vec3_t mins;
-		int touch[MAX_GENTITIES];
+
 		VectorMA(ent->r.currentOrigin, step, dir, checkSpot);
 		VectorSubtract(checkSpot, range, mins);
 		VectorAdd(checkSpot, range, maxs);
 
-		const int num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
+		const int num = trap->EntitiesInBox(mins, maxs, s_touchList, MAX_GENTITIES);
 
 		// can't use ent->r.absmin, because that has a one unit pad
 		VectorAdd(checkSpot, ent->r.mins, mins);
@@ -1076,7 +1117,14 @@ void g_mover_touch_push_triggers(gentity_t* ent, vec3_t old_org)
 
 		for (int i = 0; i < num; i++)
 		{
-			gentity_t* hit = &g_entities[touch[i]];
+			int entNum = s_touchList[i];
+
+			if (entNum < 0 || entNum >= level.num_entities)
+			{
+				continue;
+			}
+
+			gentity_t* hit = &g_entities[entNum];
 
 			if (hit->s.eType != ET_PUSH_TRIGGER)
 			{
@@ -1088,22 +1136,20 @@ void g_mover_touch_push_triggers(gentity_t* ent, vec3_t old_org)
 				continue;
 			}
 
-			if (!(hit->r.contents & CONTENTS_TRIGGER))
+			if ((hit->r.contents & CONTENTS_TRIGGER) == 0)
 			{
 				continue;
 			}
 
-			if (!trap->EntityContact(mins, maxs, (sharedEntity_t*)hit, qfalse))
+			qboolean contact = (trap->EntityContact(mins, maxs, (sharedEntity_t*)hit, qfalse) ? qtrue : qfalse);
+			if (contact == qfalse)
 			{
 				continue;
 			}
 
-			memset(&trace, 0, sizeof trace);
+			memset(&s_trace, 0, sizeof(s_trace));
 
-			if (hit->touch != NULL)
-			{
-				hit->touch(hit, ent, &trace);
-			}
+			hit->touch(hit, ent, &s_trace);
 		}
 	}
 }
@@ -2228,6 +2274,11 @@ static qboolean GunisShort(const gentity_t* ent)
 	{
 	case WP_BRYAR_PISTOL:
 	case WP_BRYAR_OLD:
+	case WP_REY:
+	case WP_JANGO:
+	case WP_BOBA:
+	case WP_CLONEPISTOL:
+	case WP_REBELBLASTER:
 		return qtrue;
 	default:;
 	}
@@ -2243,6 +2294,12 @@ static qboolean GunisLong(const gentity_t* ent)
 	case WP_REPEATER:
 	case WP_DEMP2:
 	case WP_FLECHETTE:
+	case WP_BATTLEDROID:
+	case WP_THEFIRSTORDER:
+	case WP_CLONECARBINE:
+	case WP_CLONERIFLE:
+	case WP_CLONECOMMANDO:
+	case WP_REBELRIFLE:
 		return qtrue;
 	default:;
 	}
@@ -3870,6 +3927,17 @@ qboolean IsHoldingReloadableGun(const gentity_t* ent)
 	case WP_ROCKET_LAUNCHER:
 	case WP_CONCUSSION:
 	case WP_BRYAR_PISTOL:
+	case WP_BATTLEDROID:
+	case WP_THEFIRSTORDER:
+	case WP_CLONECARBINE:
+	case WP_REBELBLASTER:
+	case WP_CLONERIFLE:
+	case WP_CLONECOMMANDO:
+	case WP_REBELRIFLE:
+	case WP_REY:
+	case WP_JANGO:
+	case WP_BOBA:
+	case WP_CLONEPISTOL:
 		return qtrue;
 	default:;
 	}
@@ -3929,7 +3997,14 @@ void WP_ReloadGun(gentity_t* ent)
 		}
 		else
 		{
-			if (ent->s.weapon == WP_BRYAR_OLD || ent->s.weapon == WP_BLASTER || ent->s.weapon == WP_BRYAR_PISTOL)
+			if (ent->s.weapon == WP_BRYAR_OLD ||
+				ent->s.weapon == WP_BLASTER ||
+				ent->s.weapon == WP_BRYAR_PISTOL ||
+				ent->s.weapon == WP_BATTLEDROID ||
+				ent->s.weapon == WP_THEFIRSTORDER ||
+				ent->s.weapon == WP_REBELBLASTER ||
+				ent->s.weapon == WP_REY ||
+				ent->s.weapon == WP_JANGO)
 			{
 				if (ent->client->ps.ammo[AMMO_BLASTER] < ClipSize(AMMO_BLASTER, ent))
 				{
@@ -3944,7 +4019,11 @@ void WP_ReloadGun(gentity_t* ent)
 					G_SoundOnEnt(ent, CHAN_WEAPON, "sound/weapons/recharge.mp3");
 				}
 			}
-			else if (ent->s.weapon == WP_DISRUPTOR || ent->s.weapon == WP_BOWCASTER || ent->s.weapon == WP_DEMP2)
+			else if (ent->s.weapon == WP_DISRUPTOR ||
+				ent->s.weapon == WP_BOWCASTER ||
+				ent->s.weapon == WP_DEMP2 ||
+				ent->s.weapon == WP_REBELRIFLE ||
+				ent->s.weapon == WP_BOBA)
 			{
 				if (ent->client->ps.ammo[AMMO_POWERCELL] < ClipSize(AMMO_POWERCELL, ent))
 				{
@@ -3959,7 +4038,13 @@ void WP_ReloadGun(gentity_t* ent)
 					G_SoundOnEnt(ent, CHAN_WEAPON, "sound/weapons/recharge.mp3");
 				}
 			}
-			else if (ent->s.weapon == WP_REPEATER || ent->s.weapon == WP_FLECHETTE || ent->s.weapon == WP_CONCUSSION)
+			else if (ent->s.weapon == WP_REPEATER ||
+				ent->s.weapon == WP_FLECHETTE ||
+				ent->s.weapon == WP_CONCUSSION ||
+				ent->s.weapon == WP_CLONECARBINE ||
+				ent->s.weapon == WP_CLONERIFLE ||
+				ent->s.weapon == WP_CLONECOMMANDO ||
+				ent->s.weapon == WP_CLONEPISTOL)
 			{
 				if (ent->client->ps.ammo[AMMO_METAL_BOLTS] < ClipSize(AMMO_METAL_BOLTS, ent))
 				{
@@ -4022,7 +4107,8 @@ static qboolean IsGunner(const gentity_t* ent)
 {
 	switch (ent->s.weapon)
 	{
-	case WP_BRYAR_OLD:
+	case WP_STUN_BATON:
+	case WP_BRYAR_PISTOL:
 	case WP_BLASTER:
 	case WP_DISRUPTOR:
 	case WP_BOWCASTER:
@@ -4034,15 +4120,25 @@ static qboolean IsGunner(const gentity_t* ent)
 	case WP_TRIP_MINE:
 	case WP_DET_PACK:
 	case WP_CONCUSSION:
-	case WP_STUN_BATON:
-	case WP_BRYAR_PISTOL:
+	case WP_BRYAR_OLD:
+	case WP_BATTLEDROID:
+	case WP_THEFIRSTORDER:
+	case WP_CLONECARBINE:
+	case WP_REBELBLASTER:
+	case WP_CLONERIFLE:
+	case WP_CLONECOMMANDO:
+	case WP_REBELRIFLE:
+	case WP_REY:
+	case WP_JANGO:
+	case WP_BOBA:
+	case WP_CLONEPISTOL:
 		return qtrue;
 	default:;
 	}
 	return qfalse;
 }
 
-static qboolean Bot_Is_Saber_Class(gentity_t* ent)
+qboolean Bot_Is_Saber_Class(gentity_t* ent)
 {
 	// Evasion/Weapon Switching/etc...
 	switch (ent->client->pers.botclass)
@@ -4152,6 +4248,7 @@ qboolean Bot_Is_Allowed_to_use_force(gentity_t* ent)
 	case BCLASS_WOOKIE:
 	case BCLASS_WOOKIEMELEE:
 	case BCLASS_FORCE_DARK_NO_SABER:
+	case BCLASS_FORCE_LIGHT_NO_SABER:
 		break;
 	default:
 		return qfalse;
@@ -4163,8 +4260,8 @@ static qboolean Is_Oversized_Gunner(gentity_t* ent)
 {
 	gclient_t* client = ent->client;
 
-	if ((client->pers.botmodelscale == BOTZIZE_TALL ||
-		client->pers.botmodelscale == BOTZIZE_TALLISH ||
+	if ((client->pers.botmodelscale == BOTZIZE_TALLISH ||
+		client->pers.botmodelscale == BOTZIZE_TALL ||
 		client->pers.botmodelscale == BOTZIZE_LARGE ||
 		client->pers.botmodelscale == BOTZIZE_LARGER ||
 		client->pers.botmodelscale == BOTZIZE_MASSIVE) && !Bot_Is_Saber_Class(ent))
@@ -4178,9 +4275,10 @@ static qboolean Is_Undersized_Gunner(gentity_t* ent)
 {
 	gclient_t* client = ent->client;
 
-	if ((client->pers.botmodelscale == BOTZIZE_SMALL ||
+	if ((client->pers.botmodelscale == BOTZIZE_TINY ||
+		client->pers.botmodelscale == BOTZIZE_SMALLEST ||
 		client->pers.botmodelscale == BOTZIZE_SMALLER ||
-		client->pers.botmodelscale == BOTZIZE_SMALLEST) && !Bot_Is_Saber_Class(ent))
+		client->pers.botmodelscale == BOTZIZE_SMALL) && !Bot_Is_Saber_Class(ent))
 	{
 		return qtrue;
 	}
@@ -4191,8 +4289,10 @@ static qboolean Is_Undersized_Jedi(gentity_t* ent)
 {
 	gclient_t* client = ent->client;
 
-	if ((client->pers.botmodelscale == BOTZIZE_SMALLER ||
-		client->pers.botmodelscale == BOTZIZE_SMALLEST) && Bot_Is_Saber_Class(ent))
+	if ((client->pers.botmodelscale == BOTZIZE_TINY ||
+		client->pers.botmodelscale == BOTZIZE_SMALLEST ||
+		client->pers.botmodelscale == BOTZIZE_SMALLER ||
+		client->pers.botmodelscale == BOTZIZE_SMALL) && Bot_Is_Saber_Class(ent))
 	{
 		return qtrue;
 	}
@@ -5062,6 +5162,8 @@ static void ClientThink_real(gentity_t* ent)
 			}
 		}
 		else if (client->ps.weapon == WP_BRYAR_PISTOL ||
+			client->ps.weapon == WP_REY ||
+			client->ps.weapon == WP_CLONEPISTOL ||
 			client->ps.weapon == WP_THERMAL ||
 			client->ps.weapon == WP_DET_PACK ||
 			client->ps.weapon == WP_TRIP_MINE)

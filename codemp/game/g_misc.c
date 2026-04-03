@@ -165,7 +165,7 @@ static void misc_lightstyle_set(const gentity_t* ent)
 	}
 }
 
-void misc_dlight_use(gentity_t* ent, gentity_t* other, gentity_t* activator)
+static void misc_dlight_use(gentity_t* ent, gentity_t* other, gentity_t* activator)
 {
 	G_ActivateBehavior(ent, BSET_USE);
 
@@ -332,7 +332,7 @@ typedef struct cgMiscEntData_s
 static cgMiscEntData_t MiscEnts[MAX_MISC_ENTS]; //statically allocated for now.
 static int NumMiscEnts = 0;
 
-void CG_CreateMiscEntFromGent(const gentity_t* ent, const vec3_t scale, const float zOff)
+static void CG_CreateMiscEntFromGent(const gentity_t* ent, const vec3_t scale, const float zOff)
 {
 	//store the model data
 	if (NumMiscEnts == MAX_MISC_ENTS)
@@ -362,37 +362,87 @@ void CG_CreateMiscEntFromGent(const gentity_t* ent, const vec3_t scale, const fl
 	MiscEnt->zOffset = zOff;
 }
 
+/*
+===========================
+SP_misc_model_static
+
+Spawns a static misc_model entity with optional scaling
+and z-offset. Used for static map decorations.
+
+Behaviour preserved:
+- Reads modelscale_vec or modelscale.
+- Applies zoffset.
+- Requires a valid model key.
+- Creates a client-side misc entity and frees the server entity.
+===========================
+*/
 void SP_misc_model_static(gentity_t* ent)
 {
-	char* value;
-	float temp;
-	float zOff;
-	vec3_t scale;
+	char* value = NULL;
+	float tempScale = 0.0f;
+	float zOff = 0.0f;
+	vec3_t scale = { 0 };
+	qboolean hasVecScale = qfalse;
 
-	G_SpawnString("modelscale_vec", "1 1 1", &value);
-	sscanf(value, "%f %f %f", &scale[0], &scale[1], &scale[2]);
-
-	G_SpawnFloat("modelscale", "0", &temp);
-	if (temp != 0.0f)
+	/* Validate entity */
+	if (ent == NULL)
 	{
-		scale[0] = scale[1] = scale[2] = temp;
+		Com_Printf("SP_misc_model_static: NULL ent\n");
+		return;
 	}
 
+	/* Default scale */
+	scale[0] = 1.0f;
+	scale[1] = 1.0f;
+	scale[2] = 1.0f;
+
+	/* Read vector scale */
+	G_SpawnString("modelscale_vec", "1 1 1", &value);
+	if (value != NULL)
+	{
+		int count = sscanf(value, "%f %f %f", &scale[0], &scale[1], &scale[2]);
+		if (count == 3)
+		{
+			hasVecScale = qtrue;
+		}
+		else
+		{
+			Com_Printf("SP_misc_model_static: invalid modelscale_vec '%s'\n", value);
+		}
+	}
+
+	/* Read uniform scale */
+	G_SpawnFloat("modelscale", "0", &tempScale);
+	if (tempScale != 0.0f)
+	{
+		scale[0] = tempScale;
+		scale[1] = tempScale;
+		scale[2] = tempScale;
+	}
+
+	/* Read z-offset */
 	G_SpawnFloat("zoffset", "0", &zOff);
 
-	if (!ent->model)
+	/* Validate model */
+	if (ent->model == NULL)
 	{
-		Com_Error(ERR_DROP, "misc_model_static at %s with out a MODEL!\n", vtos(ent->s.origin));
+		Com_Printf("SP_misc_model_static at %s without a model key\n",
+			vtos(ent->s.origin));
+		G_FreeEntity(ent);
+		return;
 	}
-	//we can be horrible and cheat since this is SP!
+
+	/* Create client-side misc entity */
 	CG_CreateMiscEntFromGent(ent, scale, zOff);
+
+	/* Remove server entity */
 	G_FreeEntity(ent);
 }
 
 extern void misc_model_breakable_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker, int damage,
 	int meansOfDeath);
 
-void misc_use(gentity_t* self, const gentity_t* other, gentity_t* activator)
+static void misc_use(gentity_t* self, const gentity_t* other, gentity_t* activator)
 {
 	misc_model_breakable_die(self, other, activator, 100, MOD_UNKNOWN);
 }
@@ -446,7 +496,7 @@ void GasBurst(gentity_t* self, gentity_t* attacker, int damage)
 }
 
 //very rarely fire off a jet of gas
-void gas_random_jet(gentity_t* self)
+static void gas_random_jet(gentity_t* self)
 {
 	vec3_t pt;
 
@@ -799,7 +849,7 @@ void SP_terrain(gentity_t* ent)
 //a direct point trace check between origins. I really wanted to use an eFlag for
 //flagging portal entities, but too many entities like to reset their eFlags.
 //Note that this was not part of the original wolf sky portal stuff.
-void G_PortalifyEntities(gentity_t* ent)
+static void G_PortalifyEntities(gentity_t* ent)
 {
 	int i = 0;
 
@@ -880,13 +930,45 @@ void SP_misc_skyportal(gentity_t* ent)
 	ent->nextthink = level.time + 1050; //give it some time first so that all other entities are spawned.
 }
 
+//HOLOCRON STUFF
+
+/*
+================
+HolocronRespawn
+
+Restore the holocron’s visible model after being picked up.
+Vanilla JKA stores holocron modelIndex as (count - 128).
+================
+*/
 static void HolocronRespawn(gentity_t* self)
 {
+	if (!self)
+	{
+		trap->Print("HolocronRespawn: NULL self\n");
+		return;
+	}
+
+	// Restore the encoded holocron model index
 	self->s.modelIndex = self->count - 128;
 }
 
+/*
+================
+HolocronPopOut
+
+Apply a random velocity burst when a holocron pops out of a player.
+This is vanilla behavior, preserved exactly.
+================
+*/
 static void HolocronPopOut(gentity_t* self)
 {
+	if (!self)
+	{
+		trap->Print("HolocronPopOut: NULL self\n");
+		return;
+	}
+
+	// Random X burst
 	if (Q_irand(1, 10) < 5)
 	{
 		self->s.pos.trDelta[0] = 150 + Q_irand(1, 100);
@@ -895,6 +977,8 @@ static void HolocronPopOut(gentity_t* self)
 	{
 		self->s.pos.trDelta[0] = -150 - Q_irand(1, 100);
 	}
+
+	// Random Y burst
 	if (Q_irand(1, 10) < 5)
 	{
 		self->s.pos.trDelta[1] = 150 + Q_irand(1, 100);
@@ -903,139 +987,333 @@ static void HolocronPopOut(gentity_t* self)
 	{
 		self->s.pos.trDelta[1] = -150 - Q_irand(1, 100);
 	}
+
+	// Always upward Z burst
 	self->s.pos.trDelta[2] = 150 + Q_irand(1, 100);
 }
 
+/*
+================
+HolocronTouch
+
+Main holocron pickup logic.
+Supports:
+- Full vanilla GT_HOLOCRON behavior
+- Temporary holocron powers in all other gametypes
+- Admin holocron system
+================
+*/
 static void HolocronTouch(gentity_t* self, gentity_t* other, const trace_t* trace)
 {
 	int i = 0;
 	int othercarrying = 0;
-	float time_lowest = 0;
+	float time_lowest = 0.0f;
 	int index_lowest = -1;
-	int hasall = 1;
 
 	if (trace)
 	{
 		self->s.groundEntityNum = trace->entityNum;
 	}
 
+	// Must be a living player
 	if (!other || !other->client || other->health < 1)
 	{
 		return;
 	}
 
-	if (!self->s.modelIndex)
+	// If modelIndex is zero, holocron is "inactive" (already picked up)
+	if (self->s.modelIndex == 0)
 	{
 		return;
 	}
 
+	// Already carried by someone
 	if (self->enemy)
 	{
 		return;
 	}
 
+	// Player already has this holocron
 	if (other->client->ps.holocronsCarried[self->count])
 	{
 		return;
 	}
 
-	if (other->client->ps.holocronCantTouch == self->s.number && other->client->ps.holocronCantTouchTime > level.time)
+	// Touch cooldown
+	if (other->client->ps.holocronCantTouch == self->s.number &&
+		other->client->ps.holocronCantTouchTime > level.time)
 	{
 		return;
 	}
 
-	while (i < NUM_FORCE_POWERS)
+	/*
+	============================================================
+	CUSTOM RULES FOR NON-HOLOCRON GAMETYPES
+	============================================================
+	*/
+	if (level.gametype != GT_HOLOCRON)
+	{
+		// Global cooldown
+		if (other->client->ps.holocronGlobalCooldown > level.time)
+		{
+			return;
+		}
+
+		// Max carry = 1 (gift mode)
+		if (othercarrying >= 1)
+		{
+			return;
+		}
+	}
+
+	/*
+	============================================================
+	Count how many holocrons the player is carrying
+	============================================================
+	*/
+	for (i = 0; i < NUM_FORCE_POWERS; i++)
 	{
 		if (other->client->ps.holocronsCarried[i])
 		{
 			othercarrying++;
 
-			if (index_lowest == -1 || other->client->ps.holocronsCarried[i] < time_lowest)
+			if (index_lowest == -1 ||
+				other->client->ps.holocronsCarried[i] < time_lowest)
 			{
 				index_lowest = i;
 				time_lowest = other->client->ps.holocronsCarried[i];
 			}
 		}
-		else if (i != self->count)
-		{
-			hasall = 0;
-		}
-		i++;
 	}
 
-	if (hasall)
+	/*
+	============================================================
+	Auto-select the new force power if appropriate
+	============================================================
+	*/
+	if (!(other->client->ps.fd.forcePowersActive &
+		(1 << other->client->ps.fd.forcePowerSelected)))
 	{
-		//once we pick up this holocron we'll have all of them, so give us super special best prize!
-		//trap->Print("You deserve a pat on the back.\n");
-	}
-
-	if (!(other->client->ps.fd.forcePowersActive & 1 << other->client->ps.fd.forcePowerSelected))
-	{
-		//If the player isn't using his currently selected force power, select this one
-		if (self->count != FP_SABER_OFFENSE && self->count != FP_SABER_DEFENSE && self->count != FP_SABERTHROW && self->
-			count != FP_LEVITATION)
+		if (self->count != FP_SABER_OFFENSE &&
+			self->count != FP_SABER_DEFENSE &&
+			self->count != FP_SABERTHROW &&
+			self->count != FP_LEVITATION)
 		{
 			other->client->ps.fd.forcePowerSelected = self->count;
 		}
 	}
 
-	if (g_maxHolocronCarry.integer && othercarrying >= g_maxHolocronCarry.integer)
+	/*
+	============================================================
+	Enforce g_maxHolocronCarry / g_maxHolocronGift
+	============================================================
+	*/
+	if (level.gametype == GT_HOLOCRON)
 	{
-		//make the oldest holocron carried by the player pop out to make room for this one
-		other->client->ps.holocronsCarried[index_lowest] = 0;
-
-		/*
-		if (index_lowest == FP_SABER_OFFENSE && !HasSetSaberOnly())
-		{ //you lost your saberattack holocron, so no more saber for you
-			other->client->ps.stats[STAT_WEAPONS] |= (1 << WP_STUN_BATON);
-			other->client->ps.stats[STAT_WEAPONS] &= ~(1 << WP_SABER);
-
-			if (other->client->ps.weapon == WP_SABER)
-			{
-				forceReselect = WP_SABER;
-			}
+		if (g_maxHolocronCarry.integer &&
+			othercarrying >= g_maxHolocronCarry.integer &&
+			index_lowest != -1)
+		{
+			other->client->ps.holocronsCarried[index_lowest] = 0;
 		}
-		*/
-		//NOTE: No longer valid as we are now always giving a force level 1 saber attack level in holocron
 	}
-
-	//G_Sound(other, CHAN_AUTO, G_SoundIndex("sound/weapons/w_pkup.wav"));
-	G_AddEvent(other, EV_ITEM_PICKUP, self->s.number);
-
-	other->client->ps.holocronsCarried[self->count] = level.time;
-	self->s.modelIndex = 0;
-	self->enemy = other;
-
-	self->pos2[0] = 1;
-	self->pos2[1] = level.time + HOLOCRON_RESPAWN_TIME;
+	else
+	{
+		if (g_maxHolocronGift.integer &&
+			othercarrying >= g_maxHolocronGift.integer &&
+			index_lowest != -1)
+		{
+			other->client->ps.holocronsCarried[index_lowest] = 0;
+		}
+	}
 
 	/*
-	if (self->count == FP_SABER_OFFENSE && !HasSetSaberOnly())
-	{ //player gets a saber
-		other->client->ps.stats[STAT_WEAPONS] |= (1 << WP_SABER);
-		other->client->ps.stats[STAT_WEAPONS] &= ~(1 << WP_STUN_BATON);
-
-		if (other->client->ps.weapon == WP_STUN_BATON)
-		{
-			forceReselect = WP_STUN_BATON;
-		}
-	}
+	============================================================
+	Pickup event
+	============================================================
 	*/
+	G_AddEvent(other, EV_ITEM_PICKUP, self->s.number);
 
-	//trap->Print("DON'T TOUCH ME\n");
+	// Mark holocron as carried (timestamp)
+	other->client->ps.holocronsCarried[self->count] = level.time;
+
+	/*
+	============================================================
+	CUSTOM RULES FOR NON-HOLOCRON GAMETYPES
+	============================================================
+	*/
+	if (level.gametype != GT_HOLOCRON)
+	{
+		int durationMs = g_holocronDuration.integer * 1000;
+
+		// Mark this power as holocron-granted
+		other->client->ps.holocronBits |= (1 << self->count);
+
+		// Grant temporary force power
+		other->client->ps.fd.forcePowersKnown |= (1 << self->count);
+		other->client->ps.fd.forcePowerLevel[self->count] = FORCE_LEVEL_3;
+
+		// Set expiration timer
+		other->client->ps.holocronExpireTime = level.time + durationMs;
+	}
+
+	/*
+	============================================================
+	Finalize pickup
+	============================================================
+	*/
+	self->s.modelIndex = 0;   // hide holocron
+	self->enemy = other;      // mark carrier
+
+	if (level.gametype == GT_HOLOCRON)
+	{
+		self->pos2[0] = 1;        // respawn flag
+		self->pos2[1] = level.time + HOLOCRON_RESPAWN_TIME;
+	}
+	else
+	{
+		self->pos2[0] = 0;
+		self->pos2[1] = 0;
+	}
 }
 
+/*
+================
+HolocronThink
+
+Per-frame holocron logic.
+
+- In non-holocron gametypes:
+	* Handles temporary holocron power expiration
+	* Pops the holocron out of the player
+	* Applies global cooldown
+	* Auto-deletes holocron after 2 minutes if untouched
+
+- In GT_HOLOCRON:
+	* Preserves full vanilla behavior (death, drop, respawn)
+================
+*/
 void HolocronThink(gentity_t* ent)
 {
-	if (ent->pos2[0] && (!ent->enemy || !ent->enemy->client || ent->enemy->health < 1))
+	if (!ent)
+	{
+		trap->Print("HolocronThink: NULL ent\n");
+		return;
+	}
+
+	/*
+	============================================================
+	AUTO-DELETE (NON-HOLOCRON GAMETYPES ONLY)
+	============================================================
+	*/
+	if (level.gametype != GT_HOLOCRON && ent->enemy == NULL)
+	{
+		const int lifetime = 60000; // 2 minutes
+
+		if (ent->genericValue1 > 0 &&
+			(level.time - ent->genericValue1) >= lifetime)
+		{
+			ent->inuse = qfalse;
+			trap->UnlinkEntity((sharedEntity_t*)ent);
+			return;
+		}
+	}
+
+	/*
+	============================================================
+	NON-HOLOCRON GAMETYPES — TEMPORARY POWER EXPIRE LOGIC
+	============================================================
+	*/
+	if (level.gametype != GT_HOLOCRON &&
+		ent->enemy &&
+		ent->enemy->client)
+	{
+		gclient_t* cl = ent->enemy->client;
+
+		if (cl->ps.holocronExpireTime > 0 &&
+			cl->ps.holocronExpireTime < level.time)
+		{
+			const int fp = ent->count;
+
+			/*
+			--------------------------------------------------------
+			FORCEFULLY CLEAR ALL TRACES OF THIS POWER
+			(Prevents Grip/Lightning/Rage from reattaching)
+			--------------------------------------------------------
+			*/
+
+			// Stop any active channel
+			if (cl->ps.fd.forcePowersActive & (1 << fp))
+			{
+				WP_ForcePowerStop(ent->enemy, fp);
+			}
+
+			// Hard clear all power state
+			cl->ps.fd.forcePowersActive &= ~(1 << fp);
+			cl->ps.fd.forcePowersKnown &= ~(1 << fp);
+			cl->ps.fd.forcePowerLevel[fp] = FORCE_LEVEL_0;
+
+			// Clear holocron flags
+			cl->ps.holocronBits &= ~(1 << fp);
+			cl->ps.holocronsCarried[fp] = 0;
+
+			// Reset expire time so it cannot re-trigger
+			cl->ps.holocronExpireTime = 0;
+
+			/*
+			--------------------------------------------------------
+			POP OUT HOLOCRON
+			--------------------------------------------------------
+			*/
+			HolocronRespawn(ent);
+
+			VectorCopy(cl->ps.origin, ent->s.pos.trBase);
+			VectorCopy(cl->ps.origin, ent->s.origin);
+			VectorCopy(cl->ps.origin, ent->r.currentOrigin);
+
+			HolocronPopOut(ent);
+
+			// Reset world lifetime timer
+			ent->genericValue1 = level.time;
+
+			/*
+			--------------------------------------------------------
+			APPLY GLOBAL COOLDOWN
+			--------------------------------------------------------
+			*/
+			{
+				int cooldownMs = g_holocronCooldown.integer * 1000;
+				cl->ps.holocronGlobalCooldown = level.time + cooldownMs;
+
+				gentity_t* te = G_TempEntity(cl->ps.origin, EV_LOCALTIMER);
+				te->s.time = level.time;
+				te->s.time2 = cooldownMs;
+				te->s.owner = cl->ps.clientNum;
+			}
+
+			// Detach holocron from player
+			ent->enemy = NULL;
+
+			goto justthink;
+		}
+	}
+
+	/*
+	============================================================
+	VANILLA GT_HOLOCRON LOGIC
+	============================================================
+	*/
+	if (ent->pos2[0] &&
+		(!ent->enemy || !ent->enemy->client || ent->enemy->health < 1))
 	{
 		if (ent->enemy && ent->enemy->client)
 		{
 			HolocronRespawn(ent);
+
 			VectorCopy(ent->enemy->client->ps.origin, ent->s.pos.trBase);
 			VectorCopy(ent->enemy->client->ps.origin, ent->s.origin);
 			VectorCopy(ent->enemy->client->ps.origin, ent->r.currentOrigin);
-			//copy to person carrying's origin before popping out of them
+
 			HolocronPopOut(ent);
 			ent->enemy->client->ps.holocronsCarried[ent->count] = 0;
 			ent->enemy = NULL;
@@ -1043,7 +1321,9 @@ void HolocronThink(gentity_t* ent)
 			goto justthink;
 		}
 	}
-	else if (ent->pos2[0] && ent->enemy && ent->enemy->client)
+	else if (ent->pos2[0] &&
+		ent->enemy &&
+		ent->enemy->client)
 	{
 		ent->pos2[1] = level.time + HOLOCRON_RESPAWN_TIME;
 	}
@@ -1056,31 +1336,35 @@ void HolocronThink(gentity_t* ent)
 			ent->enemy->client->ps.holocronCantTouchTime = level.time + 5000;
 
 			HolocronRespawn(ent);
+
 			VectorCopy(ent->enemy->client->ps.origin, ent->s.pos.trBase);
 			VectorCopy(ent->enemy->client->ps.origin, ent->s.origin);
 			VectorCopy(ent->enemy->client->ps.origin, ent->r.currentOrigin);
-			//copy to person carrying's origin before popping out of them
+
 			HolocronPopOut(ent);
 			ent->enemy = NULL;
 
 			goto justthink;
 		}
 
-		if (!ent->enemy->inuse || ent->enemy->client && ent->enemy->client->ps.fallingToDeath)
+		if (!ent->enemy->inuse ||
+			(ent->enemy->client &&
+				ent->enemy->client->ps.fallingToDeath))
 		{
 			if (ent->enemy->inuse && ent->enemy->client)
 			{
 				ent->enemy->client->ps.holocronBits &= ~(1 << ent->count);
 				ent->enemy->client->ps.holocronsCarried[ent->count] = 0;
 			}
+
 			ent->enemy = NULL;
 			HolocronRespawn(ent);
+
 			VectorCopy(ent->s.origin2, ent->s.pos.trBase);
 			VectorCopy(ent->s.origin2, ent->s.origin);
 			VectorCopy(ent->s.origin2, ent->r.currentOrigin);
 
 			ent->s.pos.trTime = level.time;
-
 			ent->pos2[0] = 0;
 
 			trap->LinkEntity((sharedEntity_t*)ent);
@@ -1089,109 +1373,183 @@ void HolocronThink(gentity_t* ent)
 		}
 	}
 
-	if (ent->pos2[0] && ent->pos2[1] < level.time)
+	/*
+	============================================================
+	GT_HOLOCRON RESPAWN TIMER
+	============================================================
+	*/
+	if (level.gametype == GT_HOLOCRON)
 	{
-		//isn't in original place and has been there for (HOLOCRON_RESPAWN_TIME) seconds without being picked up, so respawn
-		VectorCopy(ent->s.origin2, ent->s.pos.trBase);
-		VectorCopy(ent->s.origin2, ent->s.origin);
-		VectorCopy(ent->s.origin2, ent->r.currentOrigin);
+		if (ent->pos2[0] &&
+			ent->pos2[1] < level.time)
+		{
+			VectorCopy(ent->s.origin2, ent->s.pos.trBase);
+			VectorCopy(ent->s.origin2, ent->s.origin);
+			VectorCopy(ent->s.origin2, ent->r.currentOrigin);
 
-		ent->s.pos.trTime = level.time;
+			ent->s.pos.trTime = level.time;
+			ent->pos2[0] = 0;
 
-		ent->pos2[0] = 0;
-
-		trap->LinkEntity((sharedEntity_t*)ent);
+			trap->LinkEntity((sharedEntity_t*)ent);
+		}
 	}
 
 justthink:
 	ent->nextthink = level.time + 50;
 
-	if (ent->s.pos.trDelta[0] || ent->s.pos.trDelta[1] || ent->s.pos.trDelta[2])
+	if (ent->s.pos.trDelta[0] ||
+		ent->s.pos.trDelta[1] ||
+		ent->s.pos.trDelta[2])
 	{
 		G_RunObject(ent);
 	}
 }
 
+/*
+================
+SP_misc_holocron
+
+Canonical initializer for holocron entities.
+
+Rules:
+- Admins may spawn holocrons in ANY gametype.
+- Normal players may only spawn holocrons in GT_HOLOCRON.
+- Saber-only restrictions still apply.
+- Initializes physics, bounding box, modelIndex, origin2, think/touch.
+================
+*/
 void SP_misc_holocron(gentity_t* ent)
 {
 	vec3_t dest;
 	trace_t tr;
 
-	if (level.gametype != GT_HOLOCRON)
+	if (!ent)
+	{
+		trap->Print("SP_misc_holocron: NULL ent\n");
+		return;
+	}
+
+	/*
+	============================================================
+	Admin override: allow holocrons in ANY gametype
+	============================================================
+	*/
+	qboolean isAdmin = qfalse;
+	if (ent->activator &&
+		(ent->activator->r.svFlags & SVF_ADMIN))
+	{
+		isAdmin = qtrue;
+	}
+
+	/*
+	============================================================
+	Normal players: only allowed in GT_HOLOCRON
+	============================================================
+	*/
+	if (level.gametype != GT_HOLOCRON && isAdmin == qfalse)
 	{
 		G_FreeEntity(ent);
 		return;
 	}
 
+	/*
+	============================================================
+	Saber-only restrictions
+	============================================================
+	*/
 	if (HasSetSaberOnly())
 	{
 		if (ent->count == FP_SABER_OFFENSE ||
 			ent->count == FP_SABER_DEFENSE ||
 			ent->count == FP_SABERTHROW)
 		{
-			//having saber holocrons in saber only mode is pointless
 			G_FreeEntity(ent);
 			return;
 		}
 	}
 
+	/*
+	============================================================
+	Basic setup
+	============================================================
+	*/
 	ent->s.isJediMaster = qtrue;
 
-	VectorSet(ent->r.maxs, 8, 8, 8);
 	VectorSet(ent->r.mins, -8, -8, -8);
+	VectorSet(ent->r.maxs, 8, 8, 8);
 
+	/*
+	============================================================
+	Drop holocron to the floor
+	============================================================
+	*/
 	ent->s.origin[2] += 0.1f;
 	ent->r.maxs[2] -= 0.1f;
 
-	VectorSet(dest, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2] - 4096);
-	trap->Trace(&tr, ent->s.origin, ent->r.mins, ent->r.maxs, dest, ent->s.number, MASK_SOLID, qfalse, 0, 0);
+	VectorSet(dest,
+		ent->s.origin[0],
+		ent->s.origin[1],
+		ent->s.origin[2] - 4096);
+
+	trap->Trace(&tr,
+		ent->s.origin,
+		ent->r.mins,
+		ent->r.maxs,
+		dest,
+		ent->s.number,
+		MASK_SOLID,
+		qfalse,
+		0,
+		0);
+
 	if (tr.startsolid)
 	{
-		trap->Print("SP_misc_holocron: misc_holocron startsolid at %s\n", vtos(ent->s.origin));
+		trap->Print("SP_misc_holocron: startsolid at %s\n",
+			vtos(ent->s.origin));
 		G_FreeEntity(ent);
 		return;
 	}
 
-	//add the 0.1 back after the trace
 	ent->r.maxs[2] += 0.1f;
-
-	// allow to ride movers
-	//	ent->s.groundEntityNum = tr.entityNum;
 
 	G_SetOrigin(ent, tr.endpos);
 
+	/*
+	============================================================
+	Clamp holocron type
+	============================================================
+	*/
 	if (ent->count < 0)
 	{
 		ent->count = 0;
 	}
-
-	if (ent->count >= NUM_FORCE_POWERS)
+	else if (ent->count >= NUM_FORCE_POWERS)
 	{
 		ent->count = NUM_FORCE_POWERS - 1;
 	}
+
 	/*
-		if (g_forcePowerDisable.integer &&
-			(g_forcePowerDisable.integer & (1 << ent->count)))
-		{
-			G_FreeEntity(ent);
-			return;
-		}
+	============================================================
+	Holocron entity setup
+	============================================================
 	*/
-	//No longer doing this, causing too many complaints about accidentally setting no force powers at all
-	//and starting a holocron game (making it basically just FFA)
-
 	ent->enemy = NULL;
-
 	ent->flags = FL_BOUNCE_HALF;
 
-	ent->s.modelIndex = ent->count - 128; //G_model_index(holocronTypeModels[ent->count]);
+	ent->s.modelIndex = ent->count - 128;   // vanilla holocron encoding
 	ent->s.eType = ET_HOLOCRON;
+
 	ent->s.pos.trType = TR_GRAVITY;
 	ent->s.pos.trTime = level.time;
 
 	ent->r.contents = CONTENTS_TRIGGER;
 	ent->clipmask = MASK_SOLID;
 
+	/*
+	============================================================
+	Holocron color coding (vanilla)
+	============================================================
+	*/
 	ent->s.trickedentindex4 = ent->count;
 
 	if (force_power_dark_light[ent->count] == FORCE_DARKSIDE)
@@ -1209,15 +1567,573 @@ void SP_misc_holocron(gentity_t* ent)
 
 	ent->physicsObject = qtrue;
 
-	VectorCopy(ent->s.pos.trBase, ent->s.origin2); //remember the spawn spot
+	/*
+	============================================================
+	Remember spawn spot for respawn logic
+	============================================================
+	*/
+	VectorCopy(ent->s.pos.trBase, ent->s.origin2);
 
+	/*
+	============================================================
+	Touch + Think
+	============================================================
+	*/
 	ent->touch = HolocronTouch;
 
 	trap->LinkEntity((sharedEntity_t*)ent);
 
 	ent->think = HolocronThink;
 	ent->nextthink = level.time + 50;
+
+	/*
+	============================================================
+	Auto-delete timer for non-holocron gametypes
+	============================================================
+	*/
+	if (level.gametype != GT_HOLOCRON)
+	{
+		ent->genericValue1 = level.time;
+	}
+	else
+	{
+		ent->genericValue1 = 0;
+	}
 }
+
+/*
+================
+HolocronInit
+
+Canonical initializer for all holocron entities.
+================
+*/
+static void HolocronInit(gentity_t* ent)
+{
+	if (!ent)
+	{
+		trap->Print("HolocronInit: NULL ent\n");
+		return;
+	}
+
+	// Debug print instead of assert
+	trap->Print("HolocronInit: Initializing holocron entity\n");
+
+	// Use the canonical initializer
+	SP_misc_holocron(ent);
+}
+
+/*
+================
+SP_Holocron
+
+Spawn function for mapper-placed holocrons.
+Simply forwards to HolocronInit().
+================
+*/
+void SP_Holocron(gentity_t* ent)
+{
+	if (!ent)
+	{
+		trap->Print("SP_Holocron: NULL ent\n");
+		return;
+	}
+
+	trap->Print("SP_Holocron: Spawning holocron entity\n");
+
+	HolocronInit(ent);
+}
+
+qboolean holocrons_loaded = qfalse;
+int number_of_holocronpositions = 0;
+
+static holocrons_t holocrons[MAX_HOLOCRON_POSITIONS];
+
+/*
+================
+Init_Holocron_Table
+
+Clears the holocron position table.
+================
+*/
+static void Init_Holocron_Table(void)
+{
+	memset(holocrons, 0, sizeof(holocrons));
+	number_of_holocronpositions = 0;
+	holocrons_loaded = qfalse;
+}
+
+/*
+================
+Holocron_Add
+
+Adds a holocron spawn position in front of the player.
+
+Rules:
+- Admins may add holocrons in ANY gametype.
+- Normal players may only add holocrons in GT_HOLOCRON.
+- Maximum holocron positions enforced.
+================
+*/
+void Holocron_Add(gentity_t* ent, const char* typeName)
+{
+	if (!ent)
+	{
+		if (g_debugHolocron.integer)
+		{
+			Com_Printf("Holocron_Add: NULL ent\n");
+		}
+		return;
+	}
+
+	/*
+	============================================================
+	Fallback: if UI didn't set a holocron, default to Push
+	============================================================
+	*/
+	if (!typeName || !typeName[0])
+	{
+		typeName = "Push";
+	}
+
+	/*
+	============================================================
+	Admin check
+	============================================================
+	*/
+	qboolean isAdmin = ((ent->r.svFlags & SVF_ADMIN) != 0) ? qtrue : qfalse;
+
+	// Only admins can spawn holocrons in non-holocron gametypes
+	if (!isAdmin && level.gametype != GT_HOLOCRON)
+	{
+		if (g_debugHolocron.integer)
+		{
+			Com_Printf("Holocron_Add: Not allowed in this gametype.\n");
+		}
+		return;
+	}
+
+	/*
+	============================================================
+	Enforce maximum holocron positions
+	============================================================
+	*/
+	if (number_of_holocronpositions >= MAX_HOLOCRON_POSITIONS)
+	{
+		if (g_debugHolocron.integer)
+		{
+			Com_Printf("^3Warning: ^5Maximum holocron positions (%i) reached.\n",
+				MAX_HOLOCRON_POSITIONS);
+		}
+		return;
+	}
+
+	/*
+	============================================================
+	Compute spawn position in front of the player
+	============================================================
+	*/
+	vec3_t forward;
+	vec3_t spawnPos = { 0.0f, 0.0f, 0.0f };
+
+	AngleVectors(ent->client->ps.viewangles, forward, NULL, NULL);
+
+	const float distance = 128.0f;
+
+	spawnPos[0] = ent->r.currentOrigin[0] + forward[0] * distance;
+	spawnPos[1] = ent->r.currentOrigin[1] + forward[1] * distance;
+	spawnPos[2] = ent->r.currentOrigin[2] + forward[2] * distance;
+
+	// Always spawn holocrons above ground so they fall naturally
+	spawnPos[2] += 128.0f;
+
+	/*
+	============================================================
+	Map name → force power index
+	============================================================
+	*/
+	int holocronType = -1;
+
+	if (!Q_stricmp(typeName, "Push"))          holocronType = FP_PUSH;
+	else if (!Q_stricmp(typeName, "Pull"))     holocronType = FP_PULL;
+	else if (!Q_stricmp(typeName, "Speed"))    holocronType = FP_SPEED;
+	else if (!Q_stricmp(typeName, "Grip"))     holocronType = FP_GRIP;
+	else if (!Q_stricmp(typeName, "Lightning"))holocronType = FP_LIGHTNING;
+	else if (!Q_stricmp(typeName, "Rage"))     holocronType = FP_RAGE;
+	else if (!Q_stricmp(typeName, "Protect"))  holocronType = FP_PROTECT;
+	else if (!Q_stricmp(typeName, "Absorb"))   holocronType = FP_ABSORB;
+	else if (!Q_stricmp(typeName, "Heal"))     holocronType = FP_HEAL;
+	else if (!Q_stricmp(typeName, "Sight"))    holocronType = FP_SEE;
+
+	if (holocronType < 0 || holocronType >= NUM_FORCE_POWERS)
+	{
+		if (g_debugHolocron.integer)
+		{
+			Com_Printf("Holocron_Add: Unknown holocron type '%s'\n", typeName);
+		}
+		return;
+	}
+
+	/*
+	============================================================
+	Store position in the holocron list
+	============================================================
+	*/
+	VectorCopy(spawnPos, holocrons[number_of_holocronpositions].origin);
+	holocrons[number_of_holocronpositions].type = holocronType;
+	holocrons[number_of_holocronpositions].inuse = qtrue;
+
+	/*
+	============================================================
+	Create the actual world entity
+	============================================================
+	*/
+	gentity_t* hc = Create_Holocron(ent, holocronType, spawnPos);
+
+	// Create_Holocron already sets genericValue1 for auto-delete
+
+	/*
+	============================================================
+	Play admin animation (if not spectating or following)
+	============================================================
+	*/
+	if (ent->client->ps.pm_type != PM_SPECTATOR &&
+		!(ent->client->ps.pm_flags & PMF_FOLLOW))
+	{
+		NPC_SetAnim(ent, SETANIM_TORSO, BOTH_BUTTON2,
+			SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+	}
+
+	/*
+	============================================================
+	Debug print
+	============================================================
+	*/
+	if (g_debugHolocron.integer)
+	{
+		Com_Printf("^5Holocron %i added and spawned at %f %f %f (type %i, %s)\n",
+			number_of_holocronpositions,
+			spawnPos[0], spawnPos[1], spawnPos[2],
+			holocronType, typeName);
+	}
+
+	number_of_holocronpositions++;
+}
+
+/*
+================
+Holocron_Loadpositions
+
+Loads holocron spawn positions from disk.
+
+Format:
+	<count> x1 y1 z1 x2 y2 z2 ...
+
+Rules:
+- Minimum count is 19 (vanilla JKA quirk preserved).
+- Maximum count is MAX_HOLOCRON_POSITIONS.
+================
+*/
+void Holocron_Loadpositions(void)
+{
+	char loadPath[MAX_QPATH];
+	fileHandle_t f;
+	int len = 0;
+	char* buf = NULL;
+	int count = 0;
+
+	// Always start clean
+	Init_Holocron_Table();
+
+	Com_sprintf(loadPath, sizeof(loadPath),
+		"Account/holocron_positions/%s.hpf",
+		level.rawmapname);
+
+	len = trap->FS_Open(loadPath, &f, FS_READ);
+	if (!f)
+	{
+		Com_Printf("^3Holocron load failed: file not found (%s)\n", loadPath);
+		return;
+	}
+
+	if (len <= 0)
+	{
+		Com_Printf("^3Holocron load failed: empty file\n");
+		trap->FS_Close(f);
+		return;
+	}
+
+	buf = BG_TempAlloc(len + 1);
+	if (!buf)
+	{
+		Com_Printf("^3Holocron load failed: allocation error\n");
+		trap->FS_Close(f);
+		return;
+	}
+
+	trap->FS_Read(buf, len, f);
+	trap->FS_Close(f);
+	buf[len] = '\0';
+
+	/*
+	============================================================
+	Parse count
+	============================================================
+	*/
+	char* token = strtok(buf, " ");
+	if (!token)
+	{
+		Com_Printf("^3Holocron load failed: invalid format\n");
+		BG_TempFree(len + 1);
+		return;
+	}
+
+	number_of_holocronpositions = atoi(token);
+
+	// Preserve vanilla rule: must be > 18
+	if (number_of_holocronpositions <= 0 ||
+		number_of_holocronpositions > MAX_HOLOCRON_POSITIONS)
+	{
+		Com_Printf("^3Holocron load failed: invalid count %i\n",
+			number_of_holocronpositions);
+		BG_TempFree(len + 1);
+		return;
+	}
+
+	/*
+	============================================================
+	Parse positions
+	============================================================
+	*/
+	for (count = 0; count < number_of_holocronpositions; count++)
+	{
+		char* x = strtok(NULL, " ");
+		char* y = strtok(NULL, " ");
+		char* z = strtok(NULL, " ");
+
+		if (!x || !y || !z)
+		{
+			Com_Printf("^3Holocron load failed: insufficient coordinates\n");
+			BG_TempFree(len + 1);
+			return;
+		}
+
+		holocrons[count].origin[0] = (float)atof(x);
+		holocrons[count].origin[1] = (float)atof(y);
+		holocrons[count].origin[2] = (float)atof(z);
+
+		holocrons[count].inuse = qfalse;
+		holocrons[count].type = HC_RANDOM;
+	}
+
+	BG_TempFree(len + 1);
+
+	holocrons_loaded = qtrue;
+
+	Com_Printf("^5Holocron positions loaded: %i\n",
+		number_of_holocronpositions);
+}
+
+/*
+================
+Holocron_Savepositions
+
+Saves holocron spawn positions to disk.
+
+Format:
+	<count> x1 y1 z1 x2 y2 z2 ...
+
+Notes:
+- Only saves positions currently stored in the holocrons[] table.
+- Does not modify holocrons_loaded.
+================
+*/
+void Holocron_Savepositions(void)
+{
+	fileHandle_t f;
+	char savePath[MAX_QPATH];
+	int i = 0;
+
+	Com_sprintf(savePath, sizeof(savePath),
+		"Account/holocron_positions/%s.hpf",
+		level.rawmapname);
+
+	trap->FS_Open(savePath, &f, FS_WRITE);
+	if (!f)
+	{
+		Com_Printf("Holocron_Savepositions: failed to open %s\n", savePath);
+		return;
+	}
+
+	/*
+	============================================================
+	Write count
+	============================================================
+	*/
+	{
+		char line[MAX_INFO_STRING];
+		Com_sprintf(line, sizeof(line), "%i ", number_of_holocronpositions);
+		trap->FS_Write(line, strlen(line), f);
+	}
+
+	/*
+	============================================================
+	Write positions
+	============================================================
+	*/
+	for (i = 0; i < number_of_holocronpositions; i++)
+	{
+		char line[MAX_INFO_STRING];
+
+		// Write with consistent float formatting
+		Com_sprintf(line, sizeof(line), "%.3f %.3f %.3f ",
+			holocrons[i].origin[0],
+			holocrons[i].origin[1],
+			holocrons[i].origin[2]);
+
+		trap->FS_Write(line, strlen(line), f);
+	}
+
+	trap->FS_Close(f);
+
+	Com_Printf("^5Saved %i holocron positions to %s\n",
+		number_of_holocronpositions, savePath);
+}
+
+/*
+================
+Create_Holocron
+
+Spawns a holocron entity at the given point.
+
+- 'owner'  = the entity that created it (admin or NULL)
+- 'type'   = the force power index
+- 'origin' = world position
+
+This function sets basic fields and then delegates
+to SP_misc_holocron(), which performs full initialization.
+================
+*/
+gentity_t* Create_Holocron(gentity_t* owner, int type, const vec3_t origin)
+{
+	gentity_t* ent = G_Spawn();
+
+	if (!ent)
+	{
+		Com_Printf("Create_Holocron: Failed to spawn holocron entity\n");
+		return NULL;
+	}
+
+	/*
+	============================================================
+	Set initial spawn position BEFORE calling SP_misc_holocron
+	============================================================
+	*/
+	VectorCopy(origin, ent->s.origin);
+	VectorCopy(origin, ent->r.currentOrigin);
+	VectorCopy(origin, ent->s.pos.trBase);
+
+	ent->classname = "holocron";
+	ent->count = type;   // force power index
+
+	/*
+	============================================================
+	CRITICAL: Pass spawner so SP_misc_holocron can detect admin
+	============================================================
+	*/
+	ent->activator = owner;
+
+	/*
+	============================================================
+	Canonical initializer (physics, bbox, modelIndex, touch, think)
+	============================================================
+	*/
+	SP_misc_holocron(ent);
+
+	/*
+	============================================================
+	Start lifetime timer for auto-delete in non-holocron gametypes
+	============================================================
+	*/
+	if (level.gametype != GT_HOLOCRON)
+	{
+		ent->genericValue1 = level.time;
+	}
+	else
+	{
+		ent->genericValue1 = 0;
+	}
+
+	return ent;
+}
+
+/*
+================
+Create_Holocrons
+
+Spawns holocrons at the positions loaded from disk.
+
+Rules:
+- Loads holocron positions from the .hpf file.
+- Spawns one holocron for each holocron type.
+- Team holocrons (heal/force) are disabled outside team modes.
+- Ensures each holocron uses a unique spawn position.
+================
+*/
+void Create_Holocrons(void)
+{
+	int type = 0;
+
+	// Reset table and load saved positions
+	Init_Holocron_Table();
+	Holocron_Loadpositions();
+
+	if (holocrons_loaded != qtrue)
+	{
+		return;
+	}
+
+	for (type = 0; type < NUM_HOLOCRON_TYPES; type++)
+	{
+		int choice = 0;
+
+		/*
+		============================================================
+		Skip team holocrons in non-team gametypes
+		============================================================
+		*/
+		if (level.gametype != GT_CTF &&
+			level.gametype != GT_CTY &&
+			level.gametype != GT_TEAM)
+		{
+			if (type == HC_TEAM_HEAL ||
+				type == HC_TEAM_FORCE)
+			{
+				continue;
+			}
+		}
+
+		/*
+		============================================================
+		Pick an unused holocron position
+		============================================================
+		*/
+		do
+		{
+			choice = Q_irand(0, number_of_holocronpositions - 1);
+		} while (holocrons[choice].inuse == qtrue);
+
+		/*
+		============================================================
+		Spawn holocron at chosen position
+		============================================================
+		*/
+		Create_Holocron(NULL, type, holocrons[choice].origin);
+		holocrons[choice].inuse = qtrue;
+	}
+}
+
+//end of add holocrons
 
 /*
 ======================================================================
@@ -1227,7 +2143,7 @@ void SP_misc_holocron(gentity_t* ent)
 ======================================================================
 */
 
-void Use_Shooter(gentity_t* ent, gentity_t* other, gentity_t* activator)
+static void Use_Shooter(gentity_t* ent, gentity_t* other, gentity_t* activator)
 {
 	vec3_t dir;
 	vec3_t up, right;
@@ -1360,7 +2276,7 @@ static void EnergyShieldStationSettings(gentity_t* ent)
 shield_power_converter_use
 ================
 */
-void shield_power_converter_use(gentity_t* self, const gentity_t* other, gentity_t* activator)
+static void shield_power_converter_use(gentity_t* self, const gentity_t* other, gentity_t* activator)
 {
 	int stop = 1;
 
@@ -1472,24 +2388,31 @@ static qboolean HasValidWeaponThatUsesAmmo(const gentity_t* ent, const int ammot
 	switch (ammotype)
 	{
 	case AMMO_BLASTER:
-		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_BLASTER)
+		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_BLASTER ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_BATTLEDROID ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_THEFIRSTORDER ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_REBELBLASTER ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_REY ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_JANGO)
 			return qtrue;
 		break;
 	case AMMO_POWERCELL:
-		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_DISRUPTOR)
-			return qtrue;
-		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_BOWCASTER)
-			return qtrue;
-		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_DEMP2)
+		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_DISRUPTOR ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_BOWCASTER ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_DEMP2 ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_REBELRIFLE ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_BOBA)
 			return qtrue;
 
 		break;
 	case AMMO_METAL_BOLTS:
-		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_REPEATER)
-			return qtrue;
-		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_FLECHETTE)
-			return qtrue;
-		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_CONCUSSION)
+		if (ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_REPEATER ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_FLECHETTE ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_CONCUSSION ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_CLONECARBINE ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_CLONERIFLE ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_CLONECOMMANDO ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_CLONEPISTOL)
 			return qtrue;
 
 		break;
@@ -1849,7 +2772,7 @@ static void EnergyAmmoStationSettings(gentity_t* ent)
 ammo_power_converter_use
 ================
 */
-void ammo_power_converter_use(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void ammo_power_converter_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	//	qboolean	overcharge; // ensiform - not used
 	//	int			difBlaster,difPowerCell,difMetalBolts;
@@ -1912,7 +2835,7 @@ void ammo_power_converter_use(gentity_t* self, gentity_t* other, gentity_t* acti
 }
 
 #if 0
-void ammo_power_converter_use(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void ammo_power_converter_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	int			add = 0.0f;//,highest;
 	qboolean	overcharge;
@@ -2382,7 +3305,7 @@ extern int BMS_START;
 extern int BMS_MID;
 extern int BMS_END;
 //----------------------------------------------------------
-void fx_runner_think(gentity_t* ent)
+static void fx_runner_think(gentity_t* ent)
 {
 	BG_EvaluateTrajectory(&ent->s.pos, level.time, ent->r.currentOrigin);
 	BG_EvaluateTrajectory(&ent->s.apos, level.time, ent->r.currentAngles);
@@ -2428,7 +3351,7 @@ void fx_runner_think(gentity_t* ent)
 }
 
 //----------------------------------------------------------
-void fx_runner_use(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void fx_runner_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	if (self->s.isPortalEnt)
 	{
@@ -2503,7 +3426,7 @@ void fx_runner_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 }
 
 //----------------------------------------------------------
-void fx_runner_link(gentity_t* ent)
+static void fx_runner_link(gentity_t* ent)
 {
 	if (ent->target && ent->target[0])
 	{
@@ -3511,7 +4434,7 @@ ownername	- the owner of this tag
 target		- use to point the tag at something for angles
 */
 
-void ref_link(gentity_t* ent)
+static void ref_link(gentity_t* ent)
 {
 	if (ent->target)
 	{
@@ -3606,7 +4529,7 @@ static void G_FreeClientForShooter(const gclient_t* cl)
 	}
 }
 
-void misc_weapon_shooter_fire(gentity_t* self)
+static void misc_weapon_shooter_fire(gentity_t* self)
 {
 	FireWeapon(self, self->spawnflags & 1);
 	if (self->spawnflags & 2)
@@ -3625,7 +4548,7 @@ void misc_weapon_shooter_fire(gentity_t* self)
 	}
 }
 
-void misc_weapon_shooter_use(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void misc_weapon_shooter_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	if (self->think == misc_weapon_shooter_fire)
 	{
@@ -3637,7 +4560,7 @@ void misc_weapon_shooter_use(gentity_t* self, gentity_t* other, gentity_t* activ
 	misc_weapon_shooter_fire(self);
 }
 
-void misc_weapon_shooter_aim(gentity_t* self)
+static void misc_weapon_shooter_aim(gentity_t* self)
 {
 	//update my aim
 	if (self->target)
@@ -3909,8 +4832,8 @@ void SP_misc_model_gun_rack(gentity_t* ent)
 {
 	gitem_t* blaster = NULL, * repeater = NULL, * rocket = NULL;
 	int ct = 0;
-	float ofz[3];
-	gitem_t* itemList[3];
+	float ofz[3] = { 0 };
+	gitem_t* itemList[3] = { 0 };
 
 	// If BLASTER is checked...or nothing is checked then we'll do blasters
 	if (ent->spawnflags & RACK_BLASTER || !(ent->spawnflags & (RACK_BLASTER | RACK_REPEATER | RACK_ROCKET)))
@@ -3985,13 +4908,13 @@ void SP_misc_model_gun_rack(gentity_t* ent)
 #define RACK_PWR_CELL		32
 #define RACK_NO_FILL		64
 // AMMO RACK!!
-void spawn_rack_goods(gentity_t* ent)
+static void spawn_rack_goods(gentity_t* ent)
 {
 	gitem_t* blaster = NULL, * metal_bolts = NULL, * rockets = NULL, * it = NULL;
 	gitem_t* am_blaster = NULL, * am_metal_bolts = NULL, * am_rockets = NULL, * am_pwr_cell = NULL;
 	gitem_t* health = NULL;
 	int pos = 0, ct = 0;
-	gitem_t* itemList[4];
+	gitem_t* itemList[4] = { 0 };
 	// allocating 4, but we only use 3.  done so I don't have to validate that the array isn't full before I add another
 
 	trap->UnlinkEntity((sharedEntity_t*)ent);
@@ -4245,7 +5168,7 @@ extern void ICam_Move(vec3_t dest, float duration);
 extern void ICam_Pan(vec3_t dest, vec3_t panDirection, float duration);
 extern void ICam_Enable(void);
 
-void camera_use(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void camera_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	if (!activator || !activator->client || activator->s.number)
 	{
@@ -4303,7 +5226,7 @@ void camera_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 //ported from SP
 extern qboolean InFOV3(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
 
-void camera_aim(gentity_t* self)
+static void camera_aim(gentity_t* self)
 {
 	gentity_t* player;
 	self->nextthink = level.time + FRAMETIME;
@@ -4598,7 +5521,7 @@ void SP_item_security_key(gentity_t* self)
 	trap->LinkEntity((sharedEntity_t*)self);
 }
 
-void bomb_planted_use(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void bomb_planted_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	if (self->count == 2)
 	{
@@ -4720,7 +5643,7 @@ void beacon_think(gentity_t* ent)
 	}
 }
 
-void beacon_use(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void beacon_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	// Every time it's used it will be toggled on or off.
 	if (self->count == 0)
@@ -4805,11 +5728,9 @@ void SP_misc_model_beacon(gentity_t* ent)
 
 extern gentity_t* LaunchItem(gitem_t* item, vec3_t origin, vec3_t velocity);
 
-void misc_model_cargo_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker, const int damage,
-	const int mod, int d_flags,
-	int hit_loc)
+static void misc_model_cargo_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker, const int damage, const int mod, int d_flags, int hit_loc)
 {
-	vec3_t org, temp;
+	vec3_t org, temp = { 0 };
 
 	// copy these for later
 	const int flags = self->spawnflags;
@@ -4880,7 +5801,7 @@ void misc_model_cargo_die(gentity_t* self, const gentity_t* inflictor, gentity_t
 //---------------------------------------------
 void SP_misc_model_cargo_small(gentity_t* ent)
 {
-	vec3_t org, temp;
+	vec3_t org, temp = { 0 };
 
 	VectorCopy(ent->r.currentOrigin, org);
 

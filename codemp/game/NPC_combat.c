@@ -3260,9 +3260,7 @@ qboolean NPC_SetCombatPoint(const int combatPointID)
 	return qtrue;
 }
 
-extern qboolean G_CanPickUpWeapons(const gentity_t* other);
-
-gentity_t* NPC_SearchForWeapons(void)
+static gentity_t* NPC_SearchForWeapons(void)
 {
 	gentity_t* bestFound = NULL;
 	float bestDist = Q3_INFINITE;
@@ -3336,9 +3334,6 @@ static void NPC_SetPickUpGoal(gentity_t* found_weap)
 	NPCS.NPCInfo->tempBehavior = BS_DEFAULT;
 	NPCS.NPCInfo->squadState = SQUAD_TRANSITION;
 }
-
-extern qboolean G_CanPickUpWeapons(const gentity_t* other);
-
 void NPC_CheckGetNewWeapon(void)
 {
 	if (NPCS.NPC->s.weapon == WP_NONE && NPCS.NPC->enemy)

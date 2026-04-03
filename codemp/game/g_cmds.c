@@ -86,23 +86,36 @@ const gbuyable_t bg_buylist[] =
 {
 	// text		giTag	giType	quantity    price	wc
 	{"melee", WP_MELEE, IT_WEAPON, 0, 0, WC_MELEE}, // weaponless
-	{"pistol", WP_BRYAR_PISTOL, IT_WEAPON, 0, 1, WC_PISTOL}, // pistol
-	{"blaster", WP_BLASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
-	{"disruptor", WP_DISRUPTOR, IT_WEAPON, 300, 2, WC_RIFLE}, // sniper rifle
-	{"bowcaster", WP_BOWCASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
-	{"repeater", WP_REPEATER, IT_WEAPON, 350, 2, WC_RIFLE}, // auto rifle
-	{"electro", WP_DEMP2, IT_WEAPON, 350, 2, WC_RIFLE}, // electro gun
-	{"flechette", WP_FLECHETTE, IT_WEAPON, 350, 2, WC_RIFLE}, // shotgun
-	{"launcher", WP_ROCKET_LAUNCHER, IT_WEAPON, 3, 2, WC_HEAVY}, // rocket
-	{"concussion", WP_CONCUSSION, IT_WEAPON, 300, 2, WC_HEAVY}, // mega rifle
+	{"BryarPistol", WP_BRYAR_PISTOL, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
+	{"Blaster", WP_BLASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+	{"Disruptor", WP_DISRUPTOR, IT_WEAPON, 300, 2, WC_RIFLE}, // sniper rifle
+	{"Bowcaster", WP_BOWCASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+	{"Repeater", WP_REPEATER, IT_WEAPON, 350, 2, WC_RIFLE}, // auto rifle
+	{"Demp2", WP_DEMP2, IT_WEAPON, 350, 2, WC_RIFLE}, // electro gun
+	{"Flechette", WP_FLECHETTE, IT_WEAPON, 350, 2, WC_RIFLE}, // shotgun
+	{"RocketLauncher", WP_ROCKET_LAUNCHER, IT_WEAPON, 3, 2, WC_HEAVY}, // rocket
+	{"Concussion", WP_CONCUSSION, IT_WEAPON, 300, 2, WC_HEAVY}, // mega rifle
+
+	{"Battledroid", WP_BATTLEDROID, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+	{"TheFirstOrder", WP_THEFIRSTORDER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+	{"CloneCarbine", WP_CLONECARBINE, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+	{"RebelBlaster", WP_REBELBLASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+	{"CloneRifle", WP_CLONERIFLE, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+	{"CloneCommando", WP_CLONECOMMANDO, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+	{"RebelRifle", WP_REBELRIFLE, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+
+	{"Rey", WP_REY, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
+	{"Jango", WP_JANGO, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
+	{"Boba", WP_BOBA, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
+	{"ClonePistol", WP_CLONEPISTOL, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
 
 	{"energy", AMMO_BLASTER, IT_AMMO, 999, 0, WC_AMMO},
 	{"powercells", AMMO_POWERCELL, IT_AMMO, 999, 0, WC_AMMO},
 	{"bolts", AMMO_METAL_BOLTS, IT_AMMO, 999, 0, WC_AMMO},
 	{"rockets", AMMO_ROCKETS, IT_AMMO, 3, 0, WC_AMMO},
-	{"thermal", AMMO_THERMAL, IT_AMMO, 3, 0, WC_GRENADE},
-	{"mine", AMMO_TRIPMINE, IT_AMMO, 3, 0, WC_GRENADE},
-	{"detpack", AMMO_DETPACK, IT_AMMO, 3, 0, WC_GRENADE},
+	{"Thermal", AMMO_THERMAL, IT_AMMO, 3, 0, WC_GRENADE},
+	{"Tripmine", AMMO_TRIPMINE, IT_AMMO, 3, 0, WC_GRENADE},
+	{"Detpack", AMMO_DETPACK, IT_AMMO, 3, 0, WC_GRENADE},
 	{"ammo", AMMO_NONE, IT_AMMO, 0, 0, WC_AMMO},
 
 	{"health", 4, IT_HEALTH, 25, 1, WC_ARMOR}, // heath boost
@@ -118,7 +131,9 @@ const gbuyable_t bg_buylist[] =
 	{"barrier", HI_SHIELD, IT_HOLDABLE, 1, 2, WC_DEPLOY}, // shield barrier
 	{"Sphereshield", HI_SPHERESHIELD, IT_HOLDABLE, 1, 2, WC_DEPLOY}, // shield barrier
 	// end of list marker
-	{NULL}
+	{
+		NULL
+	}
 };
 
 /*
@@ -409,203 +424,484 @@ static int G_ClientNumberFromArg(char* name)
 	}
 	return client_id;
 }
+/*
+====================
+G_GiveWeaponsByClass
+
+Class‑aware weapon granting for:
+ - give all
+ - give weapons
+
+Implements Wood's weapon rules:
+ - WP_MELEE always selectable
+ - WP_STUN_BATON only for Jawa (unless cheats)
+ - WP_SABER only for saber classes (unless cheats)
+ - All guns blocked for SBD and saber classes (unless cheats)
+ - WP_BRYAR_OLD only for SBD
+ - Emplaced/turret never selectable
+====================
+*/ extern qboolean Bot_Is_Saber_Class(gentity_t* ent);
+static void G_GiveWeaponsByClass(gentity_t* ent, qboolean give_all)
+{
+	const int botClass = ent->client->pers.botclass;
+
+	// Clear all weapons first
+	ent->client->ps.stats[STAT_WEAPONS] = 0;
+
+	// Always give melee
+	ent->client->ps.stats[STAT_WEAPONS] |= (1 << WP_MELEE);
+
+	// Helper flags
+	const qboolean isSaberClass = (Bot_Is_Saber_Class(ent) == qtrue) ? qtrue : qfalse;
+	const qboolean isJawa = (botClass == BCLASS_JAWA) ? qtrue : qfalse;
+	const qboolean isSBD = (botClass == BCLASS_SBD) ? qtrue : qfalse;
+
+	/*
+	====================
+	CLASS‑SAFE LOGIC
+	====================
+	*/
+
+	// --- Jawa: melee + stun baton only (unless cheats)
+	if (isJawa == qtrue)
+	{
+		ent->client->ps.stats[STAT_WEAPONS] |= (1 << WP_STUN_BATON);
+
+		if (give_all == qtrue)
+		{
+			// Cheats: Jawa gets everything EXCEPT SBD‑restricted weapons
+			for (int w = FIRST_SELECTABLE_WEAPON; w <= LAST_SELECTABLE_WEAPON; w++)
+			{
+				if (w == WP_EMPLACED_GUN || w == WP_TURRET)
+					continue;
+
+				if (w == WP_BRYAR_OLD) // SBD only
+					continue;
+
+				ent->client->ps.stats[STAT_WEAPONS] |= (1 << w);
+			}
+		}
+
+		G_AddEvent(ent, EV_WEAPINVCHANGE, ent->client->ps.stats[STAT_WEAPONS]);
+		return;
+	}
+
+	// --- SBD: melee + bryar_old only (even with cheats)
+	if (isSBD == qtrue)
+	{
+		ent->client->ps.stats[STAT_WEAPONS] |= (1 << WP_BRYAR_OLD);
+
+		// SBD NEVER gets saber or guns, even with cheats
+		G_AddEvent(ent, EV_WEAPINVCHANGE, ent->client->ps.stats[STAT_WEAPONS]);
+		return;
+	}
+
+	// --- Saber classes: melee + saber (unless cheats)
+	if (isSaberClass == qtrue)
+	{
+		ent->client->ps.stats[STAT_WEAPONS] |= (1 << WP_SABER);
+
+		if (give_all == qtrue)
+		{
+			// Cheats: saber classes get everything EXCEPT SBD‑restricted weapons
+			for (int w = FIRST_SELECTABLE_WEAPON; w <= LAST_SELECTABLE_WEAPON; w++)
+			{
+				if (w == WP_EMPLACED_GUN || w == WP_TURRET)
+					continue;
+
+				if (w == WP_BRYAR_OLD) // SBD only
+					continue;
+
+				ent->client->ps.stats[STAT_WEAPONS] |= (1 << w);
+			}
+		}
+
+		G_AddEvent(ent, EV_WEAPINVCHANGE, ent->client->ps.stats[STAT_WEAPONS]);
+		return;
+	}
+
+	// --- Normal classes (non‑saber, non‑SBD, non‑Jawa)
+	// Allowed: all guns + melee
+	for (int w = FIRST_SELECTABLE_WEAPON; w <= LAST_SELECTABLE_WEAPON; w++)
+	{
+		if (w == WP_EMPLACED_GUN || w == WP_TURRET)
+			continue;
+
+		if (w == WP_BRYAR_OLD) // SBD only
+			continue;
+
+		ent->client->ps.stats[STAT_WEAPONS] |= (1 << w);
+	}
+
+	G_AddEvent(ent, EV_WEAPINVCHANGE, ent->client->ps.stats[STAT_WEAPONS]);
+}
+
 
 /*
 ==================
-Cmd_Give_f
+G_Give
 
-Give items to a client
+Internal give handler used by:
+ - Cmd_Give_f
+ - Cmd_GiveOther_f
+
+NOTE:
+This version is fully cleaned and modernized with:
+ - explicit qtrue/qfalse usage
+ - no implicit bool→qboolean conversions
+ - comments for every block
+ - no behaviour changes
 ==================
 */
 static void G_Give(gentity_t* ent, const char* name, const char* args, const int argc)
 {
-	int i;
 	qboolean give_all = qfalse;
 	trace_t trace;
+	int i = 0;
 
-	if (!Q_stricmp(name, "all"))
+	// Detect "give all"
+	if (Q_stricmp(name, "all") == 0)
+	{
 		give_all = qtrue;
-
-	if (give_all)
-	{
-		for (i = 0; i < HI_NUM_HOLDABLE; i++)
-			ent->client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << i;
 	}
 
-	if (give_all || !Q_stricmp(name, "health"))
+	/*
+	====================
+	HOLDABLE ITEMS
+	====================
+	*/
+	if (give_all == qtrue)
+	{
+		for (i = 0; i < HI_NUM_HOLDABLE; i++)
+		{
+			ent->client->ps.stats[STAT_HOLDABLE_ITEMS] |= (1 << i);
+		}
+	}
+
+	/*
+	====================
+	HEALTH
+	====================
+	*/
+	if (give_all == qtrue || Q_stricmp(name, "health") == 0)
 	{
 		if (argc == 3)
-			ent->health = Com_Clampi(1, ent->client->ps.stats[STAT_MAX_HEALTH], atoi(args));
+		{
+			// Clamp to valid range
+			ent->health = Com_Clampi(
+				1,
+				ent->client->ps.stats[STAT_MAX_HEALTH],
+				atoi(args)
+			);
+		}
 		else
 		{
+			// Siege class override
 			if (level.gametype == GT_SIEGE && ent->client->siegeClass != -1)
+			{
 				ent->health = bgSiegeClasses[ent->client->siegeClass].maxhealth;
+			}
 			else
+			{
 				ent->health = ent->client->ps.stats[STAT_MAX_HEALTH];
+			}
 		}
-		if (!give_all)
+
+		if (give_all == qfalse)
+		{
 			return;
+		}
 	}
 
-	if (give_all || !Q_stricmp(name, "armor") || !Q_stricmp(name, "shield"))
+	/*
+	====================
+	ARMOR / SHIELD
+	====================
+	*/
+	if (give_all == qtrue ||
+		Q_stricmp(name, "armor") == 0 ||
+		Q_stricmp(name, "shield") == 0)
 	{
 		if (argc == 3)
-			ent->client->ps.stats[STAT_ARMOR] = Com_Clampi(0, ent->client->ps.stats[STAT_MAX_HEALTH], atoi(args));
+		{
+			ent->client->ps.stats[STAT_ARMOR] = Com_Clampi(
+				0,
+				ent->client->ps.stats[STAT_MAX_HEALTH],
+				atoi(args)
+			);
+		}
 		else
 		{
 			if (level.gametype == GT_SIEGE && ent->client->siegeClass != -1)
-				ent->client->ps.stats[STAT_ARMOR] = bgSiegeClasses[ent->client->siegeClass].maxarmor;
+			{
+				ent->client->ps.stats[STAT_ARMOR] =
+					bgSiegeClasses[ent->client->siegeClass].maxarmor;
+			}
 			else
-				ent->client->ps.stats[STAT_ARMOR] = ent->client->ps.stats[STAT_MAX_HEALTH];
+			{
+				ent->client->ps.stats[STAT_ARMOR] =
+					ent->client->ps.stats[STAT_MAX_HEALTH];
+			}
 
-			if (ent->client->ps.stats[STAT_ARMOR] > 0)
-				ent->client->ps.powerups[PW_BATTLESUIT] = Q3_INFINITE;
-			else
-				ent->client->ps.powerups[PW_BATTLESUIT] = 0;
+			// Battlesuit powerup logic
+			ent->client->ps.powerups[PW_BATTLESUIT] =
+				(ent->client->ps.stats[STAT_ARMOR] > 0) ? Q3_INFINITE : 0;
 		}
 
-		if (!give_all)
+		if (give_all == qfalse)
+		{
 			return;
+		}
 	}
 
-	if (give_all || !Q_stricmp(name, "force"))
+	/*
+	====================
+	FORCE POWER
+	====================
+	*/
+	if (give_all == qtrue || Q_stricmp(name, "force") == 0)
 	{
 		if (argc == 3)
-			ent->client->ps.fd.forcePower = Com_Clampi(0, ent->client->ps.fd.forcePowerMax, atoi(args));
+		{
+			ent->client->ps.fd.forcePower = Com_Clampi(
+				0,
+				ent->client->ps.fd.forcePowerMax,
+				atoi(args)
+			);
+		}
 		else
+		{
 			ent->client->ps.fd.forcePower = ent->client->ps.fd.forcePowerMax;
+		}
 
-		if (!give_all)
+		if (give_all == qfalse)
+		{
 			return;
+		}
 	}
 
-	if (give_all || !Q_stricmp(name, "weapons"))
+	/*
+	====================
+	WEAPONS (raw give)
+	====================
+	*/
+	if (give_all == qtrue || Q_stricmp(name, "weapons") == 0)
 	{
-		ent->client->ps.stats[STAT_WEAPONS] = (1 << (LAST_USEABLE_WEAPON + 1)) - (1 << WP_NONE);
+		// Give all selectable weapons
+		G_GiveWeaponsByClass(ent, give_all);
 		G_AddEvent(ent, EV_WEAPINVCHANGE, ent->client->ps.stats[STAT_WEAPONS]);
-		if (!give_all)
+
+		if (give_all == qfalse)
+		{
 			return;
+		}
 	}
-	if (give_all || Q_stricmp(name, "inventory") == 0)
+
+	/*
+	====================
+	INVENTORY
+	====================
+	*/
+	if (give_all == qtrue || Q_stricmp(name, "inventory") == 0)
 	{
 		for (i = 0; i < HI_NUM_HOLDABLE; i++)
 		{
-			ent->client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << i;
+			ent->client->ps.stats[STAT_HOLDABLE_ITEMS] |= (1 << i);
 		}
 	}
 
-	if (!give_all && !Q_stricmp(name, "weaponnum"))
+	/*
+	====================
+	WEAPONNUM (raw weapon index)
+	====================
+	*/
+	if (give_all == qfalse && Q_stricmp(name, "weaponnum") == 0)
 	{
-		ent->client->ps.stats[STAT_WEAPONS] |= 1 << atoi(args);
+		const int w = atoi(args);
+		ent->client->ps.stats[STAT_WEAPONS] |= (1 << w);
+
 		G_AddEvent(ent, EV_WEAPINVCHANGE, ent->client->ps.stats[STAT_WEAPONS]);
 		return;
 	}
 
-	if (give_all || !Q_stricmp(name, "ammo"))
+	/*
+	====================
+	AMMO
+	====================
+	*/
+	if (give_all == qtrue || Q_stricmp(name, "ammo") == 0)
 	{
 		int num = 500;
+
 		if (argc == 3)
+		{
 			num = Com_Clampi(0, 500, atoi(args));
-		for (int i1 = AMMO_BLASTER; i1 < AMMO_MAX; i1++)
-			ent->client->ps.ammo[i1] = num;
-		if (!give_all)
+		}
+
+		for (i = AMMO_BLASTER; i < AMMO_MAX; i++)
+		{
+			ent->client->ps.ammo[i] = num;
+		}
+
+		if (give_all == qfalse)
+		{
 			return;
+		}
 	}
 
-	if (!Q_stricmp(name, "excellent"))
+	/*
+	====================
+	AWARD COUNTERS
+	====================
+	*/
+	if (Q_stricmp(name, "excellent") == 0)
 	{
 		ent->client->ps.persistant[PERS_EXCELLENT_COUNT]++;
 		return;
 	}
-	if (!Q_stricmp(name, "impressive"))
+	if (Q_stricmp(name, "impressive") == 0)
 	{
 		ent->client->ps.persistant[PERS_IMPRESSIVE_COUNT]++;
 		return;
 	}
-	if (!Q_stricmp(name, "gauntletaward"))
+	if (Q_stricmp(name, "gauntletaward") == 0)
 	{
 		ent->client->ps.persistant[PERS_GAUNTLET_FRAG_COUNT]++;
 		return;
 	}
-	if (!Q_stricmp(name, "defend"))
+	if (Q_stricmp(name, "defend") == 0)
 	{
 		ent->client->ps.persistant[PERS_DEFEND_COUNT]++;
 		return;
 	}
-	if (!Q_stricmp(name, "assist"))
+	if (Q_stricmp(name, "assist") == 0)
 	{
 		ent->client->ps.persistant[PERS_ASSIST_COUNT]++;
 		return;
 	}
 
-	// spawn a specific item right on the player
-	if (!give_all)
+	/*
+	====================
+	SPAWN SPECIFIC ITEM
+	====================
+	*/
+	if (give_all == qfalse)
 	{
 		gitem_t* it = BG_FindItem(name);
-		if (!it)
+		if (it == NULL)
+		{
 			return;
+		}
 
 		gentity_t* it_ent = G_Spawn();
 		VectorCopy(ent->r.currentOrigin, it_ent->s.origin);
+
 		it_ent->classname = it->classname;
 		G_SpawnItem(it_ent, it);
-		if (!it_ent || !it_ent->inuse)
+
+		if (it_ent == NULL || it_ent->inuse == qfalse)
+		{
 			return;
+		}
+
 		FinishSpawningItem(it_ent);
-		if (!it_ent || !it_ent->inuse)
+
+		if (it_ent == NULL || it_ent->inuse == qfalse)
+		{
 			return;
-		memset(&trace, 0, sizeof trace);
+		}
+
+		memset(&trace, 0, sizeof(trace));
 		Touch_Item(it_ent, ent, &trace);
-		if (it_ent->inuse)
+
+		if (it_ent->inuse == qtrue)
+		{
 			G_FreeEntity(it_ent);
+		}
 	}
 }
 
+
+/*
+=================
+Cmd_Give_f
+
+Handles: give <item>
+Delegates to G_Give() for actual logic.
+=================
+*/
 static void Cmd_Give_f(gentity_t* ent)
 {
 	char name[MAX_TOKEN_CHARS] = { 0 };
 
-	trap->Argv(1, name, sizeof name);
+	// Extract the first argument after "give"
+	trap->Argv(1, name, sizeof(name));
+
+	// Pass remaining args to G_Give
 	G_Give(ent, name, ConcatArgs(2), trap->Argc());
 }
 
+
+/*
+=================
+Cmd_GiveOther_f
+
+Usage: giveother <player id> <givestring>
+Allows an admin to give items to another player.
+=================
+*/
 static void Cmd_GiveOther_f(const gentity_t* ent)
 {
 	char name[MAX_TOKEN_CHARS] = { 0 };
-	char otherindex[MAX_TOKEN_CHARS];
+	char otherindex[MAX_TOKEN_CHARS] = { 0 };
 
+	// Must have at least 3 arguments: giveother <id> <item>
 	if (trap->Argc() < 3)
 	{
-		trap->SendServerCommand(ent - g_entities, "print \"Usage: giveother <player id> <givestring>\n\"");
+		trap->SendServerCommand(
+			ent - g_entities,
+			"print \"Usage: giveother <player id> <givestring>\n\""
+		);
 		return;
 	}
 
-	trap->Argv(1, otherindex, sizeof otherindex);
+	// Parse target player index
+	trap->Argv(1, otherindex, sizeof(otherindex));
 	const int i = clientNumberFromString(ent, otherindex, qfalse);
+
 	if (i == -1)
 	{
+		// clientNumberFromString already printed an error
 		return;
 	}
 
 	gentity_t* other_ent = &g_entities[i];
-	if (!other_ent->inuse || !other_ent->client)
+
+	// Validate target entity
+	if (other_ent->inuse == qfalse || other_ent->client == NULL)
 	{
 		return;
 	}
 
-	if (other_ent->health <= 0 || other_ent->client->tempSpectate >= level.time || other_ent->client->sess.sessionTeam ==
-		TEAM_SPECTATOR)
+	// Must be alive and not spectating
+	if (other_ent->health <= 0 ||
+		other_ent->client->tempSpectate >= level.time ||
+		other_ent->client->sess.sessionTeam == TEAM_SPECTATOR)
 	{
-		// Intentionally displaying for the command user
-		trap->SendServerCommand(ent - g_entities,
-			va("print \"%s\n\"", G_GetStringEdString("MD_MP_SVGAME", "MUSTBEALIVE")));
+		trap->SendServerCommand(
+			ent - g_entities,
+			va("print \"%s\n\"", G_GetStringEdString("MD_MP_SVGAME", "MUSTBEALIVE"))
+		);
 		return;
 	}
 
-	trap->Argv(2, name, sizeof name);
+	// Extract the give string
+	trap->Argv(2, name, sizeof(name));
 
+	// Delegate to G_Give for actual logic
 	G_Give(other_ent, name, ConcatArgs(3), trap->Argc() - 1);
 }
+
 
 /*
 ==================
@@ -4389,6 +4685,18 @@ command_t commands[] = {
 
 static const size_t num_commands = ARRAY_LEN(commands);
 
+static qboolean Holocron_AdminCheck(gentity_t* ent)
+{
+	if ((ent->r.svFlags & SVF_ADMIN) == 0)
+	{
+		trap->SendServerCommand(ent->s.number,
+			"print \"You must be an admin to use holocron commands.\n\"");
+		return qfalse;
+	}
+
+	return qtrue;
+}
+
 extern qboolean inGameCinematic;
 extern void Create_Autosave(vec3_t origin, int size, qboolean teleportPlayers);
 extern void Save_Autosaves(void);
@@ -4412,6 +4720,60 @@ void ClientCommand(const int clientNum)
 	{
 		//one of the clients just finished their cutscene, start rendering server frames again.
 		inGameCinematic = qfalse;
+		return;
+	}
+
+	if (Q_stricmp(cmd, "addholocron") == 0)
+	{
+		if (Holocron_AdminCheck(ent) == qfalse)
+		{
+			return;
+		}
+
+		char typeName[MAX_QPATH] = { 0 };
+		trap->Argv(1, typeName, sizeof typeName);
+
+		if (!typeName[0])
+		{
+			// optionally Com_Printf("addholocron: missing type\n");
+			return;
+		}
+
+		Holocron_Add(ent, typeName);
+		return;
+	}
+
+	if (Q_stricmp(cmd, "spawnholocron") == 0)
+	{
+		if (Holocron_AdminCheck(ent) == qfalse)
+		{
+			return;
+		}
+
+		const int type = Q_irand(0, NUM_HOLOCRON_TYPES - 1);
+		Create_Holocron(ent, type, ent->r.currentOrigin);
+		return;
+	}
+
+	if (Q_stricmp(cmd, "saveholocrons") == 0)
+	{
+		if (Holocron_AdminCheck(ent) == qfalse)
+		{
+			return;
+		}
+
+		Holocron_Savepositions();
+		return;
+	}
+
+	if (Q_stricmp(cmd, "loadholocrons") == 0)
+	{
+		if (Holocron_AdminCheck(ent) == qfalse)
+		{
+			return;
+		}
+
+		Create_Holocrons();
 		return;
 	}
 

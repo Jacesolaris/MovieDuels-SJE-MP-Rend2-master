@@ -101,7 +101,7 @@ extern void NPC_Wampa_Pain(gentity_t* self, gentity_t* attacker, int damage);
 extern void NPC_Rancor_Pain(gentity_t* self, gentity_t* attacker, int damage);
 extern void NPC_SandCreature_Pain(gentity_t* self, gentity_t* attacker, int damage);
 
-int wp_set_saber_model(gclient_t* client, class_t npcClass)
+static int wp_set_saber_model(gclient_t* client, class_t npcClass)
 {
 	//if (client)
 	//{
@@ -1164,7 +1164,8 @@ NPC_SpawnEffect
 */
 
 static void NPC_SpawnEffect(gentity_t* ent)
-{}
+{
+}
 
 //--------------------------------------------------------------
 // NPC_SetFX_SpawnStates
@@ -1215,7 +1216,7 @@ static qboolean NPC_SpotWouldTelefrag(const gentity_t* npc)
 extern qboolean G_ValidSaberStyle(const gentity_t* ent, int saber_style);
 extern qboolean WP_SaberCanTurnOffSomeBlades(const saberInfo_t* saber);
 //--------------------------------------------------------------
-void NPC_Begin(gentity_t* ent)
+static void NPC_Begin(gentity_t* ent)
 {
 	vec3_t spawn_origin, spawn_angles;
 	usercmd_t ucmd;
@@ -1758,7 +1759,7 @@ extern void G_CreateFighterNPC(Vehicle_t** p_veh, const char* strType);
 static qboolean NPC_SafeSpawn(const gentity_t* ent, const float safeRadius)
 {
 	int radius_ents[MAX_SAFESPAWN_ENTS];
-	vec3_t safeMins, safeMaxs;
+	vec3_t safeMins = { 0 }, safeMaxs = { 0 };
 	int i;
 	const float safeRadiusSquared = safeRadius * safeRadius;
 
@@ -2218,7 +2219,7 @@ finish:
 	return newent;
 }
 
-void NPC_Spawn_Go(gentity_t* ent)
+static void NPC_Spawn_Go(gentity_t* ent)
 {
 	NPC_Spawn_Do(ent);
 }
@@ -2233,7 +2234,7 @@ NPC_ShySpawn
 #define SHY_SPAWN_DISTANCE		128
 #define SHY_SPAWN_DISTANCE_SQR	( SHY_SPAWN_DISTANCE * SHY_SPAWN_DISTANCE )
 
-void NPC_ShySpawn(gentity_t* ent)
+static void NPC_ShySpawn(gentity_t* ent)
 {
 	ent->nextthink = level.time + SHY_THINK_TIME;
 	ent->think = NPC_ShySpawn;
@@ -2682,7 +2683,7 @@ static qboolean NPC_VehiclePrecache(const gentity_t* spawner)
 		if (tempG2)
 		{
 			//now, cache the anim config.
-			char gla_name[1024];
+			char gla_name[1024] = { 0 };
 
 			gla_name[0] = 0;
 			trap->G2API_GetGLAName(tempG2, 0, gla_name);
@@ -2730,7 +2731,7 @@ static qboolean NPC_VehiclePrecache(const gentity_t* spawner)
 	return qtrue;
 }
 
-void NPC_VehicleSpawnUse(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void NPC_VehicleSpawnUse(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	if (self->delay)
 	{

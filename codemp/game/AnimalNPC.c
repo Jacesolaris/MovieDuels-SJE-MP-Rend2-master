@@ -437,7 +437,14 @@ static void AnimateRiders(Vehicle_t* p_veh)
 
 		// Compute The Weapon Pose
 		//--------------------------
-		if (pilotPS->weapon == WP_BLASTER)
+		if (pilotPS->weapon == WP_BLASTER ||
+			pilotPS->weapon == WP_BATTLEDROID ||
+			pilotPS->weapon == WP_THEFIRSTORDER ||
+			pilotPS->weapon == WP_CLONECARBINE ||
+			pilotPS->weapon == WP_REBELBLASTER ||
+			pilotPS->weapon == WP_CLONERIFLE ||
+			pilotPS->weapon == WP_CLONECOMMANDO ||
+			pilotPS->weapon == WP_REBELRIFLE)
 		{
 			WeaponPose = WPOSE_BLASTER;
 		}

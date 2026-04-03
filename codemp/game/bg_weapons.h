@@ -29,32 +29,48 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 typedef enum
 {
-	WP_NONE,
+	WP_NONE,            // selectable never in the game, not even with give all
 
-	WP_STUN_BATON,
-	WP_MELEE,
-	WP_SABER,
-	WP_BRYAR_PISTOL,
-	WP_BLASTER,
-	WP_DISRUPTOR,
-	WP_BOWCASTER,
-	WP_REPEATER,
-	WP_DEMP2,
-	WP_FLECHETTE,
-	WP_ROCKET_LAUNCHER,
-	WP_THERMAL,
-	WP_TRIP_MINE,
-	WP_DET_PACK,
-	WP_CONCUSSION,
-	WP_BRYAR_OLD,
-	WP_EMPLACED_GUN,
-	WP_TURRET,
+	WP_STUN_BATON,       // selectable only for BCLASS_JAWA unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_MELEE,            // selectable for all classes.
+	WP_SABER,            // selectable only if Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_BRYAR_PISTOL,     // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_BLASTER,          // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_DISRUPTOR,        // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_BOWCASTER,        // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_REPEATER,         // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_DEMP2,            // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_FLECHETTE,        // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_ROCKET_LAUNCHER,  // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_THERMAL,          // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_TRIP_MINE,        // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_DET_PACK,         // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_CONCUSSION,       // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+
+	// new guns
+	WP_BATTLEDROID,      // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_THEFIRSTORDER,    // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_CLONECARBINE,     // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_REBELBLASTER,     // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_CLONERIFLE,       // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_CLONECOMMANDO,    // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_REBELRIFLE,       // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_REY,              // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_JANGO,            // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_BOBA,             // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_CLONEPISTOL,      // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	//end of new guns
+
+	WP_BRYAR_OLD,        // Only BCLASS_SBD can select this from WP_MELEE and back to WP_MELEE if cycling weapons
+	WP_EMPLACED_GUN,     // Not selectable in any cases even with cheats on
+	WP_TURRET,           // Not selectable in any cases even with cheats on
 
 	WP_NUM_WEAPONS
 } weapon_t;
 
-//anything > this will be considered not player useable
-#define LAST_USEABLE_WEAPON			WP_BRYAR_OLD
+#define FIRST_SELECTABLE_WEAPON		WP_STUN_BATON  // this is the first weapon for next and prev weapon switching
+#define LAST_SELECTABLE_WEAPON	    WP_BRYAR_OLD   //anything > this will be considered not player useable
+
 #define WP_MELEEONLY		524283
 #define WP_SABERSONLY		524279
 #define WP_MELEESABERS		524275
@@ -116,9 +132,6 @@ extern weaponData_t weaponData[WP_NUM_WEAPONS];
 extern ammoData_t ammoData[AMMO_MAX];
 
 // Specific weapon information
-
-#define FIRST_WEAPON		WP_BRYAR_PISTOL		// this is the first weapon for next and prev weapon switching
-#define MAX_PLAYER_WEAPONS	WP_BRYAR_OLD	// this is the max you can switch to and get with the give all.
 
 #define DEFAULT_SHOTGUN_SPREAD	700
 #define DEFAULT_SHOTGUN_COUNT	11

@@ -41,6 +41,8 @@ void UI_UpdateCvars(void);
 #define MAX_FORCE_CONFIGS		128
 #define MAX_SABER_HILTS			512 //64
 
+#define MAX_HOLOCRON_TYPES		10
+
 //
 // ui_main.c
 //
@@ -387,6 +389,9 @@ typedef struct uiInfo_s {
 
 	int						languageCount;
 	int						languageCountIndex;
+	int                     holocronIndex;
+	const char* holocronNames[MAX_HOLOCRON_TYPES];
+	int                     holocronCount;
 } uiInfo_t;
 extern uiInfo_t uiInfo;
 

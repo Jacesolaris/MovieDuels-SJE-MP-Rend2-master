@@ -1174,6 +1174,18 @@ static qboolean class_is_gunner(const gentity_t* self)
 	case WP_TRIP_MINE:
 	case WP_DET_PACK:
 	case WP_CONCUSSION:
+	case WP_BRYAR_OLD:
+	case WP_BATTLEDROID:
+	case WP_THEFIRSTORDER:
+	case WP_CLONECARBINE:
+	case WP_REBELBLASTER:
+	case WP_CLONERIFLE:
+	case WP_CLONECOMMANDO:
+	case WP_REBELRIFLE:
+	case WP_REY:
+	case WP_JANGO:
+	case WP_BOBA:
+	case WP_CLONEPISTOL:
 	case WP_EMPLACED_GUN:
 	case WP_TURRET:
 		// Is Gunner...
@@ -3264,10 +3276,16 @@ static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t 
 					const class_t npc_class = traceEnt->client->NPC_class;
 					const bclass_t botclass = traceEnt->client->pers.botclass;
 
-					if (traceEnt->health <= 0 || (botclass == BCLASS_SEEKER || botclass == BCLASS_SBD ||
-						botclass == BCLASS_MANDOLORIAN || botclass == BCLASS_MANDOLORIAN1 || botclass ==
-						BCLASS_MANDOLORIAN2 ||
-						botclass == BCLASS_BOBAFETT || botclass == BCLASS_BATTLEDROID || botclass == BCLASS_DROIDEKA))
+					if (traceEnt->health <= 0 ||
+						(botclass == BCLASS_SEEKER ||
+							botclass == BCLASS_SBD ||
+							botclass == BCLASS_MANDOLORIAN ||
+							botclass == BCLASS_MANDOLORIAN1 ||
+							botclass == BCLASS_MANDOLORIAN2 ||
+							botclass == BCLASS_JANGO_NOJP ||
+							botclass == BCLASS_BOBAFETT ||
+							botclass == BCLASS_BATTLEDROID ||
+							botclass == BCLASS_DROIDEKA))
 					{
 						traceEnt->client->ps.electrifyTime = level.time + 4000;
 					}
@@ -7976,7 +7994,8 @@ static void SeekerDroneUpdate(gentity_t* self)
 		VectorCopy(self->client->ps.origin, elevated);
 		elevated[2] += 40;
 
-		angle = (level.time / 12 & 255) * (M_PI * 2) / 255; //magical numbers make magic happen
+		/* Use floating point mod to avoid integer truncation from level.time/12 & 255 */
+		angle = fmodf((float)level.time / 12.0f, 256.0f) * (M_PI * 2.0f) / 255.0f; //magical numbers make magic happen
 		dir[0] = cos(angle) * 20;
 		dir[1] = sin(angle) * 20;
 		dir[2] = cos(angle) * 5;
@@ -8023,7 +8042,8 @@ static void SeekerDroneUpdate(gentity_t* self)
 
 		elevated[2] -= 55 - prefig;
 
-		angle = (level.time / 12 & 255) * (M_PI * 2) / 255; //magical numbers make magic happen
+		/* Use floating point mod to avoid integer truncation from level.time/12 & 255 */
+		angle = fmodf((float)level.time / 12.0f, 256.0f) * (M_PI * 2.0f) / 255.0f; //magical numbers make magic happen
 		dir[0] = cos(angle) * 20;
 		dir[1] = sin(angle) * 20;
 		dir[2] = cos(angle) * 5;
@@ -8058,7 +8078,8 @@ static void SeekerDroneUpdate(gentity_t* self)
 		VectorCopy(self->client->ps.origin, elevated);
 		elevated[2] += 40;
 
-		angle = (level.time / 12 & 255) * (M_PI * 2) / 255; //magical numbers make magic happen
+		/* Use floating point mod to avoid integer truncation from level.time/12 & 255 */
+		angle = fmodf((float)level.time / 12.0f, 256.0f) * (M_PI * 2.0f) / 255.0f; //magical numbers make magic happen
 		dir[0] = cos(angle) * 20;
 		dir[1] = sin(angle) * 20;
 		dir[2] = cos(angle) * 5;
@@ -8222,12 +8243,88 @@ static void HolocronUpdate(gentity_t* self)
 	}
 }
 
+static void HolocronUpdate_GiftMode(gentity_t* self)
+{
+	int i;
+
+	if (!self || !self->client)
+	{
+		return;
+	}
+
+	// Enforce g_maxHolocronGift
+	trap->Cvar_Update(&g_maxHolocronGift);
+
+	int carrying = 0;
+	for (i = 0; i < NUM_FORCE_POWERS; i++)
+	{
+		if (self->client->ps.holocronsCarried[i])
+		{
+			carrying++;
+		}
+	}
+
+	// If carrying too many, drop lowest index
+	if (g_maxHolocronGift.integer && carrying > g_maxHolocronGift.integer)
+	{
+		for (i = 0; i < NUM_FORCE_POWERS; i++)
+		{
+			if (self->client->ps.holocronsCarried[i])
+			{
+				// Drop this holocron
+				self->client->ps.holocronsCarried[i] = 0;
+				// Power cleanup will be handled below via holocronBits
+				break;
+			}
+		}
+	}
+
+	// Update powers based on carried holocrons, without touching base powers
+	for (i = 0; i < NUM_FORCE_POWERS; i++)
+	{
+		const qboolean carryingHolocron = (self->client->ps.holocronsCarried[i] != 0);
+		const qboolean alreadyKnown = ((self->client->ps.fd.forcePowersKnown & (1 << i)) != 0);
+		const qboolean holoFlag = ((self->client->ps.holocronBits & (1 << i)) != 0);
+
+		if (carryingHolocron)
+		{
+			// If we didn't know this power before, mark it as holocron‑only
+			if (!alreadyKnown)
+			{
+				self->client->ps.holocronBits |= (1 << i);
+				self->client->ps.fd.forcePowersKnown |= (1 << i);
+			}
+
+			// Boost to at least level 3 (or leave higher if something else set it)
+			if (self->client->ps.fd.forcePowerLevel[i] < FORCE_LEVEL_3)
+			{
+				self->client->ps.fd.forcePowerLevel[i] = FORCE_LEVEL_3;
+			}
+		}
+		else
+		{
+			// Not carrying a holocron of this type
+			if (holoFlag)
+			{
+				// This power existed *only* because of a holocron → remove it
+				self->client->ps.holocronBits &= ~(1 << i);
+				self->client->ps.fd.forcePowersKnown &= ~(1 << i);
+				self->client->ps.fd.forcePowersActive &= ~(1 << i);
+				self->client->ps.fd.forcePowerLevel[i] = 0;
+			}
+			// If holoFlag is not set, this power came from the base config → leave it alone
+		}
+	}
+}
+
 static void JediMasterUpdate(gentity_t* self)
 {
 	//keep jedi master status updated for JM gametype
 	int i = 0;
 
 	trap->Cvar_Update(&g_maxHolocronCarry);
+
+	trap->Cvar_Update(&g_maxHolocronGift);
 
 	while (i < NUM_FORCE_POWERS)
 	{
@@ -8538,6 +8635,11 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 	{
 		HolocronUpdate(self);
 	}
+	else
+	{
+		HolocronUpdate_GiftMode(self);
+	}
+
 	if (level.gametype == GT_JEDIMASTER)
 	{
 		JediMasterUpdate(self);
@@ -8793,6 +8895,7 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 	}
 
 	if (self->client->pers.botclass == BCLASS_MANDOLORIAN
+		|| self->client->pers.botclass == BCLASS_JANGO_NOJP
 		|| self->client->pers.botclass == BCLASS_BOBAFETT
 		|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
 		|| self->client->pers.botclass == BCLASS_MANDOLORIAN2)
@@ -9400,7 +9503,8 @@ qboolean jedi_dodge_evasion(gentity_t* self, const gentity_t* shooter, trace_t* 
 		&& (self->client->pers.botclass != BCLASS_MANDOLORIAN &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN2 &&
-			self->client->pers.botclass != BCLASS_BOBAFETT) &&
+			self->client->pers.botclass != BCLASS_BOBAFETT &&
+			self->client->pers.botclass != BCLASS_JANGO_NOJP) &&
 		self->client->ps.fd.forcePower < FATIGUE_DODGEINGBOT)
 	{
 		//must have enough force power
@@ -9416,6 +9520,7 @@ qboolean jedi_dodge_evasion(gentity_t* self, const gentity_t* shooter, trace_t* 
 		&& (self->client->pers.botclass != BCLASS_MANDOLORIAN &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN2 &&
+			self->client->pers.botclass != BCLASS_JANGO_NOJP &&
 			self->client->pers.botclass != BCLASS_BOBAFETT))
 	{
 		PM_AddFatigue(&self->client->ps, FATIGUE_DODGEINGBOT);
@@ -9591,39 +9696,83 @@ extern qboolean G_GetHitLocFromSurfName(gentity_t* ent, const char* surfName, in
 	vec3_t blade_dir, int mod);
 extern int G_GetHitLocation(const gentity_t* target, vec3_t ppoint);
 
+/*
+===============================
+jedi_disruptor_dodge_evasion
+
+Determines whether the NPC should perform a dodge animation
+based on the hit location and attacker.
+
+Behaviour preserved:
+- Uses ghoul2 surface hit if available.
+- Falls back to mathematical hit-location detection.
+- Mandalorians use jetpack evasions.
+- Others use dodge animations based on hit_loc.
+===============================
+*/
 qboolean jedi_disruptor_dodge_evasion(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int hit_loc)
 {
-	if (!self || !self->client)
-		return qfalse;
-
 	int dodge_anim = -1;
+	qboolean isMando = qfalse;
 
-	/*===========================================================================
-	doing a positional dodge for direct hit damage (like sabers or blaster bolts)
-	===========================================================================*/
+	/* -------------------------
+	   Validate entity
+	   ------------------------- */
+	if (self == NULL || self->client == NULL)
+	{
+		return qfalse;
+	}
+
+	/* -------------------------
+	   Determine hit location
+	   ------------------------- */
 	if (hit_loc == -1)
 	{
-		//Use the last surface impact data as the hit location
-		if (d_saberGhoul2Collision.integer && self->client
-			&& self->client->g2LastSurfaceModel == G2MODEL_PLAYER
-			&& self->client->g2LastSurfaceTime == level.time)
+		if (d_saberGhoul2Collision.integer != 0 &&
+			self->client->g2LastSurfaceModel == G2MODEL_PLAYER &&
+			self->client->g2LastSurfaceTime == level.time)
 		{
-			char hit_surface[MAX_QPATH];
+			char hit_surface[MAX_QPATH] = { 0 };
+			hit_surface[0] = '\0';
 
-			trap->G2API_GetSurfaceName(self->ghoul2, self->client->g2LastSurfaceHit, 0, hit_surface);
+			trap->G2API_GetSurfaceName(self->ghoul2,
+				self->client->g2LastSurfaceHit,
+				0,
+				hit_surface);
 
-			if (hit_surface[0])
+			if (hit_surface[0] != '\0')
 			{
-				G_GetHitLocFromSurfName(self, hit_surface, &hit_loc, dmg_origin, vec3_origin, vec3_origin, MOD_SABER);
+				G_GetHitLocFromSurfName(self,
+					hit_surface,
+					&hit_loc,
+					dmg_origin,
+					vec3_origin,
+					vec3_origin,
+					MOD_SABER);
 			}
 		}
-		else
+
+		/* Fallback */
+		if (hit_loc == -1)
 		{
-			//ok, that didn't work.  Try the old math way.
 			hit_loc = G_GetHitLocation(self, dmg_origin);
 		}
 	}
 
+	/* -------------------------
+	   Mandalorian class check
+	   ------------------------- */
+	if (self->client->pers.botclass == BCLASS_MANDOLORIAN ||
+		self->client->pers.botclass == BCLASS_BOBAFETT ||
+		self->client->pers.botclass == BCLASS_MANDOLORIAN1 ||
+		self->client->pers.botclass == BCLASS_MANDOLORIAN2)
+	{
+		isMando = qtrue;
+	}
+
+	/* -------------------------
+	   Dodge logic by hit_loc
+	   ------------------------- */
 	switch (hit_loc)
 	{
 	case HL_NONE:
@@ -9633,16 +9782,13 @@ qboolean jedi_disruptor_dodge_evasion(gentity_t* self, gentity_t* shooter, vec3_
 	case HL_FOOT_LT:
 		dodge_anim = Q_irand(BOTH_HOP_L, BOTH_HOP_R);
 		break;
+
 	case HL_LEG_RT:
 	case HL_LEG_LT:
-		if (self->client->pers.botclass == BCLASS_MANDOLORIAN
-			|| self->client->pers.botclass == BCLASS_BOBAFETT
-			|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
-			|| self->client->pers.botclass == BCLASS_MANDOLORIAN2)
+		if (isMando == qtrue)
 		{
 			self->client->jetPackOn = qtrue;
-			self->client->ps.eFlags |= EF_JETPACK_ACTIVE;
-			self->client->ps.eFlags |= EF_JETPACK_FLAMING;
+			self->client->ps.eFlags |= EF_JETPACK_ACTIVE | EF_JETPACK_FLAMING;
 			self->client->ps.eFlags |= EF3_JETPACK_HOVER;
 			Boba_FlyStart(self);
 			self->client->ps.fd.forceJumpCharge = 280;
@@ -9657,97 +9803,76 @@ qboolean jedi_disruptor_dodge_evasion(gentity_t* self, gentity_t* shooter, vec3_
 	case HL_BACK_RT:
 		dodge_anim = BOTH_DODGE_FL;
 		break;
+
 	case HL_CHEST_RT:
-		dodge_anim = BOTH_DODGE_FR;
-		break;
 	case HL_BACK_LT:
-		dodge_anim = BOTH_DODGE_FR;
-		break;
 	case HL_CHEST_LT:
 		dodge_anim = BOTH_DODGE_FR;
 		break;
+
 	case HL_BACK:
-		if (self->client->pers.botclass == BCLASS_MANDOLORIAN
-			|| self->client->pers.botclass == BCLASS_BOBAFETT
-			|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
-			|| self->client->pers.botclass == BCLASS_MANDOLORIAN2)
-		{
-			self->client->jetPackOn = qtrue;
-			self->client->ps.eFlags |= EF_JETPACK_ACTIVE;
-			self->client->ps.eFlags |= EF_JETPACK_FLAMING;
-			self->client->ps.eFlags |= EF3_JETPACK_HOVER;
-			Boba_FlyStart(self);
-			self->client->ps.fd.forceJumpCharge = 280;
-			self->client->jetPackTime = (self->client->jetPackTime + level.time) / 2 + 10000;
-		}
-		else
-		{
-			dodge_anim = Q_irand(BOTH_DODGE_FL, BOTH_DODGE_FR);
-		}
-		break;
 	case HL_CHEST:
-		if (self->client->pers.botclass == BCLASS_MANDOLORIAN
-			|| self->client->pers.botclass == BCLASS_BOBAFETT
-			|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
-			|| self->client->pers.botclass == BCLASS_MANDOLORIAN2)
-		{
-			self->client->jetPackOn = qtrue;
-			self->client->ps.eFlags |= EF_JETPACK_ACTIVE;
-			self->client->ps.eFlags |= EF_JETPACK_FLAMING;
-			self->client->ps.eFlags |= EF3_JETPACK_HOVER;
-			Boba_FlyStart(self);
-			self->client->ps.fd.forceJumpCharge = 280;
-			self->client->jetPackTime = (self->client->jetPackTime + level.time) / 2 + 10000;
-		}
-		else
-		{
-			dodge_anim = BOTH_DODGE_B;
-		}
-		break;
 	case HL_WAIST:
-		if (self->client->pers.botclass == BCLASS_MANDOLORIAN
-			|| self->client->pers.botclass == BCLASS_BOBAFETT
-			|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
-			|| self->client->pers.botclass == BCLASS_MANDOLORIAN2)
+		if (isMando == qtrue)
 		{
 			self->client->jetPackOn = qtrue;
-			self->client->ps.eFlags |= EF_JETPACK_ACTIVE;
-			self->client->ps.eFlags |= EF_JETPACK_FLAMING;
+			self->client->ps.eFlags |= EF_JETPACK_ACTIVE | EF_JETPACK_FLAMING;
 			self->client->ps.eFlags |= EF3_JETPACK_HOVER;
 			Boba_FlyStart(self);
 			self->client->ps.fd.forceJumpCharge = 280;
-			self->client->jetPackTime = (self->client->jetPackTime + level.time) / 2 + 10000;
+			self->client->jetPackTime =
+				((self->client->jetPackTime + level.time) / 2) + 10000;
 		}
 		else
 		{
-			dodge_anim = Q_irand(BOTH_DODGE_L, BOTH_DODGE_R);
+			if (hit_loc == HL_WAIST)
+			{
+				dodge_anim = Q_irand(BOTH_DODGE_L, BOTH_DODGE_R);
+			}
+			else if (hit_loc == HL_CHEST)
+			{
+				dodge_anim = BOTH_DODGE_B;
+			}
+			else
+			{
+				dodge_anim = Q_irand(BOTH_DODGE_FL, BOTH_DODGE_FR);
+			}
 		}
 		break;
+
 	case HL_ARM_RT:
 	case HL_HAND_RT:
 		dodge_anim = BOTH_DODGE_L;
 		break;
+
 	case HL_ARM_LT:
 	case HL_HAND_LT:
 		dodge_anim = BOTH_DODGE_R;
 		break;
+
 	case HL_HEAD:
 		dodge_anim = BOTH_CROUCHDODGE;
 		break;
+
 	default:
 		return qfalse;
 	}
 
+	/* -------------------------
+	   Apply dodge animation
+	   ------------------------- */
 	if (dodge_anim != -1)
 	{
-		//Our own happy way of forcing an anim:
 		self->client->ps.forceHandExtend = HANDEXTEND_DODGE;
 		self->client->ps.forceDodgeAnim = dodge_anim;
 		self->client->ps.forceHandExtendTime = level.time + 300;
 		self->client->ps.weaponTime = 300;
 		self->client->ps.saber_move = LS_NONE;
+
 		G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/melee/swing4.wav"));
+
 		return qtrue;
 	}
+
 	return qfalse;
 }

@@ -599,6 +599,23 @@ clientkilled:
 		case MOD_DET_PACK_SPLASH:
 			message = "KILLED_DETPACK";
 			break;
+		case MOD_REBELBLASTER:
+		case MOD_REY:
+		case MOD_REY_ALT:
+		case MOD_JANGO:
+		case MOD_CLONEPISTOL:
+		case MOD_CLONEPISTOL_ALT:
+			message = "KILLED_PISTOL";
+			break;
+		case MOD_BATTLEDROID:
+		case MOD_THEFIRSTORDER:
+		case MOD_CLONECARBINE:
+		case MOD_CLONERIFLE:
+		case MOD_CLONECOMMANDO:
+		case MOD_REBELRIFLE:
+		case MOD_BOBA:
+			message = "KILLED_BLASTER";
+			break;
 		case MOD_VEHICLE:
 			veh_message = qtrue;
 			switch (ent->generic1)
@@ -1422,6 +1439,17 @@ static void CG_G2MarkEvent(entityState_t* es)
 	case WP_DISRUPTOR:
 	case WP_BOWCASTER:
 	case WP_REPEATER:
+	case WP_BATTLEDROID:
+	case WP_THEFIRSTORDER:
+	case WP_CLONECARBINE:
+	case WP_REBELBLASTER:
+	case WP_CLONERIFLE:
+	case WP_CLONECOMMANDO:
+	case WP_REBELRIFLE:
+	case WP_REY:
+	case WP_JANGO:
+	case WP_BOBA:
+	case WP_CLONEPISTOL:
 	case WP_TURRET:
 		if (!size)
 		{
@@ -2988,6 +3016,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 								|| cent->currentState.botclass == BCLASS_R5D2
 								|| cent->currentState.botclass == BCLASS_PROTOCOL
 								|| cent->currentState.botclass == BCLASS_BOBAFETT
+								|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 								|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 								|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 								|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -3014,6 +3043,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 								|| cent->currentState.botclass == BCLASS_R5D2
 								|| cent->currentState.botclass == BCLASS_PROTOCOL
 								|| cent->currentState.botclass == BCLASS_BOBAFETT
+								|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 								|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 								|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 								|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -3055,6 +3085,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					|| cent->currentState.botclass == BCLASS_R5D2
 					|| cent->currentState.botclass == BCLASS_PROTOCOL
 					|| cent->currentState.botclass == BCLASS_BOBAFETT
+					|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 					|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 					|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 					|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -3095,6 +3126,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 						|| cent->currentState.botclass == BCLASS_R5D2
 						|| cent->currentState.botclass == BCLASS_PROTOCOL
 						|| cent->currentState.botclass == BCLASS_BOBAFETT
+						|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 						|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 						|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 						|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -3119,6 +3151,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 						|| cent->currentState.botclass == BCLASS_R5D2
 						|| cent->currentState.botclass == BCLASS_PROTOCOL
 						|| cent->currentState.botclass == BCLASS_BOBAFETT
+						|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 						|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 						|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 						|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -3143,6 +3176,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 						|| cent->currentState.botclass == BCLASS_R5D2
 						|| cent->currentState.botclass == BCLASS_PROTOCOL
 						|| cent->currentState.botclass == BCLASS_BOBAFETT
+						|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 						|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 						|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 						|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -3176,6 +3210,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					|| cent->currentState.botclass == BCLASS_R5D2
 					|| cent->currentState.botclass == BCLASS_PROTOCOL
 					|| cent->currentState.botclass == BCLASS_BOBAFETT
+					|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 					|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 					|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 					|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -3365,6 +3400,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					|| cent->currentState.botclass == BCLASS_R5D2
 					|| cent->currentState.botclass == BCLASS_PROTOCOL
 					|| cent->currentState.botclass == BCLASS_BOBAFETT
+					|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 					|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 					|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 					|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -3395,6 +3431,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					|| cent->currentState.botclass == BCLASS_R5D2
 					|| cent->currentState.botclass == BCLASS_PROTOCOL
 					|| cent->currentState.botclass == BCLASS_BOBAFETT
+					|| cent->currentState.botclass == BCLASS_JANGO_NOJP
 					|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
 					|| cent->currentState.botclass == BCLASS_MANDOLORIAN
 					|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
@@ -3530,8 +3567,11 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 			}
 			if (doit)
 			{
-				if (cent->currentState.eventParm != cg.snap->ps.clientNum || cg.renderingThirdPerson || cg_trueguns.integer
-					|| cg.predictedPlayerState.weapon == WP_SABER || cg.predictedPlayerState.weapon == WP_MELEE)
+				if (cent->currentState.eventParm != cg.snap->ps.clientNum || 
+					cg.renderingThirdPerson ||
+					cg_trueguns.integer	||
+					cg.predictedPlayerState.weapon == WP_SABER || 
+					cg.predictedPlayerState.weapon == WP_MELEE)
 				{
 					//h4q3ry
 					if (cent->currentState.eFlags & EF3_DUAL_WEAPONS)
@@ -4350,6 +4390,11 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 			centity_t* effect_on = &cg_entities[es->owner];
 
 			int doit = 1;
+			if (!effect_on->ghoul2)
+			{
+				// silently ignore invalid bolted effects
+				break;
+			}
 
 			if (cg.snap->ps.duelInProgress)
 			{ // this client is dueling
@@ -4410,9 +4455,14 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					}
 				}
 
-				if (!haveBolt || !e_id) // we don't have this particular bone or effect so can't play it
+				if (!haveBolt || !e_id)
 				{
-					Com_Printf("EV_PLAY_EFFECT_BOLTED: invalid bolt index %d for entity %d, effect %d\n", boltIdx, es->owner, es->eventParm);
+					// Only print if the entity is a player or NPC
+					if (es->owner > 0 && es->owner < MAX_CLIENTS)
+					{
+						Com_Printf("EV_PLAY_EFFECT_BOLTED: invalid bolt index %d for entity %d, effect %d\n",
+							boltIdx, es->owner, es->eventParm);
+					}
 					break;
 				}
 

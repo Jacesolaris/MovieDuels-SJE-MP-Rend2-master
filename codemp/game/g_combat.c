@@ -61,7 +61,6 @@ extern qboolean PM_InKnockDown(const playerState_t* ps);
 extern qboolean PM_RollingAnim(int anim);
 extern qboolean PM_CrouchAnim(int anim);
 extern qboolean BG_KnockDownAnim(int anim);
-extern void ScalePlayer(gentity_t* self, int scale);
 extern qboolean PM_InAnimForSaberMove(int anim, int saber_move);
 extern qboolean PM_SaberInStart(int move);
 extern int PM_AnimLength(const animNumber_t anim);
@@ -78,6 +77,7 @@ extern void wp_force_power_regenerate(const gentity_t* self, int override_amt);
 extern qboolean manual_saberblocking(const gentity_t* defender);
 extern void wp_block_points_regenerate(const gentity_t* self, int override_amt);
 extern void G_LetGoOfLedge(const gentity_t* ent);
+extern void ScalePlayer(gentity_t* self, int scale);
 
 extern void SP_item_security_key(gentity_t* self);
 
@@ -451,7 +451,7 @@ rww - Toss the weapon away from the player in the specified direction
 */
 void TossClientWeapon(gentity_t* self, vec3_t direction, const float speed)
 {
-	vec3_t vel;
+	vec3_t vel = { 0 };
 	const int weapon = self->s.weapon;
 
 	if (level.gametype == GT_SIEGE)
@@ -614,19 +614,11 @@ void TossClientItems(gentity_t* self)
 
 	self->s.bolt2 = weapon;
 
-	if (weapon == WP_SABER)
-	{
-		//
-	}
-	else if (weapon == WP_BRYAR_PISTOL)
-	{
-		//either drop the pistol and make the pickup only give ammo or drop ammo
-	}
-	else if (weapon == WP_STUN_BATON || weapon == WP_MELEE)
+	if (weapon == WP_SABER || weapon == WP_STUN_BATON || weapon == WP_MELEE || weapon == WP_BRYAR_PISTOL)
 	{
 		//never drop these
 	}
-	else if (weapon > WP_SABER && weapon <= MAX_PLAYER_WEAPONS)
+	else if (weapon > WP_SABER && weapon <= LAST_SELECTABLE_WEAPON)
 	{
 		self->s.weapon = WP_NONE;
 
@@ -843,6 +835,21 @@ char* modNames[MOD_MAX] = {
 	"MOD_TRIP_MINE_SPLASH",
 	"MOD_TIMED_MINE_SPLASH",
 	"MOD_DET_PACK_SPLASH",
+
+	"MOD_BATTLEDROID",
+	"MOD_THEFIRSTORDER",
+	"MOD_CLONECARBINE",
+	"MOD_REBELBLASTER",
+	"MOD_CLONERIFLE",
+	"MOD_CLONECOMMANDO",
+	"MOD_REBELRIFLE",
+	"MOD_REY",
+	"MOD_REY_ALT",
+	"MOD_JANGO",
+	"MOD_BOBA",
+	"MOD_CLONEPISTOL",
+	"MOD_CLONEPISTOL_ALT",
+
 	"MOD_VEHICLE",
 	"MOD_CONC",
 	"MOD_CONC_ALT",
@@ -1814,7 +1821,7 @@ static int G_PickDeathAnim(gentity_t* self, vec3_t point, const int damage, int 
 
 static int G_CheckForLedge(const gentity_t* self, vec3_t fall_check_dir, float check_dist);
 
-int G_CheckLedgeDive(gentity_t* self, const float check_dist, const vec3_t check_vel, const qboolean try_opposite,
+static int G_CheckLedgeDive(gentity_t* self, const float check_dist, const vec3_t check_vel, const qboolean try_opposite,
 	const qboolean try_perp)
 {
 	//		Intelligent Ledge-Diving Deaths:
@@ -1928,7 +1935,7 @@ G_AlertTeam
 void G_AlertTeam(const gentity_t* victim, gentity_t* attacker, const float radius, const float sound_dist)
 {
 	int radius_ents[128];
-	vec3_t mins, maxs;
+	vec3_t mins = { 0 }, maxs = { 0 };
 	int i;
 	const float snd_dist_sq = sound_dist * sound_dist;
 
@@ -3445,6 +3452,40 @@ void player_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker
 		Cmd_Score_f(self); // show scores
 	}
 
+	// ------------------------------------------------------------
+	// Clear temporary holocron powers immediately on death
+	// ------------------------------------------------------------
+	if (level.gametype != GT_HOLOCRON)
+	{
+		int fp = 0;
+
+		for (fp = 0; fp < NUM_FORCE_POWERS; fp++)
+		{
+			if (self->client->ps.holocronBits & (1 << fp))
+			{
+				// Stop active use
+				if (self->client->ps.fd.forcePowersActive & (1 << fp))
+				{
+					WP_ForcePowerStop(self, fp);
+				}
+
+				// Remove holocron-granted knowledge and level
+				self->client->ps.fd.forcePowerLevel[fp] = FORCE_LEVEL_0;
+				self->client->ps.fd.forcePowersKnown &= ~(1 << fp);
+
+				// Clear carried state
+				self->client->ps.holocronsCarried[fp] = 0;
+			}
+		}
+
+		// Clear all holocron state
+		self->client->ps.holocronBits = 0;
+		self->client->ps.holocronExpireTime = 0;
+
+		// Apply a short cooldown after death
+		self->client->ps.holocronGlobalCooldown = level.time + 2000;
+	}
+
 	if (MOD_SPECTATE == means_of_death)
 	{
 		if (g_spectate_keep_score.integer >= 1
@@ -4512,9 +4553,10 @@ static void G_GetDismemberBolt(gentity_t* self, vec3_t bolt_point, const int lim
 }
 
 static void LimbTouch(gentity_t* self, gentity_t* other, trace_t* trace)
-{}
+{
+}
 
-void LimbThink(gentity_t* ent)
+static void LimbThink(gentity_t* ent)
 {
 	float mass = 0.09f;
 	float bounce = 1.3f;
@@ -7408,6 +7450,17 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 	{
 		//do head shots
 		if (inflictor->s.weapon == WP_BLASTER
+			|| inflictor->s.weapon == WP_BATTLEDROID
+			|| inflictor->s.weapon == WP_THEFIRSTORDER
+			|| inflictor->s.weapon == WP_CLONECARBINE
+			|| inflictor->s.weapon == WP_REBELBLASTER
+			|| inflictor->s.weapon == WP_CLONERIFLE
+			|| inflictor->s.weapon == WP_CLONECOMMANDO
+			|| inflictor->s.weapon == WP_REBELRIFLE
+			|| inflictor->s.weapon == WP_REY
+			|| inflictor->s.weapon == WP_JANGO
+			|| inflictor->s.weapon == WP_BOBA
+			|| inflictor->s.weapon == WP_CLONEPISTOL
 			|| inflictor->s.weapon == WP_FLECHETTE
 			|| inflictor->s.weapon == WP_BRYAR_PISTOL
 			|| inflictor->s.weapon == WP_TURRET

@@ -657,8 +657,10 @@ static void NPC_ApplyScriptFlags(void)
 			// npcs can use homing missiles properly now
 			NPCS.NPCInfo->attackHold = 2000;
 		}
-		else if (NPCS.NPC->client->ps.weapon == WP_BRYAR_PISTOL && NPCS.ucmd.buttons & BUTTON_ALT_ATTACK && !
-			Q_irand(0, 1))
+		else if ((NPCS.NPC->client->ps.weapon == WP_BRYAR_PISTOL || 
+			NPCS.NPC->client->ps.weapon == WP_REY || 
+			NPCS.NPC->client->ps.weapon == WP_CLONEPISTOL) &&
+			NPCS.ucmd.buttons & BUTTON_ALT_ATTACK && !Q_irand(0, 1))
 		{
 			// npcs can use charged pistol
 			NPCS.NPCInfo->attackHold = 2000;
@@ -1896,7 +1898,9 @@ static void NPC_ExecuteBState(const gentity_t* self) //, int msec )
 			//One-handed
 			NPC_SetAnim(NPCS.NPC, SETANIM_TORSO, BOTH_STAND2, SETANIM_FLAG_NORMAL);
 		}
-		else if (NPCS.client->ps.weapon == WP_BRYAR_PISTOL)
+		else if (NPCS.NPC->client->ps.weapon == WP_BRYAR_PISTOL ||
+			NPCS.NPC->client->ps.weapon == WP_REY ||
+			NPCS.NPC->client->ps.weapon == WP_CLONEPISTOL)
 		{
 			//Sniper pose
 			if (self->client->NPC_class == CLASS_SBD)

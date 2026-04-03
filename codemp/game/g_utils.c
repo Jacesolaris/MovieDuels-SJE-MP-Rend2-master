@@ -1709,10 +1709,24 @@ G_PlayBoltedEffect
 */
 gentity_t* G_PlayBoltedEffect(const int fxID, gentity_t* owner, const char* bolt)
 {
+	if (!owner || !owner->ghoul2)
+	{
+		// No ghoul2 model → cannot bolt anything
+		return NULL;
+	}
+
+	int boltIndex = trap->G2API_AddBolt(owner->ghoul2, 0, bolt);
+
+	if (boltIndex < 0)
+	{
+		// Bolt does not exist on this model → do not send event
+		return NULL;
+	}
+
 	gentity_t* te = G_TempEntity(owner->r.currentOrigin, EV_PLAY_EFFECT_BOLTED);
 	te->s.eventParm = fxID;
 	te->s.owner = owner->s.number;
-	te->s.generic1 = trap->G2API_AddBolt(owner->ghoul2, 0, bolt);
+	te->s.generic1 = boltIndex;
 
 	return te;
 }
@@ -1951,7 +1965,7 @@ static int G_CanUseDispOn(const gentity_t* ent, const int dispType)
 	}
 	if (dispType == HI_AMMODISP)
 	{
-		if (ent->client->ps.weapon <= WP_NONE || ent->client->ps.weapon > LAST_USEABLE_WEAPON)
+		if (ent->client->ps.weapon <= WP_NONE || ent->client->ps.weapon > LAST_SELECTABLE_WEAPON)
 		{
 			//not a player-useable weapon
 			return 0;

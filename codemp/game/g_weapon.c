@@ -197,7 +197,75 @@ extern void Sphereshield_Off(gentity_t* self);
 #define MELEE_SWING2_DAMAGE			5
 #define MELEE_RANGE					8
 #define MELEE_SWING_WOOKIE_DAMAGE	50
-#define MELEE_SWING_EXTRA_DAMAGE	 15
+#define MELEE_SWING_EXTRA_DAMAGE	15
+
+// E-5 carbine
+//---------
+#define BATTLEDROID_SPREAD				1.6f//1.2f
+#define BATTLEDROID_VELOCITY			2300
+#define BATTLEDROID_DAMAGE				20
+
+// F-11D
+//---------
+#define THEFIRSTORDER_SPREAD			1.6f//1.2f
+#define THEFIRSTORDER_VELOCITY			2300
+#define THEFIRSTORDER_DAMAGE			20
+
+// DC-15 Carbine
+//---------
+#define CLONECARBINE_SPREAD				1.6f//1.2f
+#define CLONECARBINE_VELOCITY			2300
+#define CLONECARBINE_DAMAGE				20
+
+// DH-17
+//---------
+#define REBELBLASTER_SPREAD				1.6f//1.2f
+#define REBELBLASTER_VELOCITY			1000
+#define REBELBLASTER_DAMAGE				35
+
+// DC-15 Rifle
+//---------
+#define CLONERIFLE_SPREAD				0.1f//1.2f
+#define CLONERIFLE_VELOCITY			    2300
+#define CLONERIFLE_DAMAGE				20
+
+// DC-17M
+//---------
+#define CLONECOMMANDO_SPREAD			0.1f//1.2f
+#define CLONECOMMANDO_VELOCITY			3500
+#define CLONECOMMANDO_DAMAGE			15
+
+// A280
+//---------
+#define REBELRIFLE_SPREAD				1.6f//1.2f
+#define REBELRIFLE_VELOCITY			    1250
+#define REBELRIFLE_DAMAGE				30
+
+// LPA NN-14
+//--------
+#define REY_VEL			1600
+#define REY_DAMAGE		10
+#define REY_CHARGE_UNIT	200.0f	// bryar charging gives us one more unit every 200ms--if you change this, you'll have to do the same in bg_pmove
+#define REY_ALT_SIZE	1.0f
+
+// Westar 34
+//---------
+#define JANGO_SPREAD			0.1f//1.2f
+#define JANGO_VELOCITY			3000
+#define JANGO_DAMAGE			15
+
+// EE-3
+//---------
+#define BOBA_SPREAD				0.5f//1.2f
+#define BOBA_VELOCITY			2200
+#define BOBA_DAMAGE				30
+
+// DC-17 Hand Pistol
+//--------
+#define CLONEPISTOL_VEL			1600
+#define CLONEPISTOL_DAMAGE		10
+#define CLONEPISTOL_CHARGE_UNIT	200.0f	// bryar charging gives us one more unit every 200ms--if you change this, you'll have to do the same in bg_pmove
+#define CLONEPISTOL_ALT_SIZE	1.0f
 
 // ATST Main Gun
 //--------------
@@ -238,7 +306,8 @@ static void WP_FireEmplaced(gentity_t* ent, qboolean alt_fire);
 void laserTrapStick(gentity_t* ent, vec3_t endpos, vec3_t normal);
 
 static void touch_NULL(gentity_t* ent, gentity_t* other, trace_t* trace)
-{}
+{
+}
 
 void laserTrapExplode(gentity_t* self);
 void RocketDie(gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, int mod);
@@ -461,6 +530,206 @@ static void WP_FireBryarPistolold(gentity_t* ent, const qboolean alt_fire)
 	missile->bounceCount = 8;
 }
 
+//----------------------------------------------
+static void WP_FireReyPistol(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	int damage = REY_DAMAGE;
+
+	gentity_t* missile = CreateMissile(muzzle, forward, REY_VEL, 10000, ent, alt_fire);
+	gentity_t* missile2 = CreateMissile(muzzle2, forward, REY_VEL, 10000, ent, alt_fire);
+
+	missile->classname = "bryar_proj";
+	missile->s.weapon = WP_REY;
+
+	if (ent->client->ps.eFlags & EF3_DUAL_WEAPONS)
+	{
+		missile2->classname = "bryar_proj";
+		missile2->s.weapon = WP_REY;
+	}
+
+	if (alt_fire)
+	{
+		int count = (level.time - ent->client->ps.weaponChargeTime) / REY_CHARGE_UNIT;
+
+		if (count < 1)
+		{
+			count = 1;
+		}
+		else if (count > BRYAR_MAX_CHARGE)
+		{
+			count = BRYAR_MAX_CHARGE;
+		}
+
+		damage = BRYAR_PISTOL_ALT_DPDAMAGE + (float)count / BRYAR_MAX_CHARGE * (BRYAR_PISTOL_ALT_DPMAXDAMAGE -
+			BRYAR_PISTOL_ALT_DPDAMAGE);
+
+		missile->s.generic1 = count; // The missile will then render according to the charge level.
+
+		float box_size = REY_ALT_SIZE * (count * 0.5);
+
+		VectorSet(missile->r.maxs, box_size, box_size, box_size);
+		VectorSet(missile->r.mins, -box_size, -box_size, -box_size);
+
+		if (ent->client->ps.eFlags & EF3_DUAL_WEAPONS)
+		{
+			count = (level.time - ent->client->ps.weaponChargeTime) / REY_CHARGE_UNIT;
+
+			if (count < 1)
+			{
+				count = 1;
+			}
+			else if (count > BRYAR_MAX_CHARGE)
+			{
+				count = BRYAR_MAX_CHARGE;
+			}
+
+			damage = BRYAR_PISTOL_ALT_DPDAMAGE + (float)count / BRYAR_MAX_CHARGE * (BRYAR_PISTOL_ALT_DPMAXDAMAGE -
+				BRYAR_PISTOL_ALT_DPDAMAGE);
+
+			missile2->s.generic1 = count;
+
+			box_size = REY_ALT_SIZE * (count * 0.5);
+
+			VectorSet(missile2->r.maxs, box_size, box_size, box_size);
+			VectorSet(missile2->r.mins, -box_size, -box_size, -box_size);
+		}
+	}
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK;
+
+	if (alt_fire)
+	{
+		missile->methodOfDeath = MOD_REY_ALT;
+	}
+	else
+	{
+		missile->methodOfDeath = MOD_REY;
+	}
+	missile->clipmask = MASK_SHOT;
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+
+	if (ent->client->ps.eFlags & EF3_DUAL_WEAPONS)
+	{
+		missile2->damage = damage;
+		missile->dflags = DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK;
+
+		if (alt_fire)
+		{
+			missile->methodOfDeath = MOD_REY_ALT;
+		}
+		else
+		{
+			missile->methodOfDeath = MOD_REY;
+		}
+		missile2->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+		// we don't want it to bounce forever
+		missile2->bounceCount = 8;
+	}
+}
+
+//----------------------------------------------
+static void WP_FireClonePistol(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	int damage = CLONEPISTOL_DAMAGE;
+
+	gentity_t* missile = CreateMissile(muzzle, forward, CLONEPISTOL_VEL, 10000, ent, alt_fire);
+	gentity_t* missile2 = CreateMissile(muzzle2, forward, CLONEPISTOL_VEL, 10000, ent, alt_fire);
+
+	missile->classname = "clone_proj";
+	missile->s.weapon = WP_CLONEPISTOL;
+
+	if (ent->client->ps.eFlags & EF3_DUAL_WEAPONS)
+	{
+		missile2->classname = "clone_proj";
+		missile2->s.weapon = WP_CLONEPISTOL;
+	}
+
+	if (alt_fire)
+	{
+		int count = (level.time - ent->client->ps.weaponChargeTime) / CLONEPISTOL_CHARGE_UNIT;
+
+		if (count < 1)
+		{
+			count = 1;
+		}
+		else if (count > BRYAR_MAX_CHARGE)
+		{
+			count = BRYAR_MAX_CHARGE;
+		}
+
+		damage = BRYAR_PISTOL_ALT_DPDAMAGE + (float)count / BRYAR_MAX_CHARGE * (BRYAR_PISTOL_ALT_DPMAXDAMAGE -
+			BRYAR_PISTOL_ALT_DPDAMAGE);
+
+		missile->s.generic1 = count; // The missile will then render according to the charge level.
+
+		float box_size = CLONEPISTOL_ALT_SIZE * (count * 0.5);
+
+		VectorSet(missile->r.maxs, box_size, box_size, box_size);
+		VectorSet(missile->r.mins, -box_size, -box_size, -box_size);
+
+		if (ent->client->ps.eFlags & EF3_DUAL_WEAPONS)
+		{
+			count = (level.time - ent->client->ps.weaponChargeTime) / CLONEPISTOL_CHARGE_UNIT;
+
+			if (count < 1)
+			{
+				count = 1;
+			}
+			else if (count > BRYAR_MAX_CHARGE)
+			{
+				count = BRYAR_MAX_CHARGE;
+			}
+
+			damage = BRYAR_PISTOL_ALT_DPDAMAGE + (float)count / BRYAR_MAX_CHARGE * (BRYAR_PISTOL_ALT_DPMAXDAMAGE -
+				BRYAR_PISTOL_ALT_DPDAMAGE);
+
+			missile2->s.generic1 = count;
+
+			box_size = CLONEPISTOL_ALT_SIZE * (count * 0.5);
+
+			VectorSet(missile2->r.maxs, box_size, box_size, box_size);
+			VectorSet(missile2->r.mins, -box_size, -box_size, -box_size);
+		}
+	}
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK;
+
+	if (alt_fire)
+	{
+		missile->methodOfDeath = MOD_CLONEPISTOL_ALT;
+	}
+	else
+	{
+		missile->methodOfDeath = MOD_CLONEPISTOL;
+	}
+	missile->clipmask = MASK_SHOT;
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+
+	if (ent->client->ps.eFlags & EF3_DUAL_WEAPONS)
+	{
+		missile2->damage = damage;
+		missile->dflags = DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK;
+
+		if (alt_fire)
+		{
+			missile->methodOfDeath = MOD_CLONEPISTOL_ALT;
+		}
+		else
+		{
+			missile->methodOfDeath = MOD_CLONEPISTOL;
+		}
+		missile2->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+		// we don't want it to bounce forever
+		missile2->bounceCount = 8;
+	}
+}
+
 /*
 ======================================================================
 
@@ -605,6 +874,260 @@ void WP_FireBlasterMissile(gentity_t* ent, vec3_t start, vec3_t dir, const qbool
 	missile->dflags = DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK;
 	missile->methodOfDeath = MOD_BLASTER;
 	missile->clipmask = MASK_SHOT;
+
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+}
+
+//---------------------------------------------------------
+static void WP_FireBattleDroidMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	const int velocity = BATTLEDROID_VELOCITY;
+	int	damage = BATTLEDROID_DAMAGE;
+
+	if (ent->s.eType == ET_NPC)
+	{ //animent
+		damage = 10;
+	}
+
+	gentity_t* missile = CreateMissile(start, dir, velocity, 10000, ent, alt_fire);
+
+	missile->classname = "blaster_proj";
+	missile->s.weapon = WP_BATTLEDROID;
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+	missile->methodOfDeath = MOD_BATTLEDROID;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+}
+
+//---------------------------------------------------------
+static void WP_FireFirstOrderMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	const int velocity = THEFIRSTORDER_VELOCITY;
+	int	damage = THEFIRSTORDER_DAMAGE;
+
+	if (ent->s.eType == ET_NPC)
+	{ //animent
+		damage = 10;
+	}
+
+	gentity_t* missile = CreateMissile(start, dir, velocity, 10000, ent, alt_fire);
+
+	missile->classname = "blaster_proj";
+	missile->s.weapon = WP_THEFIRSTORDER;
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+	missile->methodOfDeath = MOD_THEFIRSTORDER;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+}
+//---------------------------------------------------------
+static void WP_FireCloneCarbineMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	const int velocity = CLONECARBINE_VELOCITY;
+	int	damage = CLONECARBINE_DAMAGE;
+
+	if (ent->s.eType == ET_NPC)
+	{ //animent
+		damage = 10;
+	}
+
+	gentity_t* missile = CreateMissile(start, dir, velocity, 10000, ent, alt_fire);
+
+	missile->classname = "clone_proj";
+	missile->s.weapon = WP_CLONECARBINE;
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+	missile->methodOfDeath = MOD_CLONECARBINE;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+}
+
+//---------------------------------------------------------
+static void WP_FireRebelBlasterMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	const int velocity = REBELBLASTER_VELOCITY;
+	int	damage = REBELBLASTER_DAMAGE;
+
+	if (ent->s.eType == ET_NPC)
+	{ //animent
+		damage = 10;
+	}
+
+	gentity_t* missile = CreateMissile(start, dir, velocity, 10000, ent, alt_fire);
+
+	missile->classname = "blaster_proj";
+	missile->s.weapon = WP_REBELBLASTER;
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+	missile->methodOfDeath = MOD_REBELBLASTER;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+}
+
+//---------------------------------------------------------
+static void WP_FireCloneRifleMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	const int velocity = CLONERIFLE_VELOCITY;
+	int	damage = CLONERIFLE_DAMAGE;
+
+	if (ent->s.eType == ET_NPC)
+	{ //animent
+		damage = 10;
+	}
+
+	gentity_t* missile = CreateMissile(start, dir, velocity, 10000, ent, alt_fire);
+
+	missile->classname = "clone_proj";
+	missile->s.weapon = WP_CLONERIFLE;
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+	missile->methodOfDeath = MOD_CLONERIFLE;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+}
+
+//---------------------------------------------------------
+static void WP_FireCloneCommandoMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	const int velocity = CLONECOMMANDO_VELOCITY;
+	int	damage = CLONECOMMANDO_DAMAGE;
+
+	if (ent->s.eType == ET_NPC)
+	{ //animent
+		damage = 10;
+	}
+
+	gentity_t* missile = CreateMissile(start, dir, velocity, 10000, ent, alt_fire);
+
+	missile->classname = "clone_proj";
+	missile->s.weapon = WP_CLONECOMMANDO;
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+	missile->methodOfDeath = MOD_CLONECOMMANDO;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+}
+
+//---------------------------------------------------------
+static void WP_FireRebelRifleMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	const int velocity = REBELRIFLE_VELOCITY;
+	int	damage = REBELRIFLE_DAMAGE;
+
+	if (ent->s.eType == ET_NPC)
+	{ //animent
+		damage = 10;
+	}
+
+	gentity_t* missile = CreateMissile(start, dir, velocity, 10000, ent, alt_fire);
+
+	missile->classname = "blaster_proj";
+	missile->s.weapon = WP_REBELRIFLE;
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+	missile->methodOfDeath = MOD_REBELRIFLE;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+}
+
+//---------------------------------------------------------
+static void WP_FireJangoPistolMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	int damage = JANGO_DAMAGE;
+
+	if (ent->s.eType == ET_NPC)
+	{ //animent
+		damage = 10;
+	}
+
+	gentity_t* missile = CreateMissile(muzzle, forward, JANGO_VELOCITY, 10000, ent, alt_fire);
+	gentity_t* missile2 = CreateMissile(muzzle2, forward, JANGO_VELOCITY, 10000, ent, alt_fire);
+
+	missile->classname = "bryar_proj";
+	missile->s.weapon = WP_JANGO;
+
+	if (ent->client->ps.eFlags & EF3_DUAL_WEAPONS)
+	{
+		missile2->classname = "bryar_proj";
+		missile2->s.weapon = WP_JANGO;
+	}
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK;
+
+	missile->methodOfDeath = MOD_JANGO;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+
+	if (ent->client->ps.eFlags & EF3_DUAL_WEAPONS)
+	{
+		missile2->damage = damage;
+		missile->dflags = DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK;
+
+		missile->methodOfDeath = MOD_JANGO;
+		missile2->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+		// we don't want it to bounce forever
+		missile2->bounceCount = 8;
+	}
+}
+
+//---------------------------------------------------------
+static void WP_FireBobaRifleMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	int velocity = BOBA_VELOCITY;
+	int	damage = BOBA_DAMAGE;
+
+	if (alt_fire)
+	{
+		velocity = Q_irand(1500, 3000);
+	}
+
+	if (ent->s.eType == ET_NPC)
+	{ //animent
+		damage = 10;
+	}
+
+	gentity_t* missile = CreateMissile(start, dir, velocity, 10000, ent, alt_fire);
+
+	missile->classname = "blaster_proj";
+	missile->s.weapon = WP_BOBA;
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+	missile->methodOfDeath = MOD_BOBA;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
 
 	// we don't want it to bounce forever
 	missile->bounceCount = 8;
@@ -833,6 +1356,195 @@ void WP_FireBlaster(gentity_t* ent, const qboolean alt_fire)
 	AngleVectors(angs, dir, NULL, NULL);
 
 	WP_FireBlasterMissile(ent, muzzle, dir, alt_fire);
+}
+
+//---------------------------------------------------------
+static void WP_FireBattleDroid(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	vec3_t  dir, angs;
+
+	vectoangles(forward, angs);
+
+	if (alt_fire)
+	{
+		// add some slop to the alt-fire direction
+		angs[PITCH] += Q_flrand(-1.0f, 1.0f) * BATTLEDROID_SPREAD;
+		angs[YAW] += Q_flrand(-1.0f, 1.0f) * BATTLEDROID_SPREAD;
+	}
+
+	AngleVectors(angs, dir, NULL, NULL);
+
+	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
+	WP_FireBattleDroidMissile(ent, muzzle, dir, alt_fire);
+}
+
+//---------------------------------------------------------
+static void WP_FireFirstOrder(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	vec3_t  dir, angs;
+
+	vectoangles(forward, angs);
+
+	if (alt_fire)
+	{
+		// add some slop to the alt-fire direction
+		angs[PITCH] += Q_flrand(-1.0f, 1.0f) * THEFIRSTORDER_SPREAD;
+		angs[YAW] += Q_flrand(-1.0f, 1.0f) * THEFIRSTORDER_SPREAD;
+	}
+
+	AngleVectors(angs, dir, NULL, NULL);
+
+	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
+	WP_FireFirstOrderMissile(ent, muzzle, dir, alt_fire);
+}
+
+//---------------------------------------------------------
+static void WP_FireCloneCarbine(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	vec3_t  dir, angs;
+
+	vectoangles(forward, angs);
+
+	if (alt_fire)
+	{
+		// add some slop to the alt-fire direction
+		angs[PITCH] += Q_flrand(-1.0f, 1.0f) * CLONECARBINE_SPREAD;
+		angs[YAW] += Q_flrand(-1.0f, 1.0f) * CLONECARBINE_SPREAD;
+	}
+
+	AngleVectors(angs, dir, NULL, NULL);
+
+	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
+	WP_FireCloneCarbineMissile(ent, muzzle, dir, alt_fire);
+}
+
+//---------------------------------------------------------
+static void WP_FireRebelBlaster(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	vec3_t  dir, angs;
+
+	vectoangles(forward, angs);
+
+	if (alt_fire)
+	{
+		// add some slop to the alt-fire direction
+		angs[PITCH] += Q_flrand(-1.6f, 1.6f) * REBELBLASTER_SPREAD;
+		angs[YAW] += Q_flrand(-1.6f, 1.6f) * REBELBLASTER_SPREAD;
+	}
+
+	AngleVectors(angs, dir, NULL, NULL);
+
+	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
+	WP_FireRebelBlasterMissile(ent, muzzle, dir, alt_fire);
+}
+
+//---------------------------------------------------------
+static void WP_FireCloneRifle(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	vec3_t  dir, angs;
+
+	vectoangles(forward, angs);
+
+	if (alt_fire)
+	{
+		// add some slop to the alt-fire direction
+		angs[PITCH] += Q_flrand(-1.0f, 1.0f) * CLONERIFLE_SPREAD;
+		angs[YAW] += Q_flrand(-1.0f, 1.0f) * CLONERIFLE_SPREAD;
+	}
+
+	AngleVectors(angs, dir, NULL, NULL);
+
+	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
+	WP_FireCloneRifleMissile(ent, muzzle, dir, alt_fire);
+}
+
+//---------------------------------------------------------
+static void WP_FireCloneCommando(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	vec3_t  dir, angs;
+
+	vectoangles(forward, angs);
+
+	if (alt_fire)
+	{
+		// add some slop to the alt-fire direction
+		angs[PITCH] += Q_flrand(-1.0f, 1.0f) * CLONECOMMANDO_SPREAD;
+		angs[YAW] += Q_flrand(-1.0f, 1.0f) * CLONECOMMANDO_SPREAD;
+	}
+
+	AngleVectors(angs, dir, NULL, NULL);
+
+	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
+	WP_FireCloneCommandoMissile(ent, muzzle, dir, alt_fire);
+}
+
+//---------------------------------------------------------
+static void WP_FireRebelRifle(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	vec3_t  dir, angs;
+
+	vectoangles(forward, angs);
+
+	if (alt_fire)
+	{
+		// add some slop to the alt-fire direction
+		angs[PITCH] += Q_flrand(-1.4f, 1.4f) * REBELRIFLE_SPREAD;
+		angs[YAW] += Q_flrand(-1.4f, 1.4f) * REBELRIFLE_SPREAD;
+	}
+
+	AngleVectors(angs, dir, NULL, NULL);
+
+	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
+	WP_FireRebelRifleMissile(ent, muzzle, dir, alt_fire);
+}
+
+//---------------------------------------------------------
+static void WP_FireJangoPistol(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	vec3_t  dir, angs;
+
+	vectoangles(forward, angs);
+
+	if (alt_fire)
+	{
+		// add some slop to the alt-fire direction
+		angs[PITCH] += Q_flrand(-1.0f, 1.0f) * JANGO_SPREAD;
+		angs[YAW] += Q_flrand(-1.0f, 1.0f) * JANGO_SPREAD;
+	}
+
+	AngleVectors(angs, dir, NULL, NULL);
+
+	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
+	WP_FireJangoPistolMissile(ent, muzzle, dir, alt_fire);
+}
+
+//---------------------------------------------------------
+static void WP_FireBobaRifle(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	vec3_t  dir, angs;
+
+	vectoangles(forward, angs);
+
+	if (alt_fire)
+	{
+		// add some slop to the alt-fire direction
+		angs[PITCH] += Q_flrand(-1.0f, 1.0f) * BOBA_SPREAD;
+		angs[YAW] += Q_flrand(-1.0f, 1.0f) * BOBA_SPREAD;
+	}
+
+	AngleVectors(angs, dir, NULL, NULL);
+
+	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
+	WP_FireBobaRifleMissile(ent, muzzle, dir, alt_fire);
 }
 
 /*
@@ -5757,6 +6469,59 @@ void FireWeapon(gentity_t* ent, const qboolean alt_fire)
 	case WP_DET_PACK:
 		alert = 0;
 		WP_DropDetPack(ent, alt_fire);
+		break;
+
+	case WP_BATTLEDROID:
+		WP_FireBattleDroid(ent, alt_fire);
+		break;
+
+	case WP_THEFIRSTORDER:
+		WP_FireFirstOrder(ent, alt_fire);
+		break;
+
+	case WP_CLONECARBINE:
+		WP_FireCloneCarbine(ent, alt_fire);
+		break;
+
+	case WP_REBELBLASTER:
+		WP_FireRebelBlaster(ent, alt_fire);
+		break;
+
+	case WP_CLONERIFLE:
+		WP_FireCloneRifle(ent, alt_fire);
+		break;
+
+	case WP_CLONECOMMANDO:
+		WP_FireCloneCommando(ent, alt_fire);
+		break;
+
+	case WP_REBELRIFLE:
+		WP_FireRebelRifle(ent, alt_fire);
+		break;
+
+	case WP_REY:
+		WP_FireReyPistol(ent, alt_fire);
+		break;
+
+	case WP_JANGO:
+		WP_FireJangoPistol(ent, alt_fire);
+		break;
+
+	case WP_BOBA:
+	{
+		if (alt_fire)
+		{
+			WP_FireBobaRifle(ent, alt_fire);
+			WP_FireBobaRifle(ent, alt_fire);
+			WP_FireBobaRifle(ent, alt_fire);
+			break;
+		}
+		WP_FireBobaRifle(ent, alt_fire);
+		break;
+	}
+
+	case WP_CLONEPISTOL:
+		WP_FireClonePistol(ent, alt_fire);
 		break;
 
 	case WP_EMPLACED_GUN:

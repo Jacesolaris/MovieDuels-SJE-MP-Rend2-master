@@ -2387,6 +2387,260 @@ static void CG_DrawWeaponTripMine(const int x, const int y)
 		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_tripmine);
 	}
 }
+//new weapons
+static void CG_DrawWeaponBattleDroid(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_battledroid);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_battledroid);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_battledroid);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_battledroid);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_battledroid);
+	}
+}
+static void CG_DrawWeaponTheFirstOrder(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_thefirstorder);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_thefirstorder);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_thefirstorder);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_thefirstorder);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_thefirstorder);
+	}
+}
+static void CG_DrawWeaponCloneCarbine(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonecarbine);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonecarbine);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_clonecarbine);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_clonecarbine);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonecarbine);
+	}
+}
+static void CG_DrawWeaponRebelBlaster(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_rebelblaster);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_rebelblaster);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_rebelblaster);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_rebelblaster);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_rebelblaster);
+	}
+}
+static void CG_DrawWeaponCloneRifle(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonerifle);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonerifle);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_clonerifle);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_clonerifle);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonerifle);
+	}
+}
+static void CG_DrawWeaponCloneCommando(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonecommando);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonecommando);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_clonecommando);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_clonecommando);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonecommando);
+	}
+}
+static void CG_DrawWeaponRebelRifle(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_rebelrifle);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_rebelrifle);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_rebelrifle);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_rebelrifle);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_rebelrifle);
+	}
+}
+static void CG_DrawWeaponRey(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_rey);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_rey);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_rey);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_rey);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_rey);
+	}
+}
+static void CG_DrawWeaponJango(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_jango);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_jango);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_jango);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_jango);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_jango);
+	}
+}
+static void CG_DrawWeaponBoba(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_boba);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_boba);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_boba);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_boba);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_boba);
+	}
+}
+static void CG_DrawWeaponClonePistol(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonepistol);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonepistol);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_clonepistol);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_clonepistol);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonepistol);
+	}
+}
 
 ////////////////////////////////////////////////
 
@@ -2472,6 +2726,51 @@ static void CG_DrawMDWeaponIcon(const centity_t* cent)
 	else if (cent->currentState.weapon == WP_TRIP_MINE)
 	{
 		CG_DrawWeaponTripMine(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	// new weapons
+	else if (cent->currentState.weapon == WP_BATTLEDROID)
+	{
+		CG_DrawWeaponBattleDroid(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_THEFIRSTORDER)
+	{
+		CG_DrawWeaponTheFirstOrder(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_CLONECARBINE)
+	{
+		CG_DrawWeaponCloneCarbine(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_REBELBLASTER)
+	{
+		CG_DrawWeaponRebelBlaster(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_CLONERIFLE)
+	{
+		CG_DrawWeaponCloneRifle(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_CLONECOMMANDO)
+	{
+		CG_DrawWeaponCloneCommando(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_REBELRIFLE)
+	{
+		CG_DrawWeaponRebelRifle(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_REY)
+	{
+		CG_DrawWeaponRey(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_JANGO)
+	{
+		CG_DrawWeaponJango(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_BOBA)
+	{
+		CG_DrawWeaponBoba(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_CLONEPISTOL)
+	{
+		CG_DrawWeaponClonePistol(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
 	}
 	else
 	{
@@ -3962,64 +4261,99 @@ static void CG_Draw_JKA_Armor(const menuDef_t* menu_hud)
 
 static void CG_DrawJK2Armor(const centity_t* cent, const int x, const int y)
 {
+	const playerState_t* ps = &cg.snap->ps;
 	vec4_t calc_color;
 
-	const playerState_t* ps = &cg.snap->ps;
-
-	//	Outer Armor circular
-	memcpy(calc_color, colorTable[CT_HUD_GREEN], sizeof(vec4_t));
+	// No armor HUD if dead
+	if (ps->stats[STAT_HEALTH] <= 0)
+	{
+		return;
+	}
 
 	int armor = ps->stats[STAT_ARMOR];
+	const int maxHealth = ps->stats[STAT_MAX_HEALTH];
 
-	if (armor > ps->stats[STAT_MAX_HEALTH])
+	if (armor > maxHealth)
 	{
-		armor = ps->stats[STAT_MAX_HEALTH];
+		armor = maxHealth;
 	}
 
-	const float hold = armor - ps->stats[STAT_MAX_HEALTH] / 2;
-	float armor_percent = hold / (ps->stats[STAT_MAX_HEALTH] / 2);
-	if (armor_percent < 0)
+	// Half‑health threshold (float)
+	const float halfHealth = maxHealth * 0.5f;
+
+	// -----------------------------
+	// OUTER RING (armor > 50%)
+	// -----------------------------
+	//
+	// hold = armor - halfHealth
+	// outerPercent = clamp(hold / halfHealth, 0..1)
+	//
+	const float hold = (float)armor - halfHealth;
+	float outerPercent = hold / halfHealth;
+
+	if (outerPercent < 0.0f)
 	{
-		armor_percent = 0;
+		outerPercent = 0.0f;
 	}
-	calc_color[0] *= armor_percent;
-	calc_color[1] *= armor_percent;
-	calc_color[2] *= armor_percent;
+	else if (outerPercent > 1.0f)
+	{
+		outerPercent = 1.0f;
+	}
+
+	// Apply color fade
+	memcpy(calc_color, colorTable[CT_HUD_GREEN], sizeof(vec4_t));
+	calc_color[0] *= outerPercent;
+	calc_color[1] *= outerPercent;
+	calc_color[2] *= outerPercent;
+
 	trap->R_SetColor(calc_color);
-	CG_DrawPic(x, y, 80, 80, cgs.media.JK2HUDArmor1);
+	CG_DrawPic(x, y, 80, 80, cgs.media.JK2HUDArmor1); // Outer ring
 
-	// Inner Armor circular
-	if (armor_percent > 0)
+	// -----------------------------
+	// INNER RING (armor < 50%)
+	// -----------------------------
+	float innerPercent;
+
+	if (outerPercent > 0.0f)
 	{
-		armor_percent = 1;
+		// If armor > 50%, inner ring is fully bright
+		innerPercent = 1.0f;
 	}
 	else
 	{
-		armor_percent = (float)ps->stats[STAT_ARMOR] / (ps->stats[STAT_MAX_HEALTH] / 2);
-	}
-	memcpy(calc_color, colorTable[CT_HUD_GREEN], sizeof(vec4_t));
-	calc_color[0] *= armor_percent;
-	calc_color[1] *= armor_percent;
-	calc_color[2] *= armor_percent;
-	trap->R_SetColor(calc_color);
-	CG_DrawPic(x, y, 80, 80, cgs.media.JK2HUDArmor2); //	Inner Armor circular
+		// If armor < 50%, inner ring brightness = armor / halfHealth
+		innerPercent = (float)armor / halfHealth;
 
-	if (ps->stats[STAT_ARMOR]) // Is there armor? Draw the HUD Armor TIC
-	{
-		// Make tic flash if inner armor is at 50% (25% of full armor)
-		if (armor_percent < .5) // Do whatever the flash timer says
+		if (innerPercent < 0.0f)
 		{
-			if (cg.HUDTickFlashTime < cg.time) // Flip at the same time
+			innerPercent = 0.0f;
+		}
+		else if (innerPercent > 1.0f)
+		{
+			innerPercent = 1.0f;
+		}
+	}
+
+	memcpy(calc_color, colorTable[CT_HUD_GREEN], sizeof(vec4_t));
+	calc_color[0] *= innerPercent;
+	calc_color[1] *= innerPercent;
+	calc_color[2] *= innerPercent;
+
+	trap->R_SetColor(calc_color);
+	CG_DrawPic(x, y, 80, 80, cgs.media.JK2HUDArmor2); // Inner ring
+
+	// -----------------------------
+	// ARMOR TIC FLASH LOGIC
+	// -----------------------------
+	if (armor > 0)
+	{
+		// Flash when inner armor < 50%
+		if (innerPercent < 0.5f)
+		{
+			if (cg.HUDTickFlashTime < cg.time)
 			{
 				cg.HUDTickFlashTime = cg.time + 100;
-				if (cg.HUDArmorFlag)
-				{
-					cg.HUDArmorFlag = qfalse;
-				}
-				else
-				{
-					cg.HUDArmorFlag = qtrue;
-				}
+				cg.HUDArmorFlag = !cg.HUDArmorFlag;
 			}
 		}
 		else
@@ -4027,83 +4361,104 @@ static void CG_DrawJK2Armor(const centity_t* cent, const int x, const int y)
 			cg.HUDArmorFlag = qtrue;
 		}
 	}
-	else // No armor? Don't show it.
+	else
 	{
 		cg.HUDArmorFlag = qfalse;
 	}
 
 	trap->R_SetColor(colorTable[CT_HUD_GREEN]);
 
+	// -----------------------------
+	// ARMOR NUMBER
+	// -----------------------------
 	if (cent->currentState.weapon == WP_SABER)
 	{
-		CG_DrawNumField(x + 16 + 14, y + 40 + 16, 3, ps->stats[STAT_ARMOR], 4, 8, NUM_FONT_SMALL, qfalse);
+		CG_DrawNumField(x + 30, y + 56, 3, armor, 4, 8, NUM_FONT_SMALL, qfalse);
 	}
 	else
 	{
-		CG_DrawNumField(x + 16 + 14, y + 40 + 14, 3, ps->stats[STAT_ARMOR], 6, 12, NUM_FONT_SMALL, qfalse);
+		CG_DrawNumField(x + 30, y + 54, 3, armor, 6, 12, NUM_FONT_SMALL, qfalse);
 	}
-}
-
-static void CG_DrawJK2CusArmor(const centity_t* cent, const int x, const int y)
+}static void CG_DrawJK2CusArmor(const centity_t* cent, const int x, const int y)
 {
+	const playerState_t* ps = &cg.snap->ps;
 	vec4_t calc_color;
 
-	const playerState_t* ps = &cg.snap->ps;
-
-	//	Outer Armor circular
-	memcpy(calc_color, colorTable[CT_HUD_GREEN], sizeof(vec4_t));
-
 	int armor = ps->stats[STAT_ARMOR];
+	const int maxHealth = ps->stats[STAT_MAX_HEALTH];
 
-	if (armor > ps->stats[STAT_MAX_HEALTH])
+	if (armor > maxHealth)
 	{
-		armor = ps->stats[STAT_MAX_HEALTH];
+		armor = maxHealth;
 	}
 
-	const float hold = armor - ps->stats[STAT_MAX_HEALTH] / 2;
-	float armor_percent = hold / (ps->stats[STAT_MAX_HEALTH] / 2);
-	if (armor_percent < 0)
+	const float halfHealth = maxHealth * 0.5f;
+
+	// -----------------------------
+	// OUTER RING (armor > 50%)
+	// -----------------------------
+	const float hold = (float)armor - halfHealth;
+	float outerPercent = hold / halfHealth;
+
+	if (outerPercent < 0.0f)
 	{
-		armor_percent = 0;
+		outerPercent = 0.0f;
 	}
-	calc_color[0] *= armor_percent;
-	calc_color[1] *= armor_percent;
-	calc_color[2] *= armor_percent;
+	else if (outerPercent > 1.0f)
+	{
+		outerPercent = 1.0f;
+	}
+
+	memcpy(calc_color, colorTable[CT_HUD_GREEN], sizeof(vec4_t));
+	calc_color[0] *= outerPercent;
+	calc_color[1] *= outerPercent;
+	calc_color[2] *= outerPercent;
+
 	trap->R_SetColor(calc_color);
 	CG_DrawPic(x + 2, y - 2, 80, 80, cgs.media.JK2HUDArmor1);
 
-	// Inner Armor circular
-	if (armor_percent > 0)
+	// -----------------------------
+	// INNER RING (armor < 50%)
+	// -----------------------------
+	float innerPercent;
+
+	if (outerPercent > 0.0f)
 	{
-		armor_percent = 1;
+		innerPercent = 1.0f;
 	}
 	else
 	{
-		armor_percent = (float)ps->stats[STAT_ARMOR] / (ps->stats[STAT_MAX_HEALTH] / 2);
-	}
-	memcpy(calc_color, colorTable[CT_HUD_GREEN], sizeof(vec4_t));
-	calc_color[0] *= armor_percent;
-	calc_color[1] *= armor_percent;
-	calc_color[2] *= armor_percent;
-	trap->R_SetColor(calc_color);
-	CG_DrawPic(x + 2, y - 2, 80, 80, cgs.media.JK2HUDArmor2); //	Inner Armor circular
+		innerPercent = (float)armor / halfHealth;
 
-	if (ps->stats[STAT_ARMOR]) // Is there armor? Draw the HUD Armor TIC
-	{
-		// Make tic flash if inner armor is at 50% (25% of full armor)
-		if (armor_percent < .5) // Do whatever the flash timer says
+		if (innerPercent < 0.0f)
 		{
-			if (cg.HUDTickFlashTime < cg.time) // Flip at the same time
+			innerPercent = 0.0f;
+		}
+		else if (innerPercent > 1.0f)
+		{
+			innerPercent = 1.0f;
+		}
+	}
+
+	memcpy(calc_color, colorTable[CT_HUD_GREEN], sizeof(vec4_t));
+	calc_color[0] *= innerPercent;
+	calc_color[1] *= innerPercent;
+	calc_color[2] *= innerPercent;
+
+	trap->R_SetColor(calc_color);
+	CG_DrawPic(x + 2, y - 2, 80, 80, cgs.media.JK2HUDArmor2);
+
+	// -----------------------------
+	// ARMOR TIC FLASH
+	// -----------------------------
+	if (armor > 0)
+	{
+		if (innerPercent < 0.5f)
+		{
+			if (cg.HUDTickFlashTime < cg.time)
 			{
 				cg.HUDTickFlashTime = cg.time + 100;
-				if (cg.HUDArmorFlag)
-				{
-					cg.HUDArmorFlag = qfalse;
-				}
-				else
-				{
-					cg.HUDArmorFlag = qtrue;
-				}
+				cg.HUDArmorFlag = !cg.HUDArmorFlag;
 			}
 		}
 		else
@@ -4111,20 +4466,23 @@ static void CG_DrawJK2CusArmor(const centity_t* cent, const int x, const int y)
 			cg.HUDArmorFlag = qtrue;
 		}
 	}
-	else // No armor? Don't show it.
+	else
 	{
 		cg.HUDArmorFlag = qfalse;
 	}
 
 	trap->R_SetColor(colorTable[CT_HUD_GREEN]);
 
+	// -----------------------------
+	// ARMOR NUMBER
+	// -----------------------------
 	if (cent->currentState.weapon == WP_SABER)
 	{
-		CG_DrawNumField(x + 31, y + 49, 3, ps->stats[STAT_ARMOR], 4, 8, NUM_FONT_SMALL, qfalse);
+		CG_DrawNumField(x + 31, y + 49, 3, armor, 4, 8, NUM_FONT_SMALL, qfalse);
 	}
 	else
 	{
-		CG_DrawNumField(x + 31, y + 30, 3, ps->stats[STAT_ARMOR], 4, 8, NUM_FONT_SMALL, qfalse);
+		CG_DrawNumField(x + 31, y + 30, 3, armor, 4, 8, NUM_FONT_SMALL, qfalse);
 	}
 }
 
@@ -4540,6 +4898,194 @@ static void CG_DrawCusweapontype(const centity_t* cent, const menuDef_t* menu_hu
 	else if (cent->currentState.weapon == WP_TRIP_MINE)
 	{
 		focus_item = Menu_FindItemByName(menu_hud, "weapontype_tripmine");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	//new weapons
+	else if (cent->currentState.weapon == WP_BATTLEDROID)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_battledroid");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_THEFIRSTORDER)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_thefirstorder");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_CLONECARBINE)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_clonecarbine");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_REBELBLASTER)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_rebelblaster");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_CLONERIFLE)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_clonerifle");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_CLONECOMMANDO)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_clonecommando");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_REBELRIFLE)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_rebelrifle");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_REY)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_rey");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_JANGO)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_jango");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_BOBA)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_boba");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_CLONEPISTOL)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_clonepistol");
 
 		if (focus_item)
 		{
@@ -6825,6 +7371,10 @@ static void CG_DrawHUD(const centity_t* cent)
 
 #define MAX_SHOWPOWERS NUM_FORCE_POWERS
 
+// Helper validation macros to centralize bounds checks for selection indices
+#define VALID_FORCE_INDEX(i) ((i) >= 0 && (i) < MAX_SHOWPOWERS)
+#define VALID_ITEM_INDEX(i)  ((i) >= 0 && (i) < HI_NUM_HOLDABLE)
+
 static qboolean ForcePower_Valid(const int i)
 {
 	if (i == FP_LEVITATION ||
@@ -6847,21 +7397,16 @@ static qboolean ForcePower_Valid(const int i)
 ===================
 CG_DrawForceSelect
 ===================
-*/
-static void CG_DrawForceSelect(void)
+*/static void CG_DrawForceSelect(void)
 {
-	int i;
-	int side_left_icon_cnt, side_right_icon_cnt;
-	int icon_cnt;
-	const int y_offset = 0;
-
-	// don't display if dead
+	// Don't display if dead
 	if (cg.snap->ps.stats[STAT_HEALTH] <= 0)
 	{
 		return;
 	}
 
-	if (cg.forceSelectTime + WEAPON_SELECT_TIME < cg.time) // Time is up for the HUD to display
+	// HUD timeout
+	if (cg.forceSelectTime + WEAPON_SELECT_TIME < cg.time)
 	{
 		cg.forceSelect = cg.snap->ps.fd.forcePowerSelected;
 		return;
@@ -6872,133 +7417,176 @@ static void CG_DrawForceSelect(void)
 		return;
 	}
 
-	if (cg.predictedPlayerState.communicatingflags & (1 << CF_SABERLOCKING) && g_saberLockCinematicCamera.integer)
+	if (cg.predictedPlayerState.communicatingflags & (1 << CF_SABERLOCKING) &&
+		g_saberLockCinematicCamera.integer)
 	{
 		return;
 	}
 
-	// count the number of powers owned
+	// Count powers owned
 	int count = 0;
-
-	for (i = 0; i < NUM_FORCE_POWERS; ++i)
+	for (int n = 0; n < NUM_FORCE_POWERS; ++n)
 	{
-		if (ForcePower_Valid(i))
+		if (ForcePower_Valid(n))
 		{
 			count++;
 		}
 	}
 
-	if (count == 0) // If no force powers, don't display
+	if (count == 0)
 	{
 		return;
 	}
 
-	const int side_max = 3; // Max number of icons on the side
-
-	// Calculate how many icons will appear to either side of the center one
-	const int hold_count = count - 1; // -1 for the center icon
-	if (hold_count == 0) // No icons to either side
+	// Validate cg.forceSelect
+	if (cg.forceSelect < 0 || cg.forceSelect >= MAX_SHOWPOWERS)
 	{
-		side_left_icon_cnt = 0;
-		side_right_icon_cnt = 0;
-	}
-	else if (count > 2 * side_max) // Go to the max on each side
-	{
-		side_left_icon_cnt = side_max;
-		side_right_icon_cnt = side_max;
-	}
-	else // Less than max, so do the calc
-	{
-		side_left_icon_cnt = hold_count / 2;
-		side_right_icon_cnt = hold_count - side_left_icon_cnt;
+		cg.forceSelect = cg.snap->ps.fd.forcePowerSelected;
+		if (cg.forceSelect < 0 || cg.forceSelect >= MAX_SHOWPOWERS)
+		{
+			return; // still invalid, bail safely
+		}
 	}
 
+	const int side_max = 3;
 	const int small_icon_size = 22;
 	const int big_icon_size = 45;
 	const int pad = 12;
-
 	const int x = 320;
 	const int y = 425;
+	const int y_offset = 0;
 
-	i = BG_ProperForceIndex(cg.forceSelect) - 1;
+	// Compute side icon counts
+	const int hold_count = count - 1;
+	int side_left_icon_cnt = 0;
+	int side_right_icon_cnt = 0;
+
+	if (hold_count > 0)
+	{
+		if (count > 2 * side_max)
+		{
+			side_left_icon_cnt = side_max;
+			side_right_icon_cnt = side_max;
+		}
+		else
+		{
+			side_left_icon_cnt = hold_count / 2;
+			side_right_icon_cnt = hold_count - side_left_icon_cnt;
+		}
+	}
+
+	trap->R_SetColor(NULL);
+
+	// -----------------------------
+	// LEFT SIDE ICONS
+	// -----------------------------
+	int i = BG_ProperForceIndex(cg.forceSelect);
+	if (i < 0 || i >= MAX_SHOWPOWERS)
+	{
+		return; // invalid sorted index
+	}
+
+	i--; // move left
 	if (i < 0)
 	{
 		i = MAX_SHOWPOWERS - 1;
 	}
 
-	trap->R_SetColor(NULL);
-	// Work backwards from current icon
 	int hold_x = x - (big_icon_size / 2 + pad + small_icon_size);
-	for (icon_cnt = 1; icon_cnt < side_left_icon_cnt + 1; i--)
+	int icon_cnt = 1;
+
+	while (icon_cnt <= side_left_icon_cnt)
 	{
 		if (i < 0)
 		{
 			i = MAX_SHOWPOWERS - 1;
 		}
 
-		if (!ForcePower_Valid(forcePowerSorted[i])) // Does he have this power?
+		const int fp = forcePowerSorted[i];
+		if (fp >= 0 && fp < NUM_FORCE_POWERS && ForcePower_Valid(fp))
 		{
-			continue;
+			if (cgs.media.forcePowerIcons[fp])
+			{
+				CG_DrawPic(hold_x, y + y_offset, small_icon_size, small_icon_size,
+					cgs.media.forcePowerIcons[fp]);
+				hold_x -= small_icon_size + pad;
+			}
+			icon_cnt++;
 		}
 
-		++icon_cnt; // Good icon
-
-		if (cgs.media.forcePowerIcons[forcePowerSorted[i]])
-		{
-			CG_DrawPic(hold_x, y + y_offset, small_icon_size, small_icon_size,
-				cgs.media.forcePowerIcons[forcePowerSorted[i]]);
-			hold_x -= small_icon_size + pad;
-		}
+		i--;
 	}
 
+	// -----------------------------
+	// CENTER ICON
+	// -----------------------------
 	if (ForcePower_Valid(cg.forceSelect))
 	{
-		// Current Center Icon
-		if (cgs.media.forcePowerIcons[cg.forceSelect])
+		const int fp = cg.forceSelect;
+		if (fp >= 0 && fp < NUM_FORCE_POWERS && cgs.media.forcePowerIcons[fp])
 		{
-			CG_DrawPic(x - big_icon_size / 2, y - (big_icon_size - small_icon_size) / 2 + y_offset, big_icon_size,
-				big_icon_size,
-				cgs.media.forcePowerIcons[cg.forceSelect]); //only cache the icon for display
+			CG_DrawPic(x - big_icon_size / 2.0f,
+				y - (big_icon_size - small_icon_size) / 2.0f + y_offset,
+				big_icon_size, big_icon_size,
+				cgs.media.forcePowerIcons[fp]);
 		}
 	}
 
-	i = BG_ProperForceIndex(cg.forceSelect) + 1;
+	// -----------------------------
+	// RIGHT SIDE ICONS
+	// -----------------------------
+	i = BG_ProperForceIndex(cg.forceSelect);
+	if (i < 0 || i >= MAX_SHOWPOWERS)
+	{
+		return;
+	}
+
+	i++; // move right
 	if (i >= MAX_SHOWPOWERS)
 	{
 		i = 0;
 	}
 
-	// Work forwards from current icon
 	hold_x = x + big_icon_size / 2 + pad;
-	for (icon_cnt = 1; icon_cnt < side_right_icon_cnt + 1; i++)
+	icon_cnt = 1;
+
+	while (icon_cnt <= side_right_icon_cnt)
 	{
 		if (i >= MAX_SHOWPOWERS)
 		{
 			i = 0;
 		}
 
-		if (!ForcePower_Valid(forcePowerSorted[i])) // Does he have this power?
+		const int fp = forcePowerSorted[i];
+		if (fp >= 0 && fp < NUM_FORCE_POWERS && ForcePower_Valid(fp))
 		{
-			continue;
+			if (cgs.media.forcePowerIcons[fp])
+			{
+				CG_DrawPic(hold_x, y + y_offset, small_icon_size, small_icon_size,
+					cgs.media.forcePowerIcons[fp]);
+				hold_x += small_icon_size + pad;
+			}
+			icon_cnt++;
 		}
 
-		++icon_cnt; // Good icon
-
-		if (cgs.media.forcePowerIcons[forcePowerSorted[i]])
-		{
-			CG_DrawPic(hold_x, y + y_offset, small_icon_size, small_icon_size,
-				cgs.media.forcePowerIcons[forcePowerSorted[i]]); //only cache the icon for display
-			hold_x += small_icon_size + pad;
-		}
+		i++;
 	}
 
-	if (showPowersName[cg.forceSelect])
+	// -----------------------------
+	// FORCE POWER NAME (safe)
+	// -----------------------------
+	if (cg.forceSelect >= 0 &&
+		cg.forceSelect < MAX_SHOWPOWERS &&
+		showPowersName[cg.forceSelect])
 	{
-		CG_DrawProportionalString(320, y + 30 + y_offset,
+		CG_DrawProportionalString(
+			320, y + 30 + y_offset,
 			CG_GetStringEdString("MD_MP_GAME", showPowersName[cg.forceSelect]),
-			UI_CENTER | UI_SMALLFONT, colorTable[CT_ICON_BLUE]);
+			UI_CENTER | UI_SMALLFONT,
+			colorTable[CT_ICON_BLUE]);
 	}
 }
+
 ///////////// md side start /////////////////////////
 
 void CG_DrawForceSelect_sidevert(void)
@@ -7078,7 +7666,8 @@ void CG_DrawForceSelect_sidetextvert(void)
 
 	trap->R_SetColor(NULL);
 
-	if (showPowersName[cg.forceSelect])
+	/* Validate index and pointer before using to avoid out-of-bounds or NULL dereference */
+	if (cg.forceSelect >= 0 && cg.forceSelect < MAX_SHOWPOWERS && showPowersName[cg.forceSelect])
 	{
 		CG_Text_Paint(12, 456, 0.5f, colorTable[CT_ICON_BLUE], CG_GetStringEdString("SP_INGAME", showPowersName[cg.forceSelect]), 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL);
 	}
@@ -7162,7 +7751,8 @@ void CG_DrawForceSelect_sidetexthoz(void)
 
 	trap->R_SetColor(NULL);
 
-	if (showPowersName[cg.forceSelect])
+	/* Validate index and pointer before using to avoid out-of-bounds or NULL dereference */
+	if (cg.forceSelect >= 0 && cg.forceSelect < MAX_SHOWPOWERS && showPowersName[cg.forceSelect])
 	{
 		CG_Text_Paint(65, 457, 0.5f, colorTable[CT_ICON_BLUE], CG_GetStringEdString("SP_INGAME", showPowersName[cg.forceSelect]), 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL);
 	}
@@ -7200,7 +7790,8 @@ void CG_DrawInventorySelect_sidehoz(void)
 
 	trap->R_SetColor(NULL);
 
-	if (cgs.media.invenIcons[cg.itemSelect] && BG_IsItemSelectable(cg.itemSelect))
+	/* Validate index before indexing arrays */
+	if (cg.itemSelect >= 0 && cg.itemSelect < HI_NUM_HOLDABLE && cgs.media.invenIcons[cg.itemSelect] && BG_IsItemSelectable(cg.itemSelect))
 	{
 		CG_DrawPic(21.5, 445, 7, 6.5, cgs.media.invenIcons[cg.itemSelect]);
 		//CG_DrawNumField(21.5, 447, 1, cg.snap->ps.inventory[cg.itemSelect], 3, 6, NUM_FONT_SMALL, qfalse);
@@ -7243,11 +7834,15 @@ void CG_DrawInventorySelect_sidetexthoz(void)
 
 	trap->R_SetColor(NULL);
 
-	if (BG_IsItemSelectable(cg.itemSelect))
+	/* Validate selection and item index before using to avoid out-of-bounds or NULL dereference */
+	if (cg.itemSelect >= 0 && cg.itemSelect < HI_NUM_HOLDABLE && BG_IsItemSelectable(cg.itemSelect))
 	{
-		vec4_t text_color = { .312f, .75f, .621f, 1.0f };
-
-		CG_Text_Paint(9, 464, 0.5f, text_color, CG_GetStringEdString("SP_INGAME", bg_itemlist[BG_GetItemIndexByTag(cg.itemSelect, IT_HOLDABLE)].classname), 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL);
+		const int item_ndex = BG_GetItemIndexByTag(cg.itemSelect, IT_HOLDABLE);
+		if (item_ndex >= 0 && bg_itemlist[item_ndex].classname)
+		{
+			vec4_t text_color = { .312f, .75f, .621f, 1.0f };
+			CG_Text_Paint(9, 464, 0.5f, text_color, CG_GetStringEdString("SP_INGAME", bg_itemlist[item_ndex].classname), 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL);
+		}
 	}
 }
 
@@ -7282,7 +7877,8 @@ void CG_DrawInventorySelect_sidevert(void)
 
 	trap->R_SetColor(NULL);
 
-	if (cgs.media.invenIcons[cg.itemSelect] && BG_IsItemSelectable(cg.itemSelect))
+	/* Validate selection index before indexing cgs.media.invenIcons */
+	if (VALID_ITEM_INDEX(cg.itemSelect) && cgs.media.invenIcons[cg.itemSelect] && BG_IsItemSelectable(cg.itemSelect))
 	{
 		CG_DrawPic(23, 447, 10, 9.5, cgs.media.invenIcons[cg.itemSelect]);
 		//CG_DrawNumField(25, 447, 1, cg.snap->ps.inventory[cg.itemSelect], 3, 6, NUM_FONT_SMALL, qfalse);
@@ -7325,11 +7921,15 @@ void CG_DrawInventorySelect_sidetextvert(void)
 
 	trap->R_SetColor(NULL);
 
-	if (BG_IsItemSelectable(cg.itemSelect))
+	/* Validate selection and item index before using to avoid out-of-bounds or NULL dereference */
+	if (cg.itemSelect >= 0 && cg.itemSelect < HI_NUM_HOLDABLE && BG_IsItemSelectable(cg.itemSelect))
 	{
-		vec4_t text_color = { .312f, .75f, .621f, 1.0f };
-
-		CG_Text_Paint(9, 463, 0.5f, text_color, CG_GetStringEdString("SP_INGAME", bg_itemlist[BG_GetItemIndexByTag(cg.itemSelect, IT_HOLDABLE)].classname), 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL);
+		const int item_ndex = BG_GetItemIndexByTag(cg.itemSelect, IT_HOLDABLE);
+		if (item_ndex >= 0 && bg_itemlist[item_ndex].classname)
+		{
+			vec4_t text_color = { .312f, .75f, .621f, 1.0f };
+			CG_Text_Paint(9, 463, 0.5f, text_color, CG_GetStringEdString("SP_INGAME", bg_itemlist[item_ndex].classname), 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL);
+		}
 	}
 }
 
@@ -7372,7 +7972,16 @@ static void CG_DrawInventorySelect(void)
 
 	if (cg.itemSelect == -1)
 	{
-		cg.itemSelect = bg_itemlist[cg.snap->ps.stats[STAT_HOLDABLE_ITEM]].giTag;
+		/* Defensive: ensure the STAT_HOLDABLE_ITEM stat is within bounds before indexing bg_itemlist */
+		const int holdableStat = cg.snap->ps.stats[STAT_HOLDABLE_ITEM];
+		if (holdableStat >= 0 && holdableStat < HI_NUM_HOLDABLE)
+		{
+			cg.itemSelect = bg_itemlist[holdableStat].giTag;
+		}
+		else
+		{
+			cg.itemSelect = 0; /* fallback to a safe default */
+		}
 	}
 
 	// count the number of items owned
@@ -7460,15 +8069,15 @@ static void CG_DrawInventorySelect(void)
 	}
 
 	// Current Center Icon
-	if (cgs.media.invenIcons[cg.itemSelect] && BG_IsItemSelectable(cg.itemSelect))
+	if (VALID_ITEM_INDEX(cg.itemSelect) && cgs.media.invenIcons[cg.itemSelect] && BG_IsItemSelectable(cg.itemSelect))
 	{
 		trap->R_SetColor(NULL);
-		CG_DrawPic(x - big_icon_size / 2, y - (big_icon_size - small_icon_size) / 2 + 10, big_icon_size, big_icon_size,
+		CG_DrawPic(x - big_icon_size / 2.0f, y - (big_icon_size - small_icon_size) / 2.0f + 10, big_icon_size, big_icon_size,
 			cgs.media.invenIcons[cg.itemSelect]);
 		trap->R_SetColor(colorTable[CT_ICON_BLUE]);
 
 		const int item_ndex = BG_GetItemIndexByTag(cg.itemSelect, IT_HOLDABLE);
-		if (bg_itemlist[item_ndex].classname)
+		if (item_ndex >= 0 && item_ndex < HI_NUM_HOLDABLE && bg_itemlist[item_ndex].classname)
 		{
 			vec4_t text_color = { .312f, .75f, .621f, 1.0f };
 			char text[1024];
@@ -8744,20 +9353,50 @@ static float CG_DrawFPS(const float y)
 // nmckenzie: DUEL_HEALTH
 #define MAX_HEALTH_FOR_IFACE	100
 
-static void CG_DrawHealthBarRough(const float x, const float y, const int width, const int height, const float ratio,
-	const float* color1,
-	const float* color2)
+static void CG_DrawHealthBarRough(const float x, const float y,
+	const int width, const int height,
+	const float ratio,
+	const float* colorFilled,
+	const float* colorBorder)
 {
-	float color3[4] = { 1, 0, 0, .7f };
+	// ratio is expected to be 0..1
+	float clampedRatio = ratio;
+	if (clampedRatio < 0.0f) clampedRatio = 0.0f;
+	if (clampedRatio > 1.0f) clampedRatio = 1.0f;
 
-	const float midpoint = width * ratio - 1;
+	// Height must be divisible by 4 for the visual alignment to work
+	assert((height % 4) == 0);
+
+	// Compute the split point between filled and used-up sections
+	const float midpoint = (width * clampedRatio) - 1.0f;
 	const float remainder = width - midpoint;
-	color3[0] = color1[0] * 0.5f;
 
-	assert(!(height % 4)); //this won't line up otherwise.
-	CG_DrawRect(x + 1, y + height / 2 - 1, midpoint, 1, height / 4 + 1, color1); // creme-y filling.
-	CG_DrawRect(x + midpoint, y + height / 2 - 1, remainder, 1, height / 4 + 1, color3); // used-up-ness.
-	CG_DrawRect(x, y, width, height, 1, color2); // hard crispy shell
+	// Used-up color is a darker version of the filled color
+	float usedColor[4] = {
+		colorFilled[0] * 0.5f,
+		colorFilled[1] * 0.5f,
+		colorFilled[2] * 0.5f,
+		0.7f
+	};
+
+	// Vertical alignment: draw the bar centered inside the border
+	const float barY = y + (height * 0.5f) - 1.0f;
+	const float barH = (height / 4.0f) + 1.0f;
+
+	// Filled portion
+	if (midpoint > 0.0f)
+	{
+		CG_DrawRect(x + 1.0f, barY, midpoint, 1.0f, barH, colorFilled);
+	}
+
+	// Used-up portion
+	if (remainder > 0.0f)
+	{
+		CG_DrawRect(x + midpoint, barY, remainder, 1.0f, barH, usedColor);
+	}
+
+	// Border
+	CG_DrawRect(x, y, width, height, 1.0f, colorBorder);
 }
 
 void CG_DrawDuelistHealth(const float x, const float y, const float w, const float h, const int duelist)
@@ -9763,7 +10402,7 @@ static void CG_DrawPowerupIcons(int y)
 
 				if (j != PW_REDFLAG && j != PW_BLUEFLAG && secondsleft < 999)
 				{
-					CG_DrawProportionalString(640 - ico_size * 1.1 + ico_size / 2 + x_offset, y - 8,
+					CG_DrawProportionalString(640 - ico_size * 1.1 + ico_size / 2.0f + x_offset, y - 8,
 						va("%i", secondsleft), UI_CENTER | UI_BIGFONT | UI_DROPSHADOW,
 						colorTable[CT_WHITE]);
 				}
@@ -10979,7 +11618,10 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 			cid < MAX_CLIENTS &&
 			cg_entities[cid].currentState.eType == ET_PLAYER &&
 			(cg_entities[cid].currentState.eFlags & EF3_DUAL_WEAPONS) &&
-			cg.snap->ps.weapon == WP_BRYAR_PISTOL)
+			cg.snap->ps.weapon == WP_BRYAR_PISTOL ||
+			cg.snap->ps.weapon == WP_REY ||
+			cg.snap->ps.weapon == WP_JANGO ||
+			cg.snap->ps.weapon == WP_CLONEPISTOL)
 		{
 			w = h = cg_crosshairDualSize.value;
 		}
@@ -11024,6 +11666,13 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 				hShader = cgs.media.crosshairShader[1];
 			}
 			else if (cg.snap->ps.weapon == WP_REPEATER ||
+				cg.snap->ps.weapon == WP_BATTLEDROID ||
+				cg.snap->ps.weapon == WP_THEFIRSTORDER ||
+				cg.snap->ps.weapon == WP_CLONECARBINE ||
+				cg.snap->ps.weapon == WP_REBELBLASTER ||
+				cg.snap->ps.weapon == WP_CLONERIFLE ||
+				cg.snap->ps.weapon == WP_CLONECOMMANDO ||
+				cg.snap->ps.weapon == WP_REBELRIFLE ||
 				cg.snap->ps.weapon == WP_BLASTER)
 			{
 				hShader = cgs.media.crosshairShader[2];
@@ -11047,6 +11696,10 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 			}
 			else if (cg.snap->ps.weapon == WP_BRYAR_OLD ||
 				cg.snap->ps.weapon == WP_BRYAR_PISTOL ||
+				cg.snap->ps.weapon == WP_REY ||
+				cg.snap->ps.weapon == WP_JANGO ||
+				cg.snap->ps.weapon == WP_BOBA ||
+				cg.snap->ps.weapon == WP_CLONEPISTOL ||
 				cg.snap->ps.weapon == WP_STUN_BATON)
 			{
 				hShader = cgs.media.crosshairShader[7];
@@ -12836,7 +13489,7 @@ static void CG_DrawTeamVote(void)
 		if (cgs.teamVoteString[cs_offset][i] == ' ')
 		{
 			int vote_index = 0;
-			char vote_index_str[256];
+			char vote_index_str[256] = { 0 };
 
 			i++;
 
@@ -12919,10 +13572,10 @@ static qboolean CG_DrawFollow(void)
 		s = CG_GetStringEdString("MD_MP_INGAME", "FOLLOWING");
 	}
 
-	CG_Text_Paint(320 - CG_Text_Width(s, 0.5f, FONT_SMALL) / 2, 30, 0.5f, colorWhite, s, 0, 0, 0, FONT_SMALL);
+	CG_Text_Paint(320 - CG_Text_Width(s, 0.5f, FONT_SMALL) / 2.0f, 30, 0.5f, colorWhite, s, 0, 0, 0, FONT_SMALL);
 
 	s = cgs.clientinfo[cg.snap->ps.clientNum].name;
-	CG_Text_Paint(320 - CG_Text_Width(s, 1.0f, FONT_SMALL) / 2, 60, 1.0f, colorWhite, s, 0, 0, 0, FONT_SMALL);
+	CG_Text_Paint(320 - CG_Text_Width(s, 1.0f, FONT_SMALL) / 2.0f, 60, 1.0f, colorWhite, s, 0, 0, 0, FONT_SMALL);
 
 	return qtrue;
 }
@@ -13065,7 +13718,7 @@ static void CG_DrawWarmup(void)
 				s = va("%s vs %s", ci1->name, ci2->name);
 			}
 			w = CG_Text_Width(s, 0.6f, FONT_MEDIUM);
-			CG_Text_Paint(320 - w / 2, 60, 0.6f, colorWhite, s, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE, FONT_MEDIUM);
+			CG_Text_Paint(320 - w / 2.0f, 60, 0.6f, colorWhite, s, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE, FONT_MEDIUM);
 		}
 	}
 	else
@@ -13081,7 +13734,7 @@ static void CG_DrawWarmup(void)
 		else if (cgs.gametype == GT_SINGLE_PLAYER) s = "missions";
 		else s = "";
 		w = CG_Text_Width(s, 1.5f, FONT_MEDIUM);
-		CG_Text_Paint(320 - w / 2, 90, 1.5f, colorWhite, s, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE, FONT_MEDIUM);
+		CG_Text_Paint(320 - w / 2.0f, 90, 1.5f, colorWhite, s, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE, FONT_MEDIUM);
 	}
 
 	sec = (sec - cg.time) / 1000;
@@ -13132,7 +13785,7 @@ static void CG_DrawWarmup(void)
 	}
 
 	w = CG_Text_Width(s, scale, FONT_MEDIUM);
-	CG_Text_Paint(320 - w / 2, 125, scale, colorWhite, s, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE, FONT_MEDIUM);
+	CG_Text_Paint(320 - w / 2.0f, 125, scale, colorWhite, s, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE, FONT_MEDIUM);
 }
 
 //==================================================================================
@@ -13807,7 +14460,7 @@ void CG_ChatBox_AddString(char* chat_str)
 		//we have to break it into segments...
 		int i = 0;
 		int last_line_pt = 0;
-		char s[2];
+		char s[2] = { 0 };
 
 		chat_len = 0;
 		while (chat->string[i])
@@ -13867,7 +14520,7 @@ static void CG_ChatBox_ArrayInsert(chatBoxItem_t** array, const int ins_point, c
 }
 
 //go through all the chat strings and draw them if they are not yet expired
-static QINLINE void CG_ChatBox_DrawStrings(void)
+static void CG_ChatBox_DrawStrings(void)
 {
 	chatBoxItem_t* draw_these[MAX_CHATBOX_ITEMS];
 	int num_to_draw = 0;
@@ -14921,7 +15574,8 @@ static void CG_DrawMiscStaticModels(void)
 }
 
 static void CG_DrawTourneyScoreboard()
-{}
+{
+}
 
 /*
 =====================

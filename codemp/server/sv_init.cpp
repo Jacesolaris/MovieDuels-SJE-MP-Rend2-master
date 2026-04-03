@@ -965,10 +965,11 @@ void SV_Init(void)
 	Cvar_Get("dmflags", "0", CVAR_SERVERINFO);
 	Cvar_Get("fraglimit", "20", CVAR_SERVERINFO);
 	Cvar_Get("timelimit", "0", CVAR_SERVERINFO);
-	Cvar_Get("capturelimit", "0", CVAR_SERVERINFO);
+	Cvar_Get("capturelimit", "3", CVAR_SERVERINFO);
 
 	// Get these to establish them and to make sure they have a default before the menus decide to stomp them.
 	Cvar_Get("g_maxHolocronCarry", "3", CVAR_SERVERINFO);
+	Cvar_Get("g_maxHolocronGift", "1", CVAR_SERVERINFO);
 	Cvar_Get("g_privateDuel", "1", CVAR_SERVERINFO);
 	Cvar_Get("g_saberLocking", "1", CVAR_SERVERINFO);
 	Cvar_Get("g_maxForceRank", "7", CVAR_SERVERINFO);

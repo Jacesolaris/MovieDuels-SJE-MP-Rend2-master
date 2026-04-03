@@ -40,45 +40,71 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 vec3_t WP_muzzlePoint[WP_NUM_WEAPONS] =
 {
 	//	Fwd,	right,	up.
-	{0, 0, 0}, // WP_NONE,
-	{0, 8, 0}, // WP_STUN_BATON,
-	{0, 8, 0}, // WP_MELEE,
-	{8, 16, 0}, // WP_SABER,
-	{12, 6, -6}, // WP_BRYAR_PISTOL,
-	{12, 6, -6}, // WP_BLASTER,
-	{12, 6, -6}, // WP_DISRUPTOR,
-	{12, 2, -6}, // WP_BOWCASTER,
-	{12, 4.5, -6}, // WP_REPEATER,
-	{12, 6, -6}, // WP_DEMP2,
-	{12, 6, -6}, // WP_FLECHETTE,
-	{12, 8, -4}, // WP_ROCKET_LAUNCHER,
-	{12, 0, -4}, // WP_THERMAL,
-	{12, 0, -10}, // WP_TRIP_MINE,
-	{12, 0, -4}, // WP_DET_PACK,
-	{12, 6, -6}, // WP_CONCUSSION
-	{12, 6, -6}, // WP_BRYAR_OLD,
+	{0,     0,       0  }, // WP_NONE,
+	{0,     8,       0  }, // WP_STUN_BATON,
+	{0,     8,       0  }, // WP_MELEE,
+	{8,     16,      0  }, // WP_SABER,
+	{12,    6,      -6  }, // WP_BRYAR_PISTOL,
+	{12,    6,      -6  }, // WP_BLASTER,
+	{12,    6,      -6  }, // WP_DISRUPTOR,
+	{12,    2,      -6  }, // WP_BOWCASTER,
+	{12,    4.5,    -6  }, // WP_REPEATER,
+	{12,    6,      -6  }, // WP_DEMP2,
+	{12,    6,      -6  }, // WP_FLECHETTE,
+	{12,    8,      -4  }, // WP_ROCKET_LAUNCHER,
+	{12,    0,      -4  }, // WP_THERMAL,
+	{12,    0,      -10 }, // WP_TRIP_MINE,
+	{12,    0,      -4  }, // WP_DET_PACK,
+	{12,    6,      -6  }, // WP_CONCUSSION
+
+	{12,	6,		-6	},	// WP_BATTLEDROID,
+	{12,	6,		-6	},	// WP_THEFIRSTORDER,
+	{12,	6,		-6	},	// WP_CLONECARBINE,
+	{12,	6,		-6	},	// WP_REBELBLASTER,
+	{12,	6,		-6	},	// WP_CLONERIFLE,
+	{12,	6,		-6	},	// WP_CLONECOMMANDO,
+	{12,	6,		-6	},	// WP_REBELRIFLE,
+	{12,	6,		-6	},	// WP_REY,
+	{12,	6,		-6	},	// WP_JANGO,
+	{12,	6,		-6	},	// WP_BOBA,
+	{12,	6,		-6	},	// WP_CLONEPISTOL,
+
+	{12,    6,      -6  }, // WP_BRYAR_OLD,
 };
 
 vec3_t WP_muzzlePoint2[WP_NUM_WEAPONS] =
 {
 	//	Fwd,	right,	up.
-	{0, 0, 0}, // WP_NONE,
-	{0, 8, 0}, // WP_STUN_BATON,
-	{0, 8, 0}, // WP_MELEE,
-	{8, 16, 0}, // WP_SABER,
-	{12, -6, -6}, // WP_BRYAR_PISTOL,
-	{12, -6, -6}, // WP_BLASTER,
-	{12, -6, -6}, // WP_DISRUPTOR,
-	{12, -8, -6}, // WP_BOWCASTER,
-	{12, -6.5, -6}, // WP_REPEATER,
-	{12, -7, -6}, // WP_DEMP2,
-	{12, -8, -6}, // WP_FLECHETTE,
-	{12, -8, -4}, // WP_ROCKET_LAUNCHER,
-	{12, -5.5, -4}, // WP_THERMAL,
-	{12, 0, -10}, // WP_TRIP_MINE,
-	{12, 0, -4}, // WP_DET_PACK,
-	{12, -6, -6}, // WP_CONCUSSION
-	{12, -6, -6}, // WP_BRYAR_OLD,
+	{0,      0,      0  }, // WP_NONE,
+	{0,      8,      0  }, // WP_STUN_BATON,
+	{0,      8,      0  }, // WP_MELEE,
+	{8,      16,     0  }, // WP_SABER,
+	{12,    -6,     -6  }, // WP_BRYAR_PISTOL,
+	{12,    -6,     -6  }, // WP_BLASTER,
+	{12,    -6,     -6  }, // WP_DISRUPTOR,
+	{12,    -8,     -6  }, // WP_BOWCASTER,
+	{12,    -6.5,   -6  }, // WP_REPEATER,
+	{12,    -7,     -6  }, // WP_DEMP2,
+	{12,    -8,     -6  }, // WP_FLECHETTE,
+	{12,    -8,     -4  }, // WP_ROCKET_LAUNCHER,
+	{12,    -5.5,   -4  }, // WP_THERMAL,
+	{12,     0,     -10 }, // WP_TRIP_MINE,
+	{12,     0,     -4  }, // WP_DET_PACK,
+	{12,    -6,     -6  }, // WP_CONCUSSION
+
+	{12,	-6,		-6	},	// WP_BATTLEDROID,
+	{12,	-6,		-6	},	// WP_THEFIRSTORDER,
+	{12,	-6,		-6	},	// WP_CLONECARBINE,
+	{12,	-6,		-6	},	// WP_REBELBLASTER,
+	{12,	-6,		-6	},	// WP_CLONERIFLE,
+	{12,	-6,		-6	},	// WP_CLONECOMMANDO,
+	{12,	-6,		-6	},	// WP_REBELRIFLE,
+	{12,	-6,		-6	},	// WP_REY,
+	{12,	-6,		-6	},	// WP_JANGO,
+	{12,	-6,		-6	},	// WP_BOBA,
+	{12,	-6,		-6	},	// WP_CLONEPISTOL,
+
+	{12,    -6,     -6  }, // WP_BRYAR_OLD,
 };
 
 weaponData_t weaponData[WP_NUM_WEAPONS] =
@@ -370,6 +396,193 @@ weaponData_t weaponData[WP_NUM_WEAPONS] =
 		0, //	int		altChargeSub;		// above for secondary
 		0, //	int		maxCharge;			// stop subtracting once charged for this many ms
 		0 //	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_BATTLEDROID,
+//		"E-5 Carbine",			//	char	classname[32];		// Spawning name
+		AMMO_BLASTER,			//	int		ammoIndex;			// Index to proper ammo slot
+		5,						//	int		ammoLow;			// Count when ammo is low
+		2,						//	int		energyPerShot;		// Amount of energy used per shot
+		350,					//	int		fireTime;			// Amount of time between firings
+		8192,					//	int		range;				// Range of weapon
+		3,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+		150,					//	int		altFireTime;		// Amount of time between alt-firings
+		8192,					//	int		altRange;			// Range of alt-fire
+		0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+		0,						//	int		altChargeSubTime;	// above for secondary
+		0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+		0,						//int		altChargeSub;		// above for secondary
+		0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+		0						//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_THEFIRSTORDER,
+//		"F-11D",			//	char	classname[32];		// Spawning name
+	  AMMO_BLASTER,			//	int		ammoIndex;			// Index to proper ammo slot
+	  5,						//	int		ammoLow;			// Count when ammo is low
+	  2,						//	int		energyPerShot;		// Amount of energy used per shot
+	  350,					//	int		fireTime;			// Amount of time between firings
+	  8192,					//	int		range;				// Range of weapon
+	  3,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+	  150,					//	int		altFireTime;		// Amount of time between alt-firings
+	  8192,					//	int		altRange;			// Range of alt-fire
+	  0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+	  0,						//	int		altChargeSubTime;	// above for secondary
+	  0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+	  0,						//int		altChargeSub;		// above for secondary
+	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+	  0						//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_CLONECARBINE,
+	//		"DC-15 Carbine",			//	char	classname[32];		// Spawning name
+	  AMMO_METAL_BOLTS,			//	int		ammoIndex;			// Index to proper ammo slot
+	  5,						//	int		ammoLow;			// Count when ammo is low
+	  2,						//	int		energyPerShot;		// Amount of energy used per shot
+	  350,					//	int		fireTime;			// Amount of time between firings
+	  8192,					//	int		range;				// Range of weapon
+	  3,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+	  150,					//	int		altFireTime;		// Amount of time between alt-firings
+	  8192,					//	int		altRange;			// Range of alt-fire
+	  0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+	  0,						//	int		altChargeSubTime;	// above for secondary
+	  0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+	  0,						//int		altChargeSub;		// above for secondary
+	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+	  0						//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_REBELBLASTER,
+	//		"DH-17",			//	char	classname[32];		// Spawning name
+	  AMMO_BLASTER,			//	int		ammoIndex;			// Index to proper ammo slot
+	  15,						//	int		ammoLow;			// Count when ammo is low
+	  10,						//	int		energyPerShot;		// Amount of energy used per shot
+	  350,					//	int		fireTime;			// Amount of time between firings
+	  8192,					//	int		range;				// Range of weapon
+	  10,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+	  200,					//	int		altFireTime;		// Amount of time between alt-firings
+	  8192,					//	int		altRange;			// Range of alt-fire
+	  0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+	  0,						//	int		altChargeSubTime;	// above for secondary
+	  0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+	  0,						//int		altChargeSub;		// above for secondary
+	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+	  0						//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_CLONERIFLE,
+	//		"DC-15 Rifle",			//	char	classname[32];		// Spawning name
+	  AMMO_METAL_BOLTS,			//	int		ammoIndex;			// Index to proper ammo slot
+	  15,						//	int		ammoLow;			// Count when ammo is low
+	  1,						//	int		energyPerShot;		// Amount of energy used per shot
+	  350,					//	int		fireTime;			// Amount of time between firings
+	  8192,					//	int		range;				// Range of weapon
+	  2,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+	  150,					//	int		altFireTime;		// Amount of time between alt-firings
+	  8192,					//	int		altRange;			// Range of alt-fire
+	  0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+	  0,						//	int		altChargeSubTime;	// above for secondary
+	  0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+	  0,						//int		altChargeSub;		// above for secondary
+	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+	  0						//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_CLONECOMMANDO,
+	//		"DC-17M",			//	char	classname[32];		// Spawning name
+	  AMMO_METAL_BOLTS,			//	int		ammoIndex;			// Index to proper ammo slot
+	  15,						//	int		ammoLow;			// Count when ammo is low
+	  5,						//	int		energyPerShot;		// Amount of energy used per shot
+	  350,					//	int		fireTime;			// Amount of time between firings
+	  8192,					//	int		range;				// Range of weapon
+	  5,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+	  150,					//	int		altFireTime;		// Amount of time between alt-firings
+	  8192,					//	int		altRange;			// Range of alt-fire
+	  0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+	  0,						//	int		altChargeSubTime;	// above for secondary
+	  0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+	  0,						//int		altChargeSub;		// above for secondary
+	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+	  0						//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_REBELRIFLE,
+	//		"A280",			//	char	classname[32];		// Spawning name
+	  AMMO_POWERCELL,			//	int		ammoIndex;			// Index to proper ammo slot
+	  15,						//	int		ammoLow;			// Count when ammo is low
+	  10,						//	int		energyPerShot;		// Amount of energy used per shot
+	  350,					//	int		fireTime;			// Amount of time between firings
+	  8192,					//	int		range;				// Range of weapon
+	  10,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+	  200,					//	int		altFireTime;		// Amount of time between alt-firings
+	  8192,					//	int		altRange;			// Range of alt-fire
+	  0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+	  0,						//	int		altChargeSubTime;	// above for secondary
+	  0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+	  0,						//int		altChargeSub;		// above for secondary
+	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+	  0						//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_REY,
+	//		"LPA NN-14",			//	char	classname[32];		// Spawning name
+		AMMO_BLASTER,			//	int		ammoIndex;			// Index to proper ammo slot
+		15,						//	int		ammoLow;			// Count when ammo is low
+		1,						//	int		energyPerShot;		// Amount of energy used per shot
+		800,					//	int		fireTime;			// Amount of time between firings
+		8192,					//	int		range;				// Range of weapon
+		2,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+		800,					//	int		altFireTime;		// Amount of time between alt-firings
+		8192,					//	int		altRange;			// Range of alt-fire
+		0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+		0,//200,					//	int		altChargeSubTime;	// above for secondary
+		0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+		0,//1,						//int		altChargeSub;		// above for secondary
+		0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+		0,//1500					//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_JANGO,
+	//		"Westar 34",			//	char	classname[32];		// Spawning name
+	  AMMO_BLASTER,			//	int		ammoIndex;			// Index to proper ammo slot
+	  15,						//	int		ammoLow;			// Count when ammo is low
+	  5,						//	int		energyPerShot;		// Amount of energy used per shot
+	  300,					//	int		fireTime;			// Amount of time between firings
+	  8192,					//	int		range;				// Range of weapon
+	  5,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+	  500,					//	int		altFireTime;		// Amount of time between alt-firings
+	  8192,					//	int		altRange;			// Range of alt-fire
+	  0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+	  0,//200,					//	int		altChargeSubTime;	// above for secondary
+	  0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+	  0,//1,						//int		altChargeSub;		// above for secondary
+	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+	  0,//1500					//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_BOBA,
+	//		"EE-3",			//	char	classname[32];		// Spawning name
+	  AMMO_POWERCELL,			//	int		ammoIndex;			// Index to proper ammo slot
+	  15,						//	int		ammoLow;			// Count when ammo is low
+	  3,						//	int		energyPerShot;		// Amount of energy used per shot
+	  350,					//	int		fireTime;			// Amount of time between firings
+	  8192,					//	int		range;				// Range of weapon
+	  25,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+	  850,					//	int		altFireTime;		// Amount of time between alt-firings
+	  8192,					//	int		altRange;			// Range of alt-fire
+	  0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+	  0,						//	int		altChargeSubTime;	// above for secondary
+	  0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+	  0,						//int		altChargeSub;		// above for secondary
+	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+	  0						//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_CLONEPISTOL,
+	//		"DC-17 Hand Pistol",			//	char	classname[32];		// Spawning name
+	  AMMO_METAL_BOLTS,			//	int		ammoIndex;			// Index to proper ammo slot
+	  15,						//	int		ammoLow;			// Count when ammo is low
+	  1,						//	int		energyPerShot;		// Amount of energy used per shot
+	  800,					//	int		fireTime;			// Amount of time between firings
+	  8192,					//	int		range;				// Range of weapon
+	  2,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+	  800,					//	int		altFireTime;		// Amount of time between alt-firings
+	  8192,					//	int		altRange;			// Range of alt-fire
+	  0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+	  0,//200,					//	int		altChargeSubTime;	// above for secondary
+	  0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+	  0,//1,						//int		altChargeSub;		// above for secondary
+	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+	  0,//1500					//	int		altMaxCharge;		// above for secondary
 	},
 	{
 		// WP_BRYAR_OLD,

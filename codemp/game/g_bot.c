@@ -127,26 +127,38 @@ G_LoadArenasFromFile
 static void G_LoadArenasFromFile(char* filename)
 {
 	fileHandle_t f;
-	char buf[MAX_ARENAS_TEXT];
+
+	// Large buffer moved to static storage to avoid stack overflow
+	static char s_buf[MAX_ARENAS_TEXT + 1];
 
 	const int len = trap->FS_Open(filename, &f, FS_READ);
-	if (!f)
+	if (f == 0)
 	{
 		trap->Print(S_COLOR_RED "file not found: %s\n", filename);
 		return;
 	}
+
 	if (len >= MAX_ARENAS_TEXT)
 	{
-		trap->Print(S_COLOR_RED "file too large: %s is %i, max allowed is %i\n", filename, len, MAX_ARENAS_TEXT);
+		trap->Print(S_COLOR_RED "file too large: %s is %i, max allowed is %i\n",
+			filename, len, MAX_ARENAS_TEXT);
 		trap->FS_Close(f);
 		return;
 	}
 
-	trap->FS_Read(buf, len, f);
-	buf[len] = 0;
+	// Read safely
+	trap->FS_Read(s_buf, len, f);
 	trap->FS_Close(f);
 
-	level.arenas.num += G_ParseInfos(buf, MAX_ARENAS - level.arenas.num, &level.arenas.infos[level.arenas.num]);
+	// Guarantee null termination
+	s_buf[len] = '\0';
+
+	// Parse arena infos
+	level.arenas.num += G_ParseInfos(
+		s_buf,
+		MAX_ARENAS - level.arenas.num,
+		&level.arenas.infos[level.arenas.num]
+	);
 }
 
 static int G_GetMapTypeBits(const char* type)
@@ -351,12 +363,12 @@ G_LoadArenas
 void g_load_arenas(void)
 {
 #if 0
-	int			numdirs;
-	char		filename[MAX_QPATH];
-	char		dirlist[1024];
+	int         numdirs;
+	char        filename[MAX_QPATH];
+	char        dirlist[1024];
 	char* dirptr;
-	int			i, n;
-	int			dirlen;
+	int         i, n;
+	int         dirlen;
 
 	level.arenas.num = 0;
 
@@ -380,25 +392,30 @@ void g_load_arenas(void)
 
 #else
 
-	char filelist[MAPSBUFSIZE];
+	// Large buffer moved to static storage to avoid stack overflow
+	static char s_filelist[MAPSBUFSIZE];
 
 	level.arenas.num = 0;
 
 	// get all arenas from .arena files
-	int numFiles = trap->FS_GetFileList("scriptsmp", ".arena", filelist, ARRAY_LEN(filelist));
+	int numFiles = trap->FS_GetFileList("scriptsmp", ".arena", s_filelist, MAPSBUFSIZE);
 
-	char* fileptr = filelist;
+	char* fileptr = s_filelist;
 	int i = 0;
 
 	if (numFiles > MAX_MAPS)
+	{
 		numFiles = MAX_MAPS;
+	}
 
 	for (; i < numFiles; i++)
 	{
 		char filename[MAX_QPATH];
 		const int len = strlen(fileptr);
-		Com_sprintf(filename, sizeof filename, "scriptsmp/%s", fileptr);
+
+		Com_sprintf(filename, sizeof(filename), "scriptsmp/%s", fileptr);
 		G_LoadArenasFromFile(filename);
+
 		fileptr += len + 1;
 	}
 
@@ -414,18 +431,19 @@ void g_load_arenas(void)
 void g_load_sp_arenas(void)
 {
 #if 0
-	int			numdirs;
-	char		filename[MAX_QPATH];
-	char		dirlist[1024];
+	int   numdirs;
+	char  filename[MAX_QPATH];
+	char  dirlist[1024];
 	char* dirptr;
-	int			i, n;
-	int			dirlen;
+	int   i, n;
+	int   dirlen;
 
 	level.arenas.num = 0;
 
 	// get all arenas from .arena files
-	numdirs = trap->FS_GetFileList("scripts", ".arena", dirlist, 1024);
+	numdirs = trap->FS_GetFileList("scripts", ".arena", dirlist, sizeof(dirlist));
 	dirptr = dirlist;
+
 	for (i = 0; i < numdirs; i++, dirptr += dirlen + 1)
 	{
 		dirlen = strlen(dirptr);
@@ -443,25 +461,30 @@ void g_load_sp_arenas(void)
 
 #else
 
-	char filelist[MAPSBUFSIZE];
+	// Large buffer moved to static storage to avoid stack overflow
+	static char s_filelist[MAPSBUFSIZE];
 
 	level.arenas.num = 0;
 
 	// get all arenas from .arena files
-	int numFiles = trap->FS_GetFileList("scripts", ".arena", filelist, ARRAY_LEN(filelist));
+	int numFiles = trap->FS_GetFileList("scripts", ".arena", s_filelist, MAPSBUFSIZE);
 
-	char* fileptr = filelist;
-	int i = 0;
+	char* fileptr = s_filelist;
+	int   i = 0;
 
 	if (numFiles > MAX_MAPS)
+	{
 		numFiles = MAX_MAPS;
+	}
 
 	for (; i < numFiles; i++)
 	{
 		char filename[MAX_QPATH];
 		const int len = strlen(fileptr);
-		Com_sprintf(filename, sizeof filename, "scripts/%s", fileptr);
+
+		Com_sprintf(filename, sizeof(filename), "scripts/%s", fileptr);
 		G_LoadArenasFromFile(filename);
+
 		fileptr += len + 1;
 	}
 
@@ -1307,30 +1330,41 @@ static void G_SpawnBots(char* botList, int baseDelay)
 ===============
 G_LoadBotsFromFile
 ===============
-*/
-static void G_LoadBotsFromFile(char* filename)
+*/static void G_LoadBotsFromFile(char* filename)
 {
 	fileHandle_t f;
-	char buf[MAX_BOTS_TEXT];
+
+	// Large buffer moved to static storage to avoid stack overflow
+	static char s_buf[MAX_BOTS_TEXT + 1];
 
 	const int len = trap->FS_Open(filename, &f, FS_READ);
-	if (!f)
+	if (f == 0)
 	{
 		trap->Print(S_COLOR_RED "file not found: %s\n", filename);
 		return;
 	}
+
 	if (len >= MAX_BOTS_TEXT)
 	{
-		trap->Print(S_COLOR_RED "file too large: %s is %i, max allowed is %i\n", filename, len, MAX_BOTS_TEXT);
+		trap->Print(S_COLOR_RED "file too large: %s is %i, max allowed is %i\n",
+			filename, len, MAX_BOTS_TEXT);
 		trap->FS_Close(f);
 		return;
 	}
 
-	trap->FS_Read(buf, len, f);
-	buf[len] = 0;
+	// Read safely
+	trap->FS_Read(s_buf, len, f);
 	trap->FS_Close(f);
 
-	level.bots.num += G_ParseInfos(buf, MAX_BOTS - level.bots.num, &level.bots.infos[level.bots.num]);
+	// Guarantee null termination
+	s_buf[len] = '\0';
+
+	// Parse bot infos
+	level.bots.num += G_ParseInfos(
+		s_buf,
+		MAX_BOTS - level.bots.num,
+		&level.bots.infos[level.bots.num]
+	);
 }
 
 /*
