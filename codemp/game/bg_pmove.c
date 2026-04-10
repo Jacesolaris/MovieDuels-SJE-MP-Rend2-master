@@ -469,22 +469,16 @@ static qboolean PM_CanSetWeaponReadyAnim(void)
 		return qfalse;
 
 	// Check movement state
-	const qboolean notMoving =
-		(pm->cmd.forwardmove == 0 && pm->cmd.rightmove == 0);
+	const qboolean notMoving = (pm->cmd.forwardmove == 0 && pm->cmd.rightmove == 0);
 
-	const qboolean walkingForward =
-		((pm->cmd.buttons & BUTTON_WALKING) && pm->cmd.forwardmove > 0);
+	const qboolean walkingForward = ((pm->cmd.buttons & BUTTON_WALKING) && pm->cmd.forwardmove > 0);
 
-	const qboolean onGround =
-		(pm->ps->groundEntityNum != ENTITYNUM_NONE);
+	const qboolean onGround = (pm->ps->groundEntityNum != ENTITYNUM_NONE);
 
-	const qboolean validMoveState =
-		notMoving || (onGround && walkingForward);
+	const qboolean validMoveState = notMoving || (onGround && walkingForward);
 
 	// Check animation state
-	const qboolean validAnim =
-		PM_WalkingAnim(pm->ps->torsoAnim) ||
-		PM_RunningAnim(pm->ps->torsoAnim);
+	const qboolean validAnim = PM_WalkingAnim(pm->ps->torsoAnim) || PM_RunningAnim(pm->ps->torsoAnim);
 
 	if (validMoveState && validAnim)
 		return qtrue;
@@ -541,18 +535,7 @@ static QINLINE qboolean PM_IsRocketTrooper(void)
 
 static animNumber_t QINLINE PM_GetWeaponReadyAnim(void)
 {
-	if (pm->cmd.buttons & BUTTON_WALKING && pm->cmd.buttons & BUTTON_BLOCK) // Walking and blocking, use the walking aiming anims
-	{
-		if (pm->ps->eFlags & EF3_DUAL_WEAPONS &&
-			pm->ps->weapon == WP_BRYAR_PISTOL ||
-			pm->ps->weapon == WP_REY ||
-			pm->ps->weapon == WP_JANGO ||
-			pm->ps->weapon == WP_CLONEPISTOL)
-		{
-			return WeaponAimingAnim2[pm->ps->weapon];
-		}
-		return WeaponAimingAnim[pm->ps->weapon];
-	}// Not walking and blocking, use the regular ready anims
+	// Not walking and blocking, use the regular ready anims
 	if (pm->ps->eFlags & EF3_DUAL_WEAPONS &&
 		pm->ps->weapon == WP_BRYAR_PISTOL ||
 		pm->ps->weapon == WP_REY ||
@@ -561,7 +544,10 @@ static animNumber_t QINLINE PM_GetWeaponReadyAnim(void)
 	{
 		return WeaponReadyAnim2[pm->ps->weapon];
 	}
-	return WeaponReadyAnim[pm->ps->weapon];
+	else
+	{
+		return WeaponReadyAnim[pm->ps->weapon];
+	}
 }
 
 int PM_ReadyPoseForsaber_anim_levelBOT(void);
@@ -7180,7 +7166,7 @@ static void PM_CrashLand(void)
 			}
 			else
 			{
-				if (PM_CanSetWeaponReadyAnim() == qtrue)
+				if (PM_CanSetWeaponReadyAnim())
 				{
 					PM_StartTorsoAnim(PM_GetWeaponReadyAnim());
 				}
@@ -9474,1805 +9460,13 @@ static void PM_SwimFloatAnim(void)
 PM_Footsteps
 ===============
 */
-// ============================================================
-// HANDLE SPECIAL NPC RUN ANIMATIONS (WAMPA / RANCOR / JAWA / VADER)
-// ============================================================
-static qboolean PM_HandleSpecialNPCRun(int* desiredAnim, float* bobmove)
-{
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleSpecialNPCRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	// Only NPCs (clientNum >= MAX_CLIENTS)
-	if (pm->ps->clientNum < MAX_CLIENTS || !pm_entSelf)
-	{
-		return qfalse;
-	}
-
-	const int npcClass = pm_entSelf->s.NPC_class;
-	const int botClass = pm_entSelf->s.botclass;
-
-	// ============================================================
-	// WAMPA RUN
-	// ============================================================
-	if (npcClass == CLASS_WAMPA || botClass == BCLASS_WAMPA)
-	{
-		if ((pm->ps->eFlags2 & EF2_USE_ALT_ANIM) != 0)
-		{
-			// All-fours run
-			*desiredAnim = BOTH_RUN1;
-		}
-		else
-		{
-			// Upright run
-			*desiredAnim = BOTH_RUN2;
-		}
-		return qtrue;
-	}
-
-	// ============================================================
-	// RANCOR RUN (NO TRUE RUN ANIMS)
-	// ============================================================
-	if (npcClass == CLASS_RANCOR || botClass == BCLASS_RANCOR)
-	{
-		const qboolean backwards =
-			((pm->ps->pm_flags & PMF_BACKWARDS_RUN) != 0) ? qtrue : qfalse;
-
-		*desiredAnim = (backwards == qtrue) ? BOTH_WALKBACK1 : BOTH_WALK1;
-		return qtrue;
-	}
-
-	// ============================================================
-	// JAWA SPECIAL RUN
-	// ============================================================
-	if (npcClass == CLASS_JAWA || botClass == BCLASS_JAWA)
-	{
-		*desiredAnim = BOTH_RUN4;
-
-		// Jawas bob slower
-		if (bobmove)
-		{
-			*bobmove = 0.2f;
-		}
-
-		return qtrue;
-	}
-
-	// ============================================================
-	// VADER SPECIAL RUN
-	// ============================================================
-	if (npcClass == CLASS_VADER || botClass == BCLASS_VADER)
-	{
-		*desiredAnim = BOTH_VADERRUN1;
-		return qtrue;
-	}
-
-	return qfalse;
-}
-
-// ============================================================
-// HANDLE BACKWARDS RUNNING (ALL WEAPONS)
-// ============================================================
-static qboolean PM_HandleBackwardsRun(int* desiredAnim, int setAnimFlags)
-{
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleBackwardsRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	// Only handle backwards run
-	if ((pm->ps->pm_flags & PMF_BACKWARDS_RUN) == 0)
-	{
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-
-	// ============================================================
-	// NON-SABER BACKWARDS RUN
-	// ============================================================
-	if (weap != WP_SABER)
-	{
-		if (weap == WP_BRYAR_OLD ||
-			(pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD))
-		{
-			*desiredAnim = SBD_RUNBACK_WEAPON;
-		}
-		else
-		{
-			*desiredAnim = BOTH_RUNBACK1;
-		}
-	}
-	else
-	{
-		// ============================================================
-		// SABER BACKWARDS RUN
-		// ============================================================
-		const qboolean saberHolstered =
-			(pm->ps->saberHolstered != 0) ? qtrue : qfalse;
-
-		switch (pm->ps->fd.saberAnimLevel)
-		{
-		case SS_STAFF:
-		case SS_DUAL:
-			*desiredAnim = (pm->ps->saberHolstered > 1)
-				? BOTH_RUNBACK1
-				: BOTH_RUNBACK2;
-			break;
-
-		case SS_FAST:
-		case SS_MEDIUM:
-		case SS_STRONG:
-		case SS_DESANN:
-		case SS_TAVION:
-		default:
-			*desiredAnim = (saberHolstered == qtrue)
-				? BOTH_RUNBACK1
-				: BOTH_RUNBACK2;
-			break;
-		}
-	}
-
-	// ============================================================
-	// CLEAR SPRINT FLAGS (always when running backwards)
-	// ============================================================
-	if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-		(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-	{
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-		g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-	}
-
-	return qtrue;
-}
-
-// ============================================================
-// HANDLE SBD / BRYAR_OLD RUNNING
-// ============================================================
-static qboolean PM_HandleSBDRun(int* desiredAnim, int setAnimFlags)
-{
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleSBDRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-
-	// Only handle Bryar Old or SBD NPCs
-	if (weap != WP_BRYAR_OLD &&
-		!(pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD))
-	{
-		return qfalse;
-	}
-
-	const qboolean firing =
-		(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-	if (!firing)
-	{
-		// Full-body run anim
-		PM_SetAnim(SETANIM_BOTH, SBD_RUNING_WEAPON, SETANIM_FLAG_NORMAL);
-	}
-	else
-	{
-		// Legs-only run anim
-		*desiredAnim = SBD_RUNING_WEAPON;
-	}
-
-	// Always clear sprint flags
-	if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-		(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-	{
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-		g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-	}
-
-	return qtrue;
-}
-
-// ============================================================
-// HANDLE PISTOL RUNNING (single/dual pistols)
-// ============================================================
-static qboolean PM_HandlePistolRun(int* desiredAnim, int setAnimFlags)
-{
-	// Safety: ensure pm and pm->ps exist
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandlePistolRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	// Only handle pistol weapons
-	const int weap = pm->ps->weapon;
-	if (weap != WP_BRYAR_PISTOL &&
-		weap != WP_REY &&
-		weap != WP_JANGO &&
-		weap != WP_REBELBLASTER &&
-		weap != WP_CLONEPISTOL &&
-		weap != WP_STUN_BATON)
-	{
-		return qfalse; // Not a pistol weapon
-	}
-
-	// ------------------------------------------------------------
-	// Local state
-	// ------------------------------------------------------------
-	const qboolean dual =
-		((pm->ps->eFlags & EF3_DUAL_WEAPONS) != 0) ? qtrue : qfalse;
-
-	const qboolean firing =
-		(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-	const qboolean sprinting =
-		(((pm->cmd.buttons & BUTTON_BLOCK) != 0) &&
-			(pm->ps->sprintFuel > 15))
-		? qtrue : qfalse;
-
-	qboolean npcOverride = qfalse;
-
-	// NPC override for injured runs
-	if (pm->ps->clientNum >= MAX_CLIENTS && pm_entSelf)
-	{
-		if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
-			pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
-			pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
-			pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
-			pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
-			pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
-		{
-			npcOverride = qtrue;
-		}
-	}
-
-	// ------------------------------------------------------------
-	// 1. FIRING (legs only)
-	// ------------------------------------------------------------
-	if (firing == qtrue)
-	{
-		const int flags = setAnimFlags ? setAnimFlags : SETANIM_FLAG_NORMAL;
-
-		if (sprinting == qtrue)
-		{
-			if (desiredAnim)
-			{
-				*desiredAnim = BOTH_SPRINT_MP;
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT_MP, flags);
-			}
-
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-
-			if ((pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)) == 0)
-			{
-				pm->ps->PlayerEffectFlags |= (1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-				g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-
-				if (pm->ps->sprintFuel < 17)
-				{
-					pm->ps->sprintFuel -= 10;
-				}
-#endif
-			}
-		}
-		else
-		{
-			// Dual pistols firing = BOTH_RUN2
-			// Single pistol firing = BOTH_RUN1
-			if (desiredAnim)
-			{
-				*desiredAnim = BOTH_RUN1;
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN1, flags);
-			}
-
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-			g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-		}
-
-		return qtrue; // handled fully
-	}
-
-	// ------------------------------------------------------------
-	// 2. NOT FIRING (full-body anim)
-	// ------------------------------------------------------------
-	const int hp = pm->ps->stats[STAT_HEALTH];
-
-	if (hp <= 70 && hp >= 40)
-	{
-		if (npcOverride == qtrue)
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN3, SETANIM_FLAG_NORMAL);
-		}
-		else
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
-		}
-	}
-	else if (hp < 40)
-	{
-		if (npcOverride == qtrue)
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN3, SETANIM_FLAG_NORMAL);
-		}
-		else
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN9, SETANIM_FLAG_NORMAL);
-		}
-	}
-	else
-	{
-		// Healthy movement
-		if (sprinting == qtrue)
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT_MP, SETANIM_FLAG_NORMAL);
-
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-
-			if ((pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)) == 0)
-			{
-				pm->ps->PlayerEffectFlags |= (1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-				g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-
-				if (pm->ps->sprintFuel < 17)
-				{
-					pm->ps->sprintFuel -= 10;
-				}
-#endif
-			}
-		}
-		else
-		{
-			// Dual pistols = BOTH_RUN1
-			// Single pistol = BOTH_RUN5
-			PM_SetAnim(SETANIM_BOTH, (dual == qtrue) ? BOTH_RUN1 : BOTH_RUN5, SETANIM_FLAG_NORMAL);
-
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-			g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-		}
-	}
-
-	return qtrue; // handled
-}
-
-// ============================================================
-// HANDLE BACKWARDS WALKING (ALL WEAPONS)
-// ============================================================
-static qboolean PM_HandleBackwardsWalk(int* desiredAnim, int setAnimFlags)
-{
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleBackwardsWalk: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	// Only handle backwards movement
-	if ((pm->ps->pm_flags & PMF_BACKWARDS_RUN) == 0)
-	{
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-
-	// ============================================================
-	// NON-SABER BACKWARDS WALK
-	// ============================================================
-	if (weap != WP_SABER)
-	{
-		if (weap == WP_BRYAR_OLD ||
-			(pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD))
-		{
-			*desiredAnim = SBD_WALKBACK_NORMAL;
-		}
-		else
-		{
-			*desiredAnim = BOTH_WALKBACK1;
-		}
-	}
-	else
-	{
-		// ============================================================
-		// SABER BACKWARDS WALK (all styles use WALKBACK1)
-		// ============================================================
-		*desiredAnim = BOTH_WALKBACK1;
-	}
-
-	// ============================================================
-	// CLEAR SPRINT FLAGS (always when walking backwards)
-	// ============================================================
-	if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-		(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-	{
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-		g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-	}
-
-	return qtrue;
-}
-
-// ============================================================
-// HANDLE MELEE WALK + SBD / BRYAR_OLD WALK
-// ============================================================
-static qboolean PM_HandleMeleeAndSBDWalk(int* desiredAnim, int setAnimFlags)
-{
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleMeleeAndSBDWalk: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-	const qboolean isSBD =
-		(pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD) ? qtrue : qfalse;
-
-	// ============================================================
-	// MELEE WALK
-	// ============================================================
-	if (weap == WP_MELEE)
-	{
-		if (isSBD)
-		{
-			*desiredAnim = SBD_WALK_NORMAL;
-		}
-		else
-		{
-			*desiredAnim = BOTH_WALK1;
-		}
-
-		return qtrue;
-	}
-
-	// ============================================================
-	// SBD / BRYAR_OLD WALK
-	// ============================================================
-	if (weap == WP_BRYAR_OLD || isSBD)
-	{
-		const qboolean firing =
-			(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-		if (!firing)
-		{
-			PM_SetAnim(SETANIM_BOTH, SBD_WALK_WEAPON, SETANIM_FLAG_NORMAL);
-		}
-		else
-		{
-			*desiredAnim = SBD_WALK_WEAPON;
-		}
-
-		return qtrue;
-	}
-
-	return qfalse;
-}
-
-// ============================================================
-// HANDLE SBD / BRYAR_OLD WALKING
-// ============================================================
-static qboolean PM_HandleSBDWalk(int* desiredAnim, int setAnimFlags)
-{
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleSBDWalk: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-
-	// Only handle Bryar Old or SBD NPCs
-	if (weap != WP_BRYAR_OLD &&
-		!(pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD))
-	{
-		return qfalse;
-	}
-
-	const qboolean firing =
-		(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-	if (!firing)
-	{
-		// Full-body walk anim
-		PM_SetAnim(SETANIM_BOTH, SBD_WALK_NORMAL, SETANIM_FLAG_NORMAL);
-	}
-	else
-	{
-		// Legs-only walk anim
-		*desiredAnim = SBD_WALK_NORMAL;
-	}
-
-	return qtrue;
-}
-
-// ============================================================
-// HANDLE PISTOL WALKING (single/dual pistols)
-// ============================================================
-static qboolean PM_HandlePistolWalk(int* desiredAnim, int setAnimFlags)
-{
-	// Safety
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandlePistolWalk: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-
-	// Only handle pistol weapons
-	if (weap != WP_BRYAR_PISTOL &&
-		weap != WP_REY &&
-		weap != WP_JANGO &&
-		weap != WP_REBELBLASTER &&
-		weap != WP_CLONEPISTOL &&
-		weap != WP_STUN_BATON)
-	{
-		return qfalse; // Not a pistol weapon
-	}
-
-	const int flags = setAnimFlags ? setAnimFlags : SETANIM_FLAG_NORMAL;
-
-	if (pm->ps->eFlags & EF3_DUAL_WEAPONS)
-	{
-		if (!pm->ps->weaponTime) //not firing
-		{
-			if (desiredAnim)
-			{
-				*desiredAnim = BOTH_WALK1;
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_WALK1, flags);
-			}
-		}
-		else
-		{
-			if (desiredAnim)
-			{
-				*desiredAnim = BOTH_WALK8;
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_WALK8, flags);
-			}
-		}
-	}
-	else
-	{
-		if (!pm->ps->weaponTime) //not firing
-		{
-			if (desiredAnim)
-			{
-				*desiredAnim = BOTH_WALK8;
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_WALK8, flags);
-			}
-		}
-		else
-		{
-			if (desiredAnim)
-			{
-				*desiredAnim = BOTH_WALK8;
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_WALK8, flags);
-			}
-		}
-	}
-
-	return qtrue;
-}
-
-// ============================================================
-// HANDLE RIFLE / HEAVY WEAPON RUNNING
-// ============================================================
-static qboolean PM_HandleRifleRun(int* desiredAnim, int setAnimFlags)
-{
-	// Safety
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleRifleRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-
-	// Only handle rifle/heavy weapons
-	if (weap != WP_BOWCASTER &&
-		weap != WP_FLECHETTE &&
-		weap != WP_DISRUPTOR &&
-		weap != WP_DEMP2 &&
-		weap != WP_REPEATER &&
-		weap != WP_BLASTER &&
-		weap != WP_BATTLEDROID &&
-		weap != WP_THEFIRSTORDER &&
-		weap != WP_CLONECARBINE &&
-		weap != WP_CLONERIFLE &&
-		weap != WP_CLONECOMMANDO &&
-		weap != WP_REBELRIFLE &&
-		weap != WP_BOBA)
-	{
-		return qfalse;
-	}
-
-	// ------------------------------------------------------------
-	// Local state
-	// ------------------------------------------------------------
-	const qboolean firing =
-		(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-	const qboolean sprinting =
-		(((pm->cmd.buttons & BUTTON_BLOCK) != 0) &&
-			(pm->ps->sprintFuel > 15))
-		? qtrue : qfalse;
-
-	qboolean npcOverride = qfalse;
-
-	// NPC override for injured runs
-	if (pm->ps->clientNum >= MAX_CLIENTS && pm_entSelf)
-	{
-		if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
-			pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
-			pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
-			pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
-			pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
-			pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
-		{
-			npcOverride = qtrue;
-		}
-	}
-
-	// ------------------------------------------------------------
-	// 1. NOT FIRING (full-body anim)
-	// ------------------------------------------------------------
-	if (firing == qfalse)
-	{
-		const int hp = pm->ps->stats[STAT_HEALTH];
-
-		// Injured tier 1 (40–70 HP)
-		if (hp <= 70 && hp >= 40)
-		{
-			if (npcOverride == qtrue)
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN3_MP, SETANIM_FLAG_NORMAL);
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
-			}
-		}
-		// Injured tier 2 (<40 HP)
-		else if (hp < 40)
-		{
-			if (npcOverride == qtrue)
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN3_MP, SETANIM_FLAG_NORMAL);
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
-			}
-		}
-		// Healthy
-		else
-		{
-			if (sprinting == qtrue)
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN3_MP, SETANIM_FLAG_NORMAL);
-
-				pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-
-				if ((pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)) == 0)
-				{
-					pm->ps->PlayerEffectFlags |= (1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-					g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-
-					if (pm->ps->sprintFuel < 17)
-					{
-						pm->ps->sprintFuel -= 10;
-					}
-#endif
-				}
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN3, SETANIM_FLAG_NORMAL);
-
-				pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-				pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-				g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-			}
-		}
-
-		return qtrue;
-	}
-
-	// ------------------------------------------------------------
-	// 2. FIRING (legs-only anim)
-	// ------------------------------------------------------------
-	if (sprinting == qtrue)
-	{
-		*desiredAnim = BOTH_RUN3_MP;
-
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-
-		if ((pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)) == 0)
-		{
-			pm->ps->PlayerEffectFlags |= (1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-			g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-
-			if (pm->ps->sprintFuel < 17)
-			{
-				pm->ps->sprintFuel -= 10;
-			}
-#endif
-		}
-	}
-	else
-	{
-		*desiredAnim = BOTH_RUN3;
-
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-		g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-	}
-
-	return qtrue;
-}
-// ============================================================
-// HANDLE RIFLE / HEAVY WEAPON WALKING
-// ============================================================
-static qboolean PM_HandleRifleWalk(int* desiredAnim, int setAnimFlags)
-{
-	// Safety
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleRifleWalk: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-
-	// Only handle rifle/heavy weapons
-	if (weap != WP_BOWCASTER &&
-		weap != WP_FLECHETTE &&
-		weap != WP_DISRUPTOR &&
-		weap != WP_DEMP2 &&
-		weap != WP_REPEATER &&
-		weap != WP_CONCUSSION &&
-		weap != WP_ROCKET_LAUNCHER &&
-		weap != WP_BLASTER &&
-		weap != WP_BATTLEDROID &&
-		weap != WP_THEFIRSTORDER &&
-		weap != WP_CLONECARBINE &&
-		weap != WP_CLONERIFLE &&
-		weap != WP_CLONECOMMANDO &&
-		weap != WP_REBELRIFLE &&
-		weap != WP_BOBA)
-	{
-		return qfalse;
-	}
-
-	const qboolean firing =
-		(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-	// Assassin droid special case
-	if (pm_entSelf && pm_entSelf->s.NPC_class == CLASS_ASSASSIN_DROID)
-	{
-		*desiredAnim = BOTH_WALK2;
-		return qtrue;
-	}
-
-	// Not firing → rifle walk
-	if (firing == qfalse)
-	{
-		PM_SetAnim(SETANIM_BOTH, BOTH_WALK9, SETANIM_FLAG_NORMAL);
-		return qtrue;
-	}
-
-	// Firing → firing walk
-	*desiredAnim = BOTH_WALK2;
-	return qtrue;
-}
-
-// ============================================================
-// HANDLE EXPLOSIVES WALKING (THERMAL / DETPACK / TRIPMINE)
-// ============================================================
-static qboolean PM_HandleExplosivesWalk(int* desiredAnim, int setAnimFlags)
-{
-	// Safety
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleExplosivesWalk: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-
-	// Only handle explosives
-	if (weap != WP_THERMAL &&
-		weap != WP_DET_PACK &&
-		weap != WP_TRIP_MINE)
-	{
-		return qfalse;
-	}
-
-	// Explosives always use BOTH_WALK1
-	*desiredAnim = BOTH_WALK1;
-	return qtrue;
-}
-
-// ============================================================
-// HANDLE SABER WALKING (ALL STYLES) — PURE C VERSION
-// ============================================================
-// Backwards-compatible macros for legacy lambda-style helpers
-#define UseWalk2() PM_UseWalk2(desiredAnim)
-#define UseWalk1() PM_UseWalk1(desiredAnim)
-
-static qboolean PM_HandleSaberWalk(int* desiredAnim, int setAnimFlags)
-{
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleSaberWalk: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	if (pm->ps->weapon != WP_SABER)
-	{
-		return qfalse;
-	}
-
-	const int style = pm->ps->fd.saberAnimLevel;
-	const int holstered = pm->ps->saberHolstered;
-	const qboolean block = ((pm->cmd.buttons & BUTTON_BLOCK) != 0);
-
-	qboolean isNPC = qfalse;
-#ifdef _GAME
-	if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT) ||
-		(pm_entSelf && pm_entSelf->s.eType == ET_NPC))
-	{
-		isNPC = qtrue;
-	}
-#endif
-
-	// Helper macros (pure C)
-#define USE_WALK1() (*desiredAnim = BOTH_WALK1)
-#define USE_WALK2() (*desiredAnim = BOTH_WALK2)
-
-	// ============================================================
-	// STAFF STYLE
-	// ============================================================
-	if (style == SS_STAFF)
-	{
-		if (holstered > 1)
-		{
-			if (block || isNPC)
-				USE_WALK2();
-			else
-				USE_WALK1();
-		}
-		else if (holstered == 1)
-		{
-			if (block || isNPC)
-				USE_WALK2();
-			else
-				USE_WALK1();
-		}
-		else
-		{
-			*desiredAnim = BOTH_WALK_STAFF;
-		}
-
-		return qtrue;
-	}
-
-	// ============================================================
-	// DUAL STYLE
-	// ============================================================
-	if (style == SS_DUAL)
-	{
-		if (holstered > 1)
-		{
-			if (block || isNPC)
-				USE_WALK2();
-			else
-				USE_WALK1();
-		}
-		else if (holstered == 1 &&
-			(!pm->ps->saberInFlight || pm->ps->saberEntityNum))
-		{
-			USE_WALK1();
-		}
-		else
-		{
-			USE_WALK1();
-		}
-
-		return qtrue;
-	}
-
-	// ============================================================
-	// SINGLE STYLES
-	// ============================================================
-	if (style == SS_FAST ||
-		style == SS_MEDIUM ||
-		style == SS_STRONG ||
-		style == SS_DESANN ||
-		style == SS_TAVION)
-	{
-		if (holstered)
-		{
-			if (block || isNPC)
-				USE_WALK2();
-			else
-				USE_WALK1();
-		}
-		else
-		{
-			if (block || isNPC)
-				USE_WALK2();
-			else
-				USE_WALK1();
-		}
-
-		return qtrue;
-	}
-
-	// ============================================================
-	// DEFAULT SABER WALK
-	// ============================================================
-	if (holstered)
-	{
-		USE_WALK1();
-	}
-	else
-	{
-		if (block || isNPC)
-			USE_WALK2();
-		else
-			USE_WALK1();
-	}
-
-	return qtrue;
-
-#undef USE_WALK1
-#undef USE_WALK2
-}
-
-// ============================================================
-// HANDLE EXPLOSIVES (THERMAL / DETPACK / TRIPMINE)
-// ============================================================
-static qboolean PM_HandleExplosivesRun(int* desiredAnim, int setAnimFlags)
-{
-	// Safety
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleExplosivesRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-
-	// Only handle explosives
-	if (weap != WP_THERMAL &&
-		weap != WP_DET_PACK &&
-		weap != WP_TRIP_MINE)
-	{
-		return qfalse;
-	}
-
-	const qboolean firing =
-		(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-	const qboolean sprinting =
-		(((pm->cmd.buttons & BUTTON_BLOCK) != 0) &&
-			(pm->ps->sprintFuel > 15))
-		? qtrue : qfalse;
-
-	// ------------------------------------------------------------
-	// 1. NOT FIRING (full-body anim)
-	// ------------------------------------------------------------
-	if (firing == qfalse)
-	{
-		const int hp = pm->ps->stats[STAT_HEALTH];
-
-		if (hp <= 70 && hp >= 40)
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
-		}
-		else if (hp <= 40)
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
-		}
-		else
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN6, SETANIM_FLAG_NORMAL);
-		}
-	}
-	// ------------------------------------------------------------
-	// 2. FIRING (legs-only anim)
-	// ------------------------------------------------------------
-	else
-	{
-		*desiredAnim = BOTH_RUN6;
-	}
-
-	// ------------------------------------------------------------
-	// 3. Sprinting logic (shared for firing + non-firing)
-	// ------------------------------------------------------------
-	if (sprinting == qtrue)
-	{
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-
-		if ((pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)) == 0)
-		{
-			pm->ps->PlayerEffectFlags |= (1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-			g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-
-			if (pm->ps->sprintFuel < 17)
-			{
-				pm->ps->sprintFuel -= 10;
-			}
-#endif
-		}
-	}
-	else
-	{
-		if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-			(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-		{
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-			g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-		}
-	}
-
-	return qtrue;
-}
-// ============================================================
-// HANDLE HEAVY WEAPONS (CONCUSSION / ROCKET) RUNNING
-// ============================================================
-static qboolean PM_HandleHeavyRun(int* desiredAnim, int setAnimFlags)
-{
-	// Safety
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleHeavyRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	const int weap = pm->ps->weapon;
-
-	// Only handle heavy weapons
-	if (weap != WP_CONCUSSION &&
-		weap != WP_ROCKET_LAUNCHER)
-	{
-		return qfalse;
-	}
-
-	const qboolean firing =
-		(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-	const qboolean sprinting =
-		(((pm->cmd.buttons & BUTTON_BLOCK) != 0) &&
-			(pm->ps->sprintFuel > 15))
-		? qtrue : qfalse;
-
-	// NPC override for injured tiers
-	qboolean npcOverride = qfalse;
-
-	if (pm->ps->clientNum >= MAX_CLIENTS && pm_entSelf)
-	{
-		if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
-			pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
-			pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
-			pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
-			pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
-			pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
-		{
-			npcOverride = qtrue;
-		}
-	}
-
-	// ------------------------------------------------------------
-	// 1. NOT FIRING (full-body anim)
-	// ------------------------------------------------------------
-	if (firing == qfalse)
-	{
-		const int hp = pm->ps->stats[STAT_HEALTH];
-
-		if (hp <= 70 && hp >= 40)
-		{
-			if (npcOverride)
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN3_MP, SETANIM_FLAG_NORMAL);
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
-			}
-		}
-		else if (hp <= 40)
-		{
-			if (npcOverride)
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN3_MP, SETANIM_FLAG_NORMAL);
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
-			}
-		}
-		else
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
-		}
-	}
-	// ------------------------------------------------------------
-	// 2. FIRING (legs-only anim)
-	// ------------------------------------------------------------
-	else
-	{
-		*desiredAnim = BOTH_RUN7;
-	}
-
-	// ------------------------------------------------------------
-	// 3. Sprinting logic (shared)
-	// ------------------------------------------------------------
-	if (sprinting == qtrue)
-	{
-		pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-
-		if ((pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)) == 0)
-		{
-			pm->ps->PlayerEffectFlags |= (1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-			g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-
-			if (pm->ps->sprintFuel < 17)
-			{
-				pm->ps->sprintFuel -= 10;
-			}
-#endif
-		}
-	}
-	else
-	{
-		if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-			(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-		{
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-			g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-		}
-	}
-
-	return qtrue;
-}
-
-// ============================================================
-// HANDLE Wookiee / Chewie MELEE RUNNING
-// ============================================================
-static qboolean PM_HandleWookieeRun(int* desiredAnim, int setAnimFlags)
-{
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleWookieeRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	// Only handle Wookiee melee or Chewie NPCs
-	if (!pm_entSelf ||
-		(pm_entSelf->s.botclass != BCLASS_WOOKIEMELEE &&
-			pm_entSelf->s.botclass != BCLASS_CHEWIE))
-	{
-		return qfalse;
-	}
-
-	const qboolean firing =
-		(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-	const qboolean sprinting =
-		(((pm->cmd.buttons & BUTTON_BLOCK) != 0) &&
-			(pm->ps->sprintFuel > 15))
-		? qtrue : qfalse;
-
-	const int hp = pm->ps->stats[STAT_HEALTH];
-
-	// ------------------------------------------------------------
-	// NOT FIRING (full-body anim)
-	// ------------------------------------------------------------
-	if (!firing)
-	{
-		if (hp <= 70 && hp >= 40)
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
-		}
-		else if (hp <= 40)
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
-		}
-		else
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN6, SETANIM_FLAG_NORMAL);
-		}
-	}
-	// ------------------------------------------------------------
-	// FIRING (legs-only anim)
-	// ------------------------------------------------------------
-	else
-	{
-		*desiredAnim = BOTH_RUN6;
-	}
-
-	// ------------------------------------------------------------
-	// SPRINT LOGIC
-	// ------------------------------------------------------------
-	if (sprinting)
-	{
-		// Clear PEF_SPRINTING if set
-		if (pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING))
-		{
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-		}
-
-		// Set PEF_WEAPONSPRINTING if not set
-		if (!(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-		{
-			pm->ps->PlayerEffectFlags |= (1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-			g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-
-			if (pm->ps->sprintFuel < 17)
-			{
-				pm->ps->sprintFuel -= 10;
-			}
-#endif
-		}
-	}
-	else
-	{
-		// Clear sprint flags
-		if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-			(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-		{
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-			g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-		}
-	}
-
-	return qtrue;
-}
-
-// ============================================================
-// HANDLE FORCE RAGE + FORCE SPEED (MELEE) RUNNING
-// ============================================================
-static qboolean PM_HandleForceRun(int* desiredAnim, int setAnimFlags)
-{
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleForceRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	const qboolean firing =
-		(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-	const qboolean rageActive =
-		((pm->ps->fd.forcePowersActive & (1 << FP_RAGE)) != 0)
-		? qtrue : qfalse;
-
-	const qboolean speedActive =
-		((pm->ps->fd.forcePowersActive & (1 << FP_SPEED)) != 0)
-		? qtrue : qfalse;
-
-	const int hp = pm->ps->stats[STAT_HEALTH];
-
-	// ============================================================
-	// FORCE RAGE RUN
-	// ============================================================
-	if (rageActive)
-	{
-		if (!firing)
-		{
-			if (hp <= 70 && hp >= 40)
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
-			}
-			else if (hp <= 40)
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
-			}
-			else
-			{
-				PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
-			}
-		}
-		else
-		{
-			*desiredAnim = BOTH_RUN7;
-		}
-
-		// Rage always clears sprint flags
-		if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-			(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-		{
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-			pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-			g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-		}
-
-		return qtrue;
-	}
-
-	// ============================================================
-	// FORCE SPEED + MELEE RUN
-	// ============================================================
-	if (speedActive && pm->ps->weapon == WP_MELEE)
-	{
-		if (!firing)
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT, SETANIM_FLAG_NORMAL);
-		}
-		else
-		{
-			*desiredAnim = BOTH_SPRINT;
-		}
-
-		return qtrue;
-	}
-
-	return qfalse;
-}
-
-// ============================================================
-// HANDLE MELEE RUNNING (WP_MELEE)
-// ============================================================
-static qboolean PM_HandleMeleeRun(int* desiredAnim, int setAnimFlags)
-{
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleMeleeRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	// Only handle melee weapon
-	if (pm->ps->weapon != WP_MELEE)
-	{
-		return qfalse;
-	}
-
-	const int hp = pm->ps->stats[STAT_HEALTH];
-
-	// ============================================================
-	// INJURED TIERS
-	// ============================================================
-	if (hp <= 70 && hp >= 40)
-	{
-		PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
-	}
-	else if (hp <= 40)
-	{
-		PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
-	}
-	else if (pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD)
-	{
-		// SBD override
-		*desiredAnim = SBD_RUNING_WEAPON;
-	}
-	else
-	{
-		// ============================================================
-		// HEALTHY MELEE RUN (sprint or normal)
-		// ============================================================
-		const qboolean sprinting =
-			(((pm->cmd.buttons & BUTTON_BLOCK) != 0) &&
-				(pm->ps->sprintFuel > 15))
-			? qtrue : qfalse;
-
-		if (sprinting)
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT_SABER_MP, SETANIM_FLAG_NORMAL);
-
-			if (!(pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)))
-			{
-				pm->ps->PlayerEffectFlags |= (1 << PEF_SPRINTING);
-#ifdef _GAME
-				g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-
-				if (pm->ps->sprintFuel < 17)
-				{
-					pm->ps->sprintFuel -= 10;
-				}
-#endif
-			}
-		}
-		else
-		{
-			PM_SetAnim(SETANIM_BOTH, BOTH_RUN1, SETANIM_FLAG_NORMAL);
-
-			if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-				(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-			{
-				pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-				pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-				g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-			}
-		}
-	}
-
-	return qtrue;
-}
-
-
-// ============================================================
-// HANDLE SABER RUNNING (ALL STYLES) — PURE C, BEHAVIOUR-IDENTICAL
-// ============================================================
-static qboolean PM_HandleSaberRun(int* desiredAnim, int setAnimFlags)
-{
-	// Saber info for later saber-running logic
-	const saberInfo_t* saber1 = BG_MySaber(pm->ps->clientNum, 0);
-
-	if (!pm || !pm->ps)
-	{
-		Com_Printf("PM_HandleSaberRun: pm or pm->ps was NULL\n");
-		return qfalse;
-	}
-
-	if (pm->ps->weapon != WP_SABER)
-	{
-		return qfalse;
-	}
-
-	const qboolean saberOff = BG_SabersOff(pm->ps) ? qtrue : qfalse;
-	const qboolean sprinting =
-		(((pm->cmd.buttons & BUTTON_BLOCK) != 0) &&
-			(pm->ps->sprintFuel > 15))
-		? qtrue : qfalse;
-
-	const int hp = pm->ps->stats[STAT_HEALTH];
-	const int level = pm->ps->fd.saberAnimLevel;
-
-	const qboolean speedActive =
-		((pm->ps->fd.forcePowersActive & (1 << FP_SPEED)) != 0)
-		? qtrue : qfalse;
-
-	qboolean isNPC = qfalse;
-#ifdef _GAME
-	if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT) ||
-		(pm_entSelf && pm_entSelf->s.eType == ET_NPC))
-	{
-		isNPC = qtrue;
-	}
-#endif
-
-	// Helper macros
-#define SET_FULL(anim) PM_SetAnim(SETANIM_BOTH, anim, setAnimFlags)
-#define SET_DESIRED(anim) (*desiredAnim = anim)
-
-	// ============================================================
-	// SABER ACTIVE
-	// ============================================================
-	if (!saberOff)
-	{
-		// ------------------------------------------------------------
-		// STAFF STYLE
-		// ------------------------------------------------------------
-		if (level == SS_STAFF)
-		{
-			if (speedActive)
-			{
-				SET_FULL(BOTH_SPRINT);
-			}
-			else
-			{
-				if (hp <= 70 && hp >= 40)
-				{
-					SET_FULL(BOTH_RUN9);
-				}
-				else if (hp <= 40)
-				{
-					SET_FULL(BOTH_RUN8);
-				}
-				else
-				{
-					if (sprinting)
-					{
-						SET_FULL(BOTH_RUN_STAFF);
-
-						if (!(pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)))
-						{
-							pm->ps->PlayerEffectFlags |= (1 << PEF_SPRINTING);
-#ifdef _GAME
-							g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-							if (pm->ps->sprintFuel < 17)
-								pm->ps->sprintFuel -= 10;
-#endif
-						}
-					}
-					else
-					{
-						SET_FULL(BOTH_RUN1);
-
-						if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-							(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-						{
-							pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-							pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-							g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-						}
-					}
-				}
-			}
-
-			return qtrue;
-		}
-
-		// ------------------------------------------------------------
-		// DUAL SABERS
-		// ------------------------------------------------------------
-		if (level == SS_DUAL)
-		{
-			if (speedActive)
-			{
-				SET_FULL(BOTH_SPRINT);
-
-				if (!(pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)))
-				{
-					pm->ps->PlayerEffectFlags |= (1 << PEF_SPRINTING);
-#ifdef _GAME
-					g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-					if (pm->ps->sprintFuel < 17)
-						pm->ps->sprintFuel -= 10;
-#endif
-				}
-			}
-			else
-			{
-				if (hp <= 70 && hp >= 40)
-				{
-					SET_FULL(BOTH_RUN7);
-				}
-				else if (hp <= 40)
-				{
-					SET_FULL(BOTH_RUN8);
-				}
-				else
-				{
-					if (sprinting)
-					{
-						// Dual sprint variants
-						if (saber1 && (saber1->type == SABER_GRIE ||
-							saber1->type == SABER_GRIE4))
-						{
-							SET_FULL(BOTH_RUN7);
-						}
-						else
-						{
-							SET_FULL(BOTH_RUN_DUAL);
-						}
-
-						if (!(pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)))
-						{
-							pm->ps->PlayerEffectFlags |= (1 << PEF_SPRINTING);
-#ifdef _GAME
-							g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-							if (pm->ps->sprintFuel < 17)
-								pm->ps->sprintFuel -= 10;
-#endif
-						}
-					}
-					else
-					{
-						SET_FULL(BOTH_RUN1);
-
-						if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-							(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-						{
-							pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-							pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-							g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-						}
-					}
-				}
-			}
-
-			return qtrue;
-		}
-
-		// ------------------------------------------------------------
-		// SINGLE SABER STYLES
-		// ------------------------------------------------------------
-		if (level == SS_FAST ||
-			level == SS_MEDIUM ||
-			level == SS_STRONG ||
-			level == SS_DESANN ||
-			level == SS_TAVION)
-		{
-			if (speedActive)
-			{
-				SET_FULL(BOTH_SPRINT);
-
-				if (!(pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)))
-				{
-					pm->ps->PlayerEffectFlags |= (1 << PEF_SPRINTING);
-#ifdef _GAME
-					g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-					if (pm->ps->sprintFuel < 17)
-						pm->ps->sprintFuel -= 10;
-#endif
-				}
-			}
-			else
-			{
-				if (hp <= 70 && hp >= 40)
-				{
-					SET_FULL(BOTH_RUN9);
-				}
-				else if (hp <= 40)
-				{
-					SET_FULL(BOTH_RUN8);
-				}
-				else
-				{
-					if (sprinting)
-					{
-						// Single saber sprint variants
-						if (saber1 && (saber1->type == SABER_BACKHAND ||
-							saber1->type == SABER_ASBACKHAND))
-						{
-							SET_FULL(BOTH_RUN_STAFF);
-						}
-						else if (saber1 && saber1->type == SABER_YODA)
-						{
-							SET_FULL(BOTH_RUN10);
-						}
-						else if (saber1 && (saber1->type == SABER_GRIE ||
-							saber1->type == SABER_GRIE4))
-						{
-							SET_FULL(BOTH_RUN7);
-						}
-						else
-						{
-							SET_FULL(BOTH_SPRINT_SABER_MP);
-						}
-
-						if (!(pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)))
-						{
-							pm->ps->PlayerEffectFlags |= (1 << PEF_SPRINTING);
-#ifdef _GAME
-							g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-							if (pm->ps->sprintFuel < 17)
-								pm->ps->sprintFuel -= 10;
-#endif
-						}
-					}
-					else
-					{
-						SET_FULL(BOTH_RUN1);
-
-						if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-							(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-						{
-							pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-							pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-							g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-						}
-					}
-				}
-			}
-
-			return qtrue;
-		}
-	}
-
-	// ============================================================
-	// SABER OFF (HOLSTERED)
-	// ============================================================
-	if (hp <= 70 && hp >= 40)
-	{
-		SET_FULL(BOTH_RUN7);
-	}
-	else if (hp <= 40)
-	{
-		SET_FULL(BOTH_RUN8);
-	}
-	else if (pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD)
-	{
-		SET_DESIRED(SBD_RUNING_WEAPON);
-	}
-	else
-	{
-		if (sprinting)
-		{
-			SET_FULL(BOTH_SPRINT_SABER_MP);
-
-			if (!(pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)))
-			{
-				pm->ps->PlayerEffectFlags |= (1 << PEF_SPRINTING);
-#ifdef _GAME
-				g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
-				if (pm->ps->sprintFuel < 17)
-					pm->ps->sprintFuel -= 10;
-#endif
-			}
-		}
-		else
-		{
-			SET_FULL(BOTH_RUN1);
-
-			if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-				(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-			{
-				pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-				pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-#ifdef _GAME
-				g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-			}
-		}
-	}
-
-	return qtrue;
-
-#undef SET_FULL
-#undef SET_DESIRED
-}
 
 extern qboolean PM_SaberInBrokenParry(int move);
 
 static void PM_Footsteps(void)
 {
-	float bobmove = 0.0f;
-	int old = 0;
+	float bobmove;
+	int old;
 	int setAnimFlags = 0;
 
 	// Safety: ensure pm and pm->ps exist before accessing them
@@ -11282,154 +9476,91 @@ static void PM_Footsteps(void)
 		return;
 	}
 
-	// Explicit qboolean from bit-test (no implicit bool→qboolean conversion)
-	const qboolean is_holding_block_button =
-		((pm->ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
-
-	// Saber info for later saber-running logic
+	//Holding Block Button
+	const qboolean is_holding_block_button = pm->ps->ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;
 	const saberInfo_t* saber1 = BG_MySaber(pm->ps->clientNum, 0);
 
-	/*
-	============================================================
-	EARLY EXIT CONDITIONS — DO NOT INTERRUPT SPECIAL ANIM STATES
-	============================================================
-	*/
-
-	// Spinning saber animations must complete fully
-	if (PM_SpinningSaberAnim(pm->ps->legsAnim) && pm->ps->legsTimer > 0)
+	if (PM_SpinningSaberAnim(pm->ps->legsAnim) && pm->ps->legsTimer)
 	{
+		//spinning
+		return;
+	}
+	if (PM_InKnockDown(pm->ps) || BG_InRoll(pm->ps, pm->ps->legsAnim))
+	{
+		//don't interrupt knockdowns with footstep stuff.
 		return;
 	}
 
-	// Knockdown or roll states override all movement logic
-	if (PM_InKnockDown(pm->ps) == qtrue ||
-		BG_InRoll(pm->ps, pm->ps->legsAnim) == qtrue)
-	{
-		return;
-	}
-
-	/*
-	============================================================
-	SPECIAL HANDLING FOR LARGE NPCs (RANCOR / WAMPA)
-	============================================================
-	*/
-	if (pm->ps->clientNum >= MAX_CLIENTS &&
-		pm_entSelf &&
+	//trying to move laterally
+	if (pm->ps->clientNum >= MAX_CLIENTS && pm_entSelf &&
 		(pm_entSelf->s.NPC_class == CLASS_RANCOR ||
-			pm_entSelf->s.NPC_class == CLASS_WAMPA))
+			pm_entSelf->s.botclass == BCLASS_RANCOR ||
+			pm_entSelf->s.NPC_class == CLASS_WAMPA ||
+			pm_entSelf->s.botclass == BCLASS_WAMPA))
+		//does this catch NPCs, too?
 	{
-		// These creatures override turning anims when moving
-		if (pm->ps->legsAnim == BOTH_TURN_LEFT1 ||
-			pm->ps->legsAnim == BOTH_TURN_RIGHT1)
+		//atst, Rancor & Wampa, only override turn anims on legs (no torso)
+		if (pm->ps->legsAnim == BOTH_TURN_LEFT1 || pm->ps->legsAnim == BOTH_TURN_RIGHT1)
 		{
+			//moving overrides turning
 			setAnimFlags |= SETANIM_FLAG_OVERRIDE;
 		}
 	}
 	else
 	{
-		/*
-		============================================================
-		ALL OTHER NPCs — OVERRIDE SPECIAL LEGS ANIMS WHEN MOVING
-		============================================================
-		*/
-		const qboolean in_saber_related_anim =
-			((PM_InSaberAnim(pm->ps->legsAnim) == qtrue &&
-				PM_SpinningSaberAnim(pm->ps->legsAnim) == qfalse &&
-				PM_SaberInBrokenParry(pm->ps->saber_move) == qfalse) ||
-				PM_SaberStanceAnim(pm->ps->legsAnim) == qtrue ||
-				PM_SaberDrawPutawayAnim(pm->ps->legsAnim) == qtrue ||
-				PM_LandingAnim(pm->ps->legsAnim) == qtrue ||
-				PM_PainAnim(pm->ps->legsAnim) == qtrue ||
-				PM_ForceAnim(pm->ps->legsAnim) == qtrue);
-
-		const qboolean in_misc_blocking_anim =
-			(pm->ps->legsAnim == BOTH_BUTTON_HOLD ||
-				pm->ps->legsAnim == BOTH_BUTTON_RELEASE ||
-				pm->ps->legsAnim == BOTH_THERMAL_READY ||
-				pm->ps->legsAnim == BOTH_THERMAL_THROW ||
-				pm->ps->legsAnim == BOTH_ATTACK10 ||
-				pm->ps->legsAnim == BOTH_STAND1TO2 ||
-				pm->ps->legsAnim == BOTH_STAND2TO1);
-
-		if (in_saber_related_anim == qtrue || in_misc_blocking_anim == qtrue)
+		//all other NPCs...
+		if ((PM_InSaberAnim(pm->ps->legsAnim)
+			&& !PM_SpinningSaberAnim(pm->ps->legsAnim)
+			&& !PM_SaberInBrokenParry(pm->ps->saber_move)
+			|| PM_SaberStanceAnim(pm->ps->legsAnim)
+			|| PM_SaberDrawPutawayAnim(pm->ps->legsAnim)
+			|| PM_LandingAnim(pm->ps->legsAnim)
+			|| PM_PainAnim(pm->ps->legsAnim)
+			|| PM_ForceAnim(pm->ps->legsAnim))
+			|| (pm->ps->legsAnim) == BOTH_BUTTON_HOLD
+			|| (pm->ps->legsAnim) == BOTH_BUTTON_RELEASE
+			|| (pm->ps->legsAnim) == BOTH_STAND1TO2
+			|| (pm->ps->legsAnim) == BOTH_STAND2TO1)
 		{
-			// Movement should override these special animations
+			//legs are in a saber anim, and not spinning, be sure to override it
 			setAnimFlags |= SETANIM_FLAG_OVERRIDE;
 		}
 	}
 
-	/*
-	============================================================
-	CALCULATE PLANAR SPEED FOR BOBBING / FOOTSTEP TIMING
-	============================================================
-	*/
-	pm->xyspeed = sqrtf(
-		(pm->ps->velocity[0] * pm->ps->velocity[0]) +
-		(pm->ps->velocity[1] * pm->ps->velocity[1]));
+	//
+	// calculate speed and cycle to be used for
+	// all cyclic walking effects
+	//
+	pm->xyspeed = sqrt(pm->ps->velocity[0] * pm->ps->velocity[0] + pm->ps->velocity[1] * pm->ps->velocity[1]);
 
-	// ============================================================
-// AIRBORNE STATE — DO NOT ADVANCE MOVEMENT ANIMS
-// ============================================================
 	if (pm->ps->groundEntityNum == ENTITYNUM_NONE)
 	{
-		// In deep water (waterlevel > 1) while airborne
+		// airborne leaves position in cycle intact, but doesn't advance
 		if (pm->waterlevel > 1)
 		{
-			// ------------------------------------------------------------
-			// Auto-holster saber or play gunner weapon-change sound
-			// ------------------------------------------------------------
-			if (pm->ps->weapon == WP_SABER && pm->ps->saberHolstered == 0)
+			if (pm->ps->weapon == WP_SABER && !pm->ps->saberHolstered)
 			{
 				pm->ps->saberHolstered = 2;
-
 #ifdef _GAME
 				gentity_t* self = &g_entities[pm->ps->clientNum];
-				if (self)
-				{
-					G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/saber/saberoff.mp3"));
-				}
-				else
-				{
-					Com_Printf("PM_Footsteps: NULL self entity during saber holster\n");
-				}
+				G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/saber/saberoff.mp3"));
 #endif
 			}
 			else
 			{
-				// Gunner weapon-change sound
-				const qboolean isGunner = PM_IsGunner() ? qtrue : qfalse;
-				if (isGunner == qtrue)
+				if (PM_IsGunner())
 				{
 #ifdef _GAME
 					gentity_t* self = &g_entities[pm->ps->clientNum];
-					if (self)
-					{
-						G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/change.wav"));
-					}
-					else
-					{
-						Com_Printf("PM_Footsteps: NULL self entity during gunner change\n");
-					}
+					G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/change.wav"));
 #endif
 				}
 			}
+			pm->cmd.buttons &= ~(BUTTON_ATTACK | BUTTON_ALT_ATTACK | BUTTON_FORCEPOWER | BUTTON_DASH);
 
-			// ------------------------------------------------------------
-			// Cancel attack/force/dash while swimming
-			// ------------------------------------------------------------
-			pm->cmd.buttons &=
-				~(BUTTON_ATTACK | BUTTON_ALT_ATTACK | BUTTON_FORCEPOWER | BUTTON_DASH);
-
-			// ------------------------------------------------------------
-			// Ladder vs. swim-floating anims
-			// ------------------------------------------------------------
-			const qboolean onLadder =
-				(((pm->ps->pm_flags & PMF_LADDER) != 0) ||
-					((pm->watertype & CONTENTS_LADDER) != 0))
-				? qtrue : qfalse;
-
-			if (onLadder == qtrue)
+			if (pm->ps->pm_flags & PMF_LADDER || pm->watertype & CONTENTS_LADDER)
 			{
+				// on ladder
 				PM_LadderAnim();
 			}
 			else
@@ -11437,73 +9568,53 @@ static void PM_Footsteps(void)
 				PM_SwimFloatAnim();
 			}
 		}
-
-		// Airborne always exits early — no movement anims
 		return;
 	}
-	// ============================================================
-	// NOT AIRBORNE — IDLE / STANDING LOGIC
-	// Triggered when no movement input OR speed == 0
-	// ============================================================
-	else if (((pm->cmd.forwardmove == 0) && (pm->cmd.rightmove == 0)) ||
-		(pm->ps->speed == 0))
+	// if not trying to move
+	else if (!pm->cmd.forwardmove && !pm->cmd.rightmove || pm->ps->speed == 0)
 	{
-		// Essentially stationary
-		if (pm->xyspeed < 5.0f)
+		if (pm->xyspeed < 5)
 		{
-			// Reset bob cycle when idle
-			pm->ps->bobCycle = 0;
+			pm->ps->bobCycle = 0; // start at beginning of cycle again
 
-			// ============================================================
-			// RANCOR IDLE LOGIC
-			// ============================================================
 			if (pm->ps->clientNum >= MAX_CLIENTS &&
 				pm_entSelf &&
 				(pm_entSelf->s.NPC_class == CLASS_RANCOR ||
 					pm_entSelf->s.botclass == BCLASS_RANCOR))
 			{
-				if ((pm->ps->eFlags2 & EF2_USE_ALT_ANIM) != 0)
+				if (pm->ps->eFlags2 & EF2_USE_ALT_ANIM)
 				{
-					// Holding someone
+					//holding someone
 					PM_ContinueLegsAnim(BOTH_STAND4);
 				}
-				else if ((pm->ps->eFlags2 & EF2_ALERTED) != 0)
+				else if (pm->ps->eFlags2 & EF2_ALERTED)
 				{
-					// Has or had an enemy
+					//have an enemy or have had one since we spawned
 					PM_ContinueLegsAnim(BOTH_STAND2);
 				}
 				else
 				{
-					// Neutral idle
+					//just stand there
 					PM_ContinueLegsAnim(BOTH_STAND1);
 				}
 			}
-
-			// ============================================================
-			// WAMPA IDLE LOGIC
-			// ============================================================
 			else if (pm->ps->clientNum >= MAX_CLIENTS &&
 				pm_entSelf &&
 				(pm_entSelf->s.NPC_class == CLASS_WAMPA ||
 					pm_entSelf->s.botclass == BCLASS_WAMPA))
 			{
-				if ((pm->ps->eFlags2 & EF2_USE_ALT_ANIM) != 0)
+				if (pm->ps->eFlags2 & EF2_USE_ALT_ANIM)
 				{
-					// Holding a victim
+					//holding a victim
 					PM_ContinueLegsAnim(BOTH_STAND2);
 				}
 				else
 				{
-					// Normal idle
+					//not holding a victim
 					PM_ContinueLegsAnim(BOTH_STAND1);
 				}
 			}
-
-			// ============================================================
-			// CROUCHED / ROLLING IDLE
-			// ============================================================
-			else if ((pm->ps->pm_flags & PMF_DUCKED) != 0 ||
-				(pm->ps->pm_flags & PMF_ROLLING) != 0)
+			else if (pm->ps->pm_flags & PMF_DUCKED || pm->ps->pm_flags & PMF_ROLLING)
 			{
 				if (pm->ps->legsAnim != BOTH_CROUCH1IDLE)
 				{
@@ -11514,50 +9625,37 @@ static void PM_Footsteps(void)
 					PM_ContinueLegsAnim(BOTH_CROUCH1IDLE);
 				}
 			}
-
-			// ============================================================
-			// GENERAL IDLE (WEAPON / NPC OVERRIDES)
-			// ============================================================
 			else
 			{
-				// Scoped zoom idle
 				if (pm->ps->weapon == WP_DISRUPTOR && pm->ps->zoomMode == 1)
 				{
 					PM_ContinueLegsAnim(TORSO_WEAPONREADY4);
 				}
-				// SBD idle
 				else if (pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD)
 				{
 					PM_ContinueLegsAnim(SBD_WEAPON_STANDING);
 				}
-				// SBD weapon (Bryar Old)
 				else if (pm->ps->weapon == WP_BRYAR_OLD)
 				{
 					PM_ContinueLegsAnim(SBD_WEAPON_STANDING);
 				}
 				else
 				{
-					// Saber idle logic (holstered vs active handled later)
 					if (pm->ps->weapon == WP_SABER && BG_SabersOff(pm->ps))
 					{
-						// Saber off — slope‑adjusted idle
 						if (!PM_AdjustStandAnimForSlope())
 						{
-							PM_ContinueLegsAnim(
-								PM_LegsSlopeBackTransition(BOTH_STAND1));
+							PM_ContinueLegsAnim(PM_LegsSlopeBackTransition(BOTH_STAND1));
 						}
 					}
 					else
 					{
-						// Non‑saber or saber‑active idle
-						if (pm->ps->weapon != WP_SABER ||
-							!PM_AdjustStandAnimForSlope())
+						if (pm->ps->weapon != WP_SABER || !PM_AdjustStandAnimForSlope())
 						{
 							if (pm->ps->weapon == WP_SABER)
 							{
 #ifdef _GAME
-								// Bots/NPCs use BOT idle poses
-								if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT) ||
+								if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT ||
 									pm_entSelf->s.eType == ET_NPC)
 								{
 									PM_ContinueLegsAnim(
@@ -11567,25 +9665,21 @@ static void PM_Footsteps(void)
 								else
 #endif
 								{
-									// Player saber idle / blocking idle
-									if (is_holding_block_button == qtrue &&
+									if (is_holding_block_button &&
 										(pm->cmd.buttons & BUTTON_WALKING))
 									{
-										// Dual saber block idle
 										if (pm->ps->fd.saberAnimLevel == SS_DUAL)
 										{
 											PM_ContinueLegsAnim(
 												PM_LegsSlopeBackTransition(
 													PM_BlockingPoseForsaber_anim_levelDual()));
 										}
-										// Staff block idle
 										else if (pm->ps->fd.saberAnimLevel == SS_STAFF)
 										{
 											PM_ContinueLegsAnim(
 												PM_LegsSlopeBackTransition(
 													PM_BlockingPoseForsaber_anim_levelStaff()));
 										}
-										// Single saber block idle
 										else
 										{
 											PM_ContinueLegsAnim(
@@ -11595,7 +9689,6 @@ static void PM_Footsteps(void)
 									}
 									else
 									{
-										// Normal saber idle
 										PM_ContinueLegsAnim(
 											PM_LegsSlopeBackTransition(
 												PM_IdlePoseForsaber_anim_level()));
@@ -11604,7 +9697,6 @@ static void PM_Footsteps(void)
 							}
 							else
 							{
-								// Non‑saber idle (guns, melee, etc.)
 								PM_ContinueLegsAnim(
 									PM_LegsSlopeBackTransition(
 										WeaponReadyLegsAnim[pm->ps->weapon]));
@@ -11613,62 +9705,42 @@ static void PM_Footsteps(void)
 					}
 				}
 			}
-
-			// Clear sprint flags when idle
-			if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-				(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
-			{
-				pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
-				pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-
-#ifdef _GAME
-				g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
-#endif
-			}
-
-			return;
 		}
+		if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+			pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+		{
+			pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+			pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+			g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+		}
+		return;
 	}
-	// ============================================================
-	// CROUCHED MOVEMENT / ROLL ENTRY
-	// ============================================================
-	if ((pm->ps->pm_flags & PMF_DUCKED) != 0)
+
+	if (pm->ps->pm_flags & PMF_DUCKED)
 	{
 		int rolled = 0;
 
-		// Crouched characters bob faster
-		bobmove = 0.5f;
+		bobmove = 0.5; // ducked characters bob much faster
 
-		// Only attempt roll if not in a ground-locked anim
-		if (PM_InOnGroundAnim(pm->ps->legsAnim) == qfalse &&
-			(PM_InRollIgnoreTimer(pm->ps) == qfalse ||
-				(pm->ps->legsTimer == 0 && pm->cmd.upmove < 0)))
+		if (!PM_InOnGroundAnim(pm->ps->legsAnim) //not on the ground
+			&& (!PM_InRollIgnoreTimer(pm->ps) || (!pm->ps->legsTimer && pm->cmd.upmove < 0)))//not in a roll (or you just finished one and you're still holding crouch)
 		{
-			// ------------------------------------------------------------
-			// Conditions that allow entering a roll
-			// ------------------------------------------------------------
-			const qboolean canAttemptRoll =
-				((PM_RunningAnim(pm->ps->legsAnim) == qtrue) ||
-					(pm->ps->legsAnim == BOTH_FORCEHEAL_START) ||
-					(PM_CanRollFromSoulCal(pm->ps) == qtrue) ||
-					((pm->cmd.buttons & BUTTON_DASH) != 0))
-				? qtrue : qfalse;
-
-			if (canAttemptRoll == qtrue &&
-				BG_InRoll(pm->ps, pm->ps->legsAnim) == qfalse)
+			if ((PM_RunningAnim(pm->ps->legsAnim)
+				|| pm->ps->legsAnim == BOTH_FORCEHEAL_START
+				|| PM_CanRollFromSoulCal(pm->ps)
+				|| pm->cmd.buttons & BUTTON_DASH) &&
+				!BG_InRoll(pm->ps, pm->ps->legsAnim))
 			{
+				//roll!
 				rolled = pm_try_roll();
 			}
 
-			// ------------------------------------------------------------
-			// If roll did NOT trigger → normal crouch walking
-			// ------------------------------------------------------------
-			if (rolled == 0)
+			if (!rolled)
 			{
-				const qboolean backwards =
-					((pm->ps->pm_flags & PMF_BACKWARDS_RUN) != 0) ? qtrue : qfalse;
-
-				if (backwards == qtrue)
+				//if the roll failed or didn't attempt, do standard crouching anim stuff.
+				if (pm->ps->pm_flags & PMF_BACKWARDS_RUN)
 				{
 					if (pm->ps->legsAnim != BOTH_CROUCH1WALKBACK)
 					{
@@ -11690,80 +9762,48 @@ static void PM_Footsteps(void)
 						PM_ContinueLegsAnim(BOTH_CROUCH1WALK);
 					}
 				}
-
 #ifdef _GAME
-				// 5% chance of generating an alert sound
-				if (Q_irand(0, 19) == 0)
+				if (!Q_irand(0, 19))
 				{
-					AddSoundEvent(&g_entities[pm->ps->clientNum],
-						pm->ps->origin,
-						16,
-						AEL_MINOR,
-						qtrue,
-						qtrue);
+					//5% chance of making an alert
+					AddSoundEvent(&g_entities[pm->ps->clientNum], pm->ps->origin, 16, AEL_MINOR, qtrue, qtrue);
 				}
 #endif
 			}
 			else
 			{
-				// ------------------------------------------------------------
-				// ENTER ROLL
-				// ------------------------------------------------------------
+				//otherwise send us into the roll
 				pm->ps->legsTimer = 0;
 				pm->ps->legsAnim = 0;
-
-				PM_SetAnim(SETANIM_BOTH,
-					rolled,
-					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-
+				PM_SetAnim(SETANIM_BOTH, rolled, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 				PM_AddEventWithParm(EV_ROLL, 0);
-
-				// Adjust bounding box + viewheight for roll transition
-				pm->maxs[2] = pm->ps->crouchheight;
+				pm->maxs[2] = pm->ps->crouchheight; //CROUCH_MAXS_2;
 				pm->ps->viewheight = DEFAULT_VIEWHEIGHT;
-
-				// Switch state from crouched → rolling
 				pm->ps->pm_flags &= ~PMF_DUCKED;
 				pm->ps->pm_flags |= PMF_ROLLING;
-
 #ifdef _GAME
-				AddSoundEvent(&g_entities[pm->ps->clientNum],
-					pm->ps->origin,
-					128,
-					AEL_MINOR,
-					qtrue,
-					qtrue);
+				AddSoundEvent(&g_entities[pm->ps->clientNum], pm->ps->origin, 128, AEL_MINOR, qtrue, qtrue);
 #endif
 			}
 
-			// ------------------------------------------------------------
-			// Clear sprint flags while crouched or rolling
-			// ------------------------------------------------------------
-			if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-				(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
+			if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+				pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
 			{
 				pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
 				pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
-
 #ifdef _GAME
 				g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
 #endif
 			}
 		}
 	}
-	// ============================================================
-	// ROLL EXIT → TRANSITION TO CROUCH WALK
-	// ============================================================
-	else if ((pm->ps->pm_flags & PMF_ROLLING) != 0 &&
-		BG_InRoll(pm->ps, pm->ps->legsAnim) == qfalse &&
-		PM_InRollComplete(pm->ps, pm->ps->legsAnim) == qfalse)
+	else if (pm->ps->pm_flags & PMF_ROLLING &&
+		!BG_InRoll(pm->ps, pm->ps->legsAnim) &&
+		!PM_InRollComplete(pm->ps, pm->ps->legsAnim))
 	{
-		bobmove = 0.5f;
+		bobmove = 0.5; // ducked characters bob much faster
 
-		const qboolean backwards =
-			((pm->ps->pm_flags & PMF_BACKWARDS_RUN) != 0) ? qtrue : qfalse;
-
-		if (backwards == qtrue)
+		if (pm->ps->pm_flags & PMF_BACKWARDS_RUN)
 		{
 			if (pm->ps->legsAnim != BOTH_CROUCH1WALKBACK)
 			{
@@ -11790,192 +9830,138 @@ static void PM_Footsteps(void)
 	{
 		int desiredAnim = -1;
 
-		// ============================================================
-		// LANDING ANIMS — LET THEM FINISH BEFORE RUN/WALK
-		// ============================================================
 		if ((pm->ps->legsAnim == BOTH_FORCELAND1 ||
 			pm->ps->legsAnim == BOTH_FORCELANDBACK1 ||
 			pm->ps->legsAnim == BOTH_FORCELANDRIGHT1 ||
 			pm->ps->legsAnim == BOTH_FORCELANDLEFT1) &&
 			pm->ps->legsTimer > 0)
 		{
+			//let it finish first
 			bobmove = 0.2f;
 		}
-
-		// ============================================================
-		// RUNNING (BUTTON_WALKING NOT HELD)
-		// ============================================================
-		else if ((pm->cmd.buttons & BUTTON_WALKING) == 0)
+		else if (!(pm->cmd.buttons & BUTTON_WALKING))
 		{
-			bobmove = 0.4f; // Running bobs faster
+			//running
 
-			if (PM_HandleSpecialNPCRun(&desiredAnim, &bobmove) == qtrue)
-			{
-				// handled
-			}
-			// ------------------------------------------------------------
-			// BACKWARDS RUN
-			// ------------------------------------------------------------
-			else if (PM_HandleBackwardsRun(&desiredAnim, setAnimFlags) == qtrue)
-			{
-				// handled
-			}
+			bobmove = 0.4f; // faster speeds bob faster
 
-			else
+			if (pm->ps->clientNum >= MAX_CLIENTS && pm_entSelf &&
+				(pm_entSelf->s.NPC_class == CLASS_WAMPA ||
+					pm_entSelf->s.botclass == BCLASS_WAMPA))
 			{
-				// Forward running with guns / melee / saber
-				if (pm->ps->weapon != WP_SABER)
+				if (pm->ps->eFlags2 & EF2_USE_ALT_ANIM)
 				{
-					if (PM_HandleSBDRun(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled
-					}
-
-					else if (PM_HandlePistolRun(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled inside helper
-						if (desiredAnim != -1)
-						{
-							// continue to slope transition logic later
-						}
-						return; // firing case returns early, matching original behaviour
-					}
-					else if (PM_HandleRifleRun(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled fully inside helper
-						if (desiredAnim != -1)
-						{
-							// slope transition will apply later
-						}
-						return;
-					}
-					else if (PM_HandleExplosivesRun(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled fully inside helper
-						if (desiredAnim != -1)
-						{
-							// slope transition will apply later
-						}
-						return;
-					}
-					else if (PM_HandleHeavyRun(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled fully inside helper
-						if (desiredAnim != -1)
-						{
-							// slope transition will apply later
-						}
-						return;
-					}
-					else if (PM_HandleWookieeRun(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled
-					}
-					else if (PM_HandleForceRun(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled
-					}
-
-					// ============================================================
-					// GENERIC MELEE (NO SPEED)
-					// ============================================================
-					else if (PM_HandleMeleeRun(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled
-					}
-
-					// ============================================================
-					// GENERIC NON-SABER RUN (FALLBACK)
-					// ============================================================
-					else
-					{
-						const qboolean firing =	(pm->ps->weaponTime > 0) ? qtrue : qfalse;
-
-						if (firing == qfalse)
-						{
-							PM_SetAnim(SETANIM_BOTH, BOTH_RUN1, SETANIM_FLAG_NORMAL);
-						}
-						else
-						{
-							desiredAnim = BOTH_RUN1;
-						}
-					}
+					//full on run, on all fours
+					desiredAnim = BOTH_RUN1;
 				}
-
-				// ============================================================
-				// SABER RUNNING ANIMS
-				// ============================================================
 				else
 				{
-					if (PM_HandleSaberRun(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled
-					}
+					//regular, upright run
+					desiredAnim = BOTH_RUN2;
 				}
 			}
-		}
-		else
-		{
-			// ============================================================
-			// WALKING (not running)
-			// ============================================================
-			bobmove = 0.2f;
-
-			// ------------------------------------------------------------
-			// BACKWARDS WALK
-			// ------------------------------------------------------------
-			if (PM_HandleBackwardsWalk(&desiredAnim, setAnimFlags) == qtrue)
+			else if (pm->ps->clientNum >= MAX_CLIENTS && pm_entSelf &&
+				(pm_entSelf->s.NPC_class == CLASS_RANCOR ||
+					pm_entSelf->s.botclass == BCLASS_RANCOR))
 			{
-				// handled
-			}
-			// ------------------------------------------------------------
-			// FORWARD WALK
-			// ------------------------------------------------------------
-			else
-			{
-				if (PM_HandleMeleeAndSBDWalk(&desiredAnim, setAnimFlags) == qtrue)
+				//no run anims
+				if (pm->ps->pm_flags & PMF_BACKWARDS_RUN)
 				{
-					// handled
+					desiredAnim = BOTH_WALKBACK1;
 				}
-
-				// Saber holstered (off)
-				else if (BG_SabersOff(pm->ps))
+				else
 				{
 					desiredAnim = BOTH_WALK1;
 				}
-
-				// Non‑saber guns
-				else if (pm->ps->weapon != WP_SABER)
+			}
+			else if (pm->ps->clientNum >= MAX_CLIENTS &&
+				pm_entSelf &&
+				pm->ps->weapon == WP_STUN_BATON &&
+				(pm_entSelf->s.NPC_class == CLASS_JAWA ||
+					pm_entSelf->s.botclass == BCLASS_JAWA))
+			{
+				// Jawa has a special run animation :D
+				desiredAnim = BOTH_RUN4;
+				bobmove = 0.2f;
+			}
+			else if (pm->ps->clientNum >= MAX_CLIENTS &&
+				pm_entSelf &&
+				(pm_entSelf->s.NPC_class == CLASS_VADER ||
+					pm_entSelf->s.botclass == BCLASS_VADER))
+			{
+				// has a special run animation :D
+				desiredAnim = BOTH_VADERRUN1;
+			}
+			else if (pm->ps->pm_flags & PMF_BACKWARDS_RUN)
+			{
+				if (pm->ps->weapon != WP_SABER)
 				{
-					if (PM_HandleSBDWalk(&desiredAnim, setAnimFlags) == qtrue)
+					if (pm->ps->weapon == WP_BRYAR_OLD || pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD)
 					{
-						// handled
+						desiredAnim = SBD_RUNBACK_WEAPON;
 					}
-					else if (PM_HandlePistolWalk(&desiredAnim, setAnimFlags) == qtrue)
+					else
 					{
-						// handled fully inside helper
-					}
-					else if (PM_HandleRifleWalk(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled fully inside helper
-					}
-					else if (PM_HandleExplosivesWalk(&desiredAnim, setAnimFlags) == qtrue)
-					{
-						// handled fully inside helper
+						desiredAnim = BOTH_RUNBACK1;
 					}
 				}
-				// Saber walk (saber on, not holstered)
 				else
 				{
-					if (PM_HandleSaberWalk(&desiredAnim, setAnimFlags) == qtrue)
+					switch (pm->ps->fd.saberAnimLevel)
 					{
-						// handled fully inside helper
+					case SS_STAFF:
+						if (pm->ps->saberHolstered > 1)
+						{
+							//saber off
+							desiredAnim = BOTH_RUNBACK1;
+						}
+						else
+						{
+							desiredAnim = BOTH_RUNBACK2;
+						}
+						break;
+					case SS_DUAL:
+						if (pm->ps->saberHolstered > 1)
+						{
+							//sabers off
+							desiredAnim = BOTH_RUNBACK1;
+						}
+						else
+						{
+							desiredAnim = BOTH_RUNBACK2;
+						}
+						break;
+					case SS_FAST:
+					case SS_MEDIUM:
+					case SS_STRONG:
+					case SS_DESANN:
+					case SS_TAVION:
+						if (pm->ps->saberHolstered)
+						{
+							//saber off
+							desiredAnim = BOTH_RUNBACK1;
+						}
+						else
+						{
+							desiredAnim = BOTH_RUNBACK2;
+						}
+						break;
+					default:
+						if (pm->ps->saberHolstered)
+						{
+							//saber off
+							desiredAnim = BOTH_RUNBACK1;
+						}
+						else
+						{
+							desiredAnim = BOTH_RUNBACK2;
+						}
+						break;
 					}
 				}
 
-				// Walking never counts as sprinting
-				if ((pm->ps->PlayerEffectFlags & (1 << PEF_SPRINTING)) ||
-					(pm->ps->PlayerEffectFlags & (1 << PEF_WEAPONSPRINTING)))
+				if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+					pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
 				{
 					pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
 					pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
@@ -11984,29 +9970,1435 @@ static void PM_Footsteps(void)
 #endif
 				}
 			}
+			else
+			{
+				// add gun run anims somehow
+				if (pm->ps->weapon != WP_SABER)
+				{
+					if (pm->ps->weapon == WP_BRYAR_OLD || pm_entSelf->s.botclass == BCLASS_SBD)
+					{
+						if (!pm->ps->weaponTime) //not firing
+						{
+							PM_SetAnim(SETANIM_BOTH, SBD_RUNING_WEAPON, SETANIM_FLAG_NORMAL);
+						}
+						else
+						{
+							desiredAnim = SBD_RUNING_WEAPON;
+						}
 
+						if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+							pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+						{
+							pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+							pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+							g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+						}
+					}
+					else if (pm->ps->weapon == WP_STUN_BATON || pm_entSelf->s.botclass == BCLASS_JAWA)
+					{
+						if (!pm->ps->weaponTime) //not firing
+						{
+							PM_SetAnim(SETANIM_BOTH, BOTH_RUN4, SETANIM_FLAG_NORMAL);
+						}
+						else
+						{
+							desiredAnim = BOTH_RUN4;
+						}
+
+						if (pm->cmd.buttons & BUTTON_BLOCK)
+						{
+							if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+								pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+							{
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+								g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+							}
+						}
+						else
+						{
+							if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+								pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+							{
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+								g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+							}
+						}
+					}
+					//					else if (pm->ps->weapon == WP_BRYAR_PISTOL ||
+					//						pm->ps->weapon == WP_REY ||
+					//						pm->ps->weapon == WP_JANGO ||
+					//						pm->ps->weapon == WP_REBELBLASTER ||
+					//						pm->ps->weapon == WP_CLONEPISTOL ||
+					//						pm->ps->weapon == WP_STUN_BATON)
+					//					{
+					//						if (pm->ps->eFlags & EF3_DUAL_WEAPONS) // pistols have a unique
+					//						{
+					//							if (!pm->ps->weaponTime) //not firing
+					//							{
+					//								if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+					//								{
+					//									if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
+					//										pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
+					//										pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_RUN3, SETANIM_FLAG_NORMAL);
+					//									}
+					//									else
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
+					//									}
+					//								}
+					//								else if (pm->ps->stats[STAT_HEALTH] <= 40)
+					//								{
+					//									if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
+					//										pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
+					//										pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_RUN3, SETANIM_FLAG_NORMAL);
+					//									}
+					//									else
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_RUN9, SETANIM_FLAG_NORMAL);
+					//									}
+					//								}
+					//								else
+					//								{
+					//									if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT_MP, SETANIM_FLAG_NORMAL);
+					//
+					//										if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING)
+					//										{
+					//											pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+					//										}
+					//										if (!(pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+					//										{
+					//											pm->ps->PlayerEffectFlags |= 1 << PEF_WEAPONSPRINTING;
+					//#ifdef _GAME
+					//											g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+					//											if (pm->ps->sprintFuel < 17) // single sprint here
+					//											{
+					//												pm->ps->sprintFuel -= 10;
+					//											}
+					//#endif
+					//										}
+					//									}
+					//									else
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_RUN1, SETANIM_FLAG_NORMAL);// no sprint anim for pistols, just go to run anim
+					//
+					//										if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+					//											pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+					//										{
+					//											pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+					//											pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+					//#ifdef _GAME
+					//											g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+					//#endif
+					//										}
+					//									}
+					//								}
+					//							}
+					//							else
+					//							{
+					//								if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+					//								{
+					//									desiredAnim = BOTH_SPRINT_MP;
+					//
+					//									if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING)
+					//									{
+					//										pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+					//									}
+					//									if (!(pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+					//									{
+					//										pm->ps->PlayerEffectFlags |= 1 << PEF_WEAPONSPRINTING;
+					//#ifdef _GAME
+					//										g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+					//										if (pm->ps->sprintFuel < 17) // single sprint here
+					//										{
+					//											pm->ps->sprintFuel -= 10;
+					//										}
+					//#endif
+					//									}
+					//								}
+					//								else
+					//								{
+					//									desiredAnim = BOTH_RUN1;// no sprint anim for pistols, just go to run anim
+					//
+					//									if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+					//										pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+					//									{
+					//										pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+					//										pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+					//#ifdef _GAME
+					//										g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+					//#endif
+					//									}
+					//								}
+					//							}
+					//						}
+					//						else
+					//						{//not dual wielding, regular pistol run anims
+					//							if (!pm->ps->weaponTime) //not firing
+					//							{
+					//								if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+					//								{
+					//									if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
+					//										pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
+					//										pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_RUN3, SETANIM_FLAG_NORMAL);
+					//									}
+					//									else
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
+					//									}
+					//								}
+					//								else if (pm->ps->stats[STAT_HEALTH] <= 40)
+					//								{
+					//									if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
+					//										pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
+					//										pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
+					//										pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_RUN3, SETANIM_FLAG_NORMAL);
+					//									}
+					//									else
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_RUN9, SETANIM_FLAG_NORMAL);
+					//									}
+					//								}
+					//								else
+					//								{
+					//									if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT_MP, SETANIM_FLAG_NORMAL);
+					//
+					//										if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING)
+					//										{
+					//											pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+					//										}
+					//										if (!(pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+					//										{
+					//											pm->ps->PlayerEffectFlags |= 1 << PEF_WEAPONSPRINTING;
+					//#ifdef _GAME
+					//											g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+					//											if (pm->ps->sprintFuel < 17) // single sprint here
+					//											{
+					//												pm->ps->sprintFuel -= 10;
+					//											}
+					//#endif
+					//										}
+					//									}
+					//									else
+					//									{
+					//										PM_SetAnim(SETANIM_BOTH, BOTH_RUN5, SETANIM_FLAG_NORMAL);// no sprint anim for pistols, just go to run anim
+					//
+					//										if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+					//											pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+					//										{
+					//											pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+					//											pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+					//#ifdef _GAME
+					//											g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+					//#endif
+					//										}
+					//									}
+					//								}
+					//							}
+					//							else
+					//							{
+					//								if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+					//								{
+					//									desiredAnim = BOTH_SPRINT_MP;
+					//
+					//									if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING)
+					//									{
+					//										pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+					//									}
+					//									if (!(pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+					//									{
+					//										pm->ps->PlayerEffectFlags |= 1 << PEF_WEAPONSPRINTING;
+					//#ifdef _GAME
+					//										g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+					//										if (pm->ps->sprintFuel < 17) // single sprint here
+					//										{
+					//											pm->ps->sprintFuel -= 10;
+					//										}
+					//#endif
+					//									}
+					//								}
+					//								else
+					//								{
+					//									desiredAnim = BOTH_RUN5;// no sprint anim for pistols, just go to run anim
+					//
+					//									if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+					//										pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+					//									{
+					//										pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+					//										pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+					//#ifdef _GAME
+					//										g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+					//#endif
+					//									}
+					//								}
+					//							}
+					//						}
+					//					}
+					else if (pm->ps && pm->ps->weapon == WP_BOWCASTER ||
+						pm->ps->weapon == WP_FLECHETTE ||
+						pm->ps->weapon == WP_DISRUPTOR ||
+						pm->ps->weapon == WP_DEMP2 ||
+						pm->ps->weapon == WP_REPEATER ||
+						pm->ps->weapon == WP_CONCUSSION ||
+						pm->ps->weapon == WP_ROCKET_LAUNCHER ||
+						pm->ps->weapon == WP_BLASTER ||
+						pm->ps->weapon == WP_BATTLEDROID ||
+						pm->ps->weapon == WP_THEFIRSTORDER ||
+						pm->ps->weapon == WP_CLONECARBINE ||
+						pm->ps->weapon == WP_CLONERIFLE ||
+						pm->ps->weapon == WP_CLONECOMMANDO ||
+						pm->ps->weapon == WP_REBELRIFLE)
+					{
+						if (!pm->ps->weaponTime) //not firing
+						{
+							if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+							{
+								if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
+									pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
+									pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
+									pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
+									pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
+									pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN3_MP, SETANIM_FLAG_NORMAL);
+								}
+								else
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN9, SETANIM_FLAG_NORMAL);
+								}
+							}
+							else if (pm->ps->stats[STAT_HEALTH] <= 40)
+							{
+								if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
+									pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
+									pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
+									pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
+									pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
+									pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN3_MP, SETANIM_FLAG_NORMAL);
+								}
+								else
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
+								}
+							}
+							else
+							{
+								if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN3_MP, SETANIM_FLAG_NORMAL);
+
+									if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING)
+									{
+										pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+									}
+									if (!(pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+									{
+										pm->ps->PlayerEffectFlags |= 1 << PEF_WEAPONSPRINTING;
+#ifdef _GAME
+										g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+										if (pm->ps->sprintFuel < 17) // single sprint here
+										{
+											pm->ps->sprintFuel -= 10;
+										}
+#endif
+									}
+								}
+								else
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN3, SETANIM_FLAG_NORMAL);
+
+									if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+										pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+									{
+										pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+										pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+										g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+									}
+								}
+							}
+						}
+						else
+						{
+							if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+							{
+								desiredAnim = BOTH_RUN3_MP;
+
+								if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING)
+								{
+									pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+								}
+								if (!(pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+								{
+									pm->ps->PlayerEffectFlags |= 1 << PEF_WEAPONSPRINTING;
+#ifdef _GAME
+									g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+									if (pm->ps->sprintFuel < 17) // single sprint here
+									{
+										pm->ps->sprintFuel -= 10;
+									}
+#endif
+								}
+							}
+							else
+							{
+								desiredAnim = BOTH_RUN3;
+
+								if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+									pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+								{
+									pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+									pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+									g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+								}
+							}
+						}
+					}
+					else if (pm->ps->weapon == WP_THERMAL ||
+						pm->ps->weapon == WP_DET_PACK ||
+						pm->ps->weapon == WP_TRIP_MINE)
+					{
+						if (!pm->ps->weaponTime) //not firing
+						{
+							if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
+							}
+							else if (pm->ps->stats[STAT_HEALTH] <= 40)
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
+							}
+							else
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN6, SETANIM_FLAG_NORMAL);
+							}
+						}
+						else
+						{
+							desiredAnim = BOTH_RUN6;
+						}
+
+						if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+						{
+							if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING)
+							{
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+							}
+							if (!(pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+							{
+								pm->ps->PlayerEffectFlags |= 1 << PEF_WEAPONSPRINTING;
+#ifdef _GAME
+								g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+								if (pm->ps->sprintFuel < 17) // single sprint here
+								{
+									pm->ps->sprintFuel -= 10;
+								}
+#endif
+							}
+						}
+						else
+						{
+							if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+								pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+							{
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+								g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+							}
+						}
+					}
+					else if (pm->ps->weapon == WP_CONCUSSION || pm->ps->weapon == WP_ROCKET_LAUNCHER)
+					{
+						if (!pm->ps->weaponTime) //not firing
+						{
+							if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+							{
+								if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
+									pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
+									pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
+									pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
+									pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
+									pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN3_MP, SETANIM_FLAG_NORMAL);
+								}
+								else
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
+								}
+							}
+							else if (pm->ps->stats[STAT_HEALTH] <= 40)
+							{
+								if (pm_entSelf->s.NPC_class == CLASS_STORMTROOPER ||
+									pm_entSelf->s.NPC_class == CLASS_STORMCOMMANDO ||
+									pm_entSelf->s.NPC_class == CLASS_CLONETROOPER ||
+									pm_entSelf->s.botclass == BCLASS_STORMTROOPER ||
+									pm_entSelf->s.botclass == BCLASS_SWAMPTROOPER ||
+									pm_entSelf->s.botclass == BCLASS_CLONETROOPER)
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN3_MP, SETANIM_FLAG_NORMAL);
+								}
+								else
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
+								}
+							}
+							else
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
+							}
+						}
+						else
+						{
+							desiredAnim = BOTH_RUN7;
+						}
+
+						if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+						{
+							if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING)
+							{
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+							}
+							if (!(pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+							{
+								pm->ps->PlayerEffectFlags |= 1 << PEF_WEAPONSPRINTING;
+#ifdef _GAME
+								g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+								if (pm->ps->sprintFuel < 17) // single sprint here
+								{
+									pm->ps->sprintFuel -= 10;
+								}
+#endif
+							}
+						}
+						else
+						{
+							if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+								pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+							{
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+								g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+							}
+						}
+					}
+					else if (pm->ps && pm_entSelf
+						&& (pm_entSelf->s.botclass == BCLASS_WOOKIEMELEE || pm_entSelf->s.botclass == BCLASS_CHEWIE))
+					{
+						if (!pm->ps->weaponTime) //not firing
+						{
+							if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
+							}
+							else if (pm->ps->stats[STAT_HEALTH] <= 40)
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
+							}
+							else
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN6, SETANIM_FLAG_NORMAL);
+							}
+						}
+						else
+						{
+							desiredAnim = BOTH_RUN6;
+						}
+
+						if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+						{
+							if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING)
+							{
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+							}
+							if (!(pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+							{
+								pm->ps->PlayerEffectFlags |= 1 << PEF_WEAPONSPRINTING;
+#ifdef _GAME
+								g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+								if (pm->ps->sprintFuel < 17) // single sprint here
+								{
+									pm->ps->sprintFuel -= 10;
+								}
+#endif
+							}
+						}
+						else
+						{
+							if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+								pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+							{
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+								g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+							}
+						}
+					}
+					else if (pm->ps->fd.forcePowersActive & 1 << FP_RAGE)
+					{
+						//in force rage
+						if (!pm->ps->weaponTime) //not firing
+						{
+							if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
+							}
+							else if (pm->ps->stats[STAT_HEALTH] <= 40)
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
+							}
+							else
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
+							}
+						}
+						else
+						{
+							desiredAnim = BOTH_RUN7;
+						}
+						if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+							pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+						{
+							pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+							pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+							g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+						}
+					}
+					else if (pm->ps->fd.forcePowersActive & 1 << FP_SPEED && pm->ps->weapon == WP_MELEE)
+					{
+						if (!pm->ps->weaponTime) //not firing
+						{
+							PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT, SETANIM_FLAG_NORMAL);
+						}
+						else
+						{
+							desiredAnim = BOTH_SPRINT;
+						}
+					}
+					else if (pm->ps->weapon == WP_MELEE)
+					{
+						if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+						{
+							PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
+						}
+						else if (pm->ps->stats[STAT_HEALTH] <= 40)
+						{
+							PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
+						}
+						else if (pm_entSelf->s.botclass == BCLASS_SBD)
+						{
+							desiredAnim = SBD_RUNING_WEAPON;
+						}
+						else if (pm_entSelf->s.botclass == BCLASS_JAWA)
+						{
+							PM_SetAnim(SETANIM_BOTH, BOTH_RUN4, SETANIM_FLAG_NORMAL);
+						}
+						else
+						{
+							if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT_SABER_MP, SETANIM_FLAG_NORMAL);
+
+								if (!(pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING))
+								{
+									pm->ps->PlayerEffectFlags |= 1 << PEF_SPRINTING;
+#ifdef _GAME
+									g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+									if (pm->ps->sprintFuel < 17) // single sprint here
+									{
+										pm->ps->sprintFuel -= 10;
+									}
+#endif
+								}
+							}
+							else
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN1, SETANIM_FLAG_NORMAL);
+
+								if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+									pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+								{
+									pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+									pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+									g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+								}
+							}
+						}
+					}
+					else
+					{
+						if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+						{
+							desiredAnim = BOTH_SPRINT_SABER_MP;
+
+							if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING)
+							{
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+							}
+							if (!(pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+							{
+								pm->ps->PlayerEffectFlags |= 1 << PEF_WEAPONSPRINTING;
+#ifdef _GAME
+								g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+								if (pm->ps->sprintFuel < 17) // single sprint here
+								{
+									pm->ps->sprintFuel -= 10;
+								}
+#endif
+							}
+						}
+						else
+						{
+							if (!pm->ps->weaponTime) //not firing
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN1, SETANIM_FLAG_NORMAL);
+							}
+							else
+							{
+								desiredAnim = BOTH_RUN1;
+							}
+
+							if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+								pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+							{
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+								pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+								g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+							}
+						}
+					}
+				} ////////////////////////////////////////////// saber running anims ///////////////////////////////////////////
+				else
+				{
+					if (pm->ps->weapon == WP_SABER)
+					{
+						if (!BG_SabersOff(pm->ps)) //Saber active
+						{
+							if (pm->ps->fd.saberAnimLevel == SS_STAFF)
+							{
+								if (pm->ps->fd.forcePowersActive & 1 << FP_SPEED)
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT, setAnimFlags);
+								}
+								else
+								{
+									if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+									{
+										PM_SetAnim(SETANIM_BOTH, BOTH_RUN9, setAnimFlags);
+									}
+									else if (pm->ps->stats[STAT_HEALTH] <= 40)
+									{
+										PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, setAnimFlags);
+									}
+									else
+									{
+										if (is_holding_block_button && pm->ps->sprintFuel > 15) // staff sprint here
+										{
+											PM_SetAnim(SETANIM_BOTH, BOTH_RUN_STAFF, setAnimFlags);
+
+											if (!(pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING))
+											{
+												pm->ps->PlayerEffectFlags |= 1 << PEF_SPRINTING;
+#ifdef _GAME
+												g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+												if (pm->ps->sprintFuel < 17) // single sprint here
+												{
+													pm->ps->sprintFuel -= 10;
+												}
+#endif
+											}
+										}
+										else
+										{
+											PM_SetAnim(SETANIM_BOTH, BOTH_RUN1, setAnimFlags);
+
+											if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+												pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+											{
+												pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+												pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+												g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+											}
+										}
+									}
+								}
+							}
+							else if (pm->ps->fd.saberAnimLevel == SS_DUAL)
+							{
+								if (pm->ps->fd.forcePowersActive & 1 << FP_SPEED)
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT, setAnimFlags);
+
+									if (!(pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING))
+									{
+										pm->ps->PlayerEffectFlags |= 1 << PEF_SPRINTING;
+#ifdef _GAME
+										g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+										if (pm->ps->sprintFuel < 17) // single sprint here
+										{
+											pm->ps->sprintFuel -= 10;
+										}
+#endif
+									}
+								}
+								else
+								{
+									if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+									{
+										PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, setAnimFlags);
+									}
+									else if (pm->ps->stats[STAT_HEALTH] <= 40)
+									{
+										PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, setAnimFlags);
+									}
+									else
+									{
+										if (is_holding_block_button && pm->ps->sprintFuel > 15) //dual sprint here
+										{
+											if (saber1 && saber1->type == SABER_GRIE)
+											{
+												PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, setAnimFlags);
+											}
+											else if (saber1 && saber1->type == SABER_GRIE4)
+											{
+												PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, setAnimFlags);
+											}
+											else
+											{
+												PM_SetAnim(SETANIM_BOTH, BOTH_RUN_DUAL, setAnimFlags);
+											}
+
+											if (!(pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING))
+											{
+												pm->ps->PlayerEffectFlags |= 1 << PEF_SPRINTING;
+#ifdef _GAME
+												g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+												if (pm->ps->sprintFuel < 17) // single sprint here
+												{
+													pm->ps->sprintFuel -= 10;
+												}
+#endif
+											}
+										}
+										else
+										{
+											PM_SetAnim(SETANIM_BOTH, BOTH_RUN1, setAnimFlags);
+
+											if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+												pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+											{
+												pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+												pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+												g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+											}
+										}
+									}
+								}
+							}
+							else if (pm->ps->fd.saberAnimLevel == SS_FAST
+								|| pm->ps->fd.saberAnimLevel == SS_MEDIUM
+								|| pm->ps->fd.saberAnimLevel == SS_STRONG
+								|| pm->ps->fd.saberAnimLevel == SS_DESANN
+								|| pm->ps->fd.saberAnimLevel == SS_TAVION)
+							{
+								if (pm->ps->fd.forcePowersActive & 1 << FP_SPEED)
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT, setAnimFlags);
+
+									if (!(pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING))
+									{
+										pm->ps->PlayerEffectFlags |= 1 << PEF_SPRINTING;
+#ifdef _GAME
+										g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+										if (pm->ps->sprintFuel < 17) // single sprint here
+										{
+											pm->ps->sprintFuel -= 10;
+										}
+#endif
+									}
+								}
+								else
+								{
+									if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+									{
+										PM_SetAnim(SETANIM_BOTH, BOTH_RUN9, setAnimFlags);
+									}
+									else if (pm->ps->stats[STAT_HEALTH] <= 40)
+									{
+										PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, setAnimFlags);
+									}
+									else
+									{
+										if (is_holding_block_button && pm->ps->sprintFuel > 15) // single sprint here
+										{
+											if (saber1 && (saber1->type == SABER_BACKHAND
+												|| saber1->type == SABER_ASBACKHAND)) //saber backhand
+											{
+												PM_SetAnim(SETANIM_BOTH, BOTH_RUN_STAFF, setAnimFlags);
+											}
+											else if (saber1 && saber1->type == SABER_YODA) //saber yoda
+											{
+												PM_SetAnim(SETANIM_BOTH, BOTH_RUN10, setAnimFlags);
+											}
+											else if (saber1 && saber1->type == SABER_GRIE) //saber kylo
+											{
+												PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, setAnimFlags);
+											}
+											else if (saber1 && saber1->type == SABER_GRIE4) //saber kylo
+											{
+												PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, setAnimFlags);
+											}
+											else
+											{
+												PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT_SABER_MP, setAnimFlags);
+											}
+
+											if (!(pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING))
+											{
+												pm->ps->PlayerEffectFlags |= 1 << PEF_SPRINTING;
+#ifdef _GAME
+												g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+												if (pm->ps->sprintFuel < 17) // single sprint here
+												{
+													pm->ps->sprintFuel -= 10;
+												}
+#endif
+											}
+										}
+										else
+										{
+											PM_SetAnim(SETANIM_BOTH, BOTH_RUN1, setAnimFlags);
+
+											if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+												pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+											{
+												pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+												pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+												g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+											}
+										}
+									}
+								}
+							}
+						}
+						else // holding saber but its off
+						{
+							if (pm->ps->stats[STAT_HEALTH] <= 70 && pm->ps->stats[STAT_HEALTH] >= 40)
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN7, SETANIM_FLAG_NORMAL);
+							}
+							else if (pm->ps->stats[STAT_HEALTH] <= 40)
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_RUN8, SETANIM_FLAG_NORMAL);
+							}
+							else
+							{
+								if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT_SABER_MP, SETANIM_FLAG_NORMAL);
+
+									if (!(pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING))
+									{
+										pm->ps->PlayerEffectFlags |= 1 << PEF_SPRINTING;
+#ifdef _GAME
+										g_entities[pm->ps->clientNum].client->IsSprinting = qtrue;
+										if (pm->ps->sprintFuel < 17) // single sprint here
+										{
+											pm->ps->sprintFuel -= 10;
+										}
+#endif
+									}
+								}
+								else
+								{
+									PM_SetAnim(SETANIM_BOTH, BOTH_RUN1, SETANIM_FLAG_NORMAL);
+
+									if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+										pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+									{
+										pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+										pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+										g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+									}
+								}
+							}
+						}
+					} //////////////////////////////// end saber running anims /////////////////////////////////
+				}
+			}
+		}
+		else
+		{
+			bobmove = 0.2f; // walking bobs slow
+
+			if (pm->ps->pm_flags & PMF_BACKWARDS_RUN)
+			{
+				if (pm->ps->weapon != WP_SABER)
+				{
+					if (pm->ps->weapon == WP_BRYAR_OLD ||
+						pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD)
+					{
+						desiredAnim = SBD_WALKBACK_NORMAL;
+					}
+					else
+					{
+						desiredAnim = BOTH_WALKBACK1;
+					}
+				}
+				else
+				{
+					switch (pm->ps->fd.saberAnimLevel)
+					{
+					case SS_STAFF:
+						if (pm->ps->saberHolstered > 1)
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						else if (pm->ps->saberHolstered)
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						else
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						break;
+					case SS_DUAL:
+						if (pm->ps->saberHolstered > 1)
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						else if (pm->ps->saberHolstered && (!pm->ps->saberInFlight || pm->ps->saberEntityNum))
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						else
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						break;
+					case SS_FAST:
+					case SS_MEDIUM:
+					case SS_STRONG:
+					case SS_DESANN:
+					case SS_TAVION:
+						if (pm->ps->saberHolstered > 1)
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						else if (pm->ps->saberHolstered && (!pm->ps->saberInFlight || pm->ps->saberEntityNum))
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						else
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						break;
+					default:
+						if (pm->ps->saberHolstered)
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						else
+						{
+							desiredAnim = BOTH_WALKBACK1;
+						}
+						break;
+					}
+				}
+				if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+					pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+				{
+					pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+					pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+					g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+				}
+			}
+			else
+			{
+				if (pm->ps->weapon == WP_MELEE)
+				{
+					if (pm_entSelf->s.botclass == BCLASS_SBD)
+					{
+						desiredAnim = SBD_WALK_NORMAL;
+					}
+					else
+					{
+						desiredAnim = BOTH_WALK1;
+					}
+				}
+				else if (pm->ps->weapon != WP_SABER)
+				{
+					// add gun walk animas somehow
+
+					if (pm->ps->weapon == WP_BRYAR_OLD || pm_entSelf->s.botclass == BCLASS_SBD)
+					{
+						if (!pm->ps->weaponTime) //not firing
+						{
+							PM_SetAnim(SETANIM_BOTH, SBD_WALK_WEAPON, SETANIM_FLAG_NORMAL);
+						}
+						else
+						{
+							desiredAnim = SBD_WALK_WEAPON;
+						}
+					}
+					else  if (pm->ps->weapon == WP_STUN_BATON)
+					{
+						if (!pm->ps->weaponTime) //not firing
+						{
+							PM_SetAnim(SETANIM_BOTH, BOTH_WALK1, SETANIM_FLAG_OVERRIDE);
+						}
+						else
+						{
+							desiredAnim = BOTH_WALK1;
+						}
+					}
+					//else if (pm->ps->weapon == WP_BRYAR_PISTOL ||
+					//	pm->ps->weapon == WP_REY ||
+					//	pm->ps->weapon == WP_JANGO ||
+					//	pm->ps->weapon == WP_REBELBLASTER ||
+					//	pm->ps->weapon == WP_CLONEPISTOL ||
+					//	pm->ps->weapon == WP_STUN_BATON)
+					//{
+					//	if (pm->ps->eFlags & EF3_DUAL_WEAPONS) // pistols have a unique
+					//	{
+					//		if (!pm->ps->weaponTime) //not firing or charging
+					//		{
+					//			if (desiredAnim)
+					//			{
+					//				desiredAnim = BOTH_WALK1;
+					//			}
+					//			else
+					//			{
+					//				PM_SetAnim(SETANIM_BOTH, BOTH_WALK1, SETANIM_FLAG_NORMAL);
+					//			}
+					//		}
+					//		else
+					//		{
+					//			if (desiredAnim)
+					//			{
+					//				desiredAnim = BOTH_WALK8;
+					//			}
+					//			else
+					//			{
+					//				PM_SetAnim(SETANIM_BOTH, BOTH_WALK8, SETANIM_FLAG_NORMAL);
+					//			}
+					//		}
+					//	}
+					//	else // single bryar pistol
+					//	{
+					//		if (!pm->ps->weaponTime) //not firing or charging
+					//		{
+					//			PM_SetAnim(SETANIM_BOTH, BOTH_WALK8, SETANIM_FLAG_NORMAL);
+					//		}
+					//		else
+					//		{
+					//			if (desiredAnim)
+					//			{
+					//				desiredAnim = BOTH_WALK8;
+					//			}
+					//			else
+					//			{
+					//				PM_SetAnim(SETANIM_BOTH, BOTH_WALK8, SETANIM_FLAG_NORMAL);
+					//			}
+					//		}
+					//	}
+					//}
+					else if (pm->ps && pm->ps->weapon == WP_BOWCASTER ||
+						pm->ps->weapon == WP_FLECHETTE ||
+						pm->ps->weapon == WP_DISRUPTOR ||
+						pm->ps->weapon == WP_DEMP2 ||
+						pm->ps->weapon == WP_REPEATER ||
+						pm->ps->weapon == WP_CONCUSSION ||
+						pm->ps->weapon == WP_ROCKET_LAUNCHER ||
+						pm->ps->weapon == WP_BLASTER ||
+						pm->ps->weapon == WP_BATTLEDROID ||
+						pm->ps->weapon == WP_THEFIRSTORDER ||
+						pm->ps->weapon == WP_CLONECARBINE ||
+						pm->ps->weapon == WP_CLONERIFLE ||
+						pm->ps->weapon == WP_CLONECOMMANDO ||
+						pm->ps->weapon == WP_REBELRIFLE)
+					{
+						if (pm_entSelf->s.NPC_class == CLASS_ASSASSIN_DROID ||
+							pm_entSelf->s.botclass == BCLASS_ASSASSIN_DROID)
+						{
+							desiredAnim = BOTH_WALK2;
+						}
+						else
+						{
+							if (!pm->ps->weaponTime) //not firing
+							{
+								PM_SetAnim(SETANIM_BOTH, BOTH_WALK9, SETANIM_FLAG_NORMAL);
+							}
+							else
+							{
+								desiredAnim = BOTH_WALK2;
+							}
+						}
+					}
+					else if (pm->ps->weapon == WP_THERMAL ||
+						pm->ps->weapon == WP_DET_PACK ||
+						pm->ps->weapon == WP_TRIP_MINE)
+					{
+						if (!pm->ps->weaponTime) //not firing
+						{
+							desiredAnim = BOTH_WALK1;
+						}
+						else
+						{
+							desiredAnim = BOTH_WALK1;
+						}
+					}
+					else
+					{
+						desiredAnim = BOTH_WALK1;
+					}
+				}
+				else if (pm->ps->weapon == WP_SABER && BG_SabersOff(pm->ps))
+				{
+					desiredAnim = BOTH_WALK1;
+				}
+				else
+				{
+					switch (pm->ps->fd.saberAnimLevel)
+					{
+					case SS_STAFF:
+						if (pm->ps->saberHolstered > 1)
+						{
+							if (pm->cmd.buttons & BUTTON_BLOCK)
+							{
+								desiredAnim = BOTH_WALK2;
+							}
+							else
+							{
+#ifdef _GAME
+								if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT || pm_entSelf->s.eType == ET_NPC)
+								{
+									// Some special bot stuff.
+									desiredAnim = BOTH_WALK2;
+								}
+								else
+								{
+									desiredAnim = BOTH_WALK1;
+								}
+#endif
+							}
+						}
+						else if (pm->ps->saberHolstered)
+						{
+							if (pm->cmd.buttons & BUTTON_BLOCK)
+							{
+								desiredAnim = BOTH_WALK2;
+							}
+							else
+							{
+#ifdef _GAME
+								if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT || pm_entSelf->s.eType == ET_NPC)
+								{
+									// Some special bot stuff.
+									desiredAnim = BOTH_WALK2;
+								}
+								else
+								{
+									desiredAnim = BOTH_WALK1;
+								}
+#endif
+							}
+						}
+						else
+						{
+							desiredAnim = BOTH_WALK_STAFF;
+						}
+						break;
+					case SS_DUAL:
+						if (pm->ps->saberHolstered > 1)
+						{
+							if (pm->cmd.buttons & BUTTON_BLOCK)
+							{
+								desiredAnim = BOTH_WALK2;
+							}
+							else
+							{
+#ifdef _GAME
+								if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT || pm_entSelf->s.eType == ET_NPC)
+								{
+									// Some special bot stuff.
+									desiredAnim = BOTH_WALK2;
+								}
+								else
+								{
+									desiredAnim = BOTH_WALK1;
+								}
+#endif
+							}
+						}
+						else if (pm->ps->saberHolstered && (!pm->ps->saberInFlight || pm->ps->saberEntityNum))
+						{
+							desiredAnim = BOTH_WALK1;
+						}
+						else
+						{
+							desiredAnim = BOTH_WALK1;
+						}
+						break;
+					case SS_FAST:
+					case SS_MEDIUM:
+					case SS_STRONG:
+					case SS_DESANN:
+					case SS_TAVION:
+						if (pm->ps->saberHolstered)
+						{
+							if (pm->cmd.buttons & BUTTON_BLOCK)
+							{
+								desiredAnim = BOTH_WALK2;
+							}
+							else
+							{
+#ifdef _GAME
+								if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT || pm_entSelf->s.eType == ET_NPC)
+								{
+									// Some special bot stuff.
+									desiredAnim = BOTH_WALK2;
+								}
+								else
+								{
+									desiredAnim = BOTH_WALK1;
+								}
+#endif
+							}
+						}
+						else
+						{
+							if (pm->cmd.buttons & BUTTON_BLOCK)
+							{
+								desiredAnim = BOTH_WALK2;
+							}
+							else
+							{
+#ifdef _GAME
+								if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT || pm_entSelf->s.eType == ET_NPC)
+								{
+									// Some special bot stuff.
+									desiredAnim = BOTH_WALK2;
+								}
+								else
+								{
+									desiredAnim = BOTH_WALK1;
+								}
+#endif
+							}
+						}
+						break;
+					default:
+						if (pm->ps->saberHolstered)
+						{
+							desiredAnim = BOTH_WALK1;
+						}
+						else
+						{
+							if (pm->cmd.buttons & BUTTON_BLOCK)
+							{
+								desiredAnim = BOTH_WALK2;
+							}
+							else
+							{
+#ifdef _GAME
+								if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT || pm_entSelf->s.eType == ET_NPC)
+								{
+									// Some special bot stuff.
+									desiredAnim = BOTH_WALK2;
+								}
+								else
+								{
+									desiredAnim = BOTH_WALK1;
+								}
+#endif
+							}
+						}
+						break;
+					}
+				}
+				if (pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING ||
+					pm->ps->PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING)
+				{
+					pm->ps->PlayerEffectFlags &= ~(1 << PEF_SPRINTING);
+					pm->ps->PlayerEffectFlags &= ~(1 << PEF_WEAPONSPRINTING);
+#ifdef _GAME
+					g_entities[pm->ps->clientNum].client->IsSprinting = qfalse;
+#endif
+				}
+			}
 #ifdef _GAME
 			if (!Q_irand(0, 9))
 			{
-				// 10% chance of a small alert, mainly for the sand_creature
-				AddSoundEvent(&g_entities[pm->ps->clientNum],
-					pm->ps->origin,
-					16,
-					AEL_MINOR,
-					qtrue,
-					qtrue);
+				//10% chance of a small alert, mainly for the sand_creature
+				AddSoundEvent(&g_entities[pm->ps->clientNum], pm->ps->origin, 16, AEL_MINOR, qtrue, qtrue);
 			}
 #endif
 		}
 
-		// ============================================================
-		// APPLY FINAL LEGS ANIMATION (WITH SLOPE ADJUSTMENT)
-		// ============================================================
 		if (desiredAnim != -1)
 		{
 			const int ires = PM_LegsSlopeBackTransition(desiredAnim);
 
-			// Only change anim if slope transition returns the same anim
 			if (pm->ps->legsAnim != desiredAnim && ires == desiredAnim)
 			{
 				PM_SetAnim(SETANIM_LEGS, desiredAnim, setAnimFlags);
@@ -12018,87 +11410,55 @@ static void PM_Footsteps(void)
 		}
 	}
 
-	// ============================================================
-	// FOOTSTEP / SPLASH / SWIM SOUND HANDLING
-	// ============================================================
+	// check for footstep / splash sounds
 	old = pm->ps->bobCycle;
 	pm->ps->bobCycle = (int)(old + bobmove * pml.msec) & 255;
 
-	// Detect cycle boundary crossing using XOR (correct precedence)
-	if ((((old + 64) ^ (pm->ps->bobCycle + 64)) & 128) != 0)
+	// if we just crossed a cycle boundary, play an appropriate footstep event
+	if ((old + 64 ^ pm->ps->bobCycle + 64) & 128)
 	{
 		pm->ps->footstepTime = pm->cmd.serverTime + 300;
-
+		//footstep sound event
 #ifdef _GAME
-		// Footstep flag: footsteps only when moving on ground
-		qboolean footstep = (pm->xyspeed > 0.0f) ? qtrue : qfalse;
 
-		if (pm->waterlevel == 0 && footstep == qtrue && !pm->noFootsteps)
+		qboolean footstep = qfalse;
+
+		if (pm->waterlevel == 0 && footstep && !pm->noFootsteps)
 		{
-			// Ground footstep sound
+			// on ground will only play sounds if running
 			vec3_t bottom;
+
 			VectorCopy(pm->ps->origin, bottom);
 			bottom[2] += pm->mins[2];
-
-			AddSoundEvent(&g_entities[pm->ps->clientNum],
-				bottom,
-				256,
-				AEL_MINOR,
-				qtrue,
-				qtrue);
+			{
+				AddSoundEvent(&g_entities[pm->ps->clientNum], bottom, 256, AEL_MINOR, qtrue, qtrue);
+			}
 		}
 #endif
-
-		// ============================================================
-		// WATERLEVEL 1 — SPLASH
-		// ============================================================
 		if (pm->waterlevel == 1)
 		{
+			// splashing
 			PM_AddEvent(EV_FOOTSPLASH);
+			//sound/sight events for foot splashing
 #ifdef _GAME
-			AddSoundEvent(&g_entities[pm->ps->clientNum],
-				pm->ps->origin,
-				384,
-				AEL_SUSPICIOUS,
-				qfalse,
-				qtrue);
-
-			AddSightEvent(&g_entities[pm->ps->clientNum],
-				pm->ps->origin,
-				512,
-				AEL_MINOR,
-				0.0f);
+			AddSoundEvent(&g_entities[pm->ps->clientNum], pm->ps->origin, 384, AEL_SUSPICIOUS, qfalse, qtrue);
+			//was bottom
+			AddSightEvent(&g_entities[pm->ps->clientNum], pm->ps->origin, 512, AEL_MINOR, 0.0f);
 #endif
 		}
-
-		// ============================================================
-		// WATERLEVEL 2 — SWIM SURFACE
-		// ============================================================
 		else if (pm->waterlevel == 2)
 		{
+			// wading / swimming at surface
 			PM_AddEvent(EV_SWIM);
+			//sound/sight events for wading
 #ifdef _GAME
-			AddSoundEvent(&g_entities[pm->ps->clientNum],
-				pm->ps->origin,
-				256,
-				AEL_MINOR,
-				qfalse,
-				qtrue);
-
-			AddSightEvent(&g_entities[pm->ps->clientNum],
-				pm->ps->origin,
-				512,
-				AEL_SUSPICIOUS,
-				0);
+			AddSoundEvent(&g_entities[pm->ps->clientNum], pm->ps->origin, 256, AEL_MINOR, qfalse, qtrue);
+			AddSightEvent(&g_entities[pm->ps->clientNum], pm->ps->origin, 512, AEL_SUSPICIOUS, 0);
 #endif
 		}
-
-		// ============================================================
-		// WATERLEVEL 3 — FULLY SUBMERGED (NO FOOTSTEP SOUNDS)
-		// ============================================================
 		else if (pm->waterlevel == 3)
 		{
-			// Intentionally silent
+			// no sound when completely underwater
 		}
 	}
 }
@@ -12605,12 +11965,13 @@ static void PM_RocketLock(const float lockDist, const qboolean vehicleLock)
 		}
 		pm->ps->rocketLockTime = -1;
 	}
-}//---------------------------------------
+}
+
+//---------------------------------------
 static qboolean PM_DoChargedWeapons(const qboolean vehicleRocketLock, const bgEntity_t* veh)
 //---------------------------------------
 {
-	qboolean charging = qfalse,
-		alt_fire = qfalse;
+	qboolean charging = qfalse, alt_fire = qfalse;
 
 	if (vehicleRocketLock)
 	{
@@ -12769,7 +12130,7 @@ static qboolean PM_DoChargedWeapons(const qboolean vehicleRocketLock, const bgEn
 				pm->ps->weaponChargeSubtractTime = pm->cmd.serverTime + weaponData[pm->ps->weapon].altChargeSubTime;
 
 #ifdef _DEBUG
-				//	Com_Printf("Starting charge\n");
+				Com_Printf("Starting charge\n");
 #endif
 				assert(pm->ps->weapon > WP_NONE);
 				BG_AddPredictableEventToPlayerstate(EV_WEAPON_CHARGE_ALT, pm->ps->weapon, pm->ps);
@@ -12868,7 +12229,7 @@ rest:
 	{
 		// weapon has a charge, so let us do an attack
 #ifdef _DEBUG
-		//	Com_Printf("Firing.  Charge time=%d\n", pm->cmd.serverTime - pm->ps->weaponChargeTime);
+		Com_Printf("Charging Firing.  Charge time=%d\n", pm->cmd.serverTime - pm->ps->weaponChargeTime);
 #endif
 		if (pm->ps->weapon == WP_BOWCASTER)
 		{
@@ -12882,7 +12243,7 @@ rest:
 	{
 		// weapon has a charge, so let us do an alt-attack
 #ifdef _DEBUG
-		//	Com_Printf("Firing.  Charge time=%d\n", pm->cmd.serverTime - pm->ps->weaponChargeTime);
+		Com_Printf("Alt Charging Firing.  Charge time=%d\n", pm->cmd.serverTime - pm->ps->weaponChargeTime);
 #endif
 
 		// reset Bryar charge level on fire
@@ -12891,6 +12252,14 @@ rest:
 			pm->ps->weapon == WP_REY ||
 			pm->ps->weapon == WP_CLONEPISTOL)
 		{
+			if (pm->ps->eFlags & EF3_DUAL_WEAPONS)
+			{
+				PM_StartTorsoAnim(WeaponAimingAnim2[pm->ps->weapon]);
+			}
+			else
+			{
+				PM_StartTorsoAnim(WeaponAimingAnim[pm->ps->weapon]);
+			}
 			pm->ps->generic1 = 0;
 		}
 
@@ -14592,9 +13961,12 @@ static void PM_Weapon(void)
 					{
 						PM_StartTorsoAnim(BOTH_GUNSIT1);
 					}
-					else if (PM_CanSetWeaponReadyAnim())
+					else
 					{
-						PM_StartTorsoAnim(PM_GetWeaponReadyAnim());
+						if (PM_CanSetWeaponReadyAnim())
+						{
+							PM_StartTorsoAnim(PM_GetWeaponReadyAnim());
+						}
 					}
 				}
 			}
@@ -15095,35 +14467,32 @@ static void PM_Weapon(void)
 			}
 		}
 	}
-	else if (pm->ps->weapon == WP_BRYAR_PISTOL ||
-		pm->ps->weapon == WP_REY ||
-		pm->ps->weapon == WP_JANGO ||
-		pm->ps->weapon == WP_CLONEPISTOL)
-	{
-		if (pm->ps->eFlags & EF3_DUAL_WEAPONS)
-		{
-			PM_StartTorsoAnim(WeaponAttackAnim2[pm->ps->weapon]);
-		}
-		else
-		{
-			PM_StartTorsoAnim(WeaponAttackAnim[pm->ps->weapon]);
-		}
-	}
 	else
 	{
-		if (pm->ps->eFlags & EF3_DUAL_WEAPONS &&
-			(pm->ps->weapon == WP_BRYAR_PISTOL ||
-				pm->ps->weapon == WP_REY ||
-				pm->ps->weapon == WP_JANGO ||
-				pm->ps->weapon == WP_CLONEPISTOL))
+		if (pm->cmd.buttons & BUTTON_ALT_ATTACK)
 		{
-			PM_StartTorsoAnim(WeaponAttackAnim2[pm->ps->weapon]);
+			if (pm->ps->eFlags & EF3_DUAL_WEAPONS &&
+				(pm->ps->weapon == WP_BRYAR_PISTOL ||
+					pm->ps->weapon == WP_REY ||
+					pm->ps->weapon == WP_JANGO ||
+					pm->ps->weapon == WP_CLONEPISTOL))
+			{
+				PM_StartTorsoAnim(WeaponAltAttackAnim2[pm->ps->weapon]);
+			}
+			else
+			{
+				PM_StartTorsoAnim(WeaponAltAttackAnim[pm->ps->weapon]);
+			}
 		}
 		else
 		{
-			if (pm->cmd.buttons & BUTTON_ALT_ATTACK)
+			if (pm->ps->eFlags & EF3_DUAL_WEAPONS &&
+				(pm->ps->weapon == WP_BRYAR_PISTOL ||
+					pm->ps->weapon == WP_REY ||
+					pm->ps->weapon == WP_JANGO ||
+					pm->ps->weapon == WP_CLONEPISTOL))
 			{
-				PM_StartTorsoAnim(WeaponAltAttackAnim[pm->ps->weapon]);
+				PM_StartTorsoAnim(WeaponAttackAnim2[pm->ps->weapon]);
 			}
 			else
 			{

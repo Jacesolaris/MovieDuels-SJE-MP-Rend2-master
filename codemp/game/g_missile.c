@@ -1030,14 +1030,16 @@ static void G_MissileAddAlerts(gentity_t* ent)
 G_MissileImpact
 ================
 */
+
+extern int G_PickPainAnim(const gentity_t* self, vec3_t point, int hit_loc);
 qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 {
 	vec3_t   fwd;
 	qboolean hit_client = qfalse;
 	qboolean is_knocked_saber = qfalse;
 	int      missile_dmg;
-
 	gentity_t* other = &g_entities[trace->entityNum];
+
 
 	// Initial bounce flag (note: mostly overridden by specific logic below)
 	qboolean bounce =
@@ -1531,9 +1533,32 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 				{
 					if (other->client->ps.electrifyTime < level.time + 100)
 					{
-						other->client->ps.electrifyTime =
-							level.time + Q_irand(1500, 2000);
+						other->client->ps.electrifyTime = level.time + Q_irand(1500, 2000);
 					}
+				}
+			}
+			//
+            // Universal directional pain animation using G_PickPainAnim
+            //
+			if (did_dmg == qtrue &&
+				other->client != NULL &&
+				beskar == qfalse &&
+				boba_fett == qfalse &&
+				is_knocked_saber == qfalse &&
+				other->s.eType != ET_NPC && // prevents vehicle anim corruption
+				!BG_InDeathAnim(other->client->ps.torsoAnim) &&
+				!WP_DoingForcedAnimationForForcePowers(other))
+			{
+				int painAnim = G_PickPainAnim(other, trace->endpos, HL_NONE);
+
+				if (painAnim != -1)
+				{
+					G_SetAnim(other,
+						NULL,
+						SETANIM_TORSO,
+						painAnim,
+						SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD,
+						0);
 				}
 			}
 		}

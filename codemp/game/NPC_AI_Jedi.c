@@ -1252,7 +1252,8 @@ typedef struct wristWeapon_s
 	qboolean hold;
 } wristWeapon_t;
 
-wristWeapon_t missileStates[4] = {
+wristWeapon_t missileStates[4] = 
+{
 	{
 		BOBA_MISSILE_ROCKET, FP_FIRST, WP_ROCKET_LAUNCHER, qfalse, 1, BOBA_FLAMEDURATION, 150, BOTH_FLAMETHROWER,
 		qfalse, qtrue, qtrue

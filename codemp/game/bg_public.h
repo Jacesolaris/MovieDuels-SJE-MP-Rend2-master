@@ -64,7 +64,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-03,Month-04,Year-26,BuildNum-01" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-10,Month-04,Year-26,BuildNum-04" // build date
 
 #define	STEPSIZE		18
 
@@ -2087,6 +2087,7 @@ extern int WeaponAttackAnim2[WP_NUM_WEAPONS];
 extern int WeaponAimingAnim[WP_NUM_WEAPONS];
 extern int WeaponAimingAnim2[WP_NUM_WEAPONS];
 extern int WeaponAltAttackAnim[WP_NUM_WEAPONS];
+extern int WeaponAltAttackAnim2[WP_NUM_WEAPONS];
 
 extern int force_power_dark_light[NUM_FORCE_POWERS];
 

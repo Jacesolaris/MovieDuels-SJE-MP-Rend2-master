@@ -2616,6 +2616,30 @@ static void Saber_ParseBlock2Sound3(saberInfo_t* saber, const char** p)
 	saber->block2Sound[2] = BG_SoundIndex(value);
 }
 
+static void Saber_ParseFallSound1(saberInfo_t* saber, const char** p)
+{
+	const char* value;
+	if (COM_ParseString(p, &value))
+		return;
+	saber->hit_sound[0] = BG_SoundIndex(value);
+}
+
+static void Saber_ParseFallSound2(saberInfo_t* saber, const char** p)
+{
+	const char* value;
+	if (COM_ParseString(p, &value))
+		return;
+	saber->hit_sound[0] = BG_SoundIndex(value);
+}
+
+static void Saber_ParseFallSound3(saberInfo_t* saber, const char** p)
+{
+	const char* value;
+	if (COM_ParseString(p, &value))
+		return;
+	saber->hit_sound[0] = BG_SoundIndex(value);
+}
+
 static void Saber_ParseBounce2Sound1(saberInfo_t* saber, const char** p)
 {
 	const char* value;
@@ -2888,6 +2912,11 @@ static keywordHash_t saberParseKeywords[] = {
 	{"block2Sound2", Saber_ParseBlock2Sound2, NULL},
 	{"blockSound3", Saber_ParseBlockSound3, NULL},
 	{"block2Sound3", Saber_ParseBlock2Sound3, NULL},
+
+	{"fallSound1", Saber_ParseFallSound1, NULL },
+	{"fallSound2", Saber_ParseFallSound2, NULL },
+	{"fallSound3", Saber_ParseFallSound3, NULL },
+
 	{"bounceSound1", Saber_ParseBounceSound1, NULL},
 	{"bounce2Sound1", Saber_ParseBounce2Sound1, NULL},
 	{"bounceSound2", Saber_ParseBounceSound2, NULL},

@@ -251,13 +251,12 @@ static int CG_MapTorsoToWeaponFrame(const int frame, const int anim_num)
 CG_MachinegunSpinAngle
 ======================
 */
-#define		SPIN_SPEED	0.9
-#define		COAST_TIME	1000
+#define     SPIN_SPEED  0.9f
+#define     COAST_TIME  1000
 
-static float cg_machinegun_spin_angle(centity_t* cent)
+static float CG_MachinegunSpinAngle(centity_t* cent)
 {
 	float angle;
-
 	int delta = cg.time - cent->pe.barrelTime;
 
 	if (cent->pe.barrelSpinning)
@@ -271,17 +270,26 @@ static float cg_machinegun_spin_angle(centity_t* cent)
 			delta = COAST_TIME;
 		}
 
-		const float speed = 0.5 * (SPIN_SPEED + (float)(COAST_TIME - delta) / COAST_TIME);
+		const float speed = 0.5f * (SPIN_SPEED + (float)(COAST_TIME - delta) / COAST_TIME);
 		angle = cent->pe.barrelAngle + delta * speed;
 	}
 
-	if (cent->pe.barrelSpinning == !(cent->currentState.eFlags & EF_FIRING))
+	// --- FIXED: detect state change correctly ---
+	if (cent->pe.barrelSpinning != !!(cent->currentState.eFlags & EF_FIRING))
 	{
 		cent->pe.barrelTime = cg.time;
 		cent->pe.barrelAngle = AngleNormalize360(angle);
 		cent->pe.barrelSpinning = !!(cent->currentState.eFlags & EF_FIRING);
-		trap->S_StartSound(NULL, cent->currentState.number, CHAN_WEAPON,
-			trap->S_RegisterSound("sound/weapons/barrelSpinning/barrelSpinning.wav"));
+
+		/*if (cg.snap->ps.weapon == WP_Z6_ROTARY_CANNON)
+		{
+			trap->S_StartSound(
+				NULL,
+				cent->currentState.number,
+				CHAN_WEAPON,
+				trap->S_RegisterSound("sound/weapons/z6/spinny.wav")
+			);
+		}*/
 	}
 
 	return angle;
@@ -616,7 +624,11 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 
 				if (cg_SpinningBarrels.integer && weapon_num == WP_REPEATER)
 				{
-					angles[ROLL] = cg_machinegun_spin_angle(cent);
+					angles[ROLL] = CG_MachinegunSpinAngle(cent);
+				}
+				else if (cg_SpinningBarrels.integer && ps->weapon == WP_STUN_BATON)
+				{
+					angles[ROLL] = CG_MachinegunSpinAngle(cent);
 				}
 				else
 				{
@@ -1136,7 +1148,11 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 
 				if (cg_SpinningBarrels.integer && cent->currentState.weapon == WP_REPEATER)
 				{
-					angles[ROLL] = cg_machinegun_spin_angle(cent);
+					angles[ROLL] = CG_MachinegunSpinAngle(cent);
+				}
+				else if (cg_SpinningBarrels.integer && ps->weapon == WP_STUN_BATON)
+				{
+					angles[ROLL] = CG_MachinegunSpinAngle(cent);
 				}
 				else
 				{
@@ -1145,7 +1161,6 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 				AnglesToAxis(angles, barrel.axis);
 
 				CG_PositionRotatedEntityOnTag(&barrel, parent, weapon->handsModel, "tag_barrel");
-
 				CG_AddWeaponWithPowerups(&barrel);
 			}
 		}
@@ -1908,7 +1923,6 @@ static qboolean CG_WeaponSelectable(const int i)
 	return qtrue;
 }
 
-
 /*
 ===================
 CG_DrawWeaponSelect
@@ -2158,6 +2172,50 @@ void CG_DrawWeaponSelect(void)
 	trap->R_SetColor(NULL);
 }
 
+static qboolean IsCyclingReloadableGun(const int weap)
+{
+	switch (weap)
+	{
+	case WP_BRYAR_OLD:
+	case WP_BLASTER:
+	case WP_DISRUPTOR:
+	case WP_BOWCASTER:
+	case WP_REPEATER:
+	case WP_DEMP2:
+	case WP_FLECHETTE:
+	case WP_ROCKET_LAUNCHER:
+	case WP_CONCUSSION:
+	case WP_BRYAR_PISTOL:
+	case WP_BATTLEDROID:
+	case WP_THEFIRSTORDER:
+	case WP_CLONECARBINE:
+	case WP_REBELBLASTER:
+	case WP_CLONERIFLE:
+	case WP_CLONECOMMANDO:
+	case WP_REBELRIFLE:
+	case WP_REY:
+	case WP_JANGO:
+	case WP_BOBA:
+	case WP_CLONEPISTOL:
+		return qtrue;
+	default:;
+	}
+	return qfalse;
+}
+
+static void CG_CycleWeaponFail(void)
+{
+	// Only run for reloadable guns
+	if (!IsCyclingReloadableGun(cg.snap->ps.weapon))
+		return;
+
+	// Play a local fail sound
+	trap->S_StartLocalSound(
+		trap->S_RegisterSound("sound/weapons/reloadfail.mp3"),
+		CHAN_LOCAL
+	);
+}
+
 /*
 ===============
 CG_NextWeapon_f
@@ -2172,15 +2230,6 @@ void CG_NextWeapon_f(void)
 	{
 		return;
 	}
-
-	const int clientNum = cg.snap->ps.clientNum;
-
-	if (clientNum < 0 || clientNum >= MAX_CLIENTS) // use the actual array size
-	{
-		return;
-	}
-
-	const int botClass = cg_entities[clientNum].currentState.botclass;
 
 	if (cg.snap->ps.pm_flags & PMF_FOLLOW)
 	{
@@ -2199,6 +2248,12 @@ void CG_NextWeapon_f(void)
 
 	if (cg.snap->ps.BlasterAttackChainCount >= BLASTERMISHAPLEVEL_TWELVE)
 	{
+		clientInfo_t* ci = &cgs.clientinfo[cg.snap->ps.clientNum];
+
+		if (ci->botSkill == -1)   // real human player
+		{
+			CG_CycleWeaponFail();
+		}
 		return;
 	}
 
@@ -2211,7 +2266,6 @@ void CG_NextWeapon_f(void)
 	{
 		return;
 	}
-	
 
 	cg.weaponSelectTime = cg.time;
 
@@ -2272,15 +2326,6 @@ void CG_PrevWeapon_f(void)
 		return;
 	}
 
-	const int clientNum = cg.snap->ps.clientNum;
-
-	if (clientNum < 0 || clientNum >= MAX_CLIENTS) // use the actual array size
-	{
-		return;
-	}
-
-	const int botClass = cg_entities[clientNum].currentState.botclass;
-
 	if (cg.snap->ps.pm_flags & PMF_FOLLOW)
 	{
 		return;
@@ -2298,6 +2343,12 @@ void CG_PrevWeapon_f(void)
 
 	if (cg.snap->ps.BlasterAttackChainCount >= BLASTERMISHAPLEVEL_TWELVE)
 	{
+		clientInfo_t* ci = &cgs.clientinfo[cg.snap->ps.clientNum];
+
+		if (ci->botSkill == -1)   // real human player
+		{
+			CG_CycleWeaponFail();
+		}
 		return;
 	}
 
@@ -2520,7 +2571,6 @@ void CG_Weapon_f(void)
 	cg.weaponSelect = num;
 }
 
-
 //Version of the above which doesn't add +2 to a weapon.  The above can't
 //triger WP_MELEE or WP_STUN_BATON.  Derogatory comments go here.
 void CG_WeaponClean_f(void)
@@ -2614,7 +2664,6 @@ void CG_WeaponClean_f(void)
 		//other weapons are off limits due to not actually being weapon weapons
 		return;
 	}
-	
 
 	if (!CG_WeaponSelectable(num))
 	{
@@ -3683,7 +3732,7 @@ void CG_CopyG2WeaponInstance(const centity_t* cent, const int weapon_num, void* 
 		return;
 	}
 
-	weapG2 = CG_G2WeaponInstance(cent, weapon_num /*-1*/);
+	weapG2 = CG_G2WeaponInstance(cent, weapon_num);
 	if (weapG2 != NULL)
 	{
 		hasWeaponInstance = qtrue;

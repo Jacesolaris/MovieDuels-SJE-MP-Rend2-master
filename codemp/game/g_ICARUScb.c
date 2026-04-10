@@ -9315,27 +9315,38 @@ static void Q3_SetRenderCullRadius(const int entID, const float float_data)
 	self->radius = float_data;
 }
 
-//find the current name of whatever trigger_location the entity is inside of.  if it's
-//inside none of them, return NULL
-// ------------------------------------------------------------
-// G_GetLocationForEnt
-// Returns the location string (trigger_location->message)
-// for the given entity, if it is touching a trigger_location.
-// Behaviour preserved exactly as original, but made safe.
-// ------------------------------------------------------------
+/*
+==========================
+G_GetLocationForEnt
+
+Returns the location string (trigger_location->message)
+for the given entity, if it is touching a trigger_location.
+
+- Removes large stack allocations (C6262 fix)
+- Adds NULL safety
+- Preserves original behaviour
+==========================
+*/
 char* G_GetLocationForEnt(const gentity_t* self)
 {
-	int touch[MAX_GENTITIES];
-	vec3_t mins, maxs;
-
-	// Validate entity
+	// ------------------------------------------------------------
+	// Safety: entity must exist
+	// ------------------------------------------------------------
 	if (self == NULL)
 	{
 		trap->Print(S_COLOR_RED "G_GetLocationForEnt: NULL entity passed in\n");
 		return NULL;
 	}
 
-	// Compute bounding box for entity
+	// ------------------------------------------------------------
+	// Large static buffer to avoid stack overuse (C6262 fix)
+	// ------------------------------------------------------------
+	static int touch[MAX_GENTITIES];
+
+	vec3_t mins;
+	vec3_t maxs;
+
+	// Compute bounding box
 	VectorAdd(self->r.currentOrigin, self->r.mins, mins);
 	VectorAdd(self->r.currentOrigin, self->r.maxs, maxs);
 
@@ -9363,7 +9374,7 @@ char* G_GetLocationForEnt(const gentity_t* self)
 
 		const gentity_t* hit = &g_entities[entNum];
 
-		// Validate classname pointer
+		// Validate classname
 		if (hit->classname == NULL)
 		{
 			trap->Print(S_COLOR_YELLOW "G_GetLocationForEnt: Entity %i has NULL classname\n", entNum);
@@ -9373,7 +9384,6 @@ char* G_GetLocationForEnt(const gentity_t* self)
 		// Check for trigger_location
 		if (strcmp(hit->classname, "trigger_location") == 0)
 		{
-			// message may be NULL, so check it
 			if (hit->message == NULL)
 			{
 				trap->Print(S_COLOR_YELLOW "G_GetLocationForEnt: trigger_location %i has NULL message\n", entNum);
@@ -9386,6 +9396,7 @@ char* G_GetLocationForEnt(const gentity_t* self)
 
 	return NULL;
 }
+
 
 //toggle the forcepower for this entity
 //ported from SP.

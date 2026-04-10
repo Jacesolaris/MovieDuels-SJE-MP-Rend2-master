@@ -369,8 +369,7 @@ void NPC_ChoosePainAnimation(gentity_t* self, const gentity_t* other, vec3_t poi
 		{
 			self->painDebounceTime = level.time + 4000;
 		}
-		const int animLength = bgAllAnims[self->localAnimIndex].anims[pain_anim].numFrames * fabs(
-			bgHumanoidAnimations[pain_anim].frameLerp);
+		const int animLength = bgAllAnims[self->localAnimIndex].anims[pain_anim].numFrames * fabs(bgHumanoidAnimations[pain_anim].frameLerp);
 
 		self->painDebounceTime = level.time + animLength;
 		self->client->ps.weaponTime = 0;

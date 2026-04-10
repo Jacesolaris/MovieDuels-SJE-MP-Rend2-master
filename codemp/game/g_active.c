@@ -5938,15 +5938,32 @@ static void ClientThink_real(gentity_t* ent)
 		//blocking with saber
 		client->ps.saberManualBlockingTime = level.time + FRAMETIME;
 	}
-
+	
 	if (client->beingThrown > level.time)
 	{
-		gentity_t* thrower = &g_entities[ent->client->throwingIndex];
+		// Validate throwingIndex before using it to index g_entities
+		const int throwerIndex = client->throwingIndex;
 
-		if (!thrower->inuse || !thrower->client || thrower->health < 1 ||
-			thrower->client->sess.sessionTeam == TEAM_SPECTATOR ||
-			thrower->client->ps.pm_flags & PMF_FOLLOW ||
-			thrower->client->throwingIndex != ent->s.number)
+		if (throwerIndex < 0 || throwerIndex >= level.maxclients)
+		{
+			// Invalid index: clear throw state and bail
+			client->ps.heldByClient = 0;
+			client->beingThrown = 0;
+			return;
+		}
+
+		gentity_t* thrower = &g_entities[throwerIndex];
+
+		// First branch: thrower is invalid or no longer actually throwing us
+		qboolean throwerInvalid =
+			(thrower->inuse == qfalse ||
+				thrower->client == NULL ||
+				thrower->health < 1 ||
+				thrower->client->sess.sessionTeam == TEAM_SPECTATOR ||
+				(thrower->client->ps.pm_flags & PMF_FOLLOW) ||
+				thrower->client->throwingIndex != ent->s.number) ? qtrue : qfalse;
+
+		if (throwerInvalid == qtrue)
 		{
 			client->ps.heldByClient = 0;
 			client->beingThrown = 0;
@@ -5956,14 +5973,16 @@ static void ClientThink_real(gentity_t* ent)
 				client->ps.forceHandExtend = HANDEXTEND_NONE;
 			}
 
-			if (thrower->inuse && thrower->client)
+			if (thrower->inuse != qfalse && thrower->client != NULL)
 			{
 				thrower->client->doingThrow = 0;
 				thrower->client->ps.forceHandExtend = HANDEXTEND_NONE;
 			}
 		}
-		else if (thrower->inuse && thrower->client && thrower->ghoul2 &&
-			trap->G2API_HaveWeGhoul2Models(thrower->ghoul2))
+		else if (thrower->inuse != qfalse &&
+			thrower->client != NULL &&
+			thrower->ghoul2 != NULL &&
+			trap->G2API_HaveWeGhoul2Models(thrower->ghoul2) != qfalse)
 		{
 #if 0
 			int lHandBolt = trap->G2API_AddBolt(thrower->ghoul2, 0, "*l_hand");
@@ -5979,98 +5998,100 @@ static void ClientThink_real(gentity_t* ent)
 				vec3_t entDir, otherAngles;
 				vec3_t fwd, right;
 
-				//Always look at the thrower.
-				VectorSubtract(thrower->client->ps.origin, ent->client->ps.origin, entDir);
-				VectorCopy(ent->client->ps.viewangles, otherAngles);
+				// Always look at the thrower.
+				VectorSubtract(thrower->client->ps.origin, client->ps.origin, entDir);
+				VectorCopy(client->ps.viewangles, otherAngles);
 				otherAngles[YAW] = vectoyaw(entDir);
 				SetClientViewAngle(ent, otherAngles);
 
 				VectorCopy(thrower->client->ps.viewangles, tAngles);
-				tAngles[PITCH] = tAngles[ROLL] = 0;
+				tAngles[PITCH] = 0.0f;
+				tAngles[ROLL] = 0.0f;
 
-				//Get the direction between the pelvis and position of the hand
 #if 0
 				mdxaBone_t boltMatrix, pBoltMatrix;
 
-				trap->G2API_GetBoltMatrix(thrower->ghoul2, 0, lHandBolt, &boltMatrix, tAngles, thrower->client->ps.origin, level.time, 0, thrower->modelScale);
+				trap->G2API_GetBoltMatrix(thrower->ghoul2, 0, lHandBolt, &boltMatrix, tAngles,
+					thrower->client->ps.origin, level.time, 0, thrower->modelScale);
 				bolt_org[0] = boltMatrix.matrix[0][3];
 				bolt_org[1] = boltMatrix.matrix[1][3];
 				bolt_org[2] = boltMatrix.matrix[2][3];
 
-				trap->G2API_GetBoltMatrix(thrower->ghoul2, 0, pelBolt, &pBoltMatrix, tAngles, thrower->client->ps.origin, level.time, 0, thrower->modelScale);
+				trap->G2API_GetBoltMatrix(thrower->ghoul2, 0, pelBolt, &pBoltMatrix, tAngles,
+					thrower->client->ps.origin, level.time, 0, thrower->modelScale);
 				pBoltOrg[0] = pBoltMatrix.matrix[0][3];
 				pBoltOrg[1] = pBoltMatrix.matrix[1][3];
 				pBoltOrg[2] = pBoltMatrix.matrix[2][3];
-#else //above tends to not work once in a while, for various reasons I suppose.
+#else
+				// Fallback: approximate hand position from origin + view dir
 				VectorCopy(thrower->client->ps.origin, pBoltOrg);
-				AngleVectors(tAngles, fwd, right, 0);
-				bolt_org[0] = pBoltOrg[0] + fwd[0] * 8 + right[0] * pDif;
-				bolt_org[1] = pBoltOrg[1] + fwd[1] * 8 + right[1] * pDif;
+				AngleVectors(tAngles, fwd, right, NULL);
+				bolt_org[0] = pBoltOrg[0] + fwd[0] * 8.0f + right[0] * pDif;
+				bolt_org[1] = pBoltOrg[1] + fwd[1] * 8.0f + right[1] * pDif;
 				bolt_org[2] = pBoltOrg[2];
 #endif
 
-				VectorSubtract(ent->client->ps.origin, bolt_org, vDif);
-				if (VectorLength(vDif) > 32.0f && thrower->client->doingThrow - level.time < 4500)
+				VectorSubtract(client->ps.origin, bolt_org, vDif);
+				if (VectorLength(vDif) > 32.0f &&
+					(thrower->client->doingThrow - level.time) < 4500)
 				{
-					//the hand is too far away, and can no longer hold onto us, so escape.
-					ent->client->ps.heldByClient = 0;
-					ent->client->beingThrown = 0;
+					// Hand is too far away; break the throw and let the victim escape.
+					client->ps.heldByClient = 0;
+					client->beingThrown = 0;
 					thrower->client->doingThrow = 0;
 
 					thrower->client->ps.forceHandExtend = HANDEXTEND_NONE;
 					G_EntitySound(thrower, CHAN_VOICE, G_SoundIndex("*pain25.wav"));
 
-					ent->client->ps.forceDodgeAnim = 2;
-					ent->client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
-					ent->client->ps.forceHandExtendTime = level.time + 500;
-					ent->client->ps.velocity[2] = 400;
-					if (ent->client->ps.fd.forcePowerLevel[FP_LEVITATION] < FORCE_LEVEL_3)
+					client->ps.forceDodgeAnim = 2;
+					client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
+					client->ps.forceHandExtendTime = level.time + 500;
+					client->ps.velocity[2] = 400;
+
+					if (client->ps.fd.forcePowerLevel[FP_LEVITATION] < FORCE_LEVEL_3)
 					{
-						//short burst
 						G_Sound(ent, CHAN_BODY, G_SoundIndex("sound/weapons/force/jumpsmall.mp3"));
 					}
 					else
 					{
-						//holding it
-						G_PreDefSound(ent->client->ps.origin, PDSOUND_FORCEJUMP);
+						G_PreDefSound(client->ps.origin, PDSOUND_FORCEJUMP);
 					}
 				}
-				else if (client->beingThrown - level.time < 4000)
+				else if ((client->beingThrown - level.time) < 4000)
 				{
-					//step into the next part of the throw, and go flying back
+					// Step into the next part of the throw and launch the victim.
 					float vScale = 400.0f;
-					ent->client->ps.forceHandExtend = HANDEXTEND_POSTTHROWN;
-					ent->client->ps.forceHandExtendTime = level.time + 1200;
-					ent->client->ps.forceDodgeAnim = 0;
+
+					client->ps.forceHandExtend = HANDEXTEND_POSTTHROWN;
+					client->ps.forceHandExtendTime = level.time + 1200;
+					client->ps.forceDodgeAnim = 0;
 
 					thrower->client->ps.forceHandExtend = HANDEXTEND_POSTTHROW;
 					thrower->client->ps.forceHandExtendTime = level.time + 200;
 
-					ent->client->ps.heldByClient = 0;
-
-					ent->client->ps.heldByClient = 0;
-					ent->client->beingThrown = 0;
+					client->ps.heldByClient = 0;
+					client->beingThrown = 0;
 					thrower->client->doingThrow = 0;
 
-					AngleVectors(thrower->client->ps.viewangles, vDif, 0, 0);
-					ent->client->ps.velocity[0] = vDif[0] * vScale;
-					ent->client->ps.velocity[1] = vDif[1] * vScale;
-					ent->client->ps.velocity[2] = 400;
+					AngleVectors(thrower->client->ps.viewangles, vDif, NULL, NULL);
+					client->ps.velocity[0] = vDif[0] * vScale;
+					client->ps.velocity[1] = vDif[1] * vScale;
+					client->ps.velocity[2] = 400;
 
 					G_EntitySound(ent, CHAN_VOICE, G_SoundIndex("*pain100.wav"));
 					G_EntitySound(thrower, CHAN_VOICE, G_SoundIndex("*jump1.wav"));
 
-					//Set the thrower as the "other killer", so if we die from fall/impact damage he is credited.
-					ent->client->ps.otherKiller = thrower->s.number;
-					ent->client->ps.otherKillerTime = level.time + 8000;
-					ent->client->ps.otherKillerDebounceTime = level.time + 100;
-					ent->client->otherKillerMOD = MOD_FALLING;
-					ent->client->otherKillerVehWeapon = 0;
-					ent->client->otherKillerWeaponType = WP_NONE;
+					// Credit the thrower if the victim dies from fall/impact.
+					client->ps.otherKiller = thrower->s.number;
+					client->ps.otherKillerTime = level.time + 8000;
+					client->ps.otherKillerDebounceTime = level.time + 100;
+					client->otherKillerMOD = MOD_FALLING;
+					client->otherKillerVehWeapon = 0;
+					client->otherKillerWeaponType = WP_NONE;
 				}
 				else
 				{
-					//see if we can move to be next to the hand.. if it's not clear, break the throw.
+					// Try to move the victim next to the thrower's hand; if blocked, break the throw.
 					vec3_t intendedOrigin = { 0 };
 					trace_t tr;
 					trace_t tr2;
@@ -6078,57 +6099,58 @@ static void ClientThink_real(gentity_t* ent)
 					VectorSubtract(bolt_org, pBoltOrg, vDif);
 					VectorNormalize(vDif);
 
-					VectorClear(ent->client->ps.velocity);
+					VectorClear(client->ps.velocity);
 					intendedOrigin[0] = pBoltOrg[0] + vDif[0] * pDif;
 					intendedOrigin[1] = pBoltOrg[1] + vDif[1] * pDif;
 					intendedOrigin[2] = thrower->client->ps.origin[2];
 
-					trap->Trace(&tr, intendedOrigin, ent->r.mins, ent->r.maxs, intendedOrigin, ent->s.number,
-						ent->clipmask, qfalse, 0, 0);
-					trap->Trace(&tr2, ent->client->ps.origin, ent->r.mins, ent->r.maxs, intendedOrigin, ent->s.number,
-						CONTENTS_SOLID, qfalse, 0, 0);
+					trap->Trace(&tr, intendedOrigin, ent->r.mins, ent->r.maxs,
+						intendedOrigin, ent->s.number, ent->clipmask, qfalse, 0, 0);
+					trap->Trace(&tr2, client->ps.origin, ent->r.mins, ent->r.maxs,
+						intendedOrigin, ent->s.number, CONTENTS_SOLID, qfalse, 0, 0);
 
-					if (tr.fraction == 1.0 && !tr.startsolid && tr2.fraction == 1.0 && !tr2.startsolid)
+					if (tr.fraction == 1.0f && tr.startsolid == qfalse &&
+						tr2.fraction == 1.0f && tr2.startsolid == qfalse)
 					{
-						VectorCopy(intendedOrigin, ent->client->ps.origin);
+						VectorCopy(intendedOrigin, client->ps.origin);
 
-						if (client->beingThrown - level.time < 4800)
+						if ((client->beingThrown - level.time) < 4800)
 						{
-							ent->client->ps.heldByClient = thrower->s.number + 1;
+							client->ps.heldByClient = thrower->s.number + 1;
 						}
 					}
 					else
 					{
-						//if the guy can't be put here then it's time to break the throw off.
-						ent->client->ps.heldByClient = 0;
-						ent->client->beingThrown = 0;
+						// Can't place the victim here; break the throw.
+						client->ps.heldByClient = 0;
+						client->beingThrown = 0;
 						thrower->client->doingThrow = 0;
 
 						thrower->client->ps.forceHandExtend = HANDEXTEND_NONE;
 						G_EntitySound(thrower, CHAN_VOICE, G_SoundIndex("*pain25.wav"));
 
-						ent->client->ps.forceDodgeAnim = 2;
-						ent->client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
-						ent->client->ps.forceHandExtendTime = level.time + 500;
-						ent->client->ps.velocity[2] = 400;
-						if (ent->client->ps.fd.forcePowerLevel[FP_LEVITATION] < FORCE_LEVEL_3)
+						client->ps.forceDodgeAnim = 2;
+						client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
+						client->ps.forceHandExtendTime = level.time + 500;
+						client->ps.velocity[2] = 400;
+
+						if (client->ps.fd.forcePowerLevel[FP_LEVITATION] < FORCE_LEVEL_3)
 						{
-							//short burst
 							G_Sound(ent, CHAN_BODY, G_SoundIndex("sound/weapons/force/jumpsmall.mp3"));
 						}
 						else
 						{
-							//holding it
-							G_PreDefSound(ent->client->ps.origin, PDSOUND_FORCEJUMP);
+							G_PreDefSound(client->ps.origin, PDSOUND_FORCEJUMP);
 						}
 					}
 				}
 			}
 		}
 	}
-	else if (ent->client->ps.heldByClient)
+	else if (client != NULL && client->ps.heldByClient)
 	{
-		ent->client->ps.heldByClient = 0;
+		// If no longer being thrown but still flagged as held, clear it.
+		client->ps.heldByClient = 0;
 	}
 
 	// set up for pmove

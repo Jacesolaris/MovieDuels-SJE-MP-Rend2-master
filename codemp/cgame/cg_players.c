@@ -2365,10 +2365,10 @@ void CG_NewClientInfo(int clientNum, qboolean entities_initialized)
 				cent->ghoul2weapon = CG_G2WeaponInstance(cent, cent->currentState.weapon);
 
 				if ((cent->currentState.eFlags & EF3_DUAL_WEAPONS) &&
-					cent->currentState.weapon == WP_BRYAR_PISTOL ||
+					(cent->currentState.weapon == WP_BRYAR_PISTOL ||
 					cent->currentState.weapon == WP_REY ||
 					cent->currentState.weapon == WP_JANGO ||
-					cent->currentState.weapon == WP_CLONEPISTOL)
+					cent->currentState.weapon == WP_CLONEPISTOL))
 				{
 					cent->ghoul2weapon2 = CG_G2WeaponInstance2(cent, cent->currentState.weapon);
 				}

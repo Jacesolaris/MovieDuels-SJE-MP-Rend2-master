@@ -811,6 +811,10 @@ static void CG_RegisterSounds(void)
 	{
 		trap->S_RegisterSound(va("sound/weapons/saber/saberkill%d.mp3", i));
 	}
+	for (i = 1; i < 5; i++)
+	{
+		trap->S_RegisterSound(va("sound/weapons/saber/saberhit_droid_md%d.mp3", i));
+	}
 	for (i = 1; i < 12; i++)
 	{
 		trap->S_RegisterSound(va("sound/weapons/saber/saberstabdown%d.mp3", i));
@@ -1107,9 +1111,9 @@ static void CG_RegisterSounds(void)
 		Com_sprintf(name, sizeof name, "sound/player/footsteps/wood_run%i.wav", i + 1);
 		cgs.media.footsteps[FOOTSTEP_WOODRUN][i] = trap->S_RegisterSound(name);
 
-		Com_sprintf(name, sizeof name, "sound/player/footsteps/SBD_walk%i.wav", i + 1);
+		Com_sprintf(name, sizeof name, "sound/chars/SBD_MP/SBDStep%i.mp3", i + 1);
 		cgs.media.footsteps[FOOTSTEP_SBDWALK][i] = trap->S_RegisterSound(name);
-		Com_sprintf(name, sizeof name, "sound/player/footsteps/SBD_run%i.wav", i + 1);
+		Com_sprintf(name, sizeof name, "sound/chars/SBD_MP/SBDStep%i.mp3", i + 1);
 		cgs.media.footsteps[FOOTSTEP_SBDRUN][i] = trap->S_RegisterSound(name);
 	}
 

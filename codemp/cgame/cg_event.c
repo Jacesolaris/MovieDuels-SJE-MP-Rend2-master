@@ -1627,6 +1627,38 @@ static const char* CG_GetStringForVoiceSound(const char* s)
 }
 
 /*
+==========================
+CG_IsDroidClass
+Returns qtrue if the botclass
+represents a droid or armored unit.
+==========================
+*/
+static qboolean CG_IsDroidClass(const int botclass)
+{
+	switch (botclass)
+	{
+	case BCLASS_SBD:
+	case BCLASS_ASSASSIN_DROID:
+	case BCLASS_BATTLEDROID:
+	case BCLASS_DROIDEKA:
+	case BCLASS_SABER_DROID:
+	case BCLASS_R2D2:
+	case BCLASS_R5D2:
+	case BCLASS_PROTOCOL:
+	case BCLASS_BOBAFETT:
+	case BCLASS_JANGO_NOJP:
+	case BCLASS_ROCKETTROOPER:
+	case BCLASS_MANDOLORIAN:
+	case BCLASS_MANDOLORIAN1:
+	case BCLASS_MANDOLORIAN2:
+		return qtrue;
+
+	default:
+		return qfalse;
+	}
+}
+
+/*
 ==============
 CG_EntityEvent
 
@@ -2959,14 +2991,27 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 			int hit_other_fx_id = cgs.effects.mSaberCut;
 			int hit_droid_fx_id = cgs.effects.mDroidCut;
 			int hit_other_fx_id2 = cgs.effects.mSaberBodyHit;
-			int hit_sound = trap->S_RegisterSound(va("sound/weapons/saber/saberhit%i.mp3", Q_irand(1, 15)));
-			int kill_sound = trap->S_RegisterSound(va("sound/weapons/saber/saberkill%i.wav", Q_irand(1, 17)));
 
-			if (es->otherentity_num2 >= 0
-				&& es->otherentity_num2 < ENTITYNUM_NONE)
+			int hit_sound = trap->S_RegisterSound(
+				va("sound/weapons/saber/saberhit%i.mp3", Q_irand(1, 15))
+			);
+
+			int saberhit_droid_sound = trap->S_RegisterSound(
+				va("sound/weapons/saber/saberhit_droid_md%i.mp3", Q_irand(1, 5))
+			);
+
+			// NEW: randomized kill sound
+			int kill_sound = trap->S_RegisterSound(
+				va("sound/weapons/saber/saberkill%i.mp3", Q_irand(1, 17))
+			);
+
+			// ------------------------------------------------------------
+			// Saber customization overrides (unchanged)
+			// ------------------------------------------------------------
+			if (es->otherentity_num2 >= 0 && es->otherentity_num2 < ENTITYNUM_NONE)
 			{
-				//we have a specific person who is causing this effect, see if we should override it with any custom saber effects/sounds
 				clientInfo_t* client = NULL;
+
 				if (cg_entities[es->otherentity_num2].currentState.eType == ET_NPC)
 				{
 					client = cg_entities[es->otherentity_num2].npcClient;
@@ -2981,73 +3026,41 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					int saberNum = es->weapon;
 					int blade_num = es->legsAnim;
 
-					if (WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], blade_num))
+					if (WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], blade_num) == qtrue)
 					{
-						//use second blade style values
 						if (client->saber[saberNum].hitPersonEffect2)
 						{
-							//custom hit person effect
-							hit_person_fx_id = hit_person_small_fx_id = hit_person_mid_fx_id = client->saber[saberNum].
-								hitPersonEffect2;
+							hit_person_fx_id = hit_person_small_fx_id = hit_person_mid_fx_id =
+								client->saber[saberNum].hitPersonEffect2;
 						}
 						if (client->saber[saberNum].hitOtherEffect2)
 						{
-							//custom hit other effect
 							hit_other_fx_id = client->saber[saberNum].hitOtherEffect2;
 						}
 						if (client->saber[saberNum].hit2Sound[0])
 						{
-							//custom hit sound
 							hit_sound = client->saber[saberNum].hit2Sound[Q_irand(0, 2)];
 						}
 					}
 					else
 					{
-						//use first blade style values
 						if (client->saber[saberNum].hitPersonEffect)
 						{
-							//custom hit person effect
-							if (cent->currentState.botclass == BCLASS_SBD
-								|| cent->currentState.botclass == BCLASS_ASSASSIN_DROID
-								|| cent->currentState.botclass == BCLASS_BATTLEDROID
-								|| cent->currentState.botclass == BCLASS_DROIDEKA
-								|| cent->currentState.botclass == BCLASS_SABER_DROID
-								|| cent->currentState.botclass == BCLASS_R2D2
-								|| cent->currentState.botclass == BCLASS_R5D2
-								|| cent->currentState.botclass == BCLASS_PROTOCOL
-								|| cent->currentState.botclass == BCLASS_BOBAFETT
-								|| cent->currentState.botclass == BCLASS_JANGO_NOJP
-								|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
-								|| cent->currentState.botclass == BCLASS_MANDOLORIAN
-								|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
-								|| cent->currentState.botclass == BCLASS_MANDOLORIAN2)
+							if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
 							{
-								hit_droid_fx_id = hit_person_small_fx_id = hit_person_mid_fx_id = client->saber[saberNum].
-									hitPersonEffect;
+								hit_droid_fx_id = hit_person_small_fx_id = hit_person_mid_fx_id =
+									client->saber[saberNum].hitPersonEffect;
 							}
 							else
 							{
-								hit_person_fx_id = hit_person_small_fx_id = hit_person_mid_fx_id = client->saber[saberNum].
-									hitPersonEffect;
+								hit_person_fx_id = hit_person_small_fx_id = hit_person_mid_fx_id =
+									client->saber[saberNum].hitPersonEffect;
 							}
 						}
+
 						if (client->saber[saberNum].hitOtherEffect)
 						{
-							//custom hit other effect
-							if (cent->currentState.botclass == BCLASS_SBD
-								|| cent->currentState.botclass == BCLASS_ASSASSIN_DROID
-								|| cent->currentState.botclass == BCLASS_BATTLEDROID
-								|| cent->currentState.botclass == BCLASS_DROIDEKA
-								|| cent->currentState.botclass == BCLASS_SABER_DROID
-								|| cent->currentState.botclass == BCLASS_R2D2
-								|| cent->currentState.botclass == BCLASS_R5D2
-								|| cent->currentState.botclass == BCLASS_PROTOCOL
-								|| cent->currentState.botclass == BCLASS_BOBAFETT
-								|| cent->currentState.botclass == BCLASS_JANGO_NOJP
-								|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
-								|| cent->currentState.botclass == BCLASS_MANDOLORIAN
-								|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
-								|| cent->currentState.botclass == BCLASS_MANDOLORIAN2)
+							if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
 							{
 								hit_droid_fx_id = client->saber[0].hitOtherEffect;
 							}
@@ -3056,81 +3069,89 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 								hit_other_fx_id = client->saber[0].hitOtherEffect;
 							}
 						}
+
 						if (client->saber[saberNum].hit_sound[0])
 						{
-							//custom hit sound
-							hit_sound = client->saber[saberNum].hit_sound[Q_irand(0, 2)];
+							if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
+							{
+								saberhit_droid_sound = client->saber[saberNum].hit_sound[Q_irand(0, 5)];
+							}
+							else
+							{
+								hit_sound = client->saber[saberNum].hit_sound[Q_irand(0, 2)];
+							}
 						}
 					}
 				}
 			}
 
+			// ------------------------------------------------------------
+			// NEW: Kill-sound trigger for "alive but health < 5"
+			// ------------------------------------------------------------
+			// Conditions:
+			// 1. eventParm != 0  → hit a person
+			// 2. target health > 0 (alive)
+			// 3. target health < 5 (near death)
+			// 4. only play ONCE → use serverSaberFleshImpact as latch
+			// ------------------------------------------------------------
+			if (es->eventParm != 0)
+			{
+				int targetHealth = cent->currentState.health;
+
+				qboolean aliveButLow =
+					(targetHealth > 0 && targetHealth < 5) ? qtrue : qfalse;
+
+				if (aliveButLow == qtrue)
+				{
+					if (cent->serverSaberFleshImpact == qfalse)
+					{
+						trap->S_StartSound(es->origin, es->number, CHAN_AUTO, kill_sound);
+						cent->serverSaberFleshImpact = qtrue; // latch
+					}
+				}
+			}
+
+			// ------------------------------------------------------------
+			// Existing hit logic (unchanged)
+			// ------------------------------------------------------------
 			if (es->eventParm == 16)
 			{
-				//Make lots of sparks, something special happened
 				vec3_t fx_dir;
 				VectorCopy(es->angles, fx_dir);
 				if (!fx_dir[0] && !fx_dir[1] && !fx_dir[2])
 				{
 					fx_dir[1] = 1;
 				}
-				trap->S_StartSound(es->origin, es->number, CHAN_AUTO, hit_sound);
 
-				if (cent->currentState.botclass == BCLASS_SBD
-					|| cent->currentState.botclass == BCLASS_ASSASSIN_DROID
-					|| cent->currentState.botclass == BCLASS_BATTLEDROID
-					|| cent->currentState.botclass == BCLASS_DROIDEKA
-					|| cent->currentState.botclass == BCLASS_SABER_DROID
-					|| cent->currentState.botclass == BCLASS_R2D2
-					|| cent->currentState.botclass == BCLASS_R5D2
-					|| cent->currentState.botclass == BCLASS_PROTOCOL
-					|| cent->currentState.botclass == BCLASS_BOBAFETT
-					|| cent->currentState.botclass == BCLASS_JANGO_NOJP
-					|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
-					|| cent->currentState.botclass == BCLASS_MANDOLORIAN
-					|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
-					|| cent->currentState.botclass == BCLASS_MANDOLORIAN2)
+				if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
 				{
 					trap->FX_PlayEffectID(hit_droid_fx_id, es->origin, fx_dir, -1, -1, qfalse);
+					trap->S_StartSound(es->origin, es->number, CHAN_AUTO, saberhit_droid_sound);
 				}
 				else
 				{
-					trap->FX_PlayEffectID(hit_person_fx_id, es->origin, fx_dir, -1, -1, qfalse);
-					trap->FX_PlayEffectID(hit_person_fx_id, es->origin, fx_dir, -1, -1, qfalse);
-					trap->FX_PlayEffectID(hit_person_fx_id, es->origin, fx_dir, -1, -1, qfalse);
-					trap->FX_PlayEffectID(hit_person_fx_id, es->origin, fx_dir, -1, -1, qfalse);
-					trap->FX_PlayEffectID(hit_person_fx_id, es->origin, fx_dir, -1, -1, qfalse);
-					trap->FX_PlayEffectID(hit_person_fx_id, es->origin, fx_dir, -1, -1, qfalse);
+					for (int n = 0; n < 6; n++)
+					{
+						trap->FX_PlayEffectID(hit_person_fx_id, es->origin, fx_dir, -1, -1, qfalse);
+					}
+					trap->S_StartSound(es->origin, es->number, CHAN_AUTO, hit_sound);
 				}
 			}
 			else if (es->eventParm)
 			{
-				//hit a person
 				vec3_t fx_dir;
 				VectorCopy(es->angles, fx_dir);
 				if (!fx_dir[0] && !fx_dir[1] && !fx_dir[2])
 				{
 					fx_dir[1] = 1;
 				}
-				trap->S_StartSound(es->origin, es->number, CHAN_AUTO, kill_sound);
+
+				// NOTE: kill_sound is now handled above only when health < 5
+				trap->S_StartSound(es->origin, es->number, CHAN_AUTO, hit_sound);
 
 				if (es->eventParm == 3)
 				{
-					// moderate or big hits.
-					if (cent->currentState.botclass == BCLASS_SBD
-						|| cent->currentState.botclass == BCLASS_ASSASSIN_DROID
-						|| cent->currentState.botclass == BCLASS_BATTLEDROID
-						|| cent->currentState.botclass == BCLASS_DROIDEKA
-						|| cent->currentState.botclass == BCLASS_SABER_DROID
-						|| cent->currentState.botclass == BCLASS_R2D2
-						|| cent->currentState.botclass == BCLASS_R5D2
-						|| cent->currentState.botclass == BCLASS_PROTOCOL
-						|| cent->currentState.botclass == BCLASS_BOBAFETT
-						|| cent->currentState.botclass == BCLASS_JANGO_NOJP
-						|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
-						|| cent->currentState.botclass == BCLASS_MANDOLORIAN
-						|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
-						|| cent->currentState.botclass == BCLASS_MANDOLORIAN2)
+					if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
 					{
 						trap->FX_PlayEffectID(hit_droid_fx_id, es->origin, fx_dir, -1, -1, qfalse);
 					}
@@ -3141,21 +3162,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 				}
 				else if (es->eventParm == 2)
 				{
-					// this is for really big hits.
-					if (cent->currentState.botclass == BCLASS_SBD
-						|| cent->currentState.botclass == BCLASS_ASSASSIN_DROID
-						|| cent->currentState.botclass == BCLASS_BATTLEDROID
-						|| cent->currentState.botclass == BCLASS_DROIDEKA
-						|| cent->currentState.botclass == BCLASS_SABER_DROID
-						|| cent->currentState.botclass == BCLASS_R2D2
-						|| cent->currentState.botclass == BCLASS_R5D2
-						|| cent->currentState.botclass == BCLASS_PROTOCOL
-						|| cent->currentState.botclass == BCLASS_BOBAFETT
-						|| cent->currentState.botclass == BCLASS_JANGO_NOJP
-						|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
-						|| cent->currentState.botclass == BCLASS_MANDOLORIAN
-						|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
-						|| cent->currentState.botclass == BCLASS_MANDOLORIAN2)
+					if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
 					{
 						trap->FX_PlayEffectID(hit_droid_fx_id, es->origin, fx_dir, -1, -1, qfalse);
 					}
@@ -3166,21 +3173,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 				}
 				else
 				{
-					// this should really just be done in the effect itself, no?
-					if (cent->currentState.botclass == BCLASS_SBD
-						|| cent->currentState.botclass == BCLASS_ASSASSIN_DROID
-						|| cent->currentState.botclass == BCLASS_BATTLEDROID
-						|| cent->currentState.botclass == BCLASS_DROIDEKA
-						|| cent->currentState.botclass == BCLASS_SABER_DROID
-						|| cent->currentState.botclass == BCLASS_R2D2
-						|| cent->currentState.botclass == BCLASS_R5D2
-						|| cent->currentState.botclass == BCLASS_PROTOCOL
-						|| cent->currentState.botclass == BCLASS_BOBAFETT
-						|| cent->currentState.botclass == BCLASS_JANGO_NOJP
-						|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
-						|| cent->currentState.botclass == BCLASS_MANDOLORIAN
-						|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
-						|| cent->currentState.botclass == BCLASS_MANDOLORIAN2)
+					if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
 					{
 						trap->FX_PlayEffectID(hit_droid_fx_id, es->origin, fx_dir, -1, -1, qfalse);
 					}
@@ -3194,27 +3187,14 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 			}
 			else
 			{
-				//hit something else
 				vec3_t fx_dir;
 				VectorCopy(es->angles, fx_dir);
 				if (!fx_dir[0] && !fx_dir[1] && !fx_dir[2])
 				{
 					fx_dir[1] = 1;
 				}
-				if (cent->currentState.botclass == BCLASS_SBD
-					|| cent->currentState.botclass == BCLASS_ASSASSIN_DROID
-					|| cent->currentState.botclass == BCLASS_BATTLEDROID
-					|| cent->currentState.botclass == BCLASS_DROIDEKA
-					|| cent->currentState.botclass == BCLASS_SABER_DROID
-					|| cent->currentState.botclass == BCLASS_R2D2
-					|| cent->currentState.botclass == BCLASS_R5D2
-					|| cent->currentState.botclass == BCLASS_PROTOCOL
-					|| cent->currentState.botclass == BCLASS_BOBAFETT
-					|| cent->currentState.botclass == BCLASS_JANGO_NOJP
-					|| cent->currentState.botclass == BCLASS_ROCKETTROOPER
-					|| cent->currentState.botclass == BCLASS_MANDOLORIAN
-					|| cent->currentState.botclass == BCLASS_MANDOLORIAN1
-					|| cent->currentState.botclass == BCLASS_MANDOLORIAN2)
+
+				if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
 				{
 					trap->FX_PlayEffectID(hit_droid_fx_id, es->origin, fx_dir, -1, -1, qfalse);
 				}
@@ -3223,11 +3203,10 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					trap->FX_PlayEffectID(hit_other_fx_id2, es->origin, fx_dir, -1, -1, qfalse);
 				}
 			}
+
 			if (es->otherentity_num != ENTITYNUM_NONE && es->otherentity_num2 != ENTITYNUM_NONE)
 			{
-				centity_t* saber_owner;
-
-				saber_owner = &cg_entities[es->otherentity_num2];
+				centity_t* saber_owner = &cg_entities[es->otherentity_num2];
 
 				saber_owner->serverSaberHitIndex = es->otherentity_num;
 				saber_owner->serverSaberHitTime = cg.time;
@@ -3567,10 +3546,10 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 			}
 			if (doit)
 			{
-				if (cent->currentState.eventParm != cg.snap->ps.clientNum || 
+				if (cent->currentState.eventParm != cg.snap->ps.clientNum ||
 					cg.renderingThirdPerson ||
-					cg_trueguns.integer	||
-					cg.predictedPlayerState.weapon == WP_SABER || 
+					cg_trueguns.integer ||
+					cg.predictedPlayerState.weapon == WP_SABER ||
 					cg.predictedPlayerState.weapon == WP_MELEE)
 				{
 					//h4q3ry

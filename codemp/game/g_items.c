@@ -662,18 +662,36 @@ static void pas_fire(gentity_t* ent)
 #define TURRET_RADIUS 800
 
 //-----------------------------------------------------
-static qboolean pas_find_enemies(gentity_t* self)
+// pas_find_enemies
+// Scans for valid enemy targets within turret radius.
+// Behaviour preserved exactly as original.
 //-----------------------------------------------------
+static qboolean pas_find_enemies(gentity_t* self)
 {
+	// ------------------------------------------------------------
+	// Safety: self must exist
+	// ------------------------------------------------------------
+	if (self == NULL)
+	{
+		Com_Printf("pas_find_enemies: self is NULL\n");
+		return qfalse;
+	}
+
 	qboolean found = qfalse;
 	float bestDist = TURRET_RADIUS * TURRET_RADIUS;
 	vec3_t org2;
-	gentity_t* entity_list[MAX_GENTITIES];
 	trace_t tr;
 
-	if (self->aimDebounceTime > level.time) // time since we've been shut off
+	// ------------------------------------------------------------
+	// Large static buffer to avoid C6262 stack warning
+	// ------------------------------------------------------------
+	static gentity_t* entity_list[MAX_GENTITIES];
+
+	// ------------------------------------------------------------
+	// Turret "ping" when recently active
+	// ------------------------------------------------------------
+	if (self->aimDebounceTime > level.time)
 	{
-		// We were active and alert, i.e. had an enemy in the last 3 secs
 		if (self->painDebounceTime < level.time)
 		{
 			G_Sound(self, CHAN_BODY, G_SoundIndex("sound/chars/turret/ping.wav"));
@@ -683,62 +701,86 @@ static qboolean pas_find_enemies(gentity_t* self)
 
 	VectorCopy(self->s.pos.trBase, org2);
 
+	// ------------------------------------------------------------
+	// Find nearby entities
+	// ------------------------------------------------------------
 	const int count = G_RadiusList(org2, TURRET_RADIUS, self, qtrue, entity_list);
 
 	for (int i = 0; i < count; i++)
 	{
-		vec3_t org;
 		gentity_t* target = entity_list[i];
 
-		if (!target->client)
+		if (target == NULL)
 		{
 			continue;
 		}
-		if (target == self || !target->takedamage || target->health <= 0 || target->flags & FL_NOTARGET)
+
+		// Must be a client
+		if (target->client == NULL)
 		{
 			continue;
 		}
-		if (self->alliedTeam && target->client->sess.sessionTeam == self->alliedTeam)
+
+		// Basic validity checks
+		if (target == self ||
+			target->takedamage == qfalse ||
+			target->health <= 0 ||
+			(target->flags & FL_NOTARGET))
 		{
 			continue;
 		}
-		if (self->genericValue3 == target->s.number)
+
+		// Team checks
+		if (self->alliedTeam &&
+			target->client->sess.sessionTeam == self->alliedTeam)
 		{
 			continue;
 		}
+
+		// Don't attack our own seeker
+		if (self->genericValue3 == target->s.number ||
+			target->r.ownerNum == self->genericValue3)
+		{
+			continue;
+		}
+
+		// Seekers don't attack
 		if (self->s.NPC_class == CLASS_SEEKER)
 		{
 			continue;
 		}
-		//don't allow sentry gun to attack our own stuff (specifically our seeker item)
-		if (target->r.ownerNum == self->genericValue3)
-		{
-			continue;
-		}
+
+		// Must be in PVS
 		if (!trap->InPVS(org2, target->r.currentOrigin))
 		{
 			continue;
 		}
 
+		// Ignore vehicles
 		if (target->s.eType == ET_NPC &&
 			target->s.NPC_class == CLASS_VEHICLE)
-		{
-			//don't get mad at vehicles, silly.
-			continue;
-		}
-		if (self->parent && sje_is_ally(self->parent, target) == qtrue)
 		{
 			continue;
 		}
 
+		// Parent ally check
+		if (self->parent &&
+			sje_is_ally(self->parent, target) == qtrue)
+		{
+			continue;
+		}
+
+		// Friendly NPC logic
+		vec3_t org;
 		if (target->client)
 		{
-			if (target->NPC && target->client->playerTeam == NPCTEAM_PLAYER && target->client->enemyTeam ==
-				NPCTEAM_ENEMY)
+			if (target->NPC &&
+				target->client->playerTeam == NPCTEAM_PLAYER &&
+				target->client->enemyTeam == NPCTEAM_ENEMY)
 			{
-				// dont attack allied npcs
 				continue;
 			}
+
 			VectorCopy(target->client->ps.origin, org);
 		}
 		else
@@ -746,23 +788,26 @@ static qboolean pas_find_enemies(gentity_t* self)
 			VectorCopy(target->r.currentOrigin, org);
 		}
 
+		// ------------------------------------------------------------
+		// Line of sight check
+		// ------------------------------------------------------------
 		trap->Trace(&tr, org2, NULL, NULL, org, self->s.number, MASK_SHOT, qfalse, 0, 0);
 
-		if (!tr.allsolid && !tr.startsolid && (tr.fraction == 1.0 || tr.entityNum == target->s.number))
+		if (!tr.allsolid &&
+			!tr.startsolid &&
+			(tr.fraction == 1.0f || tr.entityNum == target->s.number))
 		{
 			vec3_t enemyDir;
-			// Only acquire if have a clear shot, Is it in range and closer than our best?
 			VectorSubtract(target->r.currentOrigin, self->r.currentOrigin, enemyDir);
+
 			const float enemyDist = VectorLengthSquared(enemyDir);
 
-			if (enemyDist < bestDist) // all things equal, keep current
+			if (enemyDist < bestDist)
 			{
+				// Startup sound if turret was idle
 				if (self->attackDebounceTime + 100 < level.time)
 				{
-					// We haven't fired or acquired an enemy in the last 2 seconds-start-up sound
 					G_Sound(self, CHAN_BODY, G_SoundIndex("sound/chars/turret/startup.wav"));
-
-					// Wind up turrets for a bit
 					self->attackDebounceTime = level.time + 900 + Q_flrand(0.0f, 1.0f) * 200;
 				}
 
@@ -775,6 +820,7 @@ static qboolean pas_find_enemies(gentity_t* self)
 
 	return found;
 }
+
 
 //---------------------------------
 static void pas_adjust_enemy(gentity_t* ent)
@@ -843,33 +889,53 @@ static void sentryExpire(gentity_t* self)
 }
 
 //---------------------------------
-void pas_think(gentity_t* ent)
+static void pas_think(gentity_t* ent)
 //---------------------------------
 {
+	// ------------------------------------------------------------
+	// Safety: ent must exist
+	// ------------------------------------------------------------
+	if (ent == NULL)
+	{
+		Com_Printf("pas_think: ent is NULL\n");
+		return;
+	}
+
 	vec3_t frontAngles, backAngles;
-	int iEntityList[MAX_GENTITIES];
+	static int iEntityList[MAX_GENTITIES]; // C6262 fix: static, not stack
 	int i = 0;
 	qboolean clTrapped = qfalse;
-	vec3_t testMins = { 0 }, testMaxs = { 0 };
+	vec3_t testMins = { 0 };
+	vec3_t testMaxs = { 0 };
 
-	testMins[0] = ent->r.currentOrigin[0] + ent->r.mins[0] + 4;
-	testMins[1] = ent->r.currentOrigin[1] + ent->r.mins[1] + 4;
-	testMins[2] = ent->r.currentOrigin[2] + ent->r.mins[2] + 4;
+	// ------------------------------------------------------------
+	// Compute inner bounding box for detecting trapped clients
+	// ------------------------------------------------------------
+	testMins[0] = ent->r.currentOrigin[0] + ent->r.mins[0] + 4.0f;
+	testMins[1] = ent->r.currentOrigin[1] + ent->r.mins[1] + 4.0f;
+	testMins[2] = ent->r.currentOrigin[2] + ent->r.mins[2] + 4.0f;
 
-	testMaxs[0] = ent->r.currentOrigin[0] + ent->r.maxs[0] - 4;
-	testMaxs[1] = ent->r.currentOrigin[1] + ent->r.maxs[1] - 4;
-	testMaxs[2] = ent->r.currentOrigin[2] + ent->r.maxs[2] - 4;
+	testMaxs[0] = ent->r.currentOrigin[0] + ent->r.maxs[0] - 4.0f;
+	testMaxs[1] = ent->r.currentOrigin[1] + ent->r.maxs[1] - 4.0f;
+	testMaxs[2] = ent->r.currentOrigin[2] + ent->r.maxs[2] - 4.0f;
 
 	int num_listed_entities = trap->EntitiesInBox(testMins, testMaxs, iEntityList, MAX_GENTITIES);
 
+	// ------------------------------------------------------------
+	// Detect if a client is trapped inside the turret
+	// ------------------------------------------------------------
 	while (i < num_listed_entities)
 	{
-		if (iEntityList[i] < MAX_CLIENTS)
-		{
-			//client stuck inside me. go nonsolid.
-			const int clNum = iEntityList[i];
+		const int entNum = iEntityList[i];
 
-			num_listed_entities = trap->EntitiesInBox(g_entities[clNum].r.absmin, g_entities[clNum].r.absmax,
+		if (entNum < MAX_CLIENTS)
+		{
+			// A client is inside the turret — check if turret overlaps them
+			const gentity_t* clEnt = &g_entities[entNum];
+
+			num_listed_entities = trap->EntitiesInBox(
+				clEnt->r.absmin,
+				clEnt->r.absmax,
 				iEntityList,
 				MAX_GENTITIES);
 
@@ -889,32 +955,56 @@ void pas_think(gentity_t* ent)
 		i++;
 	}
 
-	if (clTrapped)
+	// ------------------------------------------------------------
+	// If a client is trapped, go non-solid temporarily
+	// ------------------------------------------------------------
+	if (clTrapped == qtrue)
 	{
 		ent->r.contents = 0;
 		ent->s.fireflag = 0;
 		ent->nextthink = level.time + FRAMETIME;
 		return;
 	}
+
 	ent->r.contents = CONTENTS_SOLID;
 
-	if (!g_entities[ent->genericValue3].inuse || !g_entities[ent->genericValue3].client ||
-		g_entities[ent->genericValue3].client->sess.sessionTeam != ent->genericValue2)
+	// ------------------------------------------------------------
+	// Validate owner (genericValue3 = owner entity index)
+	// ------------------------------------------------------------
+	const int ownerIndex = ent->genericValue3;
+
+	if (ownerIndex < 0 || ownerIndex >= MAX_GENTITIES)
+	{
+		// Owner index invalid — remove turret
+		ent->think = G_FreeEntity;
+		ent->nextthink = level.time;
+		return;
+	}
+
+	gentity_t* owner = &g_entities[ownerIndex];
+
+	if (owner->inuse == qfalse ||
+		owner->client == NULL ||
+		owner->client->sess.sessionTeam != ent->genericValue2)
 	{
 		ent->think = G_FreeEntity;
 		ent->nextthink = level.time;
 		return;
 	}
 
-	//	G_RunObject(ent);
-
-	if (!ent->damage)
+	// ------------------------------------------------------------
+	// Initialize damage once
+	// ------------------------------------------------------------
+	if (ent->damage == 0)
 	{
 		ent->damage = 1;
 		ent->nextthink = level.time + FRAMETIME;
 		return;
 	}
 
+	// ------------------------------------------------------------
+	// Lifetime expiration
+	// ------------------------------------------------------------
 	if (ent->genericValue8 + TURRET_LIFETIME < level.time)
 	{
 		G_Sound(ent, CHAN_BODY, G_SoundIndex("sound/chars/turret/shutdown.wav"));
@@ -928,34 +1018,33 @@ void pas_think(gentity_t* ent)
 
 	ent->nextthink = level.time + FRAMETIME;
 
-	if (ent->enemy)
+	// ------------------------------------------------------------
+	// Validate current enemy
+	// ------------------------------------------------------------
+	if (ent->enemy != NULL)
 	{
-		// make sure that the enemy is still valid
 		pas_adjust_enemy(ent);
 	}
 
-	if (ent->enemy)
+	if (ent->enemy != NULL)
 	{
-		if (!ent->enemy->client)
-		{
-			ent->enemy = NULL;
-		}
-		else if (ent->enemy->s.number == ent->s.number)
-		{
-			ent->enemy = NULL;
-		}
-		else if (ent->enemy->health < 1)
+		if (ent->enemy->client == NULL ||
+			ent->enemy->s.number == ent->s.number ||
+			ent->enemy->health < 1)
 		{
 			ent->enemy = NULL;
 		}
 	}
 
-	if (!ent->enemy)
+	// ------------------------------------------------------------
+	// Acquire new enemy if needed
+	// ------------------------------------------------------------
+	if (ent->enemy == NULL)
 	{
 		pas_find_enemies(ent);
 	}
 
-	if (ent->enemy)
+	if (ent->enemy != NULL)
 	{
 		ent->s.bolt2 = ent->enemy->s.number;
 	}
@@ -964,6 +1053,9 @@ void pas_think(gentity_t* ent)
 		ent->s.bolt2 = ENTITYNUM_NONE;
 	}
 
+	// ------------------------------------------------------------
+	// Turret aiming logic
+	// ------------------------------------------------------------
 	qboolean moved = qfalse;
 	float diff_yaw;
 	float diffPitch = 0.0f;
@@ -971,14 +1063,13 @@ void pas_think(gentity_t* ent)
 	ent->speed = AngleNormalize360(ent->speed);
 	ent->random = AngleNormalize360(ent->random);
 
-	if (ent->enemy)
+	if (ent->enemy != NULL)
 	{
 		vec3_t desiredAngles;
 		vec3_t org;
 		vec3_t enemyDir;
-		// ...then we'll calculate what new aim adjustments we should attempt to make this frame
-		// Aim at enemy
-		if (ent->enemy->client)
+
+		if (ent->enemy->client != NULL)
 		{
 			VectorCopy(ent->enemy->client->ps.origin, org);
 		}
@@ -995,61 +1086,59 @@ void pas_think(gentity_t* ent)
 	}
 	else
 	{
-		// no enemy, so make us slowly sweep back and forth as if searching for a new one
+		// Idle sweep
 		diff_yaw = sin(level.time * 0.0001f + ent->count) * 2.0f;
 	}
 
+	// Yaw adjustment
 	if (fabs(diff_yaw) > 0.25f)
 	{
 		moved = qtrue;
 
 		if (fabs(diff_yaw) > 10.0f)
 		{
-			// cap max speed
-			ent->speed += diff_yaw > 0.0f ? -10.0f : 10.0f;
+			ent->speed += (diff_yaw > 0.0f ? -10.0f : 10.0f);
 		}
 		else
 		{
-			// small enough
 			ent->speed -= diff_yaw;
 		}
 	}
 
+	// Pitch adjustment
 	if (fabs(diffPitch) > 0.25f)
 	{
 		moved = qtrue;
 
 		if (fabs(diffPitch) > 4.0f)
 		{
-			// cap max speed
-			ent->random += diffPitch > 0.0f ? -4.0f : 4.0f;
+			ent->random += (diffPitch > 0.0f ? -4.0f : 4.0f);
 		}
 		else
 		{
-			// small enough
 			ent->random -= diffPitch;
 		}
 	}
 
-	// the bone axes are messed up, so hence some dumbness here
+	// Bone axes adjustments
 	VectorSet(frontAngles, -ent->random, 0.0f, 0.0f);
 	VectorSet(backAngles, 0.0f, 0.0f, ent->speed);
 
-	if (moved)
-	{
-		//ent->s.loopSound = G_SoundIndex( "sound/chars/turret/move.wav" );
-	}
-	else
+	if (moved == qfalse)
 	{
 		ent->s.loopSound = 0;
 		ent->s.loopIsSoundset = qfalse;
 	}
 
-	if (ent->enemy && ent->attackDebounceTime < level.time)
+	// ------------------------------------------------------------
+	// Firing logic
+	// ------------------------------------------------------------
+	if (ent->enemy != NULL &&
+		ent->attackDebounceTime < level.time)
 	{
 		ent->count--;
 
-		if (ent->count)
+		if (ent->count > 0)
 		{
 			pas_fire(ent);
 			ent->s.fireflag = 1;
@@ -1057,7 +1146,6 @@ void pas_think(gentity_t* ent)
 		}
 		else
 		{
-			//ent->nextthink = 0;
 			G_Sound(ent, CHAN_BODY, G_SoundIndex("sound/chars/turret/shutdown.wav"));
 			ent->s.bolt2 = ENTITYNUM_NONE;
 			ent->s.fireflag = 2;
@@ -1071,6 +1159,7 @@ void pas_think(gentity_t* ent)
 		ent->s.fireflag = 0;
 	}
 }
+
 
 //------------------------------------------------------------------------------------------------------------
 void turret_die(gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, int mod)

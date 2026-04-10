@@ -808,6 +808,10 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->altMissilehit_sound = NULL_SOUND;
 		weaponInfo->altMissileTrailFunc = FX_BlasterProjectileThink;
 
+		weaponInfo->mOverloadMuzzleEffect = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle");
+		weaponInfo->mOverloadMuzzleEffect2 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle2");
+		weaponInfo->mOverloadMuzzleEffect3 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle3");
+
 		trap->FX_RegisterEffect("blaster/deflect");
 		cgs.effects.blasterShotEffect = trap->FX_RegisterEffect("blaster/shot");
 		cgs.effects.blasterWallImpactEffect = trap->FX_RegisterEffect("blaster/wall_impact");
@@ -841,6 +845,10 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->altMissilehit_sound = NULL_SOUND;
 		weaponInfo->altMissileTrailFunc = FX_CloneProjectileThink;
 
+		weaponInfo->mOverloadMuzzleEffect = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle");
+		weaponInfo->mOverloadMuzzleEffect2 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle2");
+		weaponInfo->mOverloadMuzzleEffect3 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle3");
+
 		cgs.effects.cloneShotEffect = trap->FX_RegisterEffect("clone/projectile");
 		cgs.effects.cloneWallImpactEffect = trap->FX_RegisterEffect("clone/wall_impact");
 		cgs.effects.cloneFleshImpactEffect = trap->FX_RegisterEffect("clone/flesh_impact");
@@ -856,9 +864,12 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->missileModel = NULL_HANDLE;
 		weaponInfo->missileSound = NULL_SOUND;
 		weaponInfo->missileDlight = 0;
-		//		weaponInfo->missileDlightColor	= {0,0,0};
 		weaponInfo->missilehit_sound = NULL_SOUND;
 		weaponInfo->missileTrailFunc = FX_CloneProjectileThink;
+
+		weaponInfo->mOverloadMuzzleEffect = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle");
+		weaponInfo->mOverloadMuzzleEffect2 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle2");
+		weaponInfo->mOverloadMuzzleEffect3 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle3");
 
 		weaponInfo->altFlashSound[0] = trap->S_RegisterSound("sound/weapons/dc17/alt_fire.wav");
 		weaponInfo->altFiringSound = NULL_SOUND;
@@ -867,7 +878,6 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->altMissileModel = NULL_HANDLE;
 		weaponInfo->altMissileSound = NULL_SOUND;
 		weaponInfo->altMissileDlight = 0;
-		//		weaponInfo->altMissileDlightColor= {0,0,0};
 		weaponInfo->altMissilehit_sound = NULL_SOUND;
 		weaponInfo->altMissileTrailFunc = FX_CloneProjectileThink;
 
@@ -886,9 +896,12 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->missileModel = NULL_HANDLE;
 		weaponInfo->missileSound = NULL_SOUND;
 		weaponInfo->missileDlight = 0;
-		//		weaponInfo->missileDlightColor	= {0,0,0};
 		weaponInfo->missilehit_sound = NULL_SOUND;
 		weaponInfo->missileTrailFunc = FX_BlasterProjectileThink;
+
+		weaponInfo->mOverloadMuzzleEffect = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle");
+		weaponInfo->mOverloadMuzzleEffect2 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle2");
+		weaponInfo->mOverloadMuzzleEffect3 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle3");
 
 		weaponInfo->altFlashSound[0] = trap->S_RegisterSound("sound/weapons/A280/alt_fire.mp3");
 		weaponInfo->altFiringSound = NULL_SOUND;
@@ -897,7 +910,6 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->altMissileModel = NULL_HANDLE;
 		weaponInfo->altMissileSound = NULL_SOUND;
 		weaponInfo->altMissileDlight = 0;
-		//		weaponInfo->altMissileDlightColor= {0,0,0};
 		weaponInfo->altMissilehit_sound = NULL_SOUND;
 		weaponInfo->altMissileTrailFunc = FX_BlasterProjectileThink;
 
@@ -918,9 +930,12 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->missileModel = NULL_HANDLE;
 		weaponInfo->missileSound = NULL_SOUND;
 		weaponInfo->missileDlight = 0;
-		//weaponInfo->missileDlightColor= {0,0,0};
 		weaponInfo->missilehit_sound = NULL_SOUND;
 		weaponInfo->missileTrailFunc = FX_BryarProjectileThink;
+
+		weaponInfo->mOverloadMuzzleEffect = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle");
+		weaponInfo->mOverloadMuzzleEffect2 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle2");
+		weaponInfo->mOverloadMuzzleEffect3 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle3");
 
 		weaponInfo->altFlashSound[0] = trap->S_RegisterSound("sound/weapons/LPA_NN-14/alt_fire.wav");
 		weaponInfo->altFiringSound = NULL_SOUND;
@@ -929,9 +944,12 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->altMissileModel = NULL_HANDLE;
 		weaponInfo->altMissileSound = NULL_SOUND;
 		weaponInfo->altMissileDlight = 0;
-		//weaponInfo->altMissileDlightColor= {0,0,0};
 		weaponInfo->altMissilehit_sound = NULL_SOUND;
 		weaponInfo->altMissileTrailFunc = FX_BryarAltProjectileThink;
+
+		weaponInfo->mOverloadMuzzleEffect = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle");
+		weaponInfo->mOverloadMuzzleEffect2 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle2");
+		weaponInfo->mOverloadMuzzleEffect3 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle3");
 
 		cgs.effects.bryarShotEffect = trap->FX_RegisterEffect("bryar/shot");
 		cgs.effects.bryarPowerupShotEffect = trap->FX_RegisterEffect("bryar/crackleShot");
@@ -959,7 +977,6 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->missileModel = NULL_HANDLE;
 		weaponInfo->missileSound = NULL_SOUND;
 		weaponInfo->missileDlight = 0;
-		//		weaponInfo->missileDlightColor	= {0,0,0};
 		weaponInfo->missilehit_sound = NULL_SOUND;
 		weaponInfo->missileTrailFunc = FX_BlasterProjectileThink;
 
@@ -970,9 +987,12 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->altMissileModel = NULL_HANDLE;
 		weaponInfo->altMissileSound = NULL_SOUND;
 		weaponInfo->altMissileDlight = 0;
-		//		weaponInfo->altMissileDlightColor= {0,0,0};
 		weaponInfo->altMissilehit_sound = NULL_SOUND;
 		weaponInfo->altMissileTrailFunc = FX_BlasterProjectileThink;
+
+		weaponInfo->mOverloadMuzzleEffect = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle");
+		weaponInfo->mOverloadMuzzleEffect2 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle2");
+		weaponInfo->mOverloadMuzzleEffect3 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle3");
 
 		trap->FX_RegisterEffect("blaster/deflect");
 		cgs.effects.blasterShotEffect = trap->FX_RegisterEffect("blaster/shot");
@@ -991,7 +1011,6 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->missileModel = NULL_HANDLE;
 		weaponInfo->missileSound = NULL_SOUND;
 		weaponInfo->missileDlight = 0;
-		//		weaponInfo->missileDlightColor	= {0,0,0};
 		weaponInfo->missilehit_sound = NULL_SOUND;
 		weaponInfo->missileTrailFunc = FX_BlasterProjectileThink;
 
@@ -1002,9 +1021,12 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->altMissileModel = NULL_HANDLE;
 		weaponInfo->altMissileSound = NULL_SOUND;
 		weaponInfo->altMissileDlight = 0;
-		//		weaponInfo->altMissileDlightColor= {0,0,0};
 		weaponInfo->altMissilehit_sound = NULL_SOUND;
 		weaponInfo->altMissileTrailFunc = FX_BlasterProjectileThink;
+
+		weaponInfo->mOverloadMuzzleEffect = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle");
+		weaponInfo->mOverloadMuzzleEffect2 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle2");
+		weaponInfo->mOverloadMuzzleEffect3 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle3");
 
 		trap->FX_RegisterEffect("blaster/deflect");
 		cgs.effects.blasterShotEffect = trap->FX_RegisterEffect("blaster/shot");
@@ -1023,7 +1045,6 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->missileModel = NULL_HANDLE;
 		weaponInfo->missileSound = NULL_SOUND;
 		weaponInfo->missileDlight = 0;
-		//weaponInfo->missileDlightColor= {0,0,0};
 		weaponInfo->missilehit_sound = NULL_SOUND;
 		weaponInfo->missileTrailFunc = FX_CloneAltProjectileThink;
 
@@ -1034,9 +1055,12 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->altMissileModel = NULL_HANDLE;
 		weaponInfo->altMissileSound = NULL_SOUND;
 		weaponInfo->altMissileDlight = 0;
-		//weaponInfo->altMissileDlightColor= {0,0,0};
 		weaponInfo->altMissilehit_sound = NULL_SOUND;
 		weaponInfo->altMissileTrailFunc = FX_CloneAltProjectileThink;
+
+		weaponInfo->mOverloadMuzzleEffect = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle");
+		weaponInfo->mOverloadMuzzleEffect2 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle2");
+		weaponInfo->mOverloadMuzzleEffect3 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle3");
 
 		cgs.effects.cloneShotEffect = trap->FX_RegisterEffect("clone/projectile");
 		cgs.effects.clonePowerupShotEffect = trap->FX_RegisterEffect("clone/crackleShot");

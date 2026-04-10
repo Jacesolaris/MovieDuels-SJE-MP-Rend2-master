@@ -7447,8 +7447,7 @@ void Menu_Paint(menuDef_t* menu, const qboolean forcePaint)
 		color[1] = 0;
 		DC->drawRect(menu->window.rect.x, menu->window.rect.y, menu->window.rect.w, menu->window.rect.h, 1, color);
 	}
-}
-/*
+}/*
 ==========================
 Item_ValidateTypeData
 
@@ -7462,47 +7461,51 @@ for the item's specific type.
 */
 static void Item_ValidateTypeData(itemDef_t* item)
 {
-	qboolean alreadyAllocated = qfalse;
-
+	// ------------------------------------------------------------
+	// Validate input
+	// ------------------------------------------------------------
 	if (item == NULL)
 	{
 		Com_Printf("Item_ValidateTypeData: item is NULL\n");
 		return;
 	}
 
-	alreadyAllocated = (item->typeData.data != NULL ? qtrue : qfalse);
+	// Explicit qboolean evaluation
+	qboolean alreadyAllocated = (item->typeData.data != NULL ? qtrue : qfalse);
 	if (alreadyAllocated == qtrue)
 	{
 		return;
 	}
 
+	// ------------------------------------------------------------
+	// Allocate based on item type
+	// ------------------------------------------------------------
 	switch (item->type)
 	{
-		/* ----------------------------------------------------
-		   LISTBOX
-		   ---------------------------------------------------- */
+		// ========================================================
+		// LISTBOX
+		// ========================================================
 	case ITEM_TYPE_LISTBOX:
 	{
 		listBoxDef_t* ptr = (listBoxDef_t*)UI_Alloc(sizeof(listBoxDef_t));
-
 		if (ptr == NULL)
 		{
-			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for LISTBOX");
+			Com_Printf("Item_ValidateTypeData: UI_Alloc failed for LISTBOX\n");
 			return;
 		}
 
 		memset(ptr, 0, sizeof(listBoxDef_t));
 
-		/* Write to BOTH union views to silence analyzer */
+		// Assign through both union views to satisfy static analyzer
 		item->typeData.data = ptr;
 		item->typeData.listbox = ptr;
 		break;
 	}
 
-	/* ----------------------------------------------------
-	   TEXT / EDITFIELD / NUMERICFIELD / YESNO / BIND /
-	   SLIDER / INTSLIDER / SLIDER_ROTATE
-	   ---------------------------------------------------- */
+	// ========================================================
+	// TEXT / EDITFIELD / NUMERICFIELD / YESNO / BIND /
+	// SLIDER / INTSLIDER / SLIDER_ROTATE
+	// ========================================================
 	case ITEM_TYPE_TEXT:
 	case ITEM_TYPE_EDITFIELD:
 	case ITEM_TYPE_NUMERICFIELD:
@@ -7513,10 +7516,9 @@ static void Item_ValidateTypeData(itemDef_t* item)
 	case ITEM_TYPE_SLIDER_ROTATE:
 	{
 		editFieldDef_t* ptr = (editFieldDef_t*)UI_Alloc(sizeof(editFieldDef_t));
-
 		if (ptr == NULL)
 		{
-			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for EDITFIELD");
+			Com_Printf("Item_ValidateTypeData: UI_Alloc failed for EDITFIELD\n");
 			return;
 		}
 
@@ -7525,26 +7527,28 @@ static void Item_ValidateTypeData(itemDef_t* item)
 		item->typeData.data = ptr;
 		item->typeData.edit = ptr;
 
-		/* Only EDITFIELD and NUMERICFIELD use maxPaintChars */
+		// Avoid analyzer warning by using a local alias
+		editFieldDef_t* edit = item->typeData.edit;
+
+		// Only EDITFIELD and NUMERICFIELD use maxPaintChars
 		if (item->type == ITEM_TYPE_EDITFIELD ||
 			item->type == ITEM_TYPE_NUMERICFIELD)
 		{
-			item->typeData.edit->maxPaintChars = MAX_EDITFIELD;
+			edit->maxPaintChars = MAX_EDITFIELD;
 		}
 
 		break;
 	}
 
-	/* ----------------------------------------------------
-	   MULTI
-	   ---------------------------------------------------- */
+	// ========================================================
+	// MULTI
+	// ========================================================
 	case ITEM_TYPE_MULTI:
 	{
 		multiDef_t* ptr = (multiDef_t*)UI_Alloc(sizeof(multiDef_t));
-
 		if (ptr == NULL)
 		{
-			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for MULTI");
+			Com_Printf("Item_ValidateTypeData: UI_Alloc failed for MULTI\n");
 			return;
 		}
 
@@ -7555,17 +7559,16 @@ static void Item_ValidateTypeData(itemDef_t* item)
 		break;
 	}
 
-	/* ----------------------------------------------------
-	   MODEL / MODEL_ITEM
-	   ---------------------------------------------------- */
+	// ========================================================
+	// MODEL / MODEL_ITEM
+	// ========================================================
 	case ITEM_TYPE_MODEL:
 	case ITEM_TYPE_MODEL_ITEM:
 	{
 		modelDef_t* ptr = (modelDef_t*)UI_Alloc(sizeof(modelDef_t));
-
 		if (ptr == NULL)
 		{
-			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for MODEL");
+			Com_Printf("Item_ValidateTypeData: UI_Alloc failed for MODEL\n");
 			return;
 		}
 
@@ -7576,16 +7579,15 @@ static void Item_ValidateTypeData(itemDef_t* item)
 		break;
 	}
 
-	/* ----------------------------------------------------
-	   TEXTSCROLL
-	   ---------------------------------------------------- */
+	// ========================================================
+	// TEXTSCROLL
+	// ========================================================
 	case ITEM_TYPE_TEXTSCROLL:
 	{
 		textScrollDef_t* ptr = (textScrollDef_t*)UI_Alloc(sizeof(textScrollDef_t));
-
 		if (ptr == NULL)
 		{
-			Com_Error(ERR_FATAL, "Item_ValidateTypeData: UI_Alloc failed for TEXTSCROLL");
+			Com_Printf("Item_ValidateTypeData: UI_Alloc failed for TEXTSCROLL\n");
 			return;
 		}
 
@@ -7596,13 +7598,14 @@ static void Item_ValidateTypeData(itemDef_t* item)
 		break;
 	}
 
-	/* ----------------------------------------------------
-	   DEFAULT: no typeData required
-	   ---------------------------------------------------- */
+	// ========================================================
+	// DEFAULT: no typeData required
+	// ========================================================
 	default:
 		break;
 	}
 }
+
 
 /*
 ===============

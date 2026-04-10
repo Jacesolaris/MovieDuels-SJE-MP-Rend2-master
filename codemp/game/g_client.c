@@ -7817,8 +7817,6 @@ spawn_done:
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					client->skillLevel[SK_BLASTERRATEOFFIREUPGRADE] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BOBA;
-					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
-					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_ROCKET_LAUNCHER;
 					client->skillLevel[SK_ROCKET] = FORCE_LEVEL_3;
@@ -8136,8 +8134,6 @@ spawn_done:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BOBA;
-					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
-					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->ps.ammo[AMMO_THERMAL] = 4;
@@ -8562,13 +8558,13 @@ spawn_done:
 			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
+			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
 			break;
 		case BCLASS_BOBAFETT:
 			client->ps.stats[STAT_ARMOR] = 300;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_FLAMETHROWER;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
+			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_GRAPPLE;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_JETPACK;
 			ent->flags |= FL_SABERDAMAGE_RESIST;
@@ -8739,7 +8735,7 @@ spawn_done:
 			break;
 		case BCLASS_REBEL:
 		case BCLASS_REBEL_PILOT:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
+			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			ClassItemHealthSetup(ent);
@@ -8813,7 +8809,7 @@ spawn_done:
 		case BCLASS_STORMPILOT:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
 			ClassItemHealthSetup(ent);
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
+			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
@@ -8845,7 +8841,7 @@ spawn_done:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			ClassItemHealthSetup(ent);
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
+			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
 			break;
 		case BCLASS_UGNAUGHT:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
@@ -8867,8 +8863,8 @@ spawn_done:
 			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SENTRY_GUN;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
+			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
+			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
 			break;
 		case BCLASS_CADENCE:
@@ -8935,7 +8931,7 @@ spawn_done:
 			client->ps.stats[STAT_ARMOR] = 300;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_JETPACK;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
+			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_GRAPPLE;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_FLAMETHROWER;
 			ent->flags |= FL_SABERDAMAGE_RESIST;
@@ -8945,7 +8941,7 @@ spawn_done:
 			client->ps.stats[STAT_ARMOR] = 300;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_FLAMETHROWER;
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
+			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_GRAPPLE;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_JETPACK;
 			ent->flags |= FL_SABERDAMAGE_RESIST;
@@ -8963,7 +8959,7 @@ spawn_done:
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_SBD:
-			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
+			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
 			client->ps.stats[STAT_ARMOR] = 500;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
