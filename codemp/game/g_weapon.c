@@ -217,6 +217,18 @@ extern void Sphereshield_Off(gentity_t* self);
 #define CLONECARBINE_VELOCITY			2300
 #define CLONECARBINE_DAMAGE				20
 
+//  Z-6 Rotary Cannon (Minigun)
+//---------
+#define Z6_ROTARY_CANNON_SPREAD				1.1f
+#define Z6_ROTARY_CANNON_NPC_SPREAD			1.2f
+#define Z6_ROTARY_CANNON_VELOCITY			2200
+#define Z6_ROTARY_CANNON_DAMAGE				12
+#define Z6_ROTARY_CANNON_NPC_VEL_CUT		0.7f
+#define Z6_ROTARY_CANNON_NPC_HARD_VEL_CUT	0.5f
+#define Z6_ROTARY_CANNON_NPC_DAMAGE_EASY	8
+#define Z6_ROTARY_CANNON_NPC_DAMAGE_NORMAL	10
+#define Z6_ROTARY_CANNON_NPC_DAMAGE_HARD	12
+
 // DH-17
 //---------
 #define REBELBLASTER_SPREAD				1.6f//1.2f
@@ -1035,6 +1047,31 @@ static void WP_FireCloneCommandoMissile(gentity_t* ent, vec3_t start, vec3_t dir
 }
 
 //---------------------------------------------------------
+static void WP_FireZ6RotaryCannonMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	const int velocity = Z6_ROTARY_CANNON_VELOCITY;
+	int	damage = Z6_ROTARY_CANNON_DAMAGE;
+
+	if (ent->s.eType == ET_NPC)
+	{ //animent
+		damage = 10;
+	}
+
+	gentity_t* missile = CreateMissile(start, dir, velocity, 10000, ent, alt_fire);
+
+	missile->classname = "z6_rotary_proj";
+	missile->s.weapon = WP_Z6_ROTARY_CANNON;
+
+	missile->damage = damage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+	missile->methodOfDeath = MOD_Z6_ROTARY_CANNON;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+	// we don't want it to bounce forever
+	missile->bounceCount = 8;
+}
+//---------------------------------------------------------
 static void WP_FireRebelRifleMissile(gentity_t* ent, vec3_t start, vec3_t dir, qboolean alt_fire)
 //---------------------------------------------------------
 {
@@ -1482,6 +1519,27 @@ static void WP_FireCloneCommando(gentity_t* ent, qboolean alt_fire)
 
 	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
 	WP_FireCloneCommandoMissile(ent, muzzle, dir, alt_fire);
+}
+
+//---------------------------------------------------------
+static void WP_FireZ6RotaryCannon(gentity_t* ent, qboolean alt_fire)
+//---------------------------------------------------------
+{
+	vec3_t  dir, angs;
+
+	vectoangles(forward, angs);
+
+	if (alt_fire)
+	{
+		// add some slop to the alt-fire direction
+		angs[PITCH] += Q_flrand(-1.0f, 1.0f) * CLONECARBINE_SPREAD;
+		angs[YAW] += Q_flrand(-1.0f, 1.0f) * CLONECARBINE_SPREAD;
+	}
+
+	AngleVectors(angs, dir, NULL, NULL);
+
+	// FIXME: if temp_org does not have clear trace to inside the bbox, don't shoot!
+	WP_FireZ6RotaryCannonMissile(ent, muzzle, dir, alt_fire);
 }
 
 //---------------------------------------------------------
@@ -6493,6 +6551,10 @@ void FireWeapon(gentity_t* ent, const qboolean alt_fire)
 
 	case WP_CLONECOMMANDO:
 		WP_FireCloneCommando(ent, alt_fire);
+		break;
+
+	case WP_Z6_ROTARY_CANNON:
+		WP_FireZ6RotaryCannon(ent, alt_fire);
 		break;
 
 	case WP_REBELRIFLE:

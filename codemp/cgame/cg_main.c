@@ -3045,6 +3045,7 @@ void CG_Init(const int serverMessageNum, const int serverCommandSequence, const 
 	cgs.media.weapontype_rebelblaster = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_dh-17.tga");
 	cgs.media.weapontype_clonerifle = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_clonerifle.tga");
 	cgs.media.weapontype_clonecommando = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_dc-17m.tga");
+	cgs.media.weapontype_z6rotarycannon = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_z6_rotary_cannon.tga");
 	cgs.media.weapontype_rebelrifle = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_A280.tga");
 	cgs.media.weapontype_rey = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_lpa_nn-14.tga");
 	cgs.media.weapontype_jango = trap->R_RegisterShaderNoMip("gfx/hud/w_icon_westar.tga");

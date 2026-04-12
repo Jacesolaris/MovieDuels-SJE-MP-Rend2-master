@@ -612,6 +612,7 @@ clientkilled:
 		case MOD_CLONECARBINE:
 		case MOD_CLONERIFLE:
 		case MOD_CLONECOMMANDO:
+		case MOD_Z6_ROTARY_CANNON:
 		case MOD_REBELRIFLE:
 		case MOD_BOBA:
 			message = "KILLED_BLASTER";
@@ -1445,6 +1446,7 @@ static void CG_G2MarkEvent(entityState_t* es)
 	case WP_REBELBLASTER:
 	case WP_CLONERIFLE:
 	case WP_CLONECOMMANDO:
+	case WP_Z6_ROTARY_CANNON:
 	case WP_REBELRIFLE:
 	case WP_REY:
 	case WP_JANGO:

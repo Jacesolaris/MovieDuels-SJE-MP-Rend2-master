@@ -821,7 +821,6 @@ static qboolean pas_find_enemies(gentity_t* self)
 	return found;
 }
 
-
 //---------------------------------
 static void pas_adjust_enemy(gentity_t* ent)
 //---------------------------------
@@ -1159,7 +1158,6 @@ static void pas_think(gentity_t* ent)
 		ent->s.fireflag = 0;
 	}
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 void turret_die(gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, int mod)
@@ -3949,6 +3947,7 @@ void clear_registered_items(void)
 	register_item(BG_FindItemForWeapon(WP_REBELBLASTER));
 	register_item(BG_FindItemForWeapon(WP_CLONERIFLE));
 	register_item(BG_FindItemForWeapon(WP_CLONECOMMANDO));
+	register_item(BG_FindItemForWeapon(WP_Z6_ROTARY_CANNON));
 	register_item(BG_FindItemForWeapon(WP_REBELRIFLE));
 	register_item(BG_FindItemForWeapon(WP_REY));
 	register_item(BG_FindItemForWeapon(WP_JANGO));
@@ -4071,6 +4070,7 @@ static qboolean G_AmmoDisabled(const int wDisable, const gitem_t* item)
 			|| !(wDisable & 1 << WP_CLONECARBINE)
 			|| !(wDisable & 1 << WP_CLONERIFLE)
 			|| !(wDisable & 1 << WP_CLONECOMMANDO)
+			|| !(wDisable & 1 << WP_Z6_ROTARY_CANNON)
 			|| !(wDisable & 1 << WP_CLONEPISTOL)
 			|| !(wDisable & 1 << WP_FLECHETTE))
 		{

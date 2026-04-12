@@ -2366,9 +2366,9 @@ void CG_NewClientInfo(int clientNum, qboolean entities_initialized)
 
 				if ((cent->currentState.eFlags & EF3_DUAL_WEAPONS) &&
 					(cent->currentState.weapon == WP_BRYAR_PISTOL ||
-					cent->currentState.weapon == WP_REY ||
-					cent->currentState.weapon == WP_JANGO ||
-					cent->currentState.weapon == WP_CLONEPISTOL))
+						cent->currentState.weapon == WP_REY ||
+						cent->currentState.weapon == WP_JANGO ||
+						cent->currentState.weapon == WP_CLONEPISTOL))
 				{
 					cent->ghoul2weapon2 = CG_G2WeaponInstance2(cent, cent->currentState.weapon);
 				}
@@ -16046,6 +16046,7 @@ static void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, co
 
 	case HLR_REPEATER:
 		weapon_type = WP_REPEATER;
+		weapon_type = WP_Z6_ROTARY_CANNON;
 		break;
 
 	case HLR_FLECHETTE:
@@ -16146,7 +16147,7 @@ static void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, co
 #define		G2MODEL_LAUNCHER_HOLSTERED		9
 #define		G2MODEL_GOLAN_HOLSTERED			10
 
-void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
+static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 {
 	//renders holstered weapons on players.
 	//flag to indicate that
@@ -18083,6 +18084,55 @@ void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 				//manually render the blaster
 				CG_HolsteredWeaponRender(cent, ci, HLR_DEMP2);
 			}
+		}
+
+		//handle repeater on back
+		if (back_in_use //back in use already
+			|| !(weap_inv & 1 << WP_Z6_ROTARY_CANNON) //don't have weapon
+			|| cent->currentState.weapon == WP_Z6_ROTARY_CANNON) //currently using weapon
+		{
+			//don't render weapon on back
+			if (ci->holster_launcher != -1 && ci->launcher_holstered == WP_Z6_ROTARY_CANNON)
+			{
+				if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED))
+				{
+					trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED);
+				}
+				ci->launcher_holstered = 0;
+			}
+		}
+		else
+		{
+			//render weapon on back
+			if (ci->holster_launcher != -1)
+			{
+				//have specialized bolt
+				if (ci->launcher_holstered != WP_Z6_ROTARY_CANNON)
+				{
+					//don't already have the concussion bolted.
+					if (ci->launcher_holstered != 0)
+					{
+						//we have something else bolted there, remove it first.
+						if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED))
+						{
+							trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED);
+						}
+						ci->launcher_holstered = 0;
+					}
+
+					//now bolt the weapon
+					trap->G2API_CopySpecificGhoul2Model(CG_G2WeaponInstance(cent, WP_Z6_ROTARY_CANNON), 0, cent->ghoul2,
+						G2MODEL_LAUNCHER_HOLSTERED);
+					trap->G2API_SetBoltInfo(cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED, ci->holster_launcher);
+					ci->launcher_holstered = WP_Z6_ROTARY_CANNON;
+				}
+			}
+			else
+			{
+				//manually render the weapon
+				CG_HolsteredWeaponRender(cent, ci, HLR_REPEATER);
+			}
+			back_in_use = qtrue;
 		}
 
 		/*============================
@@ -20952,7 +21002,7 @@ stillDoSaber:
 			cent->currentState.weapon == WP_CLONEPISTOL)
 		{
 			// Right-hand world weapon (Ghoul2 index 1)
-			cg_add_player_weaponduals(
+			CG_AddViewWeaponDuals(
 				&legs,
 				NULL,
 				cent,
@@ -20962,7 +21012,7 @@ stillDoSaber:
 			);
 
 			// Left-hand world weapon (Ghoul2 index 2)
-			cg_add_player_weaponduals(
+			CG_AddViewWeaponDuals(
 				&legs,
 				NULL,
 				cent,

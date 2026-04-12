@@ -64,7 +64,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-10,Month-04,Year-26,BuildNum-04" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-12,Month-04,Year-26,BuildNum-04" // build date
 
 #define	STEPSIZE		18
 
@@ -1231,6 +1231,7 @@ typedef enum {
 	MOD_REBELBLASTER,
 	MOD_CLONERIFLE,
 	MOD_CLONECOMMANDO,
+	MOD_Z6_ROTARY_CANNON,
 	MOD_REBELRIFLE,
 	MOD_REY,
 	MOD_REY_ALT,

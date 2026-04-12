@@ -262,6 +262,7 @@ int MinimumAttackDistance[WP_NUM_WEAPONS] =
 	0, //WP_REBELBLASTER,
 	0, //WP_CLONERIFLE,
 	0, //WP_CLONECOMMANDO,
+	0, //WP_Z6_ROTARY_CANNON,
 	0, //WP_REBELRIFLE,
 
 	200, //WP_REY
@@ -301,6 +302,7 @@ int MaximumAttackDistance[WP_NUM_WEAPONS] =
 	9999, //WP_REBELBLASTER,
 	9999, //WP_CLONERIFLE,
 	9999, //WP_CLONECOMMANDO,
+	9999, //WP_Z6_ROTARY_CANNON,
 
 	9999, //WP_REBELRIFLE,
 	9999, //WP_REY,
@@ -340,8 +342,9 @@ int IdealAttackDistance[WP_NUM_WEAPONS] =
 	1000, //WP_REBELBLASTER,
 	1000, //WP_CLONERIFLE,
 	1000, //WP_CLONECOMMANDO,
-	1000, //WP_REBELRIFLE,
+	1000, //WP_Z6_ROTARY_CANNON,
 
+	1000, //WP_REBELRIFLE,
 	350, //WP_REY,
 	350, //WP_JANGO,
 	350, //WP_BOBA,
@@ -1946,6 +1949,7 @@ int bot_ai_setup_client(const int client, const struct bot_settings_s* settings)
 	bs->botWeaponWeights[WP_REBELBLASTER] = 12;
 	bs->botWeaponWeights[WP_CLONERIFLE] = 12;
 	bs->botWeaponWeights[WP_CLONECOMMANDO] = 12;
+	bs->botWeaponWeights[WP_Z6_ROTARY_CANNON] = 12;
 	bs->botWeaponWeights[WP_REBELRIFLE] = 12;
 	bs->botWeaponWeights[WP_REY] = 11;
 	bs->botWeaponWeights[WP_JANGO] = 11;
@@ -5962,7 +5966,8 @@ static int scan_for_enemies(bot_state_t* bs)
 			else if ((g_entities[i].client->ps.weapon == WP_REPEATER ||
 				g_entities[i].client->ps.weapon == WP_BOWCASTER ||
 				g_entities[i].client->ps.weapon == WP_FLECHETTE ||
-				g_entities[i].client->ps.weapon == WP_THERMAL) &&
+				g_entities[i].client->ps.weapon == WP_THERMAL ||
+				g_entities[i].client->ps.weapon == WP_Z6_ROTARY_CANNON) &&
 				(g_entities[bs->client].client->ps.weapon == WP_REPEATER ||
 					g_entities[bs->client].client->ps.weapon == WP_BOWCASTER ||
 					g_entities[bs->client].client->ps.weapon == WP_FLECHETTE))
@@ -6218,7 +6223,8 @@ static void advanced_scanfor_enemies(bot_state_t* bs)
 			else if ((g_entities[i].client->ps.weapon == WP_REPEATER ||
 				g_entities[i].client->ps.weapon == WP_BOWCASTER ||
 				g_entities[i].client->ps.weapon == WP_FLECHETTE ||
-				g_entities[i].client->ps.weapon == WP_THERMAL) &&
+				g_entities[i].client->ps.weapon == WP_THERMAL ||
+				g_entities[i].client->ps.weapon == WP_Z6_ROTARY_CANNON) &&
 				(g_entities[bs->client].client->ps.weapon == WP_REPEATER ||
 					g_entities[bs->client].client->ps.weapon == WP_BOWCASTER ||
 					g_entities[bs->client].client->ps.weapon == WP_FLECHETTE))
@@ -6394,6 +6400,7 @@ int bot_get_weapon_range(const bot_state_t* bs)
 	case WP_BLASTER:
 	case WP_DISRUPTOR:
 	case WP_REPEATER:
+	case WP_Z6_ROTARY_CANNON:
 	case WP_BATTLEDROID:
 	case WP_THEFIRSTORDER:
 	case WP_CLONECARBINE:
@@ -9588,6 +9595,8 @@ float bot_weapon_can_lead(const bot_state_t* bs)
 		return 0.95f;
 	case WP_REPEATER:
 		return 0.95f;
+	case WP_Z6_ROTARY_CANNON:
+		return 0.95f;
 	case WP_THERMAL:
 		return 0.5f;
 	case WP_DEMP2:
@@ -9873,6 +9882,7 @@ static int should_secondary_fire(const bot_state_t* bs)
 		weap == WP_REBELBLASTER ||
 		weap == WP_CLONERIFLE ||
 		weap == WP_CLONECOMMANDO ||
+		weap == WP_Z6_ROTARY_CANNON ||
 		weap == WP_REBELRIFLE ||
 		weap == WP_BATTLEDROID && bs->frame_Enemy_Len < 300)
 	{
@@ -12462,6 +12472,7 @@ void standard_bot_ai(bot_state_t* bs)
 				g_entities[bs->client].client->ps.weapon == WP_CLONECARBINE ||
 				g_entities[bs->client].client->ps.weapon == WP_CLONERIFLE ||
 				g_entities[bs->client].client->ps.weapon == WP_CLONECOMMANDO ||
+				g_entities[bs->client].client->ps.weapon == WP_Z6_ROTARY_CANNON ||
 				g_entities[bs->client].client->ps.weapon == WP_CLONEPISTOL)
 			{
 				bot_buy_item(bs, "bolts");
@@ -14666,6 +14677,7 @@ void Enhanced_bot_ai(bot_state_t* bs)
 				g_entities[bs->client].client->ps.weapon == WP_CLONECARBINE ||
 				g_entities[bs->client].client->ps.weapon == WP_CLONERIFLE ||
 				g_entities[bs->client].client->ps.weapon == WP_CLONECOMMANDO ||
+				g_entities[bs->client].client->ps.weapon == WP_Z6_ROTARY_CANNON ||
 				g_entities[bs->client].client->ps.weapon == WP_CLONEPISTOL)
 			{
 				bot_buy_item(bs, "bolts");

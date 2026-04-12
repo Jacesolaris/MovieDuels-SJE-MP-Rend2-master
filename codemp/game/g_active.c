@@ -2299,6 +2299,7 @@ static qboolean GunisLong(const gentity_t* ent)
 	case WP_CLONECARBINE:
 	case WP_CLONERIFLE:
 	case WP_CLONECOMMANDO:
+	case WP_Z6_ROTARY_CANNON:
 	case WP_REBELRIFLE:
 		return qtrue;
 	default:;
@@ -3933,6 +3934,7 @@ qboolean IsHoldingReloadableGun(const gentity_t* ent)
 	case WP_REBELBLASTER:
 	case WP_CLONERIFLE:
 	case WP_CLONECOMMANDO:
+	case WP_Z6_ROTARY_CANNON:
 	case WP_REBELRIFLE:
 	case WP_REY:
 	case WP_JANGO:
@@ -4044,6 +4046,7 @@ void WP_ReloadGun(gentity_t* ent)
 				ent->s.weapon == WP_CLONECARBINE ||
 				ent->s.weapon == WP_CLONERIFLE ||
 				ent->s.weapon == WP_CLONECOMMANDO ||
+				ent->s.weapon == WP_Z6_ROTARY_CANNON ||
 				ent->s.weapon == WP_CLONEPISTOL)
 			{
 				if (ent->client->ps.ammo[AMMO_METAL_BOLTS] < ClipSize(AMMO_METAL_BOLTS, ent))
@@ -4127,6 +4130,7 @@ static qboolean IsGunner(const gentity_t* ent)
 	case WP_REBELBLASTER:
 	case WP_CLONERIFLE:
 	case WP_CLONECOMMANDO:
+	case WP_Z6_ROTARY_CANNON:
 	case WP_REBELRIFLE:
 	case WP_REY:
 	case WP_JANGO:
@@ -5938,7 +5942,7 @@ static void ClientThink_real(gentity_t* ent)
 		//blocking with saber
 		client->ps.saberManualBlockingTime = level.time + FRAMETIME;
 	}
-	
+
 	if (client->beingThrown > level.time)
 	{
 		// Validate throwingIndex before using it to index g_entities

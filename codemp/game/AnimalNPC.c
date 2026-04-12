@@ -444,6 +444,7 @@ static void AnimateRiders(Vehicle_t* p_veh)
 			pilotPS->weapon == WP_REBELBLASTER ||
 			pilotPS->weapon == WP_CLONERIFLE ||
 			pilotPS->weapon == WP_CLONECOMMANDO ||
+			pilotPS->weapon == WP_Z6_ROTARY_CANNON ||
 			pilotPS->weapon == WP_REBELRIFLE)
 		{
 			WeaponPose = WPOSE_BLASTER;

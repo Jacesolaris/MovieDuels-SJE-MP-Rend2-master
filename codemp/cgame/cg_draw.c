@@ -2526,6 +2526,29 @@ static void CG_DrawWeaponCloneCommando(const int x, const int y)
 		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_clonecommando);
 	}
 }
+static void CG_DrawWeaponZ6RotaryCannon(const int x, const int y)
+{
+	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_z6rotarycannon);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 1) //movie duels right
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_z6rotarycannon);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 2) //movie duels right vert
+	{
+		CG_DrawPic(x + 36, y + 20, 20, 20, cgs.media.weapontype_z6rotarycannon);
+	}
+	else if (g_SerenityJediEngineHudMode.integer == 3) //movie duels right hoz
+	{
+		CG_DrawPic(x + 21, y + 38, 20, 20, cgs.media.weapontype_z6rotarycannon);
+	}
+	else
+	{
+		CG_DrawPic(x + 30, y + 35, 20, 20, cgs.media.weapontype_z6rotarycannon);
+	}
+}
 static void CG_DrawWeaponRebelRifle(const int x, const int y)
 {
 	if (g_SerenityJediEngineHudMode.integer == 0) //movie duels right
@@ -2751,6 +2774,10 @@ static void CG_DrawMDWeaponIcon(const centity_t* cent)
 	else if (cent->currentState.weapon == WP_CLONECOMMANDO)
 	{
 		CG_DrawWeaponCloneCommando(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
+	}
+	else if (cent->currentState.weapon == WP_Z6_ROTARY_CANNON)
+	{
+		CG_DrawWeaponZ6RotaryCannon(SCREEN_WIDTH - 80, SCREEN_HEIGHT - 80);
 	}
 	else if (cent->currentState.weapon == WP_REBELRIFLE)
 	{
@@ -5001,6 +5028,23 @@ static void CG_DrawCusweapontype(const centity_t* cent, const menuDef_t* menu_hu
 	else if (cent->currentState.weapon == WP_CLONECOMMANDO)
 	{
 		focus_item = Menu_FindItemByName(menu_hud, "weapontype_clonecommando");
+
+		if (focus_item)
+		{
+			trap->R_SetColor(colorTable[CT_WHITE]);
+
+			CG_DrawPic(
+				focus_item->window.rect.x + 5,
+				focus_item->window.rect.y + 5,
+				focus_item->window.rect.w,
+				focus_item->window.rect.h,
+				focus_item->window.background
+			);
+		}
+	}
+	else if (cent->currentState.weapon == WP_Z6_ROTARY_CANNON)
+	{
+		focus_item = Menu_FindItemByName(menu_hud, "weapontype_z6rotarycannon");
 
 		if (focus_item)
 		{
@@ -11666,6 +11710,7 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 				hShader = cgs.media.crosshairShader[1];
 			}
 			else if (cg.snap->ps.weapon == WP_REPEATER ||
+				cg.snap->ps.weapon == WP_Z6_ROTARY_CANNON ||
 				cg.snap->ps.weapon == WP_BATTLEDROID ||
 				cg.snap->ps.weapon == WP_THEFIRSTORDER ||
 				cg.snap->ps.weapon == WP_CLONECARBINE ||

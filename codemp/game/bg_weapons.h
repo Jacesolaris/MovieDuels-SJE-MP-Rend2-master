@@ -54,6 +54,7 @@ typedef enum
 	WP_REBELBLASTER,     // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
 	WP_CLONERIFLE,       // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
 	WP_CLONECOMMANDO,    // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_Z6_ROTARY_CANNON, // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
 	WP_REBELRIFLE,       // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
 	WP_REY,              // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
 	WP_JANGO,            // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD

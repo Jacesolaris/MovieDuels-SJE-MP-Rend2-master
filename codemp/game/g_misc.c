@@ -2412,6 +2412,7 @@ static qboolean HasValidWeaponThatUsesAmmo(const gentity_t* ent, const int ammot
 			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_CLONECARBINE ||
 			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_CLONERIFLE ||
 			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_CLONECOMMANDO ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_Z6_ROTARY_CANNON ||
 			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_CLONEPISTOL)
 			return qtrue;
 

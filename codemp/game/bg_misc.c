@@ -288,6 +288,7 @@ int WeaponReadyAnim[WP_NUM_WEAPONS] =
 	TORSO_WEAPONREADY2,//WP_REBELBLASTER,
 	TORSO_WEAPONREADY3,//WP_CLONERIFLE,
 	TORSO_WEAPONREADY3,//WP_CLONECOMMANDO,
+	TORSO_WEAPONREADY3,//WP_Z6_ROTARY_CANNON,
 	TORSO_WEAPONREADY3,//WP_REBELRIFLE,
 	TORSO_WEAPONREADY2,//WP_REY,
 	TORSO_WEAPONREADY2,//WP_JANGO,
@@ -325,6 +326,7 @@ int WeaponReadyAnim2[WP_NUM_WEAPONS] =
 	BOTH_DUELPISTOL_STAND,//WP_REBELBLASTER,
 	TORSO_WEAPONREADY3,//WP_CLONERIFLE,
 	TORSO_WEAPONREADY3,//WP_CLONECOMMANDO,
+	TORSO_WEAPONREADY3,//WP_Z6_ROTARY_CANNON,
 	TORSO_WEAPONREADY3,//WP_REBELRIFLE,
 	BOTH_DUELPISTOL_STAND,//WP_REY,
 	BOTH_DUELPISTOL_STAND,//WP_JANGO,
@@ -362,6 +364,7 @@ int WeaponReadyLegsAnim[WP_NUM_WEAPONS] =
 	BOTH_STAND1,//WP_REBELBLASTER,
 	BOTH_STAND1,//WP_CLONERIFLE,
 	BOTH_STAND1,//WP_CLONECOMMANDO,
+	BOTH_STAND1,//WP_Z6_ROTARY_CANNON,
 	BOTH_STAND1,//WP_REBELRIFLE,
 	BOTH_STAND1,//WP_REY,
 	BOTH_STAND1,//WP_JANGO,
@@ -399,6 +402,7 @@ int WeaponAimingAnim[WP_NUM_WEAPONS] =
 	BOTH_ATTACK5,       //WP_REBELBLASTER,
 	TORSO_WEAPONREADY4, //WP_CLONERIFLE,
 	TORSO_WEAPONREADY4, //WP_CLONECOMMANDO,
+	TORSO_WEAPONREADY3, //WP_Z6_ROTARY_CANNON,
 	TORSO_WEAPONREADY4, //WP_REBELRIFLE,
 	BOTH_ATTACK5,       //WP_REY,
 	BOTH_ATTACK5,       //WP_JANGO,
@@ -436,6 +440,7 @@ int WeaponAimingAnim2[WP_NUM_WEAPONS] =
 	BOTH_DUELPISTOL_FIRE,//WP_REBELBLASTER,
 	TORSO_WEAPONREADY4,  //WP_CLONERIFLE,
 	TORSO_WEAPONREADY4,  //WP_CLONECOMMANDO,
+	TORSO_WEAPONREADY3, //WP_Z6_ROTARY_CANNON,
 	TORSO_WEAPONREADY4,  //WP_REBELRIFLE,
 	BOTH_DUELPISTOL_FIRE,//WP_REY,
 	BOTH_DUELPISTOL_FIRE,//WP_JANGO,
@@ -473,10 +478,11 @@ int WeaponAttackAnim[WP_NUM_WEAPONS] =
 	BOTH_ATTACK2,//WP_REBELBLASTER,
 	BOTH_ATTACK4,//WP_CLONERIFLE,
 	BOTH_ATTACK4,//WP_CLONECOMMANDO,
+	BOTH_ATTACK3,//WP_Z6_ROTARY_CANNON,
 	BOTH_ATTACK4,//WP_REBELRIFLE,
 	BOTH_ATTACK2,//WP_REY,
 	BOTH_ATTACK2,//WP_JANGO,
-	BOTH_ATTACK4,//WP_BOBA,
+	BOTH_ATTACK3,//WP_BOBA,
 	BOTH_ATTACK2,//WP_CLONEPISTOL,
 
 	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
@@ -510,6 +516,7 @@ int WeaponAttackAnim2[WP_NUM_WEAPONS] =
 	BOTH_ATTACK_DUAL,//WP_REBELBLASTER,
 	BOTH_ATTACK4,//WP_CLONERIFLE,
 	BOTH_ATTACK4,//WP_CLONECOMMANDO,
+	BOTH_ATTACK3,//WP_Z6_ROTARY_CANNON,
 	BOTH_ATTACK4,//WP_REBELRIFLE,
 	BOTH_ATTACK_DUAL,//WP_REY,
 	BOTH_ATTACK_DUAL,//WP_JANGO,
@@ -547,6 +554,7 @@ int WeaponAltAttackAnim[WP_NUM_WEAPONS] =
 	BOTH_ATTACK2,//WP_REBELBLASTER,
 	BOTH_ATTACK3,//WP_CLONERIFLE,
 	BOTH_ATTACK3,//WP_CLONECOMMANDO,
+	BOTH_ATTACK3,//WP_Z6_ROTARY_CANNON,
 	BOTH_ATTACK3,//WP_REBELRIFLE,
 	BOTH_ATTACK2,//WP_REY,
 	BOTH_ATTACK2,//WP_JANGO,
@@ -584,6 +592,7 @@ int WeaponAltAttackAnim2[WP_NUM_WEAPONS] =
 	BOTH_ATTACK_DUAL,//WP_REBELBLASTER,
 	BOTH_ATTACK3,//WP_CLONERIFLE,
 	BOTH_ATTACK3,//WP_CLONECOMMANDO,
+	BOTH_ATTACK3,//WP_Z6_ROTARY_CANNON,
 	BOTH_ATTACK3,//WP_REBELRIFLE,
 	BOTH_ATTACK_DUAL,//WP_REY,
 	BOTH_ATTACK_DUAL,//WP_JANGO,
@@ -1734,23 +1743,6 @@ Don't place this
 	"@MENUS_THIS_DESTRUCTIVE_PROJECTILE" // description
 },
 
-///*QUAKED weapon_repeater (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
-//*/
-//	{
-//		"weapon_repeater",
-//		"sound/weapons/w_pkup.wav",
-//        { "models/weapons2/z6_rotary/rotary_cannon_w.glm",0, 0, 0},
-///* view */		"models/weapons2/z6_rotary/rotary_cannon.md3",
-///* icon */		"gfx/hud/w_icon_repeater",
-///* pickup *///	"Imperial Heavy Repeater",
-//		100,
-//		IT_WEAPON,
-//		WP_REPEATER,
-///* precache */ "",
-///* sounds */ "",
-//		"@MENUS_THIS_DESTRUCTIVE_PROJECTILE"					// description
-//	},
-
 /*QUAKED weapon_demp2 (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
 NOTENOTE This weapon is not yet complete.  Don't place it.
 */
@@ -2082,6 +2074,23 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 				/* sounds */ "",
 						"@MENUS_THE_PRIMARY_WEAPON_OF"				// description
 	},
+
+	/*QUAKED weapon_repeater (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+	*/
+		{
+			"Rotary Cannon",
+			"sound/weapons/w_pkup.wav",
+			{ "models/weapons2/z6_rotary/rotary_cannon_w.glm",0, 0, 0},
+			/* view */		"models/weapons2/z6_rotary/rotary_cannon.md3",
+			/* icon */		"gfx/hud/w_icon_z6_rotary_cannon",
+			/* pickup *///	"Imperial Heavy Repeater",
+					100,
+					IT_WEAPON,
+					WP_Z6_ROTARY_CANNON,
+					/* precache */ "",
+					/* sounds */ "",
+							"@MENUS_THIS_DESTRUCTIVE_PROJECTILE"					// description
+						},
 
 	/*QUAKED weapon_rebelrifle (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
 	*/
@@ -4342,6 +4351,7 @@ qboolean BG_IsUsingHeavyWeap(const playerState_t* ps)
 	case WP_DISRUPTOR:
 	case WP_REPEATER:
 	case WP_ROCKET_LAUNCHER:
+	case WP_Z6_ROTARY_CANNON:
 	case WP_FLECHETTE:
 	case WP_BOWCASTER:
 		return qtrue;

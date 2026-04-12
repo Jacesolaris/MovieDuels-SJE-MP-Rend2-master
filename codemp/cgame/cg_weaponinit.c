@@ -172,7 +172,8 @@ void CG_RegisterWeapon(const int weapon_num)
 		weapon_num == WP_FLECHETTE ||
 		weapon_num == WP_REPEATER ||
 		weapon_num == WP_ROCKET_LAUNCHER ||
-		weapon_num == WP_CONCUSSION)
+		weapon_num == WP_CONCUSSION ||
+		weapon_num == WP_Z6_ROTARY_CANNON)
 	{
 		Q_strncpyz(path, item->view_model, sizeof path);
 		COM_StripExtension(path, path, sizeof path);
@@ -185,6 +186,11 @@ void CG_RegisterWeapon(const int weapon_num)
 		trap->R_RegisterModel("models/weapons2/stun_baton/baton_barrel.md3");
 		trap->R_RegisterModel("models/weapons2/stun_baton/baton_barrel2.md3");
 		trap->R_RegisterModel("models/weapons2/stun_baton/baton_barrel3.md3");
+	}
+	else if (weapon_num == WP_Z6_ROTARY_CANNON)
+	{
+		//only weapon with more than 1 barrel..
+		trap->R_RegisterModel("models/weapons2/z6_rotary/rotary_cannon_barrel.md3");
 	}
 	else
 	{
@@ -875,6 +881,38 @@ void CG_RegisterWeapon(const int weapon_num)
 		weaponInfo->altFiringSound = NULL_SOUND;
 		weaponInfo->altChargeSound = NULL_SOUND;
 		weaponInfo->altMuzzleEffect = trap->FX_RegisterEffect("dc17/altmuzzle_flash");
+		weaponInfo->altMissileModel = NULL_HANDLE;
+		weaponInfo->altMissileSound = NULL_SOUND;
+		weaponInfo->altMissileDlight = 0;
+		weaponInfo->altMissilehit_sound = NULL_SOUND;
+		weaponInfo->altMissileTrailFunc = FX_CloneProjectileThink;
+
+		cgs.effects.cloneShotEffect = trap->FX_RegisterEffect("clone/projectile");
+		cgs.effects.cloneWallImpactEffect = trap->FX_RegisterEffect("clone/wall_impact");
+		cgs.effects.cloneFleshImpactEffect = trap->FX_RegisterEffect("clone/flesh_impact");
+		break;
+
+	case WP_Z6_ROTARY_CANNON:
+		weaponInfo->selectSound = trap->S_RegisterSound("sound/weapons/blaster/select.mp3");
+
+		weaponInfo->flashSound[0] = trap->S_RegisterSound("sound/weapons/z6/fire.mp3"); // need to add z6 sound here
+		weaponInfo->firingSound = NULL_SOUND;
+		weaponInfo->chargeSound = NULL_SOUND;
+		weaponInfo->muzzleEffect = trap->FX_RegisterEffect("z6/muzzle_flash");
+		weaponInfo->missileModel = NULL_HANDLE;
+		weaponInfo->missileSound = NULL_SOUND;
+		weaponInfo->missileDlight = 0;
+		weaponInfo->missilehit_sound = NULL_SOUND;
+		weaponInfo->missileTrailFunc = FX_CloneProjectileThink;
+
+		weaponInfo->mOverloadMuzzleEffect = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle");
+		weaponInfo->mOverloadMuzzleEffect2 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle2");
+		weaponInfo->mOverloadMuzzleEffect3 = trap->FX_RegisterEffect("blaster/smokin_hot_muzzle3");
+
+		weaponInfo->altFlashSound[0] = trap->S_RegisterSound("sound/weapons/z6/fire.mp3");// need to add z6 sound here
+		weaponInfo->altFiringSound = NULL_SOUND;
+		weaponInfo->altChargeSound = NULL_SOUND;
+		weaponInfo->altMuzzleEffect = trap->FX_RegisterEffect("z6/altmuzzle_flash");
 		weaponInfo->altMissileModel = NULL_HANDLE;
 		weaponInfo->altMissileSound = NULL_SOUND;
 		weaponInfo->altMissileDlight = 0;

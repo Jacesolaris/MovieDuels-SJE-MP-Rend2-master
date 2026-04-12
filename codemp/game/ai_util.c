@@ -897,6 +897,11 @@ void BotUtilizePersonality(bot_state_t* bs)
 			bs->botWeaponWeights[WP_CLONECOMMANDO] = atoi(readbuf);
 		}
 
+		if (GetPairedValue(group, "WP_Z6_ROTARY_CANNON", readbuf))
+		{
+			bs->botWeaponWeights[WP_Z6_ROTARY_CANNON] = atoi(readbuf);
+		}
+
 		if (GetPairedValue(group, "WP_REBELRIFLE", readbuf))
 		{
 			bs->botWeaponWeights[WP_REBELRIFLE] = atoi(readbuf);
@@ -982,6 +987,7 @@ void BotUtilizePersonality(bot_state_t* bs)
 				break;
 
 			case WP_REPEATER:
+			case WP_Z6_ROTARY_CANNON:
 				bs->forceinfo[NUM_FORCE_POWERS + SK_REPEATER + 4] = '0' + skillLevel;
 				break;
 

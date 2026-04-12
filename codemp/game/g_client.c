@@ -4883,8 +4883,6 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 			|| Class_Model(model, "stshock/commander")
 			|| Class_Model(model, "501st_stormie")
 			|| Class_Model(model, "shadow_stormtrooper")
-			|| Class_Model(model, "evotrooper")
-			|| Class_Model(model, "evotrooper/shadow")
 			|| Class_Model(model, "sithtrooper")
 			|| Class_Model(model, "neocrusader")
 			|| Class_Model(model, "sithtrooper_tor")
@@ -4893,6 +4891,14 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 		{
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			client->pers.nextbotclass = BCLASS_STORMTROOPER;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
+		else if (Class_Model(model, "evotrooper")
+			|| Class_Model(model, "evotrooper/shadow"))
+		{
+			client->pers.botmodelscale = BOTZIZE_NORMAL;
+			client->pers.nextbotclass = BCLASS_HEAVYTROOPER;
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
@@ -7672,6 +7678,10 @@ spawn_done:
 			{
 				client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 			}
+			if (!wDisable || !(wDisable & 1 << WP_Z6_ROTARY_CANNON))
+			{
+				client->ps.stats[STAT_WEAPONS] |= 1 << WP_Z6_ROTARY_CANNON;
+			}
 			client->ps.stats[STAT_WEAPONS] &= ~(1 << WP_SABER);
 			client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 			client->ps.ammo[AMMO_POWERCELL] = ammoData[AMMO_POWERCELL].max;
@@ -8244,7 +8254,7 @@ spawn_done:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
 					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
 					ClassAmmoSetup(ent);
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REPEATER;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_Z6_ROTARY_CANNON;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->ps.ammo[AMMO_THERMAL] = 4;
@@ -8312,6 +8322,17 @@ spawn_done:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CLONERIFLE;
 					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
 					ClassAmmoSetup(ent);
+					break;
+				case BCLASS_HEAVYTROOPER:
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_FLECHETTE;
+					client->skillLevel[SK_FLECHETTE] = FORCE_LEVEL_3;
+					ClassAmmoSetup(ent);
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_Z6_ROTARY_CANNON;
+					client->skillLevel[SK_REPEATER] = FORCE_LEVEL_3;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
+					client->ps.ammo[AMMO_THERMAL] = 4;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CLONECOMMANDO;
 					break;
 				case BCLASS_PLAYER:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
@@ -9133,6 +9154,9 @@ spawn_done:
 			client->ps.stats[STAT_ARMOR] = 200;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
+		case BCLASS_HEAVYTROOPER:
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
+			break;
 		default:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
@@ -9266,6 +9290,7 @@ spawn_done:
 		case BCLASS_IPPERIALAGENT3:
 		case BCLASS_CLONETROOPER:
 		case BCLASS_JANGO_NOJP:
+		case BCLASS_HEAVYTROOPER:
 		case BCLASS_PLAYER:
 			client->ps.fd.forcePowerLevel[FP_HEAL] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_LEVITATION] = FORCE_LEVEL_0;

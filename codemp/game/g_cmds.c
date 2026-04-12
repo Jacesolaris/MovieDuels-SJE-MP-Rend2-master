@@ -102,6 +102,7 @@ const gbuyable_t bg_buylist[] =
 	{"RebelBlaster", WP_REBELBLASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
 	{"CloneRifle", WP_CLONERIFLE, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
 	{"CloneCommando", WP_CLONECOMMANDO, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+	{"Z6RotaryCannon", WP_Z6_ROTARY_CANNON, IT_WEAPON, 350, 2, WC_RIFLE}, // auto rifle
 	{"RebelRifle", WP_REBELRIFLE, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
 
 	{"Rey", WP_REY, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
@@ -536,7 +537,6 @@ static void G_GiveWeaponsByClass(gentity_t* ent, qboolean give_all)
 	G_AddEvent(ent, EV_WEAPINVCHANGE, ent->client->ps.stats[STAT_WEAPONS]);
 }
 
-
 /*
 ==================
 G_Give
@@ -821,7 +821,6 @@ static void G_Give(gentity_t* ent, const char* name, const char* args, const int
 	}
 }
 
-
 /*
 =================
 Cmd_Give_f
@@ -840,7 +839,6 @@ static void Cmd_Give_f(gentity_t* ent)
 	// Pass remaining args to G_Give
 	G_Give(ent, name, ConcatArgs(2), trap->Argc());
 }
-
 
 /*
 =================
@@ -901,7 +899,6 @@ static void Cmd_GiveOther_f(const gentity_t* ent)
 	// Delegate to G_Give for actual logic
 	G_Give(other_ent, name, ConcatArgs(3), trap->Argc() - 1);
 }
-
 
 /*
 ==================

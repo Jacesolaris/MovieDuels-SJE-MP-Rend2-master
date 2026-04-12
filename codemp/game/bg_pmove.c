@@ -5197,6 +5197,7 @@ static qboolean PM_IsGunner(void)
 	case WP_REBELBLASTER:
 	case WP_CLONERIFLE:
 	case WP_CLONECOMMANDO:
+	case WP_Z6_ROTARY_CANNON:
 	case WP_REBELRIFLE:
 	case WP_REY:
 	case WP_JANGO:
@@ -10277,6 +10278,8 @@ static void PM_Footsteps(void)
 						pm->ps->weapon == WP_CLONECARBINE ||
 						pm->ps->weapon == WP_CLONERIFLE ||
 						pm->ps->weapon == WP_CLONECOMMANDO ||
+						pm->ps->weapon == WP_Z6_ROTARY_CANNON ||
+						pm->ps->weapon == WP_BOBA ||
 						pm->ps->weapon == WP_REBELRIFLE)
 					{
 						if (!pm->ps->weaponTime) //not firing
@@ -11175,6 +11178,8 @@ static void PM_Footsteps(void)
 						pm->ps->weapon == WP_CLONECARBINE ||
 						pm->ps->weapon == WP_CLONERIFLE ||
 						pm->ps->weapon == WP_CLONECOMMANDO ||
+						pm->ps->weapon == WP_Z6_ROTARY_CANNON ||
+						pm->ps->weapon == WP_BOBA ||
 						pm->ps->weapon == WP_REBELRIFLE)
 					{
 						if (pm_entSelf->s.NPC_class == CLASS_ASSASSIN_DROID ||
@@ -12523,6 +12528,7 @@ backAgain:
 		case WP_CLONERIFLE:
 		case WP_CLONECOMMANDO:
 		case WP_REBELRIFLE:
+		case WP_Z6_ROTARY_CANNON:
 			// Override the shoot anim.
 			if (pm->ps->torsoAnim == BOTH_ATTACK3)
 			{
@@ -12837,6 +12843,7 @@ backAgain:
 		case WP_CLONECARBINE:
 		case WP_CLONERIFLE:
 		case WP_CLONECOMMANDO:
+		case WP_Z6_ROTARY_CANNON:
 		case WP_REBELRIFLE:
 			// In the Air.
 			//if ( p_veh->m_ulFlags & VEH_FLYING )
@@ -17880,6 +17887,7 @@ static qboolean PM_WeaponOkOnVehicle(const int weapon)
 	case WP_REBELBLASTER:
 	case WP_CLONERIFLE:
 	case WP_CLONECOMMANDO:
+	case WP_Z6_ROTARY_CANNON:
 	case WP_REBELRIFLE:
 	case WP_REY:
 	case WP_JANGO:

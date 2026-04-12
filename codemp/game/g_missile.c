@@ -942,6 +942,7 @@ static void g_missile_bounce_effect(gentity_t* ent, vec3_t org, vec3_t dir, cons
 		G_PlayEffectID(G_EffectIndex("blaster/deflect"), ent->r.currentOrigin, dir);
 		break;
 	case WP_REPEATER:
+	case WP_Z6_ROTARY_CANNON:
 		G_PlayEffectID(G_EffectIndex("repeater/deflectblock"), ent->r.currentOrigin, dir);
 		break;
 	default:
@@ -981,6 +982,7 @@ void g_missile_reflect_effect(gentity_t* ent, vec3_t dir)
 		G_PlayEffectID(G_EffectIndex("blaster/deflect"), ent->r.currentOrigin, dir);
 		break;
 	case WP_REPEATER:
+	case WP_Z6_ROTARY_CANNON:
 		G_PlayEffectID(G_EffectIndex("repeater/deflectblock"), ent->r.currentOrigin, dir);
 		break;
 	default:
@@ -1031,7 +1033,6 @@ G_MissileImpact
 ================
 */
 
-extern int G_PickPainAnim(const gentity_t* self, vec3_t point, int hit_loc);
 qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 {
 	vec3_t   fwd;
@@ -1039,7 +1040,6 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 	qboolean is_knocked_saber = qfalse;
 	int      missile_dmg;
 	gentity_t* other = &g_entities[trace->entityNum];
-
 
 	// Initial bounce flag (note: mostly overridden by specific logic below)
 	qboolean bounce =
@@ -1152,8 +1152,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 			ent->methodOfDeath != MOD_DEMP2 &&
 			ent->methodOfDeath != MOD_DEMP2_ALT &&
 			ent->methodOfDeath != MOD_SEEKER &&
-			ent->methodOfDeath != MOD_CONC &&
-			!Q_irand(0, 1));
+			ent->methodOfDeath != MOD_CONC);
 
 	qboolean boba_fett =
 		((other->flags & FL_BOBAFETT) &&
@@ -1538,28 +1537,22 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 				}
 			}
 			//
-            // Universal directional pain animation using G_PickPainAnim
-            //
+			// Universal directional pain animation
+			//
 			if (did_dmg == qtrue &&
 				other->client != NULL &&
 				beskar == qfalse &&
 				boba_fett == qfalse &&
+				other->health > 0 &&
 				is_knocked_saber == qfalse &&
 				other->s.eType != ET_NPC && // prevents vehicle anim corruption
 				!BG_InDeathAnim(other->client->ps.torsoAnim) &&
 				!WP_DoingForcedAnimationForForcePowers(other))
 			{
-				int painAnim = G_PickPainAnim(other, trace->endpos, HL_NONE);
-
-				if (painAnim != -1)
-				{
-					G_SetAnim(other,
-						NULL,
-						SETANIM_TORSO,
-						painAnim,
-						SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD,
-						0);
-				}
+				G_SetAnim(other, NULL, SETANIM_TORSO,
+					Q_irand(BOTH_PAIN1, BOTH_PAIN3),
+					SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD,
+					0);
 			}
 		}
 

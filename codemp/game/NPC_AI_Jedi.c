@@ -1252,7 +1252,7 @@ typedef struct wristWeapon_s
 	qboolean hold;
 } wristWeapon_t;
 
-wristWeapon_t missileStates[4] = 
+wristWeapon_t missileStates[4] =
 {
 	{
 		BOBA_MISSILE_ROCKET, FP_FIRST, WP_ROCKET_LAUNCHER, qfalse, 1, BOBA_FLAMEDURATION, 150, BOTH_FLAMETHROWER,
@@ -1516,7 +1516,8 @@ void Boba_TacticsSelect()
 }
 
 void Boba_DoAmbushWait(gentity_t* self)
-{}
+{
+}
 
 void Boba_Tactics()
 {
@@ -7295,6 +7296,7 @@ static void Jedi_CombatTimersUpdate(const int enemy_dist)
 			case WP_REBELBLASTER:
 			case WP_CLONERIFLE:
 			case WP_CLONECOMMANDO:
+			case WP_Z6_ROTARY_CANNON:
 			case WP_REBELRIFLE:
 			case WP_REY:
 			case WP_JANGO:

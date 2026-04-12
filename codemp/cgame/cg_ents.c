@@ -2469,6 +2469,7 @@ static void CG_Item(centity_t* cent)
 		case WP_CLONECARBINE:
 		case WP_CLONERIFLE:
 		case WP_CLONECOMMANDO:
+		case WP_Z6_ROTARY_CANNON:
 		case WP_REBELBLASTER:
 			cent->lerpOrigin[2] -= 12;
 			break;
@@ -2605,23 +2606,6 @@ static void CG_Item(centity_t* cent)
 
 		ent.customShader = cgs.media.itemRespawningRezOut;
 
-		/*
-		ent.shaderRGBA[0] = 0;
-		ent.shaderRGBA[1] = a;
-		ent.shaderRGBA[2] = a-100;
-
-		if (ent.shaderRGBA[2] < 0)
-		{
-			ent.shaderRGBA[2] = 0;
-		}
-		*/
-
-		/*
-		ent.shaderRGBA[0] =
-		ent.shaderRGBA[1] =
-		ent.shaderRGBA[2] = a;
-		*/
-
 		ent.renderfx |= RF_RGB_TINT;
 		ent.shaderRGBA[0] = 0;
 		ent.shaderRGBA[1] = 200;
@@ -2643,29 +2627,27 @@ static void CG_Item(centity_t* cent)
 		trap->R_AddRefEntityToScene(&ent);
 	}
 
-	//rww - As far as I can see, this is useless.
-	/*
-	if ( item->giType == IT_WEAPON && wi->barrelModel ) {
+	if (item->giType == IT_WEAPON && wi->barrelModel)
+	{
 		refEntity_t	barrel;
 
-		memset( &barrel, 0, sizeof( barrel ) );
+		memset(&barrel, 0, sizeof(barrel));
 
 		barrel.hModel = wi->barrelModel;
 
-		VectorCopy( ent.lightingOrigin, barrel.lightingOrigin );
+		VectorCopy(ent.lightingOrigin, barrel.lightingOrigin);
 		barrel.shadowPlane = ent.shadowPlane;
 		barrel.renderfx = ent.renderfx;
 
 		barrel.customShader = ent.customShader;
 
-		CG_PositionRotatedEntityOnTag( &barrel, &ent, wi->weaponModel, "tag_barrel" );
+		CG_PositionRotatedEntityOnTag(&barrel, &ent, wi->weaponModel, "tag_barrel");
 
-		AxisCopy( ent.axis, barrel.axis );
+		AxisCopy(ent.axis, barrel.axis);
 		barrel.nonNormalizedAxes = ent.nonNormalizedAxes;
 
-		trap->R_AddRefEntityToScene( &barrel );
+		trap->R_AddRefEntityToScene(&barrel);
 	}
-	*/
 
 	// accompanying rings / spheres for powerups
 	if (!cg_simpleItems.integer)

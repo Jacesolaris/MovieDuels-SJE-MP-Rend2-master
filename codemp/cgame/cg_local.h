@@ -1646,6 +1646,7 @@ typedef struct cgMedia_s {
 	qhandle_t weapontype_rebelblaster;
 	qhandle_t weapontype_clonerifle;
 	qhandle_t weapontype_clonecommando;
+	qhandle_t weapontype_z6rotarycannon;
 	qhandle_t weapontype_rebelrifle;
 	qhandle_t weapontype_rey;
 	qhandle_t weapontype_jango;
@@ -2190,7 +2191,7 @@ void cg_missile_hit_wall(int weapon, vec3_t origin, vec3_t dir, qboolean alt_fir
 void cg_missile_hit_player(int weapon, vec3_t origin, vec3_t dir, qboolean alt_fire);
 
 void CG_AddViewWeapon(playerState_t* ps);
-void cg_add_player_weaponduals(refEntity_t* parent, playerState_t* ps, centity_t* cent, vec3_t new_angles, qboolean third_person, qboolean leftweap);
+void CG_AddViewWeaponDuals(refEntity_t* parent, playerState_t* ps, centity_t* cent, vec3_t new_angles, qboolean third_person, qboolean leftweap);
 void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent, vec3_t new_angles, qboolean third_person);
 void CG_DrawWeaponSelect(void);
 void CG_DrawIconBackground(void);

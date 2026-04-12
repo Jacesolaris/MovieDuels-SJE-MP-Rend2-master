@@ -251,49 +251,99 @@ static int CG_MapTorsoToWeaponFrame(const int frame, const int anim_num)
 CG_MachinegunSpinAngle
 ======================
 */
-#define     SPIN_SPEED  0.9f
-#define     COAST_TIME  1000
+
+#define SPIN_SPEED  0.9f
+#define COAST_TIME  1000
 
 static float CG_MachinegunSpinAngle(centity_t* cent)
 {
-	float angle;
-	int delta = cg.time - cent->pe.barrelTime;
+	float angle = 0.0f;
+	int   delta = 0;
 
-	if (cent->pe.barrelSpinning)
+	// -----------------------------------------------------------------
+	// Safety: never dereference cent if it's NULL
+	// -----------------------------------------------------------------
+	if (cent == NULL)
 	{
-		angle = cent->pe.barrelAngle + delta * SPIN_SPEED;
+		return 0.0f;
+	}
+
+	delta = cg.time - cent->pe.barrelTime;
+
+	// -----------------------------------------------------------------
+	// Spinning / coasting logic
+	// -----------------------------------------------------------------
+
+	if (cent->pe.barrelSpinning == qtrue)
+	{
+		// Constant spin speed
+		angle = cent->pe.barrelAngle + ((float)delta * SPIN_SPEED);
 	}
 	else
 	{
+		// Coasting down
 		if (delta > COAST_TIME)
 		{
 			delta = COAST_TIME;
 		}
 
-		const float speed = 0.5f * (SPIN_SPEED + (float)(COAST_TIME - delta) / COAST_TIME);
-		angle = cent->pe.barrelAngle + delta * speed;
+		const float t = (float)(COAST_TIME - delta) / (float)COAST_TIME;
+		const float speed = 0.5f * (SPIN_SPEED + (t * SPIN_SPEED));
+
+		angle = cent->pe.barrelAngle + ((float)delta * speed);
 	}
 
-	// --- FIXED: detect state change correctly ---
-	if (cent->pe.barrelSpinning != !!(cent->currentState.eFlags & EF_FIRING))
+	// -----------------------------------------------------------------
+	// State change detection: EF_FIRING drives barrelSpinning
+	// Use predicted player state for the local client so the viewmodel
+	// barrel responds immediately to player input.
+	// -----------------------------------------------------------------
 	{
-		cent->pe.barrelTime = cg.time;
-		cent->pe.barrelAngle = AngleNormalize360(angle);
-		cent->pe.barrelSpinning = !!(cent->currentState.eFlags & EF_FIRING);
+		qboolean firingNow = qfalse;
 
-		/*if (cg.snap->ps.weapon == WP_Z6_ROTARY_CANNON)
+		if (cg.snap != NULL &&
+			cent->currentState.number == cg.predictedPlayerState.clientNum)
 		{
-			trap->S_StartSound(
-				NULL,
-				cent->currentState.number,
-				CHAN_WEAPON,
-				trap->S_RegisterSound("sound/weapons/z6/spinny.wav")
-			);
-		}*/
+			// Local player: use predicted state
+			firingNow =
+				(((cg.predictedPlayerState.eFlags & EF_FIRING) != 0 ||
+					(cg.predictedPlayerState.eFlags & EF_ALT_FIRING) != 0)
+					? qtrue : qfalse);
+		}
+		else
+		{
+			// Remote players: use server state
+			firingNow =
+				(((cent->currentState.eFlags & EF_FIRING) != 0 ||
+					(cent->currentState.eFlags & EF_ALT_FIRING) != 0)
+					? qtrue : qfalse);
+		}
+
+		// Transition: start or stop spinning
+		if (cent->pe.barrelSpinning != (firingNow != 0))
+		{
+			cent->pe.barrelTime = cg.time;
+			cent->pe.barrelAngle = AngleNormalize360(angle);
+			cent->pe.barrelSpinning = (firingNow != 0);
+
+			// Play spin-up sound for Z6
+			if (firingNow == qtrue &&
+				cg.snap != NULL &&
+				cg.snap->ps.weapon == WP_Z6_ROTARY_CANNON)
+			{
+				trap->S_StartSound(
+					NULL,
+					cent->currentState.number,
+					CHAN_WEAPON,
+					trap->S_RegisterSound("sound/weapons/z6/spinny.wav"));
+			}
+		}
+
 	}
 
 	return angle;
 }
+
 
 /*
 ==============
@@ -444,6 +494,10 @@ static void CG_AddWeaponWithPowerups(refEntity_t* gun)
 	}
 }
 
+
+//for g2 surface routines
+#define TURN_ON				0x00000000
+#define TURN_OFF			0x00000100
 /*
 =============
 CG_AddPlayerWeapon
@@ -457,12 +511,8 @@ sound should only be done on the world model case.
 // - Handles first-person and third-person
 // - Handles muzzle flashes, charge glows, and overload FX
 // - Uses leftweap to select the correct Ghoul2 weapon model (1 = right, 2 = left)
-void cg_add_player_weaponduals(refEntity_t* parent,
-	playerState_t* ps,
-	centity_t* cent,
-	vec3_t new_angles,
-	qboolean third_person,
-	qboolean leftweap)
+
+void CG_AddViewWeaponDuals(refEntity_t* parent, playerState_t* ps, centity_t* cent, vec3_t new_angles, qboolean third_person, qboolean leftweap)
 {
 	refEntity_t   gun;
 	refEntity_t   barrel;
@@ -470,6 +520,7 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 	weapon_t      weapon_num;
 	weaponInfo_t* weapon;
 	centity_t* non_predicted_cent;
+	mdxaBone_t boltMatrix;
 
 	weapon_num = cent->currentState.weapon;
 
@@ -609,24 +660,22 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 		}
 		else
 		{
-			// Generic spinning barrel (e.g. repeater)
+			// add the spinning barrel[s]
 			if (weapon->barrelModel)
 			{
+				vec3_t angles = { 0 };
+
 				memset(&barrel, 0, sizeof(barrel));
 				VectorCopy(parent->lightingOrigin, barrel.lightingOrigin);
 				barrel.shadowPlane = parent->shadowPlane;
 				barrel.renderfx = parent->renderfx;
 				barrel.hModel = weapon->barrelModel;
 
-				vec3_t angles = { 0 };
 				angles[YAW] = 0.0f;
 				angles[PITCH] = 0.0f;
 
-				if (cg_SpinningBarrels.integer && weapon_num == WP_REPEATER)
-				{
-					angles[ROLL] = CG_MachinegunSpinAngle(cent);
-				}
-				else if (cg_SpinningBarrels.integer && ps->weapon == WP_STUN_BATON)
+				if (cg_SpinningBarrels.integer &&
+					weapon_num == WP_Z6_ROTARY_CANNON)
 				{
 					angles[ROLL] = CG_MachinegunSpinAngle(cent);
 				}
@@ -647,6 +696,7 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 	// Common flash entity (used for first-person charge FX origin)
 	//
 	memset(&flash, 0, sizeof(flash));
+	// Seems like we should always do this in case we have an animating muzzle flash....that way we can always store the correct muzzle dir, etc.
 	CG_PositionEntityOnTag(&flash, &gun, gun.hModel, "tag_flash");
 	VectorCopy(flash.origin, cg.lastFPFlashPoint);
 
@@ -686,8 +736,7 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 		else
 		{
 			// Third-person: use the correct Ghoul2 weapon model (1 = right, 2 = left)
-			int        wpmdlidx = leftweap ? 2 : 1;
-			mdxaBone_t boltMatrix;
+			int wpmdlidx = leftweap ? 2 : 1;
 
 			if (!trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, wpmdlidx))
 			{
@@ -709,6 +758,57 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 				return;
 			}
 
+			// ------------------------------------------------------------
+			//  >>>>>>>>>>>>  SPINNING BARREL CODE HERE  <<<<<<<<<<<<
+			// ------------------------------------------------------------
+			if (cg_SpinningBarrels.integer &&
+				weapon_num == WP_Z6_ROTARY_CANNON &&
+				weapon->barrelModel)
+			{
+				// Hide static barrel
+				if (third_person)
+				{
+					trap->G2API_SetSurfaceOnOff(cent->ghoul2, "barrel", TURN_OFF);
+				}
+
+				refEntity_t barrelEnt;
+				memset(&barrelEnt, 0, sizeof(barrelEnt));
+
+				barrelEnt.hModel = weapon->barrelModel;
+				barrelEnt.renderfx = parent->renderfx;
+				VectorCopy(parent->lightingOrigin, barrelEnt.lightingOrigin);
+				barrelEnt.shadowPlane = parent->shadowPlane;
+
+				// Position at bolt origin (bolt 0 = muzzle)
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, barrelEnt.origin);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, barrelEnt.axis[0]);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Y, barrelEnt.axis[1]);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Z, barrelEnt.axis[2]);
+
+				// Pull back along forward axis
+				const float backOffset = 18.0f;
+				for (int i = 0; i < 3; i++)
+					barrelEnt.origin[i] -= barrelEnt.axis[0][i] * backOffset;
+
+				// Spin
+				const float spinDeg = CG_MachinegunSpinAngle(cent);
+				const float spinRad = spinDeg * (M_PI / 180.0f);
+				const float cs = cosf(spinRad);
+				const float sn = sinf(spinRad);
+
+				vec3_t ny, nz;
+				for (int i = 0; i < 3; i++)
+				{
+					ny[i] = cs * barrelEnt.axis[1][i] + sn * barrelEnt.axis[2][i];
+					nz[i] = -sn * barrelEnt.axis[1][i] + cs * barrelEnt.axis[2][i];
+				}
+
+				VectorCopy(ny, barrelEnt.axis[1]);
+				VectorCopy(nz, barrelEnt.axis[2]);
+
+				CG_AddWeaponWithPowerups(&barrelEnt);
+			}
+			// ------------------------------------------------------------
 			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, flashorigin);
 			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, flashdir);
 		}
@@ -786,6 +886,7 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 		trap->FX_AddSprite(&fxSArgs);
 	}
 
+
 	//
 	// Choose the non-predicted cent for lightning bolt, etc.
 	//
@@ -839,10 +940,9 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 		else
 		{
 			// Third-person: use the correct Ghoul2 weapon model (1 = right, 2 = left)
-			mdxaBone_t boltMatrix;
-
 			if (!trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, wpmdlidx))
 			{
+				// No weapon model on this index; nothing to do
 				return;
 			}
 
@@ -859,10 +959,61 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 				return;
 			}
 
+			// ------------------------------------------------------------
+			//  >>>>>>>>>>>>  SPINNING BARREL CODE HERE  <<<<<<<<<<<<
+			// ------------------------------------------------------------
+			if (cg_SpinningBarrels.integer &&
+				weapon_num == WP_Z6_ROTARY_CANNON &&
+				weapon->barrelModel)
+			{
+				// Hide static barrel
+				if (third_person)
+				{
+					trap->G2API_SetSurfaceOnOff(cent->ghoul2, "barrel", TURN_OFF);
+				}
+
+				refEntity_t barrelEnt;
+				memset(&barrelEnt, 0, sizeof(barrelEnt));
+
+				barrelEnt.hModel = weapon->barrelModel;
+				barrelEnt.renderfx = parent->renderfx;
+				VectorCopy(parent->lightingOrigin, barrelEnt.lightingOrigin);
+				barrelEnt.shadowPlane = parent->shadowPlane;
+
+				// Position at bolt origin (bolt 0 = muzzle)
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, barrelEnt.origin);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, barrelEnt.axis[0]);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Y, barrelEnt.axis[1]);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Z, barrelEnt.axis[2]);
+
+				// Pull back along forward axis
+				const float backOffset = 18.0f;
+				for (int i = 0; i < 3; i++)
+					barrelEnt.origin[i] -= barrelEnt.axis[0][i] * backOffset;
+
+				// Spin
+				const float spinDeg = CG_MachinegunSpinAngle(cent);
+				const float spinRad = spinDeg * (M_PI / 180.0f);
+				const float cs = cosf(spinRad);
+				const float sn = sinf(spinRad);
+
+				vec3_t ny, nz;
+				for (int i = 0; i < 3; i++)
+				{
+					ny[i] = cs * barrelEnt.axis[1][i] + sn * barrelEnt.axis[2][i];
+					nz[i] = -sn * barrelEnt.axis[1][i] + cs * barrelEnt.axis[2][i];
+				}
+
+				VectorCopy(ny, barrelEnt.axis[1]);
+				VectorCopy(nz, barrelEnt.axis[2]);
+
+				CG_AddWeaponWithPowerups(&barrelEnt);
+			}
+			// ------------------------------------------------------------
+
 			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, flashorigin);
 			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, flashdir);
 		}
-
 		//
 		// Muzzle flash FX (normal or alt)
 		//
@@ -919,6 +1070,7 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 		if (cg.time - cent->muzzleOverheatTime <= MUZZLE_FLASH_TIME + 10)
 		{
 			if (weapon_num == WP_REPEATER ||
+				weapon_num == WP_Z6_ROTARY_CANNON ||
 				weapon_num == WP_FLECHETTE ||
 				weapon_num == WP_DISRUPTOR ||
 				weapon_num == WP_CONCUSSION)
@@ -1007,8 +1159,7 @@ void cg_add_player_weaponduals(refEntity_t* parent,
 	}
 }
 
-void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent, vec3_t new_angles,
-	qboolean third_person)
+void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent, vec3_t new_angles, qboolean third_person)
 {
 	refEntity_t gun;
 	refEntity_t barrel;
@@ -1016,6 +1167,7 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 	weaponInfo_t* weapon;
 	centity_t* non_predicted_cent;
 	refEntity_t flash;
+	mdxaBone_t boltMatrix;
 
 	weapon_num = cent->currentState.weapon;
 
@@ -1146,11 +1298,7 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 				angles[YAW] = 0;
 				angles[PITCH] = 0;
 
-				if (cg_SpinningBarrels.integer && cent->currentState.weapon == WP_REPEATER)
-				{
-					angles[ROLL] = CG_MachinegunSpinAngle(cent);
-				}
-				else if (cg_SpinningBarrels.integer && ps->weapon == WP_STUN_BATON)
+				if (cg_SpinningBarrels.integer && cent->currentState.weapon == WP_Z6_ROTARY_CANNON)
 				{
 					angles[ROLL] = CG_MachinegunSpinAngle(cent);
 				}
@@ -1195,8 +1343,6 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 		}
 		else
 		{
-			mdxaBone_t boltMatrix;
-
 			if (!trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, 1))
 			{
 				//it's quite possible that we may have have no weapon model and be in a valid state, so return here if this is the case
@@ -1326,8 +1472,6 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 		}
 		else
 		{
-			mdxaBone_t boltMatrix;
-
 			if (!trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, 1))
 			{
 				//it's quite possible that we may have have no weapon model and be in a valid state, so return here if this is the case
@@ -1342,10 +1486,61 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 				return;
 			}
 
+
+			// ------------------------------------------------------------
+			//  Spinning barrel overlay for trueguns / third person
+			//  Only for WP_Z6_ROTARY_CANNON and only when enabled.
+			// ------------------------------------------------------------
+			if (cg_SpinningBarrels.integer &&
+				weapon_num == WP_Z6_ROTARY_CANNON &&
+				weapon->barrelModel)
+			{
+				// Hide static Ghoul2 barrel surface
+				trap->G2API_SetSurfaceOnOff(cent->ghoul2, "barrel", TURN_OFF);
+
+				refEntity_t barrelEnt;
+				memset(&barrelEnt, 0, sizeof(barrelEnt));
+
+				barrelEnt.hModel = weapon->barrelModel;
+				barrelEnt.renderfx = parent->renderfx;
+				VectorCopy(parent->lightingOrigin, barrelEnt.lightingOrigin);
+				barrelEnt.shadowPlane = parent->shadowPlane;
+
+				// Position at muzzle bolt
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, barrelEnt.origin);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, barrelEnt.axis[0]);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Y, barrelEnt.axis[1]);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Z, barrelEnt.axis[2]);
+
+				// Pull back along forward axis so it sits correctly
+				const float backOffset = 18.0f;
+				for (int i = 0; i < 3; i++)
+				{
+					barrelEnt.origin[i] -= barrelEnt.axis[0][i] * backOffset;
+				}
+
+				// Apply spin around forward axis
+				const float spinDeg = CG_MachinegunSpinAngle(cent);
+				const float spinRad = spinDeg * (M_PI / 180.0f);
+				const float cs = cosf(spinRad);
+				const float sn = sinf(spinRad);
+
+				vec3_t ny, nz;
+				for (int i = 0; i < 3; i++)
+				{
+					ny[i] = cs * barrelEnt.axis[1][i] + sn * barrelEnt.axis[2][i];
+					nz[i] = -sn * barrelEnt.axis[1][i] + cs * barrelEnt.axis[2][i];
+				}
+
+				VectorCopy(ny, barrelEnt.axis[1]);
+				VectorCopy(nz, barrelEnt.axis[2]);
+
+				CG_AddWeaponWithPowerups(&barrelEnt);
+			}
+			// ------------------------------------------------------------
 			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, flashorigin);
 			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, flashdir);
 		}
-
 		if (cg.time - cent->muzzleFlashTime <= MUZZLE_FLASH_TIME + 10 && cent->currentState.weapon != WP_DISRUPTOR)
 		{
 			// Handle muzzle flashes
@@ -1387,7 +1582,8 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 			if (cent->currentState.weapon == WP_REPEATER ||
 				cent->currentState.weapon == WP_FLECHETTE ||
 				cent->currentState.weapon == WP_DISRUPTOR ||
-				cent->currentState.weapon == WP_CONCUSSION)
+				cent->currentState.weapon == WP_CONCUSSION ||
+				cent->currentState.weapon == WP_Z6_ROTARY_CANNON)
 			{
 				if (weapon->mOverloadMuzzleEffect3)
 				{
@@ -1448,6 +1644,37 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 	}
 }
 
+static void CG_DrawZ6TruegunsBarrel(const playerState_t* ps)
+{
+	weaponInfo_t* wi = &cg_weapons[WP_Z6_ROTARY_CANNON];
+	centity_t* cent = &cg_entities[cg.predictedPlayerState.clientNum];
+
+	refEntity_t hand;
+	refEntity_t barrel;
+	vec3_t ang = { 0,0,0 };
+
+	memset(&hand, 0, sizeof(hand));
+	memset(&barrel, 0, sizeof(barrel));
+
+	CG_CalculateWeaponPosition(hand.origin, ang);
+	VectorMA(hand.origin, cg_gunX.value, cg.refdef.viewaxis[0], hand.origin);
+	VectorMA(hand.origin, cg_gunY.value, cg.refdef.viewaxis[1], hand.origin);
+	VectorMA(hand.origin, cg_gunZ.value, cg.refdef.viewaxis[2], hand.origin);
+
+	AnglesToAxis(ang, hand.axis);
+	hand.hModel = wi->handsModel;
+	hand.renderfx = RF_DEPTHHACK | RF_FIRST_PERSON;
+
+	// spinning barrel
+	ang[ROLL] = CG_MachinegunSpinAngle(cent);
+	AnglesToAxis(ang, barrel.axis);
+
+	barrel.hModel = wi->barrelModel;
+	CG_PositionRotatedEntityOnTag(&barrel, &hand, wi->handsModel, "tag_barrel");
+
+	CG_AddWeaponWithPowerups(&barrel);
+}
+
 /*
 ==============
 CG_AddViewWeapon
@@ -1502,6 +1729,13 @@ void CG_AddViewWeapon(playerState_t* ps)
 		ps->weapon == WP_SABER ||
 		ps->weapon == WP_MELEE)
 	{
+		// Special case: trueguns + Z6 → draw only spinning barrel
+		/*if (cg_trueguns.integer &&
+			ps->weapon == WP_Z6_ROTARY_CANNON &&
+			cg_SpinningBarrels.integer)
+		{
+			CG_DrawZ6TruegunsBarrel(ps);
+		}*/
 		if (ps->eFlags & EF_FIRING)
 		{
 			vec3_t origin;
@@ -1609,7 +1843,7 @@ void CG_AddViewWeapon(playerState_t* ps)
 	//
 	// RIGHT-HAND WEAPON (Ghoul2 index 1)
 	//
-	cg_add_player_weaponduals(
+	CG_AddViewWeaponDuals(
 		&hand,
 		ps,
 		cent,
@@ -1642,7 +1876,7 @@ void CG_AddViewWeapon(playerState_t* ps)
 			VectorScale(leftHand.axis[0], frac_weap_fov, leftHand.axis[0]);
 		}
 
-		cg_add_player_weaponduals(
+		CG_AddViewWeaponDuals(
 			&leftHand,
 			ps,
 			cent,
@@ -2185,6 +2419,7 @@ static qboolean IsCyclingReloadableGun(const int weap)
 	case WP_FLECHETTE:
 	case WP_ROCKET_LAUNCHER:
 	case WP_CONCUSSION:
+	case WP_Z6_ROTARY_CANNON:
 	case WP_BRYAR_PISTOL:
 	case WP_BATTLEDROID:
 	case WP_THEFIRSTORDER:
@@ -2928,6 +3163,7 @@ void CG_FireWeapon(centity_t* cent, const qboolean alt_fire)
 		else if (ent->weapon == WP_ROCKET_LAUNCHER ||
 			ent->weapon == WP_REPEATER && alt_fire ||
 			ent->weapon == WP_FLECHETTE ||
+			ent->weapon == WP_Z6_ROTARY_CANNON ||
 			ent->weapon == WP_CONCUSSION && !alt_fire)
 		{
 			if (ent->weapon == WP_CONCUSSION)
@@ -2940,13 +3176,14 @@ void CG_FireWeapon(centity_t* cent, const qboolean alt_fire)
 					cg.kick_time = cg.time;
 				}
 			}
-			else if (ent->weapon == WP_ROCKET_LAUNCHER)
+			else if (ent->weapon == WP_ROCKET_LAUNCHER ||
+				ent->weapon == WP_REPEATER)
 			{
 				CGCam_Shake(flrand(2, 3), 350);
 			}
-			else if (ent->weapon == WP_REPEATER)
+			else if (ent->weapon == WP_Z6_ROTARY_CANNON)
 			{
-				CGCam_Shake(flrand(2, 3), 350);
+				CGCam_Shake(flrand(0.2, 0.5), 150);
 			}
 			else if (ent->weapon == WP_FLECHETTE)
 			{
@@ -2969,7 +3206,6 @@ void CG_FireWeapon(centity_t* cent, const qboolean alt_fire)
 			return;
 		}
 	}
-
 	// play a sound
 	if (alt_fire)
 	{
@@ -3206,6 +3442,7 @@ void cg_missile_hit_wall(const int weapon, vec3_t origin, vec3_t dir, const qboo
 		break;
 
 	case WP_CLONECOMMANDO:
+	case WP_Z6_ROTARY_CANNON:
 		FX_CloneWeaponHitWall(origin, dir);
 		break;
 
@@ -3357,6 +3594,7 @@ void cg_missile_hit_player(const int weapon, vec3_t origin, vec3_t dir, const qb
 		break;
 
 	case WP_CLONECOMMANDO:
+	case WP_Z6_ROTARY_CANNON:
 		FX_CloneWeaponHitPlayer(origin, dir, humanoid);
 		break;
 

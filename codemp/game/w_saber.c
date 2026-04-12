@@ -2799,6 +2799,7 @@ int BasicWeaponBlockCosts[MOD_MAX] =
 	20, //MOD_REBELBLASTER,
 	20, //MOD_CLONERIFLE,
 	20, //MOD_CLONECOMMANDO,
+	20, //MOD_Z6_ROTARY_CANNON,
 	20, //MOD_REBELRIFLE,
 	20, //MOD_REY,
 	10, //MOD_REY_ALT,
@@ -2990,7 +2991,7 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 				saber_block_cost = DODGE_TUSKENBLOCK * 3.0f;
 			}
 			// Repeater
-			else if (actWpn == WP_REPEATER)
+			else if (actWpn == WP_REPEATER || actWpn == WP_Z6_ROTARY_CANNON)
 			{
 				saber_block_cost = DODGE_REPEATERBLOCK;
 			}

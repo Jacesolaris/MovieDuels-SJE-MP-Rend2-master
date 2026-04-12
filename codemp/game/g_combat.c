@@ -842,6 +842,7 @@ char* modNames[MOD_MAX] = {
 	"MOD_REBELBLASTER",
 	"MOD_CLONERIFLE",
 	"MOD_CLONECOMMANDO",
+	"MOD_Z6_ROTARY_CANNON",
 	"MOD_REBELRIFLE",
 	"MOD_REY",
 	"MOD_REY_ALT",
@@ -4283,7 +4284,6 @@ void G_ApplyKnockback(gentity_t* targ, vec3_t new_dir, float knockback)
 	}
 }
 
-
 static int G_CheckForLedge(const gentity_t* self, vec3_t fall_check_dir, const float check_dist)
 {
 	//racc - this function checks to see if there is a ledge/cliff/empty in fallCheckDir @ checkDist away from the player.
@@ -4913,7 +4913,6 @@ void G_Dismember(const gentity_t* ent, const gentity_t* enemy, vec3_t point, con
 
 	trap->LinkEntity((sharedEntity_t*)limb);
 }
-
 
 void DismembermentTest(gentity_t* self)
 {
@@ -7558,6 +7557,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 			|| inflictor->s.weapon == WP_REBELBLASTER
 			|| inflictor->s.weapon == WP_CLONERIFLE
 			|| inflictor->s.weapon == WP_CLONECOMMANDO
+			|| inflictor->s.weapon == WP_Z6_ROTARY_CANNON
 			|| inflictor->s.weapon == WP_REBELRIFLE
 			|| inflictor->s.weapon == WP_REY
 			|| inflictor->s.weapon == WP_JANGO
