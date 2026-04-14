@@ -4027,156 +4027,198 @@ static int CG_RagAnimForPositioning(centity_t* cent)
 	return BOTH_DEADFLOP1;
 }
 
+static qboolean G_RagDollDisallowedClass(const bclass_t botclass)
+{
+	switch (botclass)
+	{
+	case BCLASS_GONK:
+	case BCLASS_INTERROGATOR:
+	case BCLASS_MARK1:
+	case BCLASS_MARK2:
+	case BCLASS_MOUSE:
+	case BCLASS_PROBE:
+	case BCLASS_PROTOCOL:
+	case BCLASS_R2D2:
+	case BCLASS_R5D2:
+	case BCLASS_SEEKER:
+	case BCLASS_SENTRY:
+	case BCLASS_SBD:
+	case BCLASS_DROIDEKA:
+	case BCLASS_OBJECT:
+	case BCLASS_ASSASSIN_DROID:
+	case BCLASS_SABER_DROID:
+		return qtrue;
+
+	default:
+		return qfalse;
+	}
+}
 //rww - cgame interface for the ragdoll stuff.
 //Returns qtrue if the entity is now in a ragdoll state, otherwise qfalse.
 qboolean CG_RagDoll(centity_t* cent, vec3_t forced_angles)
 {
-	vec3_t used_org;
+	vec3_t   used_org;
 	qboolean in_something = qfalse;
 
-	if (!broadsword.integer || cent->currentState.botclass == BCLASS_SBD || cent->currentState.botclass ==
-		BCLASS_DROIDEKA)
+	// -----------------------------------------------------------------
+	// 0. Basic validation and early outs
+	// -----------------------------------------------------------------
+
+	// Ragdoll system disabled
+	if (!broadsword.integer)
 	{
 		return qfalse;
 	}
 
+	// Class explicitly disallowed from ragdoll
+	if (G_RagDollDisallowedClass(cent->currentState.botclass))
+	{
+		return qfalse;
+	}
+
+	// Non-humanoids (localAnimIndex != 0) do not ragdoll
 	if (cent->localAnimIndex)
 	{
-		//don't rag non-humanoids
 		return qfalse;
 	}
 
+	// Working origin for ragdoll
 	VectorCopy(cent->lerpOrigin, used_org);
 
+	// -----------------------------------------------------------------
+	// 1. Decide whether to ENTER ragdoll
+	// -----------------------------------------------------------------
 	if (!cent->isRagging)
 	{
-		//If we're not in a ragdoll state, perform the checks.
+		// 1.1: Explicit EF_RAG flag forces ragdoll
 		if (cent->currentState.eFlags & EF_RAG)
 		{
-			//want to go into it no matter what then
 			in_something = qtrue;
 		}
+		// 1.2: High-speed airborne ragdoll trigger
 		else if (cent->currentState.groundEntityNum == ENTITYNUM_NONE)
 		{
 			vec3_t c_vel;
 
 			VectorCopy(cent->currentState.pos.trDelta, c_vel);
 
-			if (VectorNormalize(c_vel) > 400)
+			if (VectorNormalize(c_vel) > 400.0f)
 			{
-				//if he's flying through the air at a good enough speed, switch into ragdoll
+				// Flying fast enough through the air → ragdoll
 				in_something = qtrue;
 			}
 		}
 
+		// 1.3: Body entities inherit rag state from owner
 		if (cent->currentState.eType == ET_BODY)
 		{
-			//just rag bodies immediately if their own was ragging on respawn
 			if (cent->ownerRagging)
 			{
+				// Owner was ragging when this body spawned
 				cent->isRagging = qtrue;
 				return qfalse;
 			}
 		}
 
-		if (broadsword.integer > 1 && cent->currentState.botclass != BCLASS_SBD && cent->currentState.botclass !=
-			BCLASS_DROIDEKA)
+		// 1.4: broadsword > 1 forces ragdoll (if class allowed)
+		if (broadsword.integer > 1 && !G_RagDollDisallowedClass(cent->currentState.botclass))
 		{
 			in_something = qtrue;
 		}
 
+		// 1.5: If still not ragging, run collision-based activation
 		if (!in_something)
 		{
-			int anim = cent->currentState.legsAnim;
-			int dur = (bgAllAnims[cent->localAnimIndex].anims[anim].numFrames - 1) * fabs(
-				bgAllAnims[cent->localAnimIndex].anims[anim].frameLerp);
-			int i = 0;
-			int bolt_checks[5] = { 0 };
-			vec3_t bolt_points[5] = { 0 };
-			vec3_t t_ang;
+			const int anim = cent->currentState.legsAnim;
+			const animation_t* legs_anim = &bgAllAnims[cent->localAnimIndex].anims[anim];
+
+			const int dur = (legs_anim->numFrames - 1) *
+				(int)fabs(legs_anim->frameLerp);
+
 			qboolean death_done = qfalse;
-			trace_t tr;
-			mdxaBone_t boltMatrix;
 
-			VectorSet(t_ang, cent->turAngles[PITCH], cent->turAngles[YAW], cent->turAngles[ROLL]);
-
-			if (cent->pe.legs.animationTime > 50 && cg.time - cent->pe.legs.animationTime > dur)
+			if (cent->pe.legs.animationTime > 50 &&
+				(cg.time - cent->pe.legs.animationTime) > dur)
 			{
-				//Looks like the death anim is done playing
+				// Death animation finished
 				death_done = qtrue;
 			}
 
-			if (death_done)
+			// Bolt indices and positions
+			int    bolt_checks[5] = { 0 };
+			vec3_t bolt_points[5];
+			vec3_t t_ang;
+
+			trace_t     tr;
+			mdxaBone_t  boltMatrix;
+			int         i = 0;
+
+			VectorSet(t_ang,
+				cent->turAngles[PITCH],
+				cent->turAngles[YAW],
+				cent->turAngles[ROLL]);
+
+			// If death anim is done, include hands; otherwise start at head
+			if (death_done == qtrue)
 			{
-				//only trace from the hands if the death anim is already done.
 				bolt_checks[0] = trap->G2API_AddBolt(cent->ghoul2, 0, "rhand");
 				bolt_checks[1] = trap->G2API_AddBolt(cent->ghoul2, 0, "lhand");
 			}
 			else
 			{
-				//otherwise start the trace loop at the cranium.
 				i = 2;
 			}
+
+			// Head and feet
 			bolt_checks[2] = trap->G2API_AddBolt(cent->ghoul2, 0, "cranium");
 			bolt_checks[3] = trap->G2API_AddBolt(cent->ghoul2, 0, "rtalus");
 			bolt_checks[4] = trap->G2API_AddBolt(cent->ghoul2, 0, "ltalus");
 
-			//This may seem bad, but since we have a bone cache now it should manage to not be too disgustingly slow.
-			//Do the head first, because the hands reference it anyway.
-			trap->G2API_GetBoltMatrix(cent->ghoul2, 0, bolt_checks[2], &boltMatrix, t_ang, cent->lerpOrigin, cg.time,
+			// Precompute head bolt (index 2)
+			trap->G2API_GetBoltMatrix(cent->ghoul2, 0, bolt_checks[2],
+				&boltMatrix, t_ang, cent->lerpOrigin, cg.time,
 				cgs.game_models, cent->modelScale);
 			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, bolt_points[2]);
 
+			// Trace from hands/head/feet to either head or origin
 			while (i < 5)
 			{
-				vec3_t tr_end;
 				vec3_t tr_start;
+				vec3_t tr_end;
+
 				if (i < 2)
 				{
-					//when doing hands, trace to the head instead of origin
-					trap->G2API_GetBoltMatrix(cent->ghoul2, 0, bolt_checks[i], &boltMatrix, t_ang, cent->lerpOrigin,
-						cg.time, cgs.game_models, cent->modelScale);
+					// Hands trace to head
+					trap->G2API_GetBoltMatrix(cent->ghoul2, 0, bolt_checks[i],
+						&boltMatrix, t_ang, cent->lerpOrigin, cg.time,
+						cgs.game_models, cent->modelScale);
 					BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, bolt_points[i]);
+
 					VectorCopy(bolt_points[i], tr_start);
 					VectorCopy(bolt_points[2], tr_end);
 				}
 				else
 				{
+					// Head/feet trace to origin
 					if (i > 2)
 					{
-						//2 is the head, which already has the bolt point.
-						trap->G2API_GetBoltMatrix(cent->ghoul2, 0, bolt_checks[i], &boltMatrix, t_ang,
-							cent->lerpOrigin,
-							cg.time, cgs.game_models, cent->modelScale);
+						trap->G2API_GetBoltMatrix(cent->ghoul2, 0, bolt_checks[i],
+							&boltMatrix, t_ang, cent->lerpOrigin, cg.time,
+							cgs.game_models, cent->modelScale);
 						BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, bolt_points[i]);
 					}
+
 					VectorCopy(bolt_points[i], tr_start);
 					VectorCopy(cent->lerpOrigin, tr_end);
 				}
 
-				//Now that we have all that sorted out, trace between the two points we desire.
+				// Trace between the two points
 				CG_Rag_Trace(&tr, tr_start, NULL, NULL, tr_end, MASK_SOLID);
 
-				if (tr.fraction != 1.0 || tr.startsolid || tr.allsolid)
+				if (tr.fraction != 1.0f || tr.startsolid || tr.allsolid)
 				{
-					//Hit something or start in solid, so flag it and break.
-					//This is a slight hack, but if we aren't done with the death anim, we don't really want to
-					//go into ragdoll unless our body has a relatively "flat" pitch.
-#if 0
-					vec3_t vSub;
-
-					//Check the pitch from the head to the right foot (should be reasonable)
-					VectorSubtract(boltPoints[2], boltPoints[3], vSub);
-					VectorNormalize(vSub);
-					vectoangles(vSub, vSub);
-
-					if (deathDone || (vSub[PITCH] < 50 && vSub[PITCH] > -50))
-					{
-						inSomething = qtrue;
-					}
-#else
+					// Hit something or started in solid → ragdoll
 					in_something = qtrue;
-#endif
 					break;
 				}
 
@@ -4184,7 +4226,8 @@ qboolean CG_RagDoll(centity_t* cent, vec3_t forced_angles)
 			}
 		}
 
-		if (in_something)
+		// 1.6: If we decided to enter ragdoll, flag it
+		if (in_something == qtrue)
 		{
 			cent->isRagging = qtrue;
 #if 0
@@ -4193,104 +4236,110 @@ qboolean CG_RagDoll(centity_t* cent, vec3_t forced_angles)
 		}
 	}
 
-	if (cent->isRagging)
+	// -----------------------------------------------------------------
+	// 2. If still not ragging, nothing more to do
+	// -----------------------------------------------------------------
+	if (!cent->isRagging)
+	{
+		return qfalse;
+	}
+
+	// -----------------------------------------------------------------
+	// 3. Ragdoll update / setup
+	// -----------------------------------------------------------------
 	{
 		int rag_anim;
-		//We're in a ragdoll state, so make the call to keep our positions updated and whatnot.
-		sharedRagDollParams_t t_parms;
+		sharedRagDollParams_t       t_parms;
 		sharedRagDollUpdateParams_t tu_parms;
+
+		memset(&t_parms, 0, sizeof(t_parms));
+		memset(&tu_parms, 0, sizeof(tu_parms));
 
 		rag_anim = CG_RagAnimForPositioning(cent);
 
+		// IK must be reset before ragdoll starts
 		if (cent->ikStatus)
 		{
-			//ik must be reset before ragdoll is started, or you'll get some interesting results.
 			trap->G2API_SetBoneIKState(cent->ghoul2, cg.time, NULL, IKS_NONE, NULL);
 			cent->ikStatus = qfalse;
 		}
 
-		//these will be used as "base" frames for the ragoll settling.
+		// Base frames for ragdoll settling
 		t_parms.startFrame = bgAllAnims[cent->localAnimIndex].anims[rag_anim].firstFrame;
-		// + bgAllAnims[cent->localAnimIndex].anims[ragAnim].numFrames;
-		t_parms.endFrame = bgAllAnims[cent->localAnimIndex].anims[rag_anim].firstFrame + bgAllAnims[cent->
-			localAnimIndex].
-			anims[rag_anim].numFrames;
-#if 0
-		{
-			float animSpeed = 0;
-			int blendTime = 600;
-			int flags = 0;//BONE_ANIM_OVERRIDE_FREEZE;
+		t_parms.endFrame = bgAllAnims[cent->localAnimIndex].anims[rag_anim].firstFrame +
+			bgAllAnims[cent->localAnimIndex].anims[rag_anim].numFrames;
 
-			if (bgAllAnims[cent->localAnimIndex].anims[ragAnim].loopFrames != -1)
-			{
-				flags = BONE_ANIM_OVERRIDE_LOOP;
-			}
-
-			/*
-			if (cg_animBlend.integer)
-			{
-				flags |= BONE_ANIM_BLEND;
-			}
-			*/
-
-			animSpeed = 50.0f / bgAllAnims[cent->localAnimIndex].anims[ragAnim].frameLerp;
-			trap->G2API_SetBoneAnim(cent->ghoul2, 0, "lower_lumbar", tParms.startFrame, tParms.endFrame, flags, animSpeed, cg.time, -1, blendTime);
-			trap->G2API_SetBoneAnim(cent->ghoul2, 0, "Motion", tParms.startFrame, tParms.endFrame, flags, animSpeed, cg.time, -1, blendTime);
-			trap->G2API_SetBoneAnim(cent->ghoul2, 0, "model_root", tParms.startFrame, tParms.endFrame, flags, animSpeed, cg.time, -1, blendTime);
-		}
-#elif 1 //with my new method of doing things I want it to continue the anim
+#if 1 // Continue current anim and lock it for ragdoll base
 		{
 			float currentFrame;
-			int startFrame, endFrame;
-			int flags;
+			int   startFrame;
+			int   endFrame;
+			int   flags;
 			float animSpeed;
 
-			if (trap->G2API_GetBoneAnim(cent->ghoul2, "model_root", cg.time, &currentFrame, &startFrame, &endFrame,
+			if (trap->G2API_GetBoneAnim(cent->ghoul2, "model_root",
+				cg.time, &currentFrame, &startFrame, &endFrame,
 				&flags, &animSpeed, cgs.game_models, 0))
 			{
-				//lock the anim on the current frame.
-				int blendTime = 500;
-				animation_t* cur_anim = &bgAllAnims[cent->localAnimIndex].anims[cent->currentState.legsAnim];
+				const int blendTime = 500;
+				animation_t* cur_anim =
+					&bgAllAnims[cent->localAnimIndex].anims[cent->currentState.legsAnim];
 
 				if (currentFrame >= cur_anim->firstFrame + cur_anim->numFrames - 1)
 				{
-					//this is sort of silly but it works for now.
-					currentFrame = cur_anim->firstFrame + cur_anim->numFrames - 2;
+					// Clamp to last valid frame
+					currentFrame = (float)(cur_anim->firstFrame + cur_anim->numFrames - 2);
 				}
 
-				trap->G2API_SetBoneAnim(cent->ghoul2, 0, "lower_lumbar", currentFrame, currentFrame + 1, flags,
+				trap->G2API_SetBoneAnim(cent->ghoul2, 0, "lower_lumbar",
+					currentFrame, currentFrame + 1, flags,
 					animSpeed, cg.time, currentFrame, blendTime);
-				trap->G2API_SetBoneAnim(cent->ghoul2, 0, "model_root", currentFrame, currentFrame + 1, flags,
-					animSpeed,
-					cg.time, currentFrame, blendTime);
-				trap->G2API_SetBoneAnim(cent->ghoul2, 0, "Motion", currentFrame, currentFrame + 1, flags, animSpeed,
-					cg.time, currentFrame, blendTime);
+
+				trap->G2API_SetBoneAnim(cent->ghoul2, 0, "model_root",
+					currentFrame, currentFrame + 1, flags,
+					animSpeed, cg.time, currentFrame, blendTime);
+
+				trap->G2API_SetBoneAnim(cent->ghoul2, 0, "Motion",
+					currentFrame, currentFrame + 1, flags,
+					animSpeed, cg.time, currentFrame, blendTime);
 			}
 		}
 #endif
-		CG_G2SetBoneAngles(cent->ghoul2, 0, "upper_lumbar", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y,
-			NEGATIVE_Z, cgs.game_models, 0, cg.time);
-		CG_G2SetBoneAngles(cent->ghoul2, 0, "lower_lumbar", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y,
-			NEGATIVE_Z, cgs.game_models, 0, cg.time);
-		CG_G2SetBoneAngles(cent->ghoul2, 0, "thoracic", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y,
-			NEGATIVE_Z, cgs.game_models, 0, cg.time);
-		CG_G2SetBoneAngles(cent->ghoul2, 0, "cervical", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y,
-			NEGATIVE_Z, cgs.game_models, 0, cg.time);
 
+		// Zero out spine rotations so ragdoll can take over cleanly
+		CG_G2SetBoneAngles(cent->ghoul2, 0, "upper_lumbar", vec3_origin,
+			BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z,
+			cgs.game_models, 0, cg.time);
+
+		CG_G2SetBoneAngles(cent->ghoul2, 0, "lower_lumbar", vec3_origin,
+			BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z,
+			cgs.game_models, 0, cg.time);
+
+		CG_G2SetBoneAngles(cent->ghoul2, 0, "thoracic", vec3_origin,
+			BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z,
+			cgs.game_models, 0, cg.time);
+
+		CG_G2SetBoneAngles(cent->ghoul2, 0, "cervical", vec3_origin,
+			BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z,
+			cgs.game_models, 0, cg.time);
+
+		// Fill ragdoll creation params
 		VectorCopy(forced_angles, t_parms.angles);
 		VectorCopy(used_org, t_parms.position);
 		VectorCopy(cent->modelScale, t_parms.scale);
-		t_parms.me = cent->currentState.number;
 
+		t_parms.me = cent->currentState.number;
 		t_parms.collisionType = 1;
 		t_parms.RagPhase = RP_DEATH_COLLISION;
-		t_parms.fShotStrength = 4;
+		t_parms.fShotStrength = 4.0f;
 
 		trap->G2API_SetRagDoll(cent->ghoul2, &t_parms);
 
+		// Fill ragdoll update params
 		VectorCopy(forced_angles, tu_parms.angles);
 		VectorCopy(used_org, tu_parms.position);
 		VectorCopy(cent->modelScale, tu_parms.scale);
+
 		tu_parms.me = cent->currentState.number;
 		tu_parms.settleFrame = t_parms.endFrame - 1;
 
@@ -4305,193 +4354,210 @@ qboolean CG_RagDoll(centity_t* cent, vec3_t forced_angles)
 
 		trap->G2API_AnimateG2Models(cent->ghoul2, cg.time, &tu_parms);
 
-		//So if we try to get a bolt point it's still correct
+		// Keep yaw in sync with forced_angles
 		cent->turAngles[YAW] =
 			cent->lerpAngles[YAW] =
 			cent->pe.torso.yawAngle =
 			cent->pe.legs.yawAngle = forced_angles[YAW];
+	}
 
-		if (cent->currentState.ragAttach &&
-			(cent->currentState.eType != ET_NPC || cent->currentState.NPC_class != CLASS_VEHICLE))
+	// -----------------------------------------------------------------
+	// 4. Handle ragAttach (being held / dragged by another entity)
+	// -----------------------------------------------------------------
+	if (cent->currentState.ragAttach &&
+		(cent->currentState.eType != ET_NPC ||
+			cent->currentState.NPC_class != CLASS_VEHICLE))
+	{
+		centity_t* grabEnt;
+
+		if (cent->currentState.ragAttach == ENTITYNUM_NONE)
 		{
-			centity_t* grabEnt;
-
-			if (cent->currentState.ragAttach == ENTITYNUM_NONE)
-			{
-				//switch cl 0 and entity_num_none, so we can operate on the "if non-0" concept
-				grabEnt = &cg_entities[0];
-			}
-			else
-			{
-				grabEnt = &cg_entities[cent->currentState.ragAttach];
-			}
-
-			if (grabEnt->ghoul2)
-			{
-				mdxaBone_t matrix;
-				vec3_t b_org;
-				vec3_t this_hand;
-				vec3_t hands;
-				vec3_t pcj_min, pcj_max;
-				vec3_t p_dif;
-				vec3_t thor_point;
-				int thor_bolt;
-
-				//Get the person who is holding our hand's hand location
-				trap->G2API_GetBoltMatrix(grabEnt->ghoul2, 0, 0, &matrix, grabEnt->turAngles, grabEnt->lerpOrigin,
-					cg.time, cgs.game_models, grabEnt->modelScale);
-				BG_GiveMeVectorFromMatrix(&matrix, ORIGIN, b_org);
-
-				//Get our hand's location
-				trap->G2API_GetBoltMatrix(cent->ghoul2, 0, 0, &matrix, cent->turAngles, cent->lerpOrigin,
-					cg.time, cgs.game_models, cent->modelScale);
-				BG_GiveMeVectorFromMatrix(&matrix, ORIGIN, this_hand);
-
-				//Get the position of the thoracic bone for hinting its velocity later on
-				thor_bolt = trap->G2API_AddBolt(cent->ghoul2, 0, "thoracic");
-				trap->G2API_GetBoltMatrix(cent->ghoul2, 0, thor_bolt, &matrix, cent->turAngles, cent->lerpOrigin,
-					cg.time, cgs.game_models, cent->modelScale);
-				BG_GiveMeVectorFromMatrix(&matrix, ORIGIN, thor_point);
-
-				VectorSubtract(b_org, this_hand, hands);
-
-				if (VectorLength(hands) < 3.0f)
-				{
-					trap->G2API_RagForceSolve(cent->ghoul2, qfalse);
-				}
-				else
-				{
-					trap->G2API_RagForceSolve(cent->ghoul2, qtrue);
-				}
-
-				//got the hand pos of him, now we want to make our hand go to it
-				trap->G2API_RagEffectorGoal(cent->ghoul2, "rhand", b_org);
-				trap->G2API_RagEffectorGoal(cent->ghoul2, "rradius", b_org);
-				trap->G2API_RagEffectorGoal(cent->ghoul2, "rradiusX", b_org);
-				trap->G2API_RagEffectorGoal(cent->ghoul2, "rhumerusX", b_org);
-				trap->G2API_RagEffectorGoal(cent->ghoul2, "rhumerus", b_org);
-
-				//Make these two solve quickly so we can update decently
-				trap->G2API_RagPCJGradientSpeed(cent->ghoul2, "rhumerus", 1.5f);
-				trap->G2API_RagPCJGradientSpeed(cent->ghoul2, "rradius", 1.5f);
-
-				//Break the constraints on them I suppose
-				VectorSet(pcj_min, -999, -999, -999);
-				VectorSet(pcj_max, 999, 999, 999);
-				trap->G2API_RagPCJConstraint(cent->ghoul2, "rhumerus", pcj_min, pcj_max);
-				trap->G2API_RagPCJConstraint(cent->ghoul2, "rradius", pcj_min, pcj_max);
-
-				cent->overridingBones = cg.time + 2000;
-
-				//hit the thoracic velocity to the hand point
-				VectorSubtract(b_org, thor_point, hands);
-				VectorNormalize(hands);
-				VectorScale(hands, 2048.0f, hands);
-				trap->G2API_RagEffectorKick(cent->ghoul2, "thoracic", hands);
-				trap->G2API_RagEffectorKick(cent->ghoul2, "ceyebrow", hands);
-
-				VectorSubtract(cent->ragLastOrigin, cent->lerpOrigin, p_dif);
-				VectorCopy(cent->lerpOrigin, cent->ragLastOrigin);
-
-				if (cent->ragLastOriginTime >= cg.time && cent->currentState.groundEntityNum != ENTITYNUM_NONE)
-				{
-					float dif_len;
-					//make sure it's reasonably updated
-					dif_len = VectorLength(p_dif);
-					if (dif_len > 0.0f)
-					{
-						//if we're being dragged, then kick all the bones around a bit
-						vec3_t d_vel;
-						int i = 0;
-
-						if (dif_len < 12.0f)
-						{
-							VectorScale(p_dif, 12.0f / dif_len, p_dif);
-							dif_len = 12.0f;
-						}
-
-						while (cg_effectorStringTable[i])
-						{
-							vec3_t r_vel;
-							VectorCopy(p_dif, d_vel);
-							d_vel[2] = 0;
-
-							//Factor in a random velocity
-							VectorSet(r_vel, flrand(-0.1f, 0.1f), flrand(-0.1f, 0.1f), flrand(0.1f, 0.5));
-							VectorScale(r_vel, 8.0f, r_vel);
-
-							VectorAdd(d_vel, r_vel, d_vel);
-							VectorScale(d_vel, 10.0f, d_vel);
-
-							trap->G2API_RagEffectorKick(cent->ghoul2, cg_effectorStringTable[i], d_vel);
-
-#if 0
-							{
-								mdxaBone_t bm;
-								vec3_t borg;
-								vec3_t vorg;
-								int b = trap->G2API_AddBolt(cent->ghoul2, 0, cg_effectorStringTable[i]);
-
-								trap->G2API_GetBoltMatrix(cent->ghoul2, 0, b, &bm, cent->turAngles, cent->lerpOrigin, cg.time,
-									cgs.game_models, cent->modelScale);
-								BG_GiveMeVectorFromMatrix(&bm, ORIGIN, borg);
-
-								VectorMA(borg, 1.0f, dVel, vorg);
-
-								CG_TestLine(borg, vorg, 50, 0x0000ff, 1);
-							}
-#endif
-
-							i++;
-						}
-					}
-				}
-				cent->ragLastOriginTime = cg.time + 1000;
-			}
+			// ENTITYNUM_NONE used as "0" special case
+			grabEnt = &cg_entities[0];
 		}
-		else if (cent->overridingBones)
+		else
 		{
-			//reset things to their normal rag state
-			vec3_t pcj_min, pcj_max;
-			vec3_t d_vel;
+			grabEnt = &cg_entities[cent->currentState.ragAttach];
+		}
 
-			//got the hand pos of him, now we want to make our hand go to it
-			trap->G2API_RagEffectorGoal(cent->ghoul2, "rhand", NULL);
-			trap->G2API_RagEffectorGoal(cent->ghoul2, "rradius", NULL);
-			trap->G2API_RagEffectorGoal(cent->ghoul2, "rradiusX", NULL);
-			trap->G2API_RagEffectorGoal(cent->ghoul2, "rhumerusX", NULL);
-			trap->G2API_RagEffectorGoal(cent->ghoul2, "rhumerus", NULL);
+		if (grabEnt->ghoul2)
+		{
+			mdxaBone_t matrix;
+			vec3_t     b_org;
+			vec3_t     this_hand;
+			vec3_t     hands;
+			vec3_t     pcj_min, pcj_max;
+			vec3_t     p_dif;
+			vec3_t     thor_point;
+			int        thor_bolt;
 
-			VectorSet(d_vel, 0.0f, 0.0f, -64.0f);
-			trap->G2API_RagEffectorKick(cent->ghoul2, "rhand", d_vel);
+			// Get holder's hand position
+			trap->G2API_GetBoltMatrix(grabEnt->ghoul2, 0, 0,
+				&matrix, grabEnt->turAngles, grabEnt->lerpOrigin,
+				cg.time, cgs.game_models, grabEnt->modelScale);
+			BG_GiveMeVectorFromMatrix(&matrix, ORIGIN, b_org);
 
-			trap->G2API_RagPCJGradientSpeed(cent->ghoul2, "rhumerus", 0.0f);
-			trap->G2API_RagPCJGradientSpeed(cent->ghoul2, "rradius", 0.0f);
+			// Get our hand position
+			trap->G2API_GetBoltMatrix(cent->ghoul2, 0, 0,
+				&matrix, cent->turAngles, cent->lerpOrigin,
+				cg.time, cgs.game_models, cent->modelScale);
+			BG_GiveMeVectorFromMatrix(&matrix, ORIGIN, this_hand);
 
-			VectorSet(pcj_min, -100.0f, -40.0f, -15.0f);
-			VectorSet(pcj_max, -15.0f, 80.0f, 15.0f);
-			trap->G2API_RagPCJConstraint(cent->ghoul2, "rhumerus", pcj_min, pcj_max);
+			// Get thoracic position for later velocity hint
+			thor_bolt = trap->G2API_AddBolt(cent->ghoul2, 0, "thoracic");
+			trap->G2API_GetBoltMatrix(cent->ghoul2, 0, thor_bolt,
+				&matrix, cent->turAngles, cent->lerpOrigin,
+				cg.time, cgs.game_models, cent->modelScale);
+			BG_GiveMeVectorFromMatrix(&matrix, ORIGIN, thor_point);
 
-			VectorSet(pcj_min, -25.0f, -20.0f, -20.0f);
-			VectorSet(pcj_max, 90.0f, 20.0f, -20.0f);
-			trap->G2API_RagPCJConstraint(cent->ghoul2, "rradius", pcj_min, pcj_max);
+			VectorSubtract(b_org, this_hand, hands);
 
-			if (cent->overridingBones < cg.time)
+			if (VectorLength(hands) < 3.0f)
 			{
 				trap->G2API_RagForceSolve(cent->ghoul2, qfalse);
-				cent->overridingBones = 0;
 			}
 			else
 			{
 				trap->G2API_RagForceSolve(cent->ghoul2, qtrue);
 			}
-		}
 
-		return qtrue;
+			// Drive our arm toward the holder's hand
+			trap->G2API_RagEffectorGoal(cent->ghoul2, "rhand", b_org);
+			trap->G2API_RagEffectorGoal(cent->ghoul2, "rradius", b_org);
+			trap->G2API_RagEffectorGoal(cent->ghoul2, "rradiusX", b_org);
+			trap->G2API_RagEffectorGoal(cent->ghoul2, "rhumerusX", b_org);
+			trap->G2API_RagEffectorGoal(cent->ghoul2, "rhumerus", b_org);
+
+			// Make these solve quickly
+			trap->G2API_RagPCJGradientSpeed(cent->ghoul2, "rhumerus", 1.5f);
+			trap->G2API_RagPCJGradientSpeed(cent->ghoul2, "rradius", 1.5f);
+
+			// Break constraints on these joints
+			VectorSet(pcj_min, -999.0f, -999.0f, -999.0f);
+			VectorSet(pcj_max, 999.0f, 999.0f, 999.0f);
+			trap->G2API_RagPCJConstraint(cent->ghoul2, "rhumerus", pcj_min, pcj_max);
+			trap->G2API_RagPCJConstraint(cent->ghoul2, "rradius", pcj_min, pcj_max);
+
+			cent->overridingBones = cg.time + 2000;
+
+			// Kick thoracic toward the hand
+			VectorSubtract(b_org, thor_point, hands);
+			VectorNormalize(hands);
+			VectorScale(hands, 2048.0f, hands);
+			trap->G2API_RagEffectorKick(cent->ghoul2, "thoracic", hands);
+			trap->G2API_RagEffectorKick(cent->ghoul2, "ceyebrow", hands);
+
+			// Dragging kick logic
+			VectorSubtract(cent->ragLastOrigin, cent->lerpOrigin, p_dif);
+			VectorCopy(cent->lerpOrigin, cent->ragLastOrigin);
+
+			if (cent->ragLastOriginTime >= cg.time &&
+				cent->currentState.groundEntityNum != ENTITYNUM_NONE)
+			{
+				float dif_len = VectorLength(p_dif);
+
+				if (dif_len > 0.0f)
+				{
+					vec3_t d_vel;
+					int    i = 0;
+
+					if (dif_len < 12.0f)
+					{
+						VectorScale(p_dif, 12.0f / dif_len, p_dif);
+						dif_len = 12.0f;
+					}
+
+					while (cg_effectorStringTable[i])
+					{
+						vec3_t r_vel;
+
+						VectorCopy(p_dif, d_vel);
+						d_vel[2] = 0.0f;
+
+						// Add some random velocity
+						VectorSet(r_vel,
+							flrand(-0.1f, 0.1f),
+							flrand(-0.1f, 0.1f),
+							flrand(0.1f, 0.5f));
+						VectorScale(r_vel, 8.0f, r_vel);
+
+						VectorAdd(d_vel, r_vel, d_vel);
+						VectorScale(d_vel, 10.0f, d_vel);
+
+						trap->G2API_RagEffectorKick(cent->ghoul2, cg_effectorStringTable[i], d_vel);
+
+#if 0
+						{
+							mdxaBone_t bm;
+							vec3_t     borg;
+							vec3_t     vorg;
+							int        b = trap->G2API_AddBolt(cent->ghoul2, 0, cg_effectorStringTable[i]);
+
+							trap->G2API_GetBoltMatrix(cent->ghoul2, 0, b,
+								&bm, cent->turAngles, cent->lerpOrigin,
+								cg.time, cgs.game_models, cent->modelScale);
+							BG_GiveMeVectorFromMatrix(&bm, ORIGIN, borg);
+
+							VectorMA(borg, 1.0f, d_vel, vorg);
+
+							CG_TestLine(borg, vorg, 50, 0x0000ff, 1);
+						}
+#endif
+						i++;
+					}
+				}
+			}
+
+			cent->ragLastOriginTime = cg.time + 1000;
+		}
+	}
+	else if (cent->overridingBones)
+	{
+		// -----------------------------------------------------------------
+		// 5. Reset overridden bones back to normal rag state
+		// -----------------------------------------------------------------
+		vec3_t pcj_min, pcj_max;
+		vec3_t d_vel;
+
+		// Clear effector goals
+		trap->G2API_RagEffectorGoal(cent->ghoul2, "rhand", NULL);
+		trap->G2API_RagEffectorGoal(cent->ghoul2, "rradius", NULL);
+		trap->G2API_RagEffectorGoal(cent->ghoul2, "rradiusX", NULL);
+		trap->G2API_RagEffectorGoal(cent->ghoul2, "rhumerusX", NULL);
+		trap->G2API_RagEffectorGoal(cent->ghoul2, "rhumerus", NULL);
+
+		// Small downward kick to settle the hand
+		VectorSet(d_vel, 0.0f, 0.0f, -64.0f);
+		trap->G2API_RagEffectorKick(cent->ghoul2, "rhand", d_vel);
+
+		// Restore gradient speeds
+		trap->G2API_RagPCJGradientSpeed(cent->ghoul2, "rhumerus", 0.0f);
+		trap->G2API_RagPCJGradientSpeed(cent->ghoul2, "rradius", 0.0f);
+
+		// Restore constraints
+		VectorSet(pcj_min, -100.0f, -40.0f, -15.0f);
+		VectorSet(pcj_max, -15.0f, 80.0f, 15.0f);
+		trap->G2API_RagPCJConstraint(cent->ghoul2, "rhumerus", pcj_min, pcj_max);
+
+		VectorSet(pcj_min, -25.0f, -20.0f, -20.0f);
+		VectorSet(pcj_max, 90.0f, 20.0f, -20.0f);
+		trap->G2API_RagPCJConstraint(cent->ghoul2, "rradius", pcj_min, pcj_max);
+
+		// Stop forcing solve after timeout
+		if (cent->overridingBones < cg.time)
+		{
+			trap->G2API_RagForceSolve(cent->ghoul2, qfalse);
+			cent->overridingBones = 0;
+		}
+		else
+		{
+			trap->G2API_RagForceSolve(cent->ghoul2, qtrue);
+		}
 	}
 
-	return qfalse;
+	return qtrue;
 }
+
 
 //set the bone angles of this client entity based on data from the server -rww
 void CG_G2ServerBoneAngles(const centity_t* cent)
