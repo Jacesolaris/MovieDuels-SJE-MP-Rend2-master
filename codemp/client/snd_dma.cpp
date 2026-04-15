@@ -1582,7 +1582,9 @@ void S_StartSound(const vec3_t origin, const int entityNum, const int entchannel
 
 	if (sfxHandle < 0 || sfxHandle >= s_numSfx)
 	{
+#ifndef FINAL_BUILD
 		Com_Error(ERR_DROP, "S_StartSound: handle %i out of range", sfxHandle);
+#endif
 	}
 
 	sfx_t* sfx = &s_knownSfx[sfxHandle];
