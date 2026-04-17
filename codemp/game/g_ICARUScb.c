@@ -4236,7 +4236,8 @@ Q3_SetVampire
 ============
 */
 static void Q3_SetVampire(int entID, qboolean vampire)
-{}
+{
+}
 
 /*
 ============
@@ -9396,7 +9397,6 @@ char* G_GetLocationForEnt(const gentity_t* self)
 
 	return NULL;
 }
-
 
 //toggle the forcepower for this entity
 //ported from SP.

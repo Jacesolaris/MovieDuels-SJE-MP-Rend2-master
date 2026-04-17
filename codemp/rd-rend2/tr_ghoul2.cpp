@@ -275,7 +275,8 @@ public:
 		, rootSList(initrootSList)
 		, currentModel(initcurrentModel)
 		, boneList(initboneList)
-	{}
+	{
+	}
 };
 
 class CTransformBone
@@ -289,7 +290,8 @@ public:
 	CTransformBone()
 		: touch(0)
 		, touchRender(0)
-	{}
+	{
+	}
 };
 
 struct SBoneCalc
@@ -1067,7 +1069,8 @@ public:
 		, gore_shader(initgore_shader)
 		, gore_set(initgore_set)
 #endif
-	{}
+	{
+	}
 };
 
 /*

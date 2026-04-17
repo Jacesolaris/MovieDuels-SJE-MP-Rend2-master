@@ -1446,7 +1446,7 @@ static void SV_ForceToggle_f(void)
 	}
 }
 
-const char* weaponToggleNamePrints[WP_NUM_WEAPONS] = 
+const char* weaponToggleNamePrints[WP_NUM_WEAPONS] =
 {
 	"NO WEAPON",
 	"STUN BATON",

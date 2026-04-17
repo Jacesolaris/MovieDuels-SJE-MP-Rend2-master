@@ -4902,7 +4902,6 @@ void R_ShaderList_f(void)
 	ri->Printf(PRINT_ALL, "------------------\n");
 }
 
-
 /*
 ====================
 ScanAndLoadShaderFiles

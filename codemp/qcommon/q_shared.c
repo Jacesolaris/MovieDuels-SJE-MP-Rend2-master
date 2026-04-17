@@ -845,7 +845,6 @@ char* Info_ValueForKey(const char* s, const char* key)
 	return "";
 }
 
-
 /*
 ===================
 Info_NextPair
@@ -969,8 +968,6 @@ qboolean Info_NextPair(const char** head, char* key, char* value)
 	result = qtrue;
 	return (result == qtrue ? qtrue : qfalse);
 }
-
-
 
 /*
 ===================

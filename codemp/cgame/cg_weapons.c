@@ -338,12 +338,10 @@ static float CG_MachinegunSpinAngle(centity_t* cent)
 					trap->S_RegisterSound("sound/weapons/z6/spinny.wav"));
 			}
 		}
-
 	}
 
 	return angle;
 }
-
 
 /*
 ==============
@@ -493,7 +491,6 @@ static void CG_AddWeaponWithPowerups(refEntity_t* gun)
 		gun->customShader = pre_shader; //set back just to be safe
 	}
 }
-
 
 //for g2 surface routines
 #define TURN_ON				0x00000000
@@ -885,7 +882,6 @@ void CG_AddViewWeaponDuals(refEntity_t* parent, playerState_t* ps, centity_t* ce
 
 		trap->FX_AddSprite(&fxSArgs);
 	}
-
 
 	//
 	// Choose the non-predicted cent for lightning bolt, etc.
@@ -1485,7 +1481,6 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 				// Couldn't find bolt point.
 				return;
 			}
-
 
 			// ------------------------------------------------------------
 			//  Spinning barrel overlay for trueguns / third person

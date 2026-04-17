@@ -1038,7 +1038,8 @@ static void DeathUpdate(Vehicle_t* p_veh)
 
 // Register all the assets used by this vehicle.
 static void RegisterAssets(Vehicle_t* p_veh)
-{}
+{
+}
 
 extern void ChangeWeapon(const gentity_t* ent, int new_weapon);
 

@@ -4558,7 +4558,6 @@ qboolean CG_RagDoll(centity_t* cent, vec3_t forced_angles)
 	return qtrue;
 }
 
-
 //set the bone angles of this client entity based on data from the server -rww
 void CG_G2ServerBoneAngles(const centity_t* cent)
 {

@@ -495,8 +495,8 @@ static SOCKET NET_IPSocket(char* net_interface, const int port, int* err)
 	Com_Printf("----------------------- MovieDuels-SJE-SP -----------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Update 7.0 ---------------------------\n");
-	Com_Printf("--------------------- Build Date 15/04/2026 ---------------------\n");// build date
-	Com_Printf("---------------------------Build 06------------------------------\n");
+	Com_Printf("--------------------- Build Date 17/04/2026 ---------------------\n");// build date
+	Com_Printf("---------------------------Build 08------------------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Lightsaber ---------------------------\n");
 	Com_Printf("---------- An elegant weapon for a more civilized age -----------\n");
@@ -1113,7 +1113,6 @@ void NET_Shutdown(void)
 #endif
 }
 
-
 /*
 ====================
 NET_Event
@@ -1178,8 +1177,6 @@ static void NET_Event(fd_set* fdr)
 		}
 	}
 }
-
-
 
 /*
 ====================

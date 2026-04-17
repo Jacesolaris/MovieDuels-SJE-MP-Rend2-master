@@ -663,7 +663,7 @@ void UI_UpdateForcePowers()
 
 	if (forcePowers && forcePowers[0])
 	{
-		char readBuf[256]={0};
+		char readBuf[256] = { 0 };
 		while (forcePowers[i])
 		{
 			int i_r = 0;
@@ -775,7 +775,6 @@ validitycheck:
 
 	UpdateForceUsed();
 }
-
 
 extern int	uiSkinColor;
 extern int	uiHoldSkinColor;
@@ -944,7 +943,7 @@ qboolean UI_JediNonJedi_HandleKey(int flags, float* special, int key, int num, i
 			}
 		}
 		else if (num)
-		{//a jedi, set the minimums, hopefuly they know to set the rest!			
+		{//a jedi, set the minimums, hopefuly they know to set the rest!
 			if (uiForcePowersRank[FP_SABER_OFFENSE] < FORCE_LEVEL_1)
 			{//saber attack 1, minimum
 				uiForcePowersRank[FP_SABER_OFFENSE] = FORCE_LEVEL_1;

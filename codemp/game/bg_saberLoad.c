@@ -3134,8 +3134,6 @@ static qboolean WP_SaberValidForPlayerInMP(const char* saber_name)
 	return qfalse;
 }
 
-
-
 void WP_RemoveSaber(saberInfo_t* sabers, const int saberNum)
 {
 	if (!sabers)

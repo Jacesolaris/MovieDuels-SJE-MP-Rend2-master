@@ -7606,7 +7606,6 @@ static void Item_ValidateTypeData(itemDef_t* item)
 	}
 }
 
-
 /*
 ===============
 Keyword Hash

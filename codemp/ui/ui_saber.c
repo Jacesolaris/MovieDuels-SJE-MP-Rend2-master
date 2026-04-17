@@ -334,8 +334,6 @@ static qboolean UI_SaberValidForPlayerInMP(const char* saber_name)
 	return qfalse;
 }
 
-
-
 void UI_SaberLoadParms(void)
 {
 	ui_saber_parms_parsed = qtrue;

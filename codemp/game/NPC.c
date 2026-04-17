@@ -657,8 +657,8 @@ static void NPC_ApplyScriptFlags(void)
 			// npcs can use homing missiles properly now
 			NPCS.NPCInfo->attackHold = 2000;
 		}
-		else if ((NPCS.NPC->client->ps.weapon == WP_BRYAR_PISTOL || 
-			NPCS.NPC->client->ps.weapon == WP_REY || 
+		else if ((NPCS.NPC->client->ps.weapon == WP_BRYAR_PISTOL ||
+			NPCS.NPC->client->ps.weapon == WP_REY ||
 			NPCS.NPC->client->ps.weapon == WP_CLONEPISTOL) &&
 			NPCS.ucmd.buttons & BUTTON_ALT_ATTACK && !Q_irand(0, 1))
 		{
