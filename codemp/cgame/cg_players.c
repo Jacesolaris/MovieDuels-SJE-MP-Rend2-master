@@ -20164,7 +20164,7 @@ SkipTrueView:
 		{
 			vec3_t ef_org;
 			vec3_t t_ang, fx_ang;
-			matrix3_t axis;
+			matrix3_t axis = { 0 };
 
 			VectorSet(t_ang, cent->turAngles[PITCH], cent->turAngles[YAW], cent->turAngles[ROLL]);
 
@@ -20817,7 +20817,7 @@ stillDoSaber:
 		//goto endOfCall;
 	}
 
-	if (cg.snap->ps.fd.forcePowersActive & 1 << FP_SEE && cg.snap->ps.clientNum != cent->currentState.number)
+	if (cg.snap->ps.fd.forcePowersActive & 1 << FP_SEE && (cg.snap->ps.clientNum != cent->currentState.number))
 	{
 		legs.shaderRGBA[0] = 255;
 		legs.shaderRGBA[1] = 255;

@@ -328,8 +328,8 @@ static float CG_MachinegunSpinAngle(centity_t* cent)
 
 			// Play spin-up sound for Z6
 			if (firingNow == qtrue &&
-				cg.snap != NULL &&
-				cg.snap->ps.weapon == WP_Z6_ROTARY_CANNON)
+				(cent->currentState.weapon == WP_Z6_ROTARY_CANNON ||
+					(cg.snap != NULL && cg.snap->ps.weapon == WP_Z6_ROTARY_CANNON)))
 			{
 				trap->S_StartSound(
 					NULL,
@@ -793,7 +793,7 @@ void CG_AddViewWeaponDuals(refEntity_t* parent, playerState_t* ps, centity_t* ce
 				const float cs = cosf(spinRad);
 				const float sn = sinf(spinRad);
 
-				vec3_t ny, nz;
+				vec3_t ny = { 0 }, nz = { 0 };
 				for (int i = 0; i < 3; i++)
 				{
 					ny[i] = cs * barrelEnt.axis[1][i] + sn * barrelEnt.axis[2][i];

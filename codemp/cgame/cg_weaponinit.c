@@ -189,8 +189,8 @@ void CG_RegisterWeapon(const int weapon_num)
 	}
 	else if (weapon_num == WP_Z6_ROTARY_CANNON)
 	{
-		//only weapon with more than 1 barrel..
-		trap->R_RegisterModel("models/weapons2/z6_rotary/rotary_cannon_barrel.md3");
+		// ensure the Z6 barrel model is stored so world/third‑person falls back correctly
+		weaponInfo->barrelModel = trap->R_RegisterModel("models/weapons2/z6_rotary/rotary_cannon_barrel.md3");
 	}
 	else
 	{
