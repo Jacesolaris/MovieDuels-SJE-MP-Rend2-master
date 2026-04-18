@@ -48,9 +48,9 @@ extern stringID_table_t saber_moveTable[];
 #include <qcommon\q_math.h>
 
 extern qboolean BG_SabersOff(const playerState_t* ps);
-saberInfo_t* BG_MySaber(int clientNum, int saberNum);
+saberInfo_t* BG_MySaber(int clientNum, int saber_num);
 extern qboolean PM_SaberInDamageMove(int move);
-void PM_AddFatigue(playerState_t* ps, int fatigue);
+void PM_AddFatigue(playerState_t* ps, const int fatigue);
 extern qboolean PM_InCartwheel(int anim);
 extern qboolean PM_SaberInDeflect(int move);
 extern void PM_AddEventWithParm(int new_event, int parm);
@@ -6603,32 +6603,6 @@ weapChecks:
 }
 
 //Add Fatigue to a player
-void PM_AddFatigue(playerState_t* ps, const int fatigue)
-{
-	//For now, all saber attacks cost one FP.
-	if (ps->fd.forcePower > fatigue)
-	{
-		ps->fd.forcePower -= fatigue;
-	}
-	else
-	{
-		//don't have enough so just completely drain FP then.
-		ps->fd.forcePower = 0;
-	}
-
-	if (ps->fd.forcePower < BLOCKPOINTS_HALF)
-	{
-		ps->userInt3 |= 1 << FLAG_BLOCKDRAINED;
-	}
-
-	if (ps->fd.forcePower <= ps->fd.forcePowerMax * FATIGUEDTHRESHHOLD)
-	{
-		//Pop the Fatigued flag
-		ps->userInt3 |= 1 << FLAG_FATIGUED;
-	}
-}
-
-//Add Fatigue to a player
 void PM_AddBlockFatigue(playerState_t* ps, const int fatigue)
 {
 	//For now, all saber attacks cost one BP.
@@ -6642,12 +6616,38 @@ void PM_AddBlockFatigue(playerState_t* ps, const int fatigue)
 		ps->fd.blockPoints = 0;
 	}
 
-	if (ps->fd.blockPoints < BLOCKPOINTS_HALF)
+	if (ps->fd.blockPoints < BLOCKPOINTS_FATIGUE)
 	{
 		ps->userInt3 |= 1 << FLAG_BLOCKDRAINED;
 	}
 
 	if (ps->fd.blockPoints <= ps->fd.blockPointsMax * FATIGUEDTHRESHHOLD)
+	{
+		//Pop the Fatigued flag
+		ps->userInt3 |= 1 << FLAG_FATIGUED;
+	}
+}
+
+//Add Fatigue to a player
+void PM_AddFatigue(playerState_t* ps, const int fatigue)
+{
+	//For now, all saber attacks cost one FP.
+	if (ps->fd.forcePower > fatigue)
+	{
+		ps->fd.forcePower -= fatigue;
+	}
+	else
+	{
+		//don't have enough so just completely drain FP then.
+		ps->fd.forcePower = 0;
+	}
+
+	if (ps->fd.forcePower < BLOCKPOINTS_FATIGUE)
+	{
+		ps->userInt3 |= 1 << FLAG_BLOCKDRAINED;
+	}
+
+	if (ps->fd.forcePower <= ps->fd.forcePowerMax * FATIGUEDTHRESHHOLD)
 	{
 		//Pop the Fatigued flag
 		ps->userInt3 |= 1 << FLAG_FATIGUED;
@@ -6662,6 +6662,32 @@ static int Fatigue_SaberAttack()
 
 //Add Fatigue for all the saber moves.
 extern qboolean PM_KnockAwayStaffAndDuels(int move);
+
+static void PM_SaberFatigue(playerState_t* ps, const int new_move)
+{
+	if (ps->saber_move != new_move)
+	{//wasn't playing that attack before
+		if (PM_SaberInAttackPure(new_move))
+		{//simple saber attack
+			PM_AddBlockFatigue(ps, Fatigue_SaberAttack());
+		}
+		else if (PM_SaberInTransition(new_move) && pm->ps->userInt3 & 1 << FLAG_ATTACKFAKE)
+		{//attack fakes cost FP as well
+			if (ps->saberAnimLevel == SS_DUAL)
+			{//dual sabers don't have transition/FP costs.
+			}
+			else
+			{//single sabers
+				if (pm->ps->saberFatigueChainCount < MISHAPLEVEL_MAX)
+				{
+					pm->ps->saberFatigueChainCount++;
+				}
+			}
+		}
+	}
+
+	return;
+}
 
 static void PM_NPCFatigue(playerState_t* ps, const int new_move)
 {
@@ -6697,8 +6723,10 @@ static void PM_NPCFatigue(playerState_t* ps, const int new_move)
 			}
 			else
 			{
-				//single sabers
-				PM_AddBlockFatigue(ps, Fatigue_SaberAttack());
+				if (pm->ps->saberFatigueChainCount < MISHAPLEVEL_MAX)
+				{
+					pm->ps->saberFatigueChainCount++;
+				}
 			}
 		}
 	}
@@ -6802,13 +6830,13 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 #endif
 		{
 			// Only add fatigue every 2 swings (half as fast)
-			if ((pm->ps->saberAttackChainCount & 1) == 0)  // even number
+			//if ((pm->ps->saberAttackChainCount & 1) == 0)  // even number
+			//{
+			if (pm->ps->saberFatigueChainCount < MISHAPLEVEL_MAX)
 			{
-				if (pm->ps->saberFatigueChainCount < MISHAPLEVEL_MAX)
-				{
-					pm->ps->saberFatigueChainCount++;
-				}
+				pm->ps->saberFatigueChainCount++;
 			}
+			//}
 		}
 	}
 
@@ -6818,7 +6846,7 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 	}
 
 	/* Only the second block mattered in original code */
-	if (pm->ps->saberFatigueChainCount > MISHAPLEVEL_LIGHT)
+	if (pm->ps->saberFatigueChainCount > MISHAPLEVEL_HUDFLASH)
 	{
 		pm->ps->userInt3 |= (1 << FLAG_ATTACKFATIGUE);
 	}
@@ -7249,11 +7277,9 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 		if (pm->ps->weapon == WP_SABER && !BG_SabersOff(pm->ps))
 		{
 #ifdef _GAME
-			const qboolean is_holding_block_button_and_attack = pm->ps->ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK ? qtrue : qfalse;
-			//Active Blocking
-
 			if (!(g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT))
 			{
+				PM_SaberFatigue(pm->ps, new_move); //drainblockpoints low cost
 			}
 			else
 #endif
@@ -7274,10 +7300,6 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 				pm->ps->userInt3 &= ~(1 << FLAG_PARRIED);
 				pm->ps->userInt3 &= ~(1 << FLAG_BLOCKING);
 				pm->ps->userInt3 &= ~(1 << FLAG_BLOCKED);
-			}
-
-			if (!PM_SaberInMassiveBounce(pm->ps->torsoAnim))
-			{
 				//cancel out pre-block flag
 				pm->ps->userInt3 &= ~(1 << FLAG_MBLOCKBOUNCE);
 			}
@@ -7388,19 +7410,19 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 	}
 }
 
-saberInfo_t* BG_MySaber(int clientNum, int saberNum)
+saberInfo_t* BG_MySaber(int clientNum, int saber_num)
 {
-	//returns a pointer to the requested saberNum
+	//returns a pointer to the requested saber_num
 #ifdef _GAME
 	const gentity_t* ent = &g_entities[clientNum];
 	if (ent->inuse && ent->client)
 	{
-		if (!ent->client->saber[saberNum].model[0])
+		if (!ent->client->saber[saber_num].model[0])
 		{
 			//don't have saber anymore!
 			return NULL;
 		}
-		return &ent->client->saber[saberNum];
+		return &ent->client->saber[saber_num];
 	}
 #elif defined(_CGAME)
 	clientInfo_t* ci = NULL;
@@ -7419,12 +7441,12 @@ saberInfo_t* BG_MySaber(int clientNum, int saberNum)
 	if (ci
 		&& ci->infoValid)
 	{
-		if (!ci->saber[saberNum].model[0])
+		if (!ci->saber[saber_num].model[0])
 		{
 			//don't have sabers anymore!
 			return NULL;
 		}
-		return &ci->saber[saberNum];
+		return &ci->saber[saber_num];
 	}
 #endif
 
@@ -7652,26 +7674,33 @@ qboolean PM_SaberInFullDamageMove(const playerState_t* ps, const int anim_index)
 		|| PM_SuperBreakWinAnim(ps->torsoAnim))
 	{
 		//in attack animation
-		if ((ps->saber_move == LS_A_FLIP_STAB || ps->saber_move == LS_A_FLIP_SLASH
-			|| ps->saber_move == BOTH_JUMPFLIPSTABDOWN || ps->saber_move == BOTH_JUMPFLIPSLASHDOWN1)
-			&& (torso_anim_point >= 0.30f && torso_anim_point <= 0.75f)) //assumes that the dude is
+		if ((ps->saber_move == LS_A_FLIP_STAB ||
+			ps->saber_move == LS_A_FLIP_SLASH ||
+			ps->saber_move == BOTH_JUMPFLIPSTABDOWN ||
+			ps->saber_move == BOTH_JUMPFLIPSLASHDOWN1) &&
+			(torso_anim_point >= 0.30f &&
+				torso_anim_point <= 0.75f)) //assumes that the dude is
 		{
 			//flip attacks shouldn't do damage during the whole move.
 			return qtrue;
 		}
 
-		if ((ps->saber_move == BOTH_ROLL_STAB
-			|| ps->saber_move == LS_ROLL_STAB) && (torso_anim_point >= 0.30f && torso_anim_point <= 0.95f))
+		if ((ps->saber_move == BOTH_ROLL_STAB ||
+			ps->saber_move == LS_ROLL_STAB) &&
+			(torso_anim_point >= 0.30f &&
+				torso_anim_point <= 0.95f))
 		{
 			//don't do damage during the follow thru part of the roll stab.
 			return qtrue;
 		}
 
-		if ((ps->saber_move == BOTH_STABDOWN || ps->saber_move == BOTH_STABDOWN_STAFF || ps->saber_move ==
-			BOTH_STABDOWN_DUAL
-			|| ps->saber_move == LS_STABDOWN || ps->saber_move == LS_STABDOWN_STAFF || ps->saber_move ==
-			LS_STABDOWN_DUAL)
-			&& (torso_anim_point >= 0.35f && torso_anim_point <= 0.95f))
+		if ((ps->saber_move == BOTH_STABDOWN ||
+			ps->saber_move == BOTH_STABDOWN_STAFF ||
+			ps->saber_move == BOTH_STABDOWN_DUAL ||
+			ps->saber_move == LS_STABDOWN ||
+			ps->saber_move == LS_STABDOWN_STAFF ||
+			ps->saber_move == LS_STABDOWN_DUAL) &&
+			(torso_anim_point >= 0.35f && torso_anim_point <= 0.95f))
 		{
 			//don't do damage during the follow thru part of the stab.
 			return qtrue;
@@ -7738,7 +7767,7 @@ qboolean BG_SaberInTransitionDamageMove(const playerState_t* ps)
 	return qfalse;
 }
 
-qboolean BG_SaberInNonIdleDamageMove(const playerState_t* ps, const int anim_index)
+qboolean PM_SaberInNonIdleDamageMove(const playerState_t* ps, const int anim_index)
 {
 	//player is in a saber move that does something more than idle saber damage
 	return PM_SaberInFullDamageMove(ps, anim_index);

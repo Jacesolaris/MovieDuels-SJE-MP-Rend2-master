@@ -3025,42 +3025,42 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 
 				if (client && client->infoValid)
 				{
-					int saberNum = es->weapon;
+					int saber_num = es->weapon;
 					int blade_num = es->legsAnim;
 
-					if (WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], blade_num) == qtrue)
+					if (WP_SaberBladeUseSecondBladeStyle(&client->saber[saber_num], blade_num) == qtrue)
 					{
-						if (client->saber[saberNum].hitPersonEffect2)
+						if (client->saber[saber_num].hitPersonEffect2)
 						{
 							hit_person_fx_id = hit_person_small_fx_id = hit_person_mid_fx_id =
-								client->saber[saberNum].hitPersonEffect2;
+								client->saber[saber_num].hitPersonEffect2;
 						}
-						if (client->saber[saberNum].hitOtherEffect2)
+						if (client->saber[saber_num].hitOtherEffect2)
 						{
-							hit_other_fx_id = client->saber[saberNum].hitOtherEffect2;
+							hit_other_fx_id = client->saber[saber_num].hitOtherEffect2;
 						}
-						if (client->saber[saberNum].hit2Sound[0])
+						if (client->saber[saber_num].hit2Sound[0])
 						{
-							hit_sound = client->saber[saberNum].hit2Sound[Q_irand(0, 2)];
+							hit_sound = client->saber[saber_num].hit2Sound[Q_irand(0, 2)];
 						}
 					}
 					else
 					{
-						if (client->saber[saberNum].hitPersonEffect)
+						if (client->saber[saber_num].hitPersonEffect)
 						{
 							if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
 							{
 								hit_droid_fx_id = hit_person_small_fx_id = hit_person_mid_fx_id =
-									client->saber[saberNum].hitPersonEffect;
+									client->saber[saber_num].hitPersonEffect;
 							}
 							else
 							{
 								hit_person_fx_id = hit_person_small_fx_id = hit_person_mid_fx_id =
-									client->saber[saberNum].hitPersonEffect;
+									client->saber[saber_num].hitPersonEffect;
 							}
 						}
 
-						if (client->saber[saberNum].hitOtherEffect)
+						if (client->saber[saber_num].hitOtherEffect)
 						{
 							if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
 							{
@@ -3072,15 +3072,15 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 							}
 						}
 
-						if (client->saber[saberNum].hit_sound[0])
+						if (client->saber[saber_num].hit_sound[0])
 						{
 							if (CG_IsDroidClass(cent->currentState.botclass) == qtrue)
 							{
-								saberhit_droid_sound = client->saber[saberNum].hit_sound[Q_irand(0, 5)];
+								saberhit_droid_sound = client->saber[saber_num].hit_sound[Q_irand(0, 5)];
 							}
 							else
 							{
-								hit_sound = client->saber[saberNum].hit_sound[Q_irand(0, 2)];
+								hit_sound = client->saber[saber_num].hit_sound[Q_irand(0, 2)];
 							}
 						}
 					}
@@ -3251,54 +3251,54 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 					}
 					if (client && client->infoValid)
 					{
-						int saberNum = es->weapon;
+						int saber_num = es->weapon;
 						int blade_num = es->legsAnim;
 
-						if (WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], blade_num))
+						if (WP_SaberBladeUseSecondBladeStyle(&client->saber[saber_num], blade_num))
 						{
 							//use second blade style values
-							if (client->saber[saberNum].blockEffect2)
+							if (client->saber[saber_num].blockEffect2)
 							{
 								//custom saber block effect
-								block_fxid = client->saber[saberNum].blockEffect2;
+								block_fxid = client->saber[saber_num].blockEffect2;
 							}
-							if (client->saber[saberNum].block2Sound[0])
+							if (client->saber[saber_num].block2Sound[0])
 							{
 								//custom hit sound
 								if (cg.snap->ps.fd.blockPoints < BLOCKPOINTS_HALF)
 								{
-									knock_sound = client->saber[saberNum].block2Sound[Q_irand(0, 2)];
+									knock_sound = client->saber[saber_num].block2Sound[Q_irand(0, 2)];
 								}
 								else
 								{
-									block_sound = client->saber[saberNum].block2Sound[Q_irand(0, 2)];
+									block_sound = client->saber[saber_num].block2Sound[Q_irand(0, 2)];
 								}
 							}
 						}
 						else
 						{
-							if (client->saber[saberNum].blockEffect)
+							if (client->saber[saber_num].blockEffect)
 							{
 								//custom saber block effect
 								if (cent->currentState.userInt3 & 1 << FLAG_PERFECTBLOCK)
 								{
-									perfectblock_fxid = client->saber[saberNum].blockEffect;
+									perfectblock_fxid = client->saber[saber_num].blockEffect;
 								}
 								else
 								{
-									block_fxid = client->saber[saberNum].blockEffect;
+									block_fxid = client->saber[saber_num].blockEffect;
 								}
 							}
-							if (client->saber[saberNum].blockSound[0])
+							if (client->saber[saber_num].blockSound[0])
 							{
 								//custom hit sound
 								if (cg.snap->ps.fd.blockPoints < BLOCKPOINTS_HALF)
 								{
-									knock_sound = client->saber[saberNum].blockSound[Q_irand(0, 2)];
+									knock_sound = client->saber[saber_num].blockSound[Q_irand(0, 2)];
 								}
 								else
 								{
-									block_sound = client->saber[saberNum].blockSound[Q_irand(0, 2)];
+									block_sound = client->saber[saber_num].blockSound[Q_irand(0, 2)];
 								}
 							}
 						}

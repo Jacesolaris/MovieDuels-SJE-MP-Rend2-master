@@ -66,13 +66,13 @@ extern qboolean PM_SaberInStart(int move);
 extern int PM_AnimLength(const animNumber_t anim);
 extern qboolean PM_SaberInReturn(int move);
 extern int pm_power_level_for_saber_anims(const playerState_t* ps);
-void AddFatigueHurtBonus(const gentity_t* attacker, const gentity_t* victim, int mod);
-void AddFatigueHurtBonusMax(const gentity_t* attacker, const gentity_t* victim, int mod);
+void AddFatigueHurtBonus(const gentity_t* attacker, const gentity_t* victim, const int mod);
+void AddFatigueHurtBonusMax(const gentity_t* attacker, const gentity_t* victim, const int mod);
 extern void g_atst_check_pain(gentity_t* self, gentity_t* other, int damage);
 qboolean PM_RunningAnim(int anim);
 void ThrowSaberToAttacker(gentity_t* self, const gentity_t* attacker);
 extern qboolean G_ControlledByPlayer(const gentity_t* self);
-extern qboolean BG_SaberInNonIdleDamageMove(const playerState_t* ps, int anim_index);
+extern qboolean PM_SaberInNonIdleDamageMove(const playerState_t* ps, int anim_index);
 extern void wp_force_power_regenerate(const gentity_t* self, int override_amt);
 extern qboolean manual_saberblocking(const gentity_t* defender);
 extern void wp_block_points_regenerate(const gentity_t* self, int override_amt);
@@ -4570,7 +4570,7 @@ static void G_GetDismemberBolt(gentity_t* self, vec3_t bolt_point, const int lim
 		gentity_t* te = G_TempEntity(bolt_point, EV_SABER_BODY_HIT);
 		te->s.otherentity_num = self->s.number;
 		te->s.otherentity_num2 = ENTITYNUM_NONE;
-		te->s.weapon = 0; //saberNum
+		te->s.weapon = 0; //saber_num
 		te->s.legsAnim = 0; //blade_num
 
 		VectorCopy(bolt_point, te->s.origin);
@@ -7729,7 +7729,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 			if (take > targ->health)
 			{
 				//damage is greated than target's health, only give experience for damage used to kill victim
-				if (BG_SaberInNonIdleDamageMove(&attacker->client->ps, attacker->localAnimIndex))
+				if (PM_SaberInNonIdleDamageMove(&attacker->client->ps, attacker->localAnimIndex))
 				{
 					//self is attacking
 					AddFatigueHurtBonusMax(attacker, targ, mod);
@@ -7737,7 +7737,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 			}
 			else
 			{
-				if (BG_SaberInNonIdleDamageMove(&attacker->client->ps, attacker->localAnimIndex))
+				if (PM_SaberInNonIdleDamageMove(&attacker->client->ps, attacker->localAnimIndex))
 				{
 					//self is attacking
 					AddFatigueHurtBonus(attacker, targ, mod);
@@ -8259,9 +8259,7 @@ void AddFatigueMeleeBonus(const gentity_t* attacker, const gentity_t* victim)
 	}
 }
 
-void AddFatigueHurtBonus(const gentity_t* attacker,
-	const gentity_t* victim,
-	const int mod)
+void AddFatigueHurtBonus(const gentity_t* attacker, const gentity_t* victim, const int mod)
 {
 	// Validate attacker and victim
 	if (attacker == NULL ||

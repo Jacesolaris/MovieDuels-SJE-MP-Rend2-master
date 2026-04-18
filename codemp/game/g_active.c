@@ -1380,7 +1380,10 @@ static void ClientTimerActions(gentity_t* ent, const int msec)
 			if (isPlayer)
 			{
 				if (!(ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)))
-					WP_SaberFatigueRegenerate(1);
+					if (ps->saberFatigueChainCount > MISHAPLEVEL_HUDFLASH)
+						WP_SaberFatigueRegenerate(2);
+					else
+						WP_SaberFatigueRegenerate(1);
 			}
 			else if (isBot)
 			{
@@ -2736,7 +2739,7 @@ typedef enum tauntTypes_e
 } tauntTypes_t;
 
 qboolean IsHoldingReloadableGun(const gentity_t* ent);
-extern saberInfo_t* BG_MySaber(int clientNum, int saberNum);
+extern saberInfo_t* BG_MySaber(int clientNum, int saber_num);
 extern qboolean PM_CrouchAnim(int anim);
 extern qboolean PM_LungeAnim(int anim);
 extern qboolean PM_RollingAnim(int anim);

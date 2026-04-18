@@ -3134,24 +3134,24 @@ static qboolean WP_SaberValidForPlayerInMP(const char* saber_name)
 	return qfalse;
 }
 
-void WP_RemoveSaber(saberInfo_t* sabers, const int saberNum)
+void WP_RemoveSaber(saberInfo_t* sabers, const int saber_num)
 {
 	if (!sabers)
 	{
 		return;
 	}
 	//reset everything for this saber just in case
-	wp_saber_set_defaults(&sabers[saberNum]);
+	wp_saber_set_defaults(&sabers[saber_num]);
 
-	strcpy(sabers[saberNum].name, "none");
-	sabers[saberNum].model[0] = 0;
+	strcpy(sabers[saber_num].name, "none");
+	sabers[saber_num].model[0] = 0;
 
 	//ent->client->ps.dualSabers = qfalse;
-	BG_SI_Deactivate(&sabers[saberNum]);
-	BG_SI_SetLength(&sabers[saberNum], 0.0f);
+	BG_SI_Deactivate(&sabers[saber_num]);
+	BG_SI_SetLength(&sabers[saber_num], 0.0f);
 }
 
-void WP_SetSaber(const int entNum, saberInfo_t* sabers, const int saberNum, const char* saber_name)
+void WP_SetSaber(const int entNum, saberInfo_t* sabers, const int saber_num, const char* saber_name)
 {
 	if (!sabers)
 	{
@@ -3159,10 +3159,10 @@ void WP_SetSaber(const int entNum, saberInfo_t* sabers, const int saberNum, cons
 	}
 	if (Q_stricmp("none", saber_name) == 0 || Q_stricmp("remove", saber_name) == 0)
 	{
-		if (saberNum != 0)
+		if (saber_num != 0)
 		{
 			//can't remove saber 0 ever
-			WP_RemoveSaber(sabers, saberNum);
+			WP_RemoveSaber(sabers, saber_num);
 		}
 		return;
 	}
@@ -3170,11 +3170,11 @@ void WP_SetSaber(const int entNum, saberInfo_t* sabers, const int saberNum, cons
 	if (entNum < MAX_CLIENTS &&
 		!WP_SaberValidForPlayerInMP(saber_name))
 	{
-		WP_SaberParseParms(DEFAULT_SABER, &sabers[saberNum]); //get saber info
+		WP_SaberParseParms(DEFAULT_SABER, &sabers[saber_num]); //get saber info
 	}
 	else
 	{
-		WP_SaberParseParms(saber_name, &sabers[saberNum]); //get saber info
+		WP_SaberParseParms(saber_name, &sabers[saber_num]); //get saber info
 	}
 	if (sabers[1].saberFlags & SFL_TWO_HANDED)
 	{
@@ -3190,13 +3190,13 @@ void WP_SetSaber(const int entNum, saberInfo_t* sabers, const int saberNum, cons
 	}
 }
 
-static void WP_SaberSetColor(saberInfo_t* sabers, const int saberNum, const int blade_num, const char* colorName)
+static void WP_SaberSetColor(saberInfo_t* sabers, const int saber_num, const int blade_num, const char* colorName)
 {
 	if (!sabers)
 	{
 		return;
 	}
-	sabers[saberNum].blade[blade_num].color = TranslateSaberColor(colorName);
+	sabers[saber_num].blade[blade_num].color = TranslateSaberColor(colorName);
 }
 
 static char bgSaberParseTBuffer[MAX_SABER_DATA_SIZE];

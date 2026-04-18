@@ -2015,8 +2015,7 @@ qboolean BG_InDeathAnim(int anim);
 qboolean BG_InSaberLockOld(int anim);
 qboolean PM_InSaberLock(int anim);
 
-void PM_SaberStartTransAnim(int clientNum, int saberAnimLevel, int weapon, int anim, float* animSpeed, int
-	fatigued);
+void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const int weapon, const int anim, float* animSpeed, const int fatigued);
 
 void WP_ForcePowerDrain(playerState_t* ps, forcePowers_t force_power, int override_amt);
 void BG_ForcePowerKill(playerState_t* ps);

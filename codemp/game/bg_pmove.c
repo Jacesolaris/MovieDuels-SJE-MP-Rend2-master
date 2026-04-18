@@ -70,7 +70,7 @@ extern qboolean g_standard_humanoid(gentity_t* self);
 extern qboolean BG_FullBodyTauntAnim(int anim);
 extern float PM_WalkableGroundDistance(void);
 extern qboolean PM_GroundSlideOkay(float z_normal);
-extern saberInfo_t* BG_MySaber(int clientNum, int saberNum);
+extern saberInfo_t* BG_MySaber(int clientNum, int saber_num);
 extern qboolean PM_DodgeAnim(int anim);
 extern qboolean PM_DodgeHoldAnim(int anim);
 extern qboolean PM_BlockAnim(int anim);
@@ -3846,7 +3846,7 @@ PM_CheckJump
 =============
 */
 extern qboolean BG_EnoughForcePowerForMove(int cost, const qboolean play_sound);
-extern void PM_AddFatigue(playerState_t* ps, int fatigue);
+extern void PM_AddFatigue(playerState_t* ps, const int fatigue);
 
 static qboolean pm_check_jump(void)
 {

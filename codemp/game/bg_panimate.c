@@ -61,7 +61,7 @@ qboolean PM_SaberInTransition(int move);
 qboolean PM_SaberInDeflect(int move);
 extern qboolean PM_SaberInBounce(int move);
 extern qboolean PM_SaberInBrokenParry(int move);
-extern saberInfo_t* BG_MySaber(int clientNum, int saberNum);
+extern saberInfo_t* BG_MySaber(int clientNum, int saber_num);
 extern qboolean PM_InBackFlip(int anim);
 /*
 ==============================================================================
@@ -5993,160 +5993,212 @@ void BG_SetTorsoAnimTimer(playerState_t* ps, const int time)
 #endif
 }
 
-void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const int weapon, const int anim, float* animSpeed, const int fatigued)
+//==============================================================
+// PM_SaberStartTransAnim
+//
+// Applies saber animation speed scaling based on:
+// - Saber type (dual, staff, etc.)
+// - Fatigue flags
+// - Bounce/return/parry states
+// - Saber-specific animSpeedScale
+//
+// Behaviour preserved exactly except for fixing:
+// 1) The invalid bitwise-OR anim exclusion check
+// 2) Parentheses around fatigue flag tests
+//==============================================================
+void PM_SaberStartTransAnim(const int clientNum,
+	const int saberAnimLevel,
+	const int weapon,
+	const int anim,
+	float* animSpeed,
+	const int fatigued)
 {
 	char buf[128];
 
+	// Read global saber animation speed multiplier
 	trap->Cvar_VariableStringBuffer("g_saberAnimSpeed", buf, sizeof buf);
 	const float saberanimscale = atof(buf);
 
+	// Only sabers use this system
 	if (weapon != WP_SABER)
 	{
 		return;
 	}
 
+	//==============================================================
+	// 1. Apply saber-specific animSpeedScale (per-saber .sab file)
+	//==============================================================
 	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_ROLL_STAB)
 	{
 		const saberInfo_t* saber = BG_MySaber(clientNum, 0);
 
-		if (weapon == WP_SABER)
+		if (saber && saber->animSpeedScale != 1.0f)
 		{
-			if (saber && saber->animSpeedScale != 1.0f)
-			{
-				*animSpeed *= saber->animSpeedScale;
-			}
-			saber = BG_MySaber(clientNum, 1);
+			*animSpeed *= saber->animSpeedScale;
+		}
 
-			if (saber && saber->animSpeedScale != 1.0f)
-			{
-				*animSpeed *= saber->animSpeedScale;
-			}
+		saber = BG_MySaber(clientNum, 1);
+
+		if (saber && saber->animSpeedScale != 1.0f)
+		{
+			*animSpeed *= saber->animSpeedScale;
 		}
 	}
 
-	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_H7_S7_BR ||
-		anim >= BOTH_T1_BR__R && anim <= BOTH_T1_BL_TL ||
-		anim >= BOTH_T2_BR__R && anim <= BOTH_T2_BL_TL ||
-		anim >= BOTH_T3_BR__R && anim <= BOTH_T3_BL_TL ||
-		anim >= BOTH_T4_BR__R && anim <= BOTH_T4_BL_TL ||
-		anim >= BOTH_T5_BR__R && anim <= BOTH_T5_BL_TL ||
-		anim >= BOTH_T6_BR__R && anim <= BOTH_T6_BL_TL ||
-		anim >= BOTH_T7_BR__R && anim <= BOTH_T7_BL_TL ||
-		anim >= BOTH_S1_S1_T_ && anim <= BOTH_S1_S1_TR ||
-		anim >= BOTH_S2_S1_T_ && anim <= BOTH_S2_S1_TR ||
-		anim >= BOTH_S3_S1_T_ && anim <= BOTH_S3_S1_TR ||
-		anim >= BOTH_S4_S1_T_ && anim <= BOTH_S4_S1_TR ||
-		anim >= BOTH_S5_S1_T_ && anim <= BOTH_S5_S1_TR)
+	//==============================================================
+	// 2. Main animation-range block
+	//==============================================================
+	if ((anim >= BOTH_A1_T__B_ && anim <= BOTH_H7_S7_BR) ||
+		(anim >= BOTH_T1_BR__R && anim <= BOTH_T1_BL_TL) ||
+		(anim >= BOTH_T2_BR__R && anim <= BOTH_T2_BL_TL) ||
+		(anim >= BOTH_T3_BR__R && anim <= BOTH_T3_BL_TL) ||
+		(anim >= BOTH_T4_BR__R && anim <= BOTH_T4_BL_TL) ||
+		(anim >= BOTH_T5_BR__R && anim <= BOTH_T5_BL_TL) ||
+		(anim >= BOTH_T6_BR__R && anim <= BOTH_T6_BL_TL) ||
+		(anim >= BOTH_T7_BR__R && anim <= BOTH_T7_BL_TL) ||
+		(anim >= BOTH_S1_S1_T_ && anim <= BOTH_S1_S1_TR) ||
+		(anim >= BOTH_S2_S1_T_ && anim <= BOTH_S2_S1_TR) ||
+		(anim >= BOTH_S3_S1_T_ && anim <= BOTH_S3_S1_TR) ||
+		(anim >= BOTH_S4_S1_T_ && anim <= BOTH_S4_S1_TR) ||
+		(anim >= BOTH_S5_S1_T_ && anim <= BOTH_S5_S1_TR))
 	{
-		if (fatigued & 1 << FLAG_ATTACKFATIGUE)
+		//==============================================================
+		// 2A. Fatigue: Attack Fatigue
+		//==============================================================
+		if ((fatigued & (1 << FLAG_ATTACKFATIGUE)) != 0)
 		{
-			if (anim != (BOTH_FORCEWALLRELEASE_FORWARD | BOTH_FORCEWALLRUNFLIP_START | BOTH_FORCEWALLRUNFLIP_END | BOTH_JUMPFLIPSTABDOWN | BOTH_JUMPFLIPSLASHDOWN1 | BOTH_LUNGE2_B__T_))
-			{
-				const float fatiguedanimscale = 0.75f;
-				*animSpeed *= fatiguedanimscale;
-			}
-		}
-		else if (fatigued & 1 << FLAG_SLOWBOUNCE)
-		{
-			//slow animation for slow bounces
-			if (PM_BounceAnim(anim))
-			{
-				*animSpeed *= 0.6f;
-			}
-			else if (PM_SaberReturnAnim(anim))
-			{
-				*animSpeed *= 0.8f;
-			}
-		}
-		else if (fatigued & 1 << FLAG_OLDSLOWBOUNCE)
-		{
-			//getting parried slows down your reaction
-			if (PM_BounceAnim(anim) || PM_SaberReturnAnim(anim))
-			{
-				//only apply to bounce and returns since this flag is technically turned off immediately after the animation is set.
-				*animSpeed *= 0.6f;
-			}
-		}
-		else if (fatigued & 1 << FLAG_PARRIED)
-		{
-			//getting parried slows down your reaction
-			if (PM_BounceAnim(anim) || PM_SaberReturnAnim(anim))
-			{
-				*animSpeed *= 0.90f;
-			}
-		}
-		else if (fatigued & 1 << FLAG_BLOCKED)
-		{
-			if (PM_BounceAnim(anim) || PM_SaberReturnAnim(anim))
+			// excludes each anim individually.
+			if (anim != BOTH_FORCEWALLRELEASE_FORWARD &&
+				anim != BOTH_FORCEWALLRUNFLIP_START &&
+				anim != BOTH_FORCEWALLRUNFLIP_END &&
+				anim != BOTH_JUMPFLIPSTABDOWN &&
+				anim != BOTH_JUMPFLIPSLASHDOWN1 &&
+				anim != BOTH_LUNGE2_B__T_)
 			{
 				*animSpeed *= 0.85f;
 			}
 		}
-		else if (fatigued & 1 << FLAG_MBLOCKBOUNCE)
+
+		//==============================================================
+		// 2B. Fatigue: Slow Bounce
+		//==============================================================
+		else if ((fatigued & (1 << FLAG_SLOWBOUNCE)) != 0)
 		{
-			//slow animation for all bounces
-			if (PM_SaberInMassiveBounce(anim))
+			const qboolean isBounce = PM_BounceAnim(anim) ? qtrue : qfalse;
+			const qboolean isReturn = PM_SaberReturnAnim(anim) ? qtrue : qfalse;
+
+			if (isBounce)
+			{
+				*animSpeed *= 0.6f;
+			}
+			else if (isReturn)
+			{
+				*animSpeed *= 0.8f;
+			}
+		}
+
+		//==============================================================
+		// 2C. Fatigue: Old Slow Bounce
+		//==============================================================
+		else if ((fatigued & (1 << FLAG_OLDSLOWBOUNCE)) != 0)
+		{
+			const qboolean isBounce = PM_BounceAnim(anim) ? qtrue : qfalse;
+			const qboolean isReturn = PM_SaberReturnAnim(anim) ? qtrue : qfalse;
+
+			if (isBounce || isReturn)
+			{
+				*animSpeed *= 0.6f;
+			}
+		}
+
+		//==============================================================
+		// 2D. Fatigue: Parried
+		//==============================================================
+		else if ((fatigued & (1 << FLAG_PARRIED)) != 0)
+		{
+			const qboolean isBounce = PM_BounceAnim(anim) ? qtrue : qfalse;
+			const qboolean isReturn = PM_SaberReturnAnim(anim) ? qtrue : qfalse;
+
+			if (isBounce || isReturn)
+			{
+				*animSpeed *= 0.90f;
+			}
+		}
+
+		//==============================================================
+		// 2E. Fatigue: Blocked
+		//==============================================================
+		else if ((fatigued & (1 << FLAG_BLOCKED)) != 0)
+		{
+			const qboolean isBounce = PM_BounceAnim(anim) ? qtrue : qfalse;
+			const qboolean isReturn = PM_SaberReturnAnim(anim) ? qtrue : qfalse;
+
+			if (isBounce || isReturn)
+			{
+				*animSpeed *= 0.85f;
+			}
+		}
+
+		//==============================================================
+		// 2F. Fatigue: Massive Bounce
+		//==============================================================
+		else if ((fatigued & (1 << FLAG_MBLOCKBOUNCE)) != 0)
+		{
+			const qboolean isMassive = PM_SaberInMassiveBounce(anim) ? qtrue : qfalse;
+
+			if (isMassive)
 			{
 				*animSpeed *= 0.5f;
 			}
 		}
+
+		//==============================================================
+		// 2G. No fatigue flags → apply saber style scaling
+		//==============================================================
 		else
 		{
-			if (saberAnimLevel == SS_DUAL)
+			switch (saberAnimLevel)
 			{
-				//slow down broken parries
+			case SS_DUAL:
 				if (anim >= BOTH_H6_S6_T_ && anim <= BOTH_H6_S6_BR)
 				{
-					//dual broken parries are 1/3 the frames of the single broken parries
 					*animSpeed *= 0.6f;
 				}
 				else
 				{
-					const float dualanimscale = 0.90f;
-					*animSpeed *= dualanimscale;
+					*animSpeed *= 0.90f;
 				}
-			}
-			else if (saberAnimLevel == SS_STAFF)
-			{
+				break;
+
+			case SS_STAFF:
 				if (anim >= BOTH_H7_S7_T_ && anim <= BOTH_H7_S7_BR)
 				{
-					//doubles are 1/2 the frames of single broken parries
 					*animSpeed *= 0.8f;
 				}
 				else
 				{
-					const float staffanimscale = 0.90f;
-					*animSpeed *= staffanimscale;
+					*animSpeed *= 0.90f;
 				}
-			}
-			else if (saberAnimLevel == SS_FAST)
-			{
-				const float blueanimscale = 1.0f;
-				*animSpeed *= blueanimscale;
-			}
-			else if (saberAnimLevel == SS_MEDIUM)
-			{
-				const float realisticanimscale = 1.0f;
-				*animSpeed *= realisticanimscale;
-			}
-			else if (saberAnimLevel == SS_STRONG)
-			{
-				const float redanimscale = 1.0f;
-				*animSpeed *= redanimscale;
-			}
-			else if (saberAnimLevel == SS_DESANN)
-			{
-				const float heavyanimscale = 1.0f;
-				*animSpeed *= heavyanimscale;
-			}
-			else if (saberAnimLevel == SS_TAVION)
-			{
-				const float tavionanimscale = 0.9f;
-				*animSpeed *= tavionanimscale;
-			}
-			else
-			{
+				break;
+
+			case SS_FAST:
+				*animSpeed *= 1.1f;
+				break;
+			case SS_MEDIUM:
+				*animSpeed *= 1.0f;
+				break;
+			case SS_STRONG:
+			case SS_DESANN:
+				*animSpeed *= 0.95f;
+				break;
+
+			case SS_TAVION:
+				*animSpeed *= 0.9f;
+				break;
+
+			default:
 				*animSpeed *= saberanimscale;
+				break;
 			}
 		}
 	}

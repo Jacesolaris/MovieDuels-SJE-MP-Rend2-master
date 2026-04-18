@@ -2378,12 +2378,12 @@ static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saber
 	}
 }
 
-static void UI_GetSaberForMenu(char* saber, int saberNum)
+static void UI_GetSaberForMenu(char* saber, int saber_num)
 {
 	char saberTypeString[MAX_QPATH] = { 0 };
 	saberType_t saberType = SABER_NONE;
 
-	if (saberNum == 0)
+	if (saber_num == 0)
 	{
 		trap->Cvar_VariableStringBuffer("ui_saber", saber, MAX_QPATH);
 		if (!UI_SaberValidForPlayerInMP(saber))
@@ -2448,13 +2448,13 @@ void UI_SaberDrawBlades(itemDef_t* item, vec3_t origin, vec3_t angles)
 		numSabers = 2;
 	}
 
-	for (int saberNum = 0; saberNum < numSabers; saberNum++)
+	for (int saber_num = 0; saber_num < numSabers; saber_num++)
 	{
 		char saber[MAX_QPATH];
 		if (item->flags & ITF_ISCHARACTER)//hacked sabermoves sabers in character's hand
 		{
-			UI_GetSaberForMenu(saber, saberNum);
-			saberModel = saberNum + 1;
+			UI_GetSaberForMenu(saber, saber_num);
+			saberModel = saber_num + 1;
 		}
 		else if (item->flags & ITF_ISSABER)
 		{
@@ -2518,13 +2518,13 @@ void UI_SaberAttachToChar(itemDef_t* item)
 		numSabers = 2;
 	}
 
-	for (int saberNum = 0; saberNum < numSabers; saberNum++)
+	for (int saber_num = 0; saber_num < numSabers; saber_num++)
 	{
 		//bolt sabers
 		char modelPath[MAX_QPATH];
 		char saber[MAX_QPATH];
 
-		UI_GetSaberForMenu(saber, saberNum);
+		UI_GetSaberForMenu(saber, saber_num);
 
 		if (UI_SaberModelForSaber(saber, modelPath))
 		{//successfully found a model
@@ -2543,7 +2543,7 @@ void UI_SaberAttachToChar(itemDef_t* item)
 				{
 					trap->G2API_SetSkin(item->ghoul2, g2Saber, 0, 0);//turn off custom skin
 				}
-				if (saberNum == 0)
+				if (saber_num == 0)
 				{
 					boltNum = trap->G2API_AddBolt(item->ghoul2, 0, "*r_hand");
 				}

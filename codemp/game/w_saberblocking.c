@@ -43,7 +43,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 
 //////////Defines////////////////
-extern qboolean BG_SaberInNonIdleDamageMove(const playerState_t* ps, int anim_index);
+extern qboolean PM_SaberInNonIdleDamageMove(const playerState_t* ps, int anim_index);
 extern qboolean PM_SaberInBounce(int move);
 extern qboolean BG_InSlowBounce(const playerState_t* ps);
 extern bot_state_t* botstates[MAX_CLIENTS];
@@ -79,7 +79,7 @@ extern void wp_block_points_regenerate_over_ride(const gentity_t* self, int over
 void sab_beh_animate_heavy_slow_bounce_attacker(gentity_t* attacker);
 extern void G_StaggerAttacker(gentity_t* atk);
 extern void G_BounceAttacker(gentity_t* atk);
-extern void wp_saber_clear_damage_for_ent_num(gentity_t* attacker, int entityNum, int saberNum, int blade_num);
+extern void wp_saber_clear_damage_for_ent_num(gentity_t* attacker, int entityNum, int saber_num, int blade_num);
 extern void g_do_m_block_response(const gentity_t* speaker_npc_self);
 //////////Defines////////////////
 
@@ -107,7 +107,7 @@ static void sab_beh_saber_should_be_disarmed_attacker(gentity_t* attacker, const
 	}
 }
 
-static void sab_beh_saber_should_be_disarmed_blocker(gentity_t* blocker, const gentity_t* attacker)
+static void SabBeh_SaberShouldBeDisarmedBlocker(gentity_t* blocker, const gentity_t* attacker)
 {
 	if (!blocker || !blocker->client)
 		return;
@@ -169,7 +169,7 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 		return qfalse;
 
 	// Cannot parry while transitioning or bouncing
-	if (BG_SaberInNonIdleDamageMove(&blocker->client->ps, blocker->localAnimIndex) ||
+	if (PM_SaberInNonIdleDamageMove(&blocker->client->ps, blocker->localAnimIndex) ||
 		PM_SaberInBounce(blocker->client->ps.saber_move) ||
 		BG_InSlowBounce(&blocker->client->ps))
 		return qfalse;
@@ -430,30 +430,40 @@ static void sab_beh_add_mishap_blocker(gentity_t* blocker, const gentity_t* atta
 	case 1:
 		if (blocker->r.svFlags & SVF_BOT)
 		{
-			// NPC: 20% stagger, 80% disarm
-			if (!Q_irand(0, 4))
+			// 75% chance to disarm, 25% chance to stagger
+			const int roll = Q_irand(0, 3);  // values: 0,1,2,3
+
+			if (roll == 0)
 			{
+				// 25% chance
 				G_Stagger(blocker);
 
 				if (d_blockinfo.integer || g_DebugSaberCombat.integer)
+				{
 					Com_Printf(S_COLOR_RED "NPC blocker staggering\n");
+				}
 			}
 			else
 			{
-				sab_beh_saber_should_be_disarmed_blocker(blocker, attacker);
+				// 75% chance
+				SabBeh_SaberShouldBeDisarmedBlocker(blocker, attacker);
 				wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
 
 				if (d_blockinfo.integer || g_DebugSaberCombat.integer)
+				{
 					Com_Printf(S_COLOR_RED "NPC blocker lost his saber\n");
+				}
 			}
 		}
 		else
 		{
 			// Player blocker always disarms on this branch
-			sab_beh_saber_should_be_disarmed_blocker(blocker, attacker);
+			SabBeh_SaberShouldBeDisarmedBlocker(blocker, attacker);
 
 			if (d_blockinfo.integer || g_DebugSaberCombat.integer)
-				Com_Printf(S_COLOR_RED "blocker lost his saber\n");
+			{
+				Com_Printf(S_COLOR_RED "Player blocker lost his saber\n");
+			}
 		}
 		break;
 
@@ -809,7 +819,7 @@ static qboolean sab_beh_attack_vs_attack(gentity_t* attacker, gentity_t* blocker
 
 		if (blocker->client->ps.fd.blockPoints < BLOCKPOINTS_TEN)
 		{
-			sab_beh_saber_should_be_disarmed_blocker(blocker, attacker);
+			SabBeh_SaberShouldBeDisarmedBlocker(blocker, attacker);
 			wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
 		}
 		else
@@ -859,7 +869,7 @@ static qboolean sab_beh_attack_vs_attack(gentity_t* attacker, gentity_t* blocker
 qboolean sab_beh_attack_vs_block(
 	gentity_t* attacker,
 	gentity_t* blocker,
-	const int saberNum,
+	const int saber_num,
 	const int blade_num,
 	vec3_t hit_loc
 )
@@ -897,7 +907,7 @@ qboolean sab_beh_attack_vs_block(
 			attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
 
 			// Remove damage
-			wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saberNum, blade_num);
+			wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 
 			// Punish attacker
 			PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_TEN);
@@ -917,7 +927,7 @@ qboolean sab_beh_attack_vs_block(
 	// ------------------------------------------------------------
 	// BLOCKER IS ALSO ATTACKING
 	// ------------------------------------------------------------
-	else if (BG_SaberInNonIdleDamageMove(&blocker->client->ps, blocker->localAnimIndex))
+	else if (PM_SaberInNonIdleDamageMove(&blocker->client->ps, blocker->localAnimIndex))
 	{
 		if ((d_attackinfo.integer || g_DebugSaberCombat.integer) &&
 			!(blocker->r.svFlags & SVF_BOT))
@@ -1082,7 +1092,7 @@ qboolean sab_beh_attack_vs_block(
 qboolean sab_beh_block_vs_attack(
 	gentity_t* blocker,
 	gentity_t* attacker,
-	const int saberNum,
+	const int saber_num,
 	const int blade_num,
 	vec3_t hit_loc
 )
@@ -1122,7 +1132,7 @@ qboolean sab_beh_block_vs_attack(
 				}
 				else
 				{
-					sab_beh_saber_should_be_disarmed_blocker(blocker, attacker);
+					SabBeh_SaberShouldBeDisarmedBlocker(blocker, attacker);
 				}
 
 				if (attacker->r.svFlags & SVF_BOT)
@@ -1145,7 +1155,7 @@ qboolean sab_beh_block_vs_attack(
 
 				blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 				attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saberNum, blade_num);
+				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 			}
 			else
 			{
@@ -1160,7 +1170,7 @@ qboolean sab_beh_block_vs_attack(
 
 				blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 				attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saberNum, blade_num);
+				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 			}
 		}
 
@@ -1211,14 +1221,14 @@ qboolean sab_beh_block_vs_attack(
 					if ((d_blockinfo.integer || g_DebugSaberCombat.integer) &&
 						!(blocker->r.svFlags & SVF_BOT))
 					{
-						Com_Printf(S_COLOR_CYAN "Blocker Perfect blocked reward 20\n");
+						Com_Printf(S_COLOR_CYAN "Blocker Perfect blocked reward 15\n");
 					}
 
 					blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 					attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-					wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saberNum, blade_num);
+					wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 
-					wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
+					wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);
 					blocker->client->ps.saberFatigueChainCount = MISHAPLEVEL_NONE;
 					PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_TEN);
 				}
@@ -1262,7 +1272,7 @@ qboolean sab_beh_block_vs_attack(
 
 					blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 					attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-					wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saberNum, blade_num);
+					wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 				}
 			}
 
@@ -1306,7 +1316,7 @@ qboolean sab_beh_block_vs_attack(
 
 				blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 				attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saberNum, blade_num);
+				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 			}
 
 			// ----------------------------------------------------
@@ -1368,8 +1378,7 @@ qboolean sab_beh_block_vs_attack(
 					blocker,
 					CHAN_AUTO,
 					G_SoundIndex(va("sound/weapons/saber/saber_goodparry%d.mp3",
-						Q_irand(1, 3)))
-				);
+						Q_irand(1, 3))));
 
 				if ((d_blockinfo.integer || g_DebugSaberCombat.integer) &&
 					!(blocker->r.svFlags & SVF_BOT))
@@ -1379,7 +1388,7 @@ qboolean sab_beh_block_vs_attack(
 
 				blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 				attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saberNum, blade_num);
+				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 			}
 
 			// ----------------------------------------------------
@@ -1429,19 +1438,19 @@ qboolean sab_beh_block_vs_attack(
 			{
 				Com_Printf(
 					S_COLOR_MAGENTA
-					"Blocker Perfect blocked an Unblockable attack reward 20\n"
+					"Blocker Perfect blocked an Unblockable attack reward 15\n"
 				);
 			}
 
 			blocker->client->ps.saberEventFlags |= SEF_PARRIED;
-			wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
+			wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);
 			blocker->client->ps.saberFatigueChainCount = MISHAPLEVEL_NONE;
 		}
 		else
 		{
 			if (blocker->client->ps.fd.blockPoints < BLOCKPOINTS_TEN)
 			{
-				sab_beh_saber_should_be_disarmed_blocker(blocker, attacker);
+				SabBeh_SaberShouldBeDisarmedBlocker(blocker, attacker);
 				wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
 			}
 			else
