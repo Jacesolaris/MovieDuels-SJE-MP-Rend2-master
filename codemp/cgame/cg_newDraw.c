@@ -3,11 +3,11 @@
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, OpenJK contributors
 
-This file is part of the MovieDuels source code.
+This file is part of the OpenJK source code.
 
-MovieDuels is free software; you can redistribute it and/or modify it
+OpenJK is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -23,23 +23,20 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "cg_local.h"
 #include "ui/ui_shared.h"
+#include "ui/jamp/menudef.h"
 
 extern displayContextDef_t cgDC;
 
-int CG_GetSelectedPlayer()
-{
-	if (cg_currentSelectedPlayer.integer < 0 || cg_currentSelectedPlayer.integer >= numSortedTeamPlayers)
-	{
+int CG_GetSelectedPlayer() {
+	if (cg_currentSelectedPlayer.integer < 0 || cg_currentSelectedPlayer.integer >= numSortedTeamPlayers) {
 		cg_currentSelectedPlayer.integer = 0;
 	}
 	return cg_currentSelectedPlayer.integer;
 }
 
-qhandle_t CG_StatusHandle(const int task)
-{
-	qhandle_t h;
-	switch (task)
-	{
+qhandle_t CG_StatusHandle(int task) {
+	qhandle_t h = cgs.media.assaultShader;
+	switch (task) {
 	case TEAMTASK_OFFENSE:
 		h = cgs.media.assaultShader;
 		break;
@@ -68,15 +65,13 @@ qhandle_t CG_StatusHandle(const int task)
 	return h;
 }
 
-float CG_GetValue(const int owner_draw)
-{
+float CG_GetValue(int ownerDraw) {
 	clientInfo_t* ci;
 
-	const centity_t* cent = &cg_entities[cg.snap->ps.clientNum];
+	const centity_t* cent = &cg_entities[cg.snap->ps.client_num];
 	const playerState_t* ps = &cg.snap->ps;
 
-	switch (owner_draw)
-	{
+	switch (ownerDraw) {
 	case CG_SELECTEDPLAYER_ARMOR:
 		ci = cgs.clientinfo + sortedTeamPlayers[CG_GetSelectedPlayer()];
 		return ci->armor;
@@ -107,17 +102,13 @@ float CG_GetValue(const int owner_draw)
 	return -1;
 }
 
-qboolean CG_OtherTeamHasFlag(void)
-{
-	if (cgs.gametype == GT_CTF || cgs.gametype == GT_CTY)
-	{
+qboolean CG_OtherTeamHasFlag(void) {
+	if (cgs.gametype == GT_CTF || cgs.gametype == GT_CTY) {
 		const int team = cg.snap->ps.persistant[PERS_TEAM];
-		if (team == TEAM_RED && cgs.redflag == FLAG_TAKEN)
-		{
+		if (team == TEAM_RED && cgs.redflag == FLAG_TAKEN) {
 			return qtrue;
 		}
-		if (team == TEAM_BLUE && cgs.blueflag == FLAG_TAKEN)
-		{
+		if (team == TEAM_BLUE && cgs.blueflag == FLAG_TAKEN) {
 			return qtrue;
 		}
 		return qfalse;
@@ -125,17 +116,13 @@ qboolean CG_OtherTeamHasFlag(void)
 	return qfalse;
 }
 
-qboolean CG_YourTeamHasFlag(void)
-{
-	if (cgs.gametype == GT_CTF || cgs.gametype == GT_CTY)
-	{
+qboolean CG_YourTeamHasFlag(void) {
+	if (cgs.gametype == GT_CTF || cgs.gametype == GT_CTY) {
 		const int team = cg.snap->ps.persistant[PERS_TEAM];
-		if (team == TEAM_RED && cgs.blueflag == FLAG_TAKEN)
-		{
+		if (team == TEAM_RED && cgs.blueflag == FLAG_TAKEN) {
 			return qtrue;
 		}
-		if (team == TEAM_BLUE && cgs.redflag == FLAG_TAKEN)
-		{
+		if (team == TEAM_BLUE && cgs.redflag == FLAG_TAKEN) {
 			return qtrue;
 		}
 		return qfalse;
@@ -145,124 +132,95 @@ qboolean CG_YourTeamHasFlag(void)
 
 // THINKABOUTME: should these be exclusive or inclusive..
 //
-qboolean CG_OwnerDrawVisible(const int flags)
-{
-	if (flags & CG_SHOW_TEAMINFO)
-	{
-		return cg_currentSelectedPlayer.integer == numSortedTeamPlayers;
+qboolean CG_OwnerDrawVisible(int flags) {
+	if (flags & CG_SHOW_TEAMINFO) {
+		return (cg_currentSelectedPlayer.integer == numSortedTeamPlayers);
 	}
 
-	if (flags & CG_SHOW_NOTEAMINFO)
-	{
-		return (cg_currentSelectedPlayer.integer != numSortedTeamPlayers);
+	if (flags & CG_SHOW_NOTEAMINFO) {
+		return !(cg_currentSelectedPlayer.integer == numSortedTeamPlayers);
 	}
 
-	if (flags & CG_SHOW_OTHERTEAMHASFLAG)
-	{
+	if (flags & CG_SHOW_OTHERTEAMHASFLAG) {
 		return CG_OtherTeamHasFlag();
 	}
 
-	if (flags & CG_SHOW_YOURTEAMHASENEMYFLAG)
-	{
+	if (flags & CG_SHOW_YOURTEAMHASENEMYFLAG) {
 		return CG_YourTeamHasFlag();
 	}
 
-	if (flags & (CG_SHOW_BLUE_TEAM_HAS_REDFLAG | CG_SHOW_RED_TEAM_HAS_BLUEFLAG))
-	{
-		if (flags & CG_SHOW_BLUE_TEAM_HAS_REDFLAG && (cgs.redflag == FLAG_TAKEN || cgs.flagStatus == FLAG_TAKEN_RED))
-		{
+	if (flags & (CG_SHOW_BLUE_TEAM_HAS_REDFLAG | CG_SHOW_RED_TEAM_HAS_BLUEFLAG)) {
+		if (flags & CG_SHOW_BLUE_TEAM_HAS_REDFLAG && (cgs.redflag == FLAG_TAKEN || cgs.flagStatus == FLAG_TAKEN_RED)) {
 			return qtrue;
 		}
-		if (flags & CG_SHOW_RED_TEAM_HAS_BLUEFLAG && (cgs.blueflag == FLAG_TAKEN || cgs.flagStatus == FLAG_TAKEN_BLUE))
-		{
+		if (flags & CG_SHOW_RED_TEAM_HAS_BLUEFLAG && (cgs.blueflag == FLAG_TAKEN || cgs.flagStatus == FLAG_TAKEN_BLUE)) {
 			return qtrue;
 		}
 		return qfalse;
 	}
 
-	if (flags & CG_SHOW_ANYTEAMGAME)
-	{
-		if (cgs.gametype >= GT_TEAM)
-		{
+	if (flags & CG_SHOW_ANYTEAMGAME) {
+		if (cgs.gametype >= GT_TEAM) {
 			return qtrue;
 		}
 	}
 
-	if (flags & CG_SHOW_ANYNONTEAMGAME)
-	{
-		if (cgs.gametype < GT_TEAM)
-		{
+	if (flags & CG_SHOW_ANYNONTEAMGAME) {
+		if (cgs.gametype < GT_TEAM) {
 			return qtrue;
 		}
 	}
 
-	if (flags & CG_SHOW_CTF)
-	{
-		if (cgs.gametype == GT_CTF || cgs.gametype == GT_CTY)
-		{
+	if (flags & CG_SHOW_CTF) {
+		if (cgs.gametype == GT_CTF || cgs.gametype == GT_CTY) {
 			return qtrue;
 		}
 	}
 
-	if (flags & CG_SHOW_HEALTHCRITICAL)
-	{
-		if (cg.snap->ps.stats[STAT_HEALTH] < 25)
-		{
+	if (flags & CG_SHOW_HEALTHCRITICAL) {
+		if (cg.snap->ps.stats[STAT_HEALTH] < 25) {
 			return qtrue;
 		}
 	}
 
-	if (flags & CG_SHOW_HEALTHOK)
-	{
-		if (cg.snap->ps.stats[STAT_HEALTH] >= 25)
-		{
+	if (flags & CG_SHOW_HEALTHOK) {
+		if (cg.snap->ps.stats[STAT_HEALTH] >= 25) {
 			return qtrue;
 		}
 	}
 
-	if (flags & CG_SHOW_SINGLEPLAYER)
-	{
-		if (cgs.gametype == GT_SINGLE_PLAYER)
-		{
+	if (flags & CG_SHOW_SINGLEPLAYER) {
+		if (cgs.gametype == GT_SINGLE_PLAYER) {
 			return qtrue;
 		}
 	}
 
-	if (flags & CG_SHOW_TOURNAMENT)
-	{
-		if (cgs.gametype == GT_DUEL || cgs.gametype == GT_POWERDUEL)
-		{
+	if (flags & CG_SHOW_TOURNAMENT) {
+		if (cgs.gametype == GT_DUEL || cgs.gametype == GT_POWERDUEL) {
 			return qtrue;
 		}
 	}
 
-	if (flags & CG_SHOW_DURINGINCOMINGVOICE)
-	{
+	if (flags & CG_SHOW_DURINGINCOMINGVOICE) {
 	}
 
-	if (flags & CG_SHOW_IF_PLAYER_HAS_FLAG)
-	{
-		if (cg.snap->ps.powerups[PW_REDFLAG] || cg.snap->ps.powerups[PW_BLUEFLAG] || cg.snap->ps.powerups[
-			PW_NEUTRALFLAG])
-		{
+	if (flags & CG_SHOW_IF_PLAYER_HAS_FLAG) {
+		if (cg.snap->ps.powerups[PW_REDFLAG] || cg.snap->ps.powerups[PW_BLUEFLAG] || cg.snap->ps.powerups[PW_NEUTRALFLAG]) {
 			return qtrue;
 		}
 	}
 	return qfalse;
 }
 
-const char* CG_GetKillerText(void)
-{
+const char* CG_GetKillerText(void) {
 	static const char* s = "";
-	if (cg.killerName[0])
-	{
-		s = va("%s %s", CG_GetStringEdString("MD_MP_INGAME", "KILLEDBY"), cg.killerName);
+	if (cg.killerName[0]) {
+		s = va("%s %s", CG_GetStringEdString("MP_INGAME", "KILLEDBY"), cg.killerName);
 	}
 	return s;
 }
 
-const char* CG_GetGameStatusText(void)
-{
+const char* CG_GetGameStatusText(void) {
 	static const char* s = "";
 	if (cgs.gametype == GT_POWERDUEL)
 	{
@@ -273,110 +231,101 @@ const char* CG_GetGameStatusText(void)
 		if (cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR)
 		{
 			char sPlaceWith[256];
-			trap->SE_GetStringTextString("MD_MP_INGAME_PLACE_WITH", sPlaceWith, sizeof sPlaceWith);
+			trap->SE_GetStringTextString("MP_INGAME_PLACE_WITH", sPlaceWith, sizeof(sPlaceWith));
 
-			s = va("%s %s %i", CG_PlaceString(cg.snap->ps.persistant[PERS_RANK] + 1), sPlaceWith,
-				cg.snap->ps.persistant[PERS_SCORE]);
+			s = va("%s %s %i", CG_PlaceString(cg.snap->ps.persistant[PERS_RANK] + 1), sPlaceWith, cg.snap->ps.persistant[PERS_SCORE]);
 		}
 	}
 	else
 	{
-		if (cg.teamScores[0] == cg.teamScores[1])
-		{
-			s = va("%s %i", CG_GetStringEdString("MD_MP_INGAME", "TIEDAT"), cg.teamScores[0]);
+		if (cg.teamScores[0] == cg.teamScores[1]) {
+			s = va("%s %i", CG_GetStringEdString("MP_INGAME", "TIEDAT"), cg.teamScores[0]);
 		}
-		else if (cg.teamScores[0] >= cg.teamScores[1])
-		{
-			s = va("%s, %i / %i", CG_GetStringEdString("MD_MP_INGAME", "RED_LEADS"), cg.teamScores[0], cg.teamScores[1]);
+		else if (cg.teamScores[0] >= cg.teamScores[1]) {
+			s = va("%s, %i / %i", CG_GetStringEdString("MP_INGAME", "RED_LEADS"), cg.teamScores[0], cg.teamScores[1]);
 		}
-		else
-		{
-			s = va("%s, %i / %i", CG_GetStringEdString("MD_MP_INGAME", "BLUE_LEADS"), cg.teamScores[1], cg.teamScores[0]);
+		else {
+			s = va("%s, %i / %i", CG_GetStringEdString("MP_INGAME", "BLUE_LEADS"), cg.teamScores[1], cg.teamScores[0]);
 		}
 	}
 	return s;
 }
 
-extern int MenuFontToHandle(int i_menu_font);
+extern int MenuFontToHandle(int iMenuFont);
 
 // maxX param is initially an X limit, but is also used as feedback. 0 = text was clipped to fit within, else maxX = next pos
 //
-static void CG_Text_Paint_Limit(float* max_x, const float x, const float y, const float scale, vec4_t color,
-	const char* text,
-	const float adjust, const int limit, const int i_menu_font)
+static void CG_Text_Paint_Limit(float* maxX, float x, float y, float scale, vec4_t color, const char* text, float adjust, int limit, int iMenuFont)
 {
-	qboolean b_is_trailing_punctuation;
+	qboolean bIsTrailingPunctuation;
 
 	// this is kinda dirty, but...
 	//
-	const int i_font_index = MenuFontToHandle(i_menu_font);
+	const int iFontIndex = MenuFontToHandle(iMenuFont);
 
 	//float fMax = *maxX;
-	const int i_pixel_len = trap->R_Font_StrLenPixels(text, i_font_index, scale);
-	if (x + i_pixel_len > *max_x)
+	const int iPixelLen = trap->R_Font_StrLenPixels(text, iFontIndex, scale);
+	if (x + iPixelLen > *maxX)
 	{
 		// whole text won't fit, so we need to print just the amount that does...
 		//  Ok, this is slow and tacky, but only called occasionally, and it works...
 		//
-		char s_temp[4096] = { 0 }; // lazy assumption
-		const char* ps_text = text;
-		char* ps_out = &s_temp[0];
-		char* ps_out_last_good = ps_out;
+		char sTemp[4096] = { 0 };	// lazy assumption
+		const char* psText = text;
+		char* psOut = &sTemp[0];
+		char* psOutLastGood = psOut;
 
-		while (*ps_text && x + trap->R_Font_StrLenPixels(s_temp, i_font_index, scale) <= *max_x
-			&& ps_out < &s_temp[sizeof s_temp - 1] // sanity
+		while (*psText && (x + trap->R_Font_StrLenPixels(sTemp, iFontIndex, scale) <= *maxX)
+			&& psOut < &sTemp[sizeof(sTemp) - 1]	// sanity
 			)
 		{
-			int i_advance_count;
-			ps_out_last_good = ps_out;
+			int iAdvanceCount;
+			psOutLastGood = psOut;
 
-			const unsigned int ui_letter = trap->R_AnyLanguage_ReadCharFromString(
-				ps_text, &i_advance_count, &b_is_trailing_punctuation);
-			ps_text += i_advance_count;
+			const unsigned int uiLetter = trap->R_AnyLanguage_ReadCharFromString(psText, &iAdvanceCount, &bIsTrailingPunctuation);
+			psText += iAdvanceCount;
 
-			if (ui_letter > 255)
+			if (uiLetter > 255)
 			{
-				*ps_out++ = ui_letter >> 8;
-				*ps_out++ = ui_letter & 0xFF;
+				*psOut++ = uiLetter >> 8;
+				*psOut++ = uiLetter & 0xFF;
 			}
 			else
 			{
-				*ps_out++ = ui_letter & 0xFF;
+				*psOut++ = uiLetter & 0xFF;
 			}
 		}
-		*ps_out_last_good = '\0';
+		*psOutLastGood = '\0';
 
-		*max_x = 0; // feedback
-		CG_Text_Paint(x, y, scale, color, s_temp, adjust, limit, ITEM_TEXTSTYLE_NORMAL, i_menu_font);
+		*maxX = 0;	// feedback
+		CG_Text_Paint(x, y, scale, color, sTemp, adjust, limit, ITEM_TEXTSTYLE_NORMAL, iMenuFont);
 	}
 	else
 	{
 		// whole text fits fine, so print it all...
 		//
-		*max_x = x + i_pixel_len; // feedback the next position, as the caller expects
-		CG_Text_Paint(x, y, scale, color, text, adjust, limit, ITEM_TEXTSTYLE_NORMAL, i_menu_font);
+		*maxX = x + iPixelLen;	// feedback the next position, as the caller expects
+		CG_Text_Paint(x, y, scale, color, text, adjust, limit, ITEM_TEXTSTYLE_NORMAL, iMenuFont);
 	}
 }
 
 #define PIC_WIDTH 12
 
 extern const char* CG_GetLocationString(const char* loc); //cg_main.c
-void CG_DrawNewTeamInfo(const rectDef_t* rect, const float text_y, const float scale, vec4_t color)
-{
+void CG_DrawNewTeamInfo(rectDef_t* rect, float text_x, float text_y, float scale, vec4_t color, qhandle_t shader) {
 	int i, len;
 	const char* p;
-	float maxx, left_over;
+	vec4_t		hcolor;
+	float maxx, leftOver;
 	clientInfo_t* ci;
 	qhandle_t h;
 
 	// max player name width
 	float pwidth = 0;
-	const int count = numSortedTeamPlayers > 8 ? 8 : numSortedTeamPlayers;
-	for (i = 0; i < count; i++)
-	{
+	const int count = (numSortedTeamPlayers > 8) ? 8 : numSortedTeamPlayers;
+	for (i = 0; i < count; i++) {
 		ci = cgs.clientinfo + sortedTeamPlayers[i];
-		if (ci->infoValid && ci->team == cg.snap->ps.persistant[PERS_TEAM])
-		{
+		if (ci->infoValid && ci->team == cg.snap->ps.persistant[PERS_TEAM]) {
 			len = CG_Text_Width(ci->name, scale, 0);
 			if (len > pwidth)
 				pwidth = len;
@@ -385,11 +334,9 @@ void CG_DrawNewTeamInfo(const rectDef_t* rect, const float text_y, const float s
 
 	// max location name width
 	float lwidth = 0;
-	for (i = 1; i < MAX_LOCATIONS; i++)
-	{
+	for (i = 1; i < MAX_LOCATIONS; i++) {
 		p = CG_GetLocationString(CG_ConfigString(CS_LOCATIONS + i));
-		if (p && *p)
-		{
+		if (p && *p) {
 			len = CG_Text_Width(p, scale, 0);
 			if (len > lwidth)
 				lwidth = len;
@@ -398,21 +345,15 @@ void CG_DrawNewTeamInfo(const rectDef_t* rect, const float text_y, const float s
 
 	float y = rect->y;
 
-	for (i = 0; i < count; i++)
-	{
+	for (i = 0; i < count; i++) {
 		ci = cgs.clientinfo + sortedTeamPlayers[i];
-		if (ci->infoValid && ci->team == cg.snap->ps.persistant[PERS_TEAM])
-		{
-			vec4_t hcolor;
+		if (ci->infoValid && ci->team == cg.snap->ps.persistant[PERS_TEAM]) {
 			int xx = rect->x + 1;
-			for (int j = 0; j < PW_NUM_POWERUPS; j++)
-			{
-				if (ci->powerups & 1 << j)
-				{
+			for (int j = 0; j <= PW_NUM_POWERUPS; j++) {
+				if (ci->powerups & (1 << j)) {
 					const gitem_t* item = BG_FindItemForPowerup(j);
 
-					if (item)
-					{
+					if (item) {
 						CG_DrawPic(xx, y, PIC_WIDTH, PIC_WIDTH, trap->R_RegisterShader(item->icon));
 						xx += PIC_WIDTH;
 					}
@@ -420,7 +361,7 @@ void CG_DrawNewTeamInfo(const rectDef_t* rect, const float text_y, const float s
 			}
 
 			// FIXME: max of 3 powerups shown properly
-			xx = rect->x + PIC_WIDTH * 3 + 2;
+			xx = rect->x + (PIC_WIDTH * 3) + 2;
 
 			CG_GetColorForHealth(ci->health, ci->armor, hcolor);
 			trap->R_SetColor(hcolor);
@@ -434,8 +375,8 @@ void CG_DrawNewTeamInfo(const rectDef_t* rect, const float text_y, const float s
 
 			// weapon used is not that useful, use the space for task
 #if 0
-			if (cg_weapons[ci->curWeapon].weaponIcon) {
-				CG_DrawPic(xx, y, PIC_WIDTH, PIC_WIDTH, cg_weapons[ci->curWeapon].weaponIcon);
+			if (cg_weapons[ci->curWeapon].weapon_Icon) {
+				CG_DrawPic(xx, y, PIC_WIDTH, PIC_WIDTH, cg_weapons[ci->curWeapon].weapon_Icon);
 			}
 			else {
 				CG_DrawPic(xx, y, PIC_WIDTH, PIC_WIDTH, cgs.media.deferShader);
@@ -445,124 +386,101 @@ void CG_DrawNewTeamInfo(const rectDef_t* rect, const float text_y, const float s
 			trap->R_SetColor(NULL);
 			h = CG_StatusHandle(ci->teamTask);
 
-			if (h)
-			{
+			if (h) {
 				CG_DrawPic(xx, y, PIC_WIDTH, PIC_WIDTH, h);
 			}
 
 			xx += PIC_WIDTH + 1;
 
-			left_over = rect->w - xx;
-			maxx = xx + left_over / 3;
+			leftOver = rect->w - xx;
+			maxx = xx + leftOver / 3;
 
 			CG_Text_Paint_Limit(&maxx, xx, y + text_y, scale, color, ci->name, 0, 0, FONT_MEDIUM);
 
 			p = CG_GetLocationString(CG_ConfigString(CS_LOCATIONS + ci->location));
-			if (!p || !*p)
-			{
+			if (!p || !*p) {
 				p = "unknown";
 			}
 
-			xx += left_over / 3 + 2;
+			xx += leftOver / 3 + 2;
 			maxx = rect->w - 4;
 
 			CG_Text_Paint_Limit(&maxx, xx, y + text_y, scale, color, p, 0, 0, FONT_MEDIUM);
 			y += text_y + 2;
-			if (y + text_y + 2 > rect->y + rect->h)
-			{
+			if (y + text_y + 2 > rect->y + rect->h) {
 				break;
 			}
 		}
 	}
 }
 
-void CG_DrawTeamSpectators(const rectDef_t* rect, const float scale, vec4_t color)
-{
-	if (cg.spectatorLen)
-	{
-		float max_x;
+void CG_DrawTeamSpectators(rectDef_t* rect, float scale, vec4_t color, qhandle_t shader) {
+	if (cg.spectatorLen) {
+		float maxX;
 
-		if (cg.spectatorWidth == -1)
-		{
+		if (cg.spectatorWidth == -1) {
 			cg.spectatorWidth = 0;
 			cg.spectatorPaintX = rect->x + 1;
 			cg.spectatorPaintX2 = -1;
 		}
 
-		if (cg.spectatorOffset > cg.spectatorLen)
-		{
+		if (cg.spectatorOffset > cg.spectatorLen) {
 			cg.spectatorOffset = 0;
 			cg.spectatorPaintX = rect->x + 1;
 			cg.spectatorPaintX2 = -1;
 		}
 
-		if (cg.time > cg.spectatorTime)
-		{
+		if (cg.time > cg.spectatorTime) {
 			cg.spectatorTime = cg.time + 10;
-			if (cg.spectatorPaintX <= rect->x + 2)
-			{
-				if (cg.spectatorOffset < cg.spectatorLen)
-				{
+			if (cg.spectatorPaintX <= rect->x + 2) {
+				if (cg.spectatorOffset < cg.spectatorLen) {
 					cg.spectatorPaintX += CG_Text_Width(&cg.spectatorList[cg.spectatorOffset], scale, 1) - 1;
 					cg.spectatorOffset++;
 				}
-				else
-				{
+				else {
 					cg.spectatorOffset = 0;
-					if (cg.spectatorPaintX2 >= 0)
-					{
+					if (cg.spectatorPaintX2 >= 0) {
 						cg.spectatorPaintX = cg.spectatorPaintX2;
 					}
-					else
-					{
+					else {
 						cg.spectatorPaintX = rect->x + rect->w - 2;
 					}
 					cg.spectatorPaintX2 = -1;
 				}
 			}
-			else
-			{
+			else {
 				cg.spectatorPaintX--;
-				if (cg.spectatorPaintX2 >= 0)
-				{
+				if (cg.spectatorPaintX2 >= 0) {
 					cg.spectatorPaintX2--;
 				}
 			}
 		}
 
-		max_x = rect->x + rect->w - 2;
-		CG_Text_Paint_Limit(&max_x, cg.spectatorPaintX, rect->y + rect->h - 3, scale, color,
-			&cg.spectatorList[cg.spectatorOffset], 0, 0, FONT_MEDIUM);
-		if (cg.spectatorPaintX2 >= 0)
-		{
-			float max_x2 = rect->x + rect->w - 2;
-			CG_Text_Paint_Limit(&max_x2, cg.spectatorPaintX2, rect->y + rect->h - 3, scale, color, cg.spectatorList, 0,
-				cg.spectatorOffset, FONT_MEDIUM);
+		maxX = rect->x + rect->w - 2;
+		CG_Text_Paint_Limit(&maxX, cg.spectatorPaintX, rect->y + rect->h - 3, scale, color, &cg.spectatorList[cg.spectatorOffset], 0, 0, FONT_MEDIUM);
+		if (cg.spectatorPaintX2 >= 0) {
+			float maxX2 = rect->x + rect->w - 2;
+			CG_Text_Paint_Limit(&maxX2, cg.spectatorPaintX2, rect->y + rect->h - 3, scale, color, cg.spectatorList, 0, cg.spectatorOffset, FONT_MEDIUM);
 		}
-		if (cg.spectatorOffset && max_x > 0)
-		{
+		if (cg.spectatorOffset && maxX > 0) {
 			// if we have an offset ( we are skipping the first part of the string ) and we fit the string
-			if (cg.spectatorPaintX2 == -1)
-			{
+			if (cg.spectatorPaintX2 == -1) {
 				cg.spectatorPaintX2 = rect->x + rect->w - 2;
 			}
 		}
-		else
-		{
+		else {
 			cg.spectatorPaintX2 = -1;
 		}
 	}
 }
 
-void CG_DrawMedal(const int owner_draw, const rectDef_t* rect, const float scale, vec4_t color, const qhandle_t shader)
-{
+void CG_DrawMedal(int ownerDraw, rectDef_t* rect, float scale, vec4_t color, qhandle_t shader) {
 	const score_t* score = &cg.scores[cg.selectedScore];
 	float value = 0;
 	const char* text = NULL;
 	color[3] = 0.25;
 
-	switch (owner_draw)
-	{
+	switch (ownerDraw) {
 	case CG_ACCURACY:
 		value = score->accuracy;
 		break;
@@ -587,31 +505,23 @@ void CG_DrawMedal(const int owner_draw, const rectDef_t* rect, const float scale
 	case CG_CAPTURES:
 		value = score->captures;
 		break;
-	default:;
 	}
 
-	if (value > 0)
-	{
-		if (owner_draw != CG_PERFECT)
-		{
-			if (owner_draw == CG_ACCURACY)
-			{
+	if (value > 0) {
+		if (ownerDraw != CG_PERFECT) {
+			if (ownerDraw == CG_ACCURACY) {
 				text = va("%i%%", (int)value);
-				if (value > 50)
-				{
+				if (value > 50) {
 					color[3] = 1.0;
 				}
 			}
-			else
-			{
+			else {
 				text = va("%i", (int)value);
 				color[3] = 1.0;
 			}
 		}
-		else
-		{
-			if (value)
-			{
+		else {
+			if (value) {
 				color[3] = 1.0;
 			}
 			text = "Wow";
@@ -621,20 +531,22 @@ void CG_DrawMedal(const int owner_draw, const rectDef_t* rect, const float scale
 	trap->R_SetColor(color);
 	CG_DrawPic(rect->x, rect->y, rect->w, rect->h, shader);
 
-	if (text)
-	{
+	if (text) {
 		color[3] = 1.0;
 		value = CG_Text_Width(text, scale, 0);
-		CG_Text_Paint(rect->x + (rect->w - value) / 2, rect->y + rect->h + 10, scale, color, text, 0, 0, 0,
-			FONT_MEDIUM);
+		CG_Text_Paint(rect->x + (rect->w - value) / 2, rect->y + rect->h + 10, scale, color, text, 0, 0, 0, FONT_MEDIUM);
 	}
 	trap->R_SetColor(NULL);
 }
 
 //
-void CG_OwnerDraw(float x, float y, float w, float h, float text_x, float text_y, int ownerDraw, int ownerDrawFlags,
-	int align, float special, float scale, vec4_t color, qhandle_t shader, int textStyle, int font)
-{
+void CG_OwnerDraw(float x, float y, float w, float h, float text_x, float text_y, int ownerDraw, int ownerDrawFlags, int align, float special, float scale, vec4_t color, qhandle_t shader, int textStyle, int font) {
+	// handle Pazaak ownerdraws first
+	if (ownerDraw >= UI_JKG_PAZAAK_BASE && ownerDraw <= (UI_JKG_PAZAAK_BASE + 16)) {
+		extern void CG_Pazaak_OwnerDraw(int ownerDraw, float x, float y, float w, float h, vec4_t color, qhandle_t shader, float scale);
+		CG_Pazaak_OwnerDraw(ownerDraw, x, y, w, h, color, shader, scale);
+		return;
+	}
 	//Ignore all this, at least for now. May put some stat stuff back in menu files later.
 #if 0
 	rectDef_t rect;
@@ -818,8 +730,14 @@ void CG_OwnerDraw(float x, float y, float w, float h, float text_x, float text_y
 #endif
 }
 
-void CG_MouseEvent(const int x, const int y)
-{
+void CG_MouseEvent(int x, int y) {
+	/*
+	if ( (cg.predictedPlayerState.pm_type == PM_NORMAL || cg.predictedPlayerState.pm_type == PM_JETPACK || cg.predictedPlayerState.pm_type == PM_FLOAT || cg.predictedPlayerState.pm_type == PM_SPECTATOR) && cg.showScores == qfalse) {
+		trap->Key_SetCatcher(0);
+		return;
+	}
+	*/
+
 	cgs.cursorX += x;
 	if (cgs.cursorX < 0)
 		cgs.cursorX = 0;
@@ -834,21 +752,17 @@ void CG_MouseEvent(const int x, const int y)
 
 	const int n = Display_CursorType(cgs.cursorX, cgs.cursorY);
 	cgs.activeCursor = 0;
-	if (n == CURSOR_ARROW)
-	{
+	if (n == CURSOR_ARROW) {
 		cgs.activeCursor = cgs.media.selectCursor;
 	}
-	else if (n == CURSOR_SIZER)
-	{
+	else if (n == CURSOR_SIZER) {
 		cgs.activeCursor = cgs.media.sizeCursor;
 	}
 
-	if (cgs.capturedItem)
-	{
+	if (cgs.capturedItem) {
 		Display_MouseMove(cgs.capturedItem, x, y);
 	}
-	else
-	{
+	else {
 		Display_MouseMove(NULL, cgs.cursorX, cgs.cursorY);
 	}
 }
@@ -859,8 +773,7 @@ CG_HideTeamMenus
 ==================
 
 */
-void CG_HideTeamMenu()
-{
+void CG_HideTeamMenu() {
 	Menus_CloseByName("teamMenu");
 	Menus_CloseByName("getMenu");
 }
@@ -871,8 +784,7 @@ CG_ShowTeamMenus
 ==================
 
 */
-void CG_ShowTeamMenu()
-{
+void CG_ShowTeamMenu() {
 	Menus_OpenByName("teamMenu");
 }
 
@@ -885,74 +797,63 @@ type 0 - no event handling
 2 - hud editor
 
 */
-void CG_EventHandling(const int type)
-{
+void CG_EventHandling(int type) {
 	cgs.eventHandling = type;
-	if (type == CGAME_EVENT_NONE)
-	{
+	if (type == CGAME_EVENT_NONE) {
 		CG_HideTeamMenu();
 	}
-	else if (type == CGAME_EVENT_TEAMMENU)
-	{
+	else if (type == CGAME_EVENT_TEAMMENU) {
 		//CG_ShowTeamMenu();
 	}
-	else if (type == CGAME_EVENT_SCOREBOARD)
-	{
+	else if (type == CGAME_EVENT_SCOREBOARD) {
 	}
 }
 
-void CG_KeyEvent(const int key, const qboolean down)
-{
-	if (!down)
-	{
+void CG_KeyEvent(int key, qboolean down) {
+	if (!down) {
 		return;
 	}
 
-	if (cg.predictedPlayerState.pm_type == PM_NORMAL || cg.predictedPlayerState.pm_type == PM_JETPACK || cg.
-		predictedPlayerState.pm_type == PM_NORMAL || cg.predictedPlayerState.pm_type == PM_SPECTATOR && cg.showScores ==
-		qfalse)
-	{
+	if (cg.predictedPlayerState.pm_type == PM_NORMAL || cg.predictedPlayerState.pm_type == PM_JETPACK || cg.predictedPlayerState.pm_type == PM_NORMAL || (cg.predictedPlayerState.pm_type == PM_SPECTATOR && cg.showScores == qfalse)) {
 		CG_EventHandling(CGAME_EVENT_NONE);
 		trap->Key_SetCatcher(0);
 		return;
 	}
 
+	//if (key == trap->Key_GetKey("teamMenu") || !Display_CaptureItem(cgs.cursorX, cgs.cursorY)) {
+	// if we see this then we should always be visible
+	//  CG_EventHandling(CGAME_EVENT_NONE);
+	//  trap->Key_SetCatcher(0);
+	//}
+
 	Display_HandleKey(key, down, cgs.cursorX, cgs.cursorY);
 
-	if (cgs.capturedItem)
-	{
+	if (cgs.capturedItem) {
 		cgs.capturedItem = NULL;
 	}
-	else
-	{
-		if (key == A_MOUSE2 && down)
-		{
+	else {
+		if (key == A_MOUSE2 && down) {
 			cgs.capturedItem = Display_CaptureItem(cgs.cursorX, cgs.cursorY);
 		}
 	}
 }
 
-int CG_clientNumFromName(const char* p)
-{
-	for (int i = 0; i < cgs.maxclients; i++)
-	{
-		if (cgs.clientinfo[i].infoValid && Q_stricmp(cgs.clientinfo[i].name, p) == 0)
-		{
+int CG_client_numFromName(const char* p) {
+	for (int i = 0; i < cgs.maxclients; i++) {
+		if (cgs.clientinfo[i].infoValid && Q_stricmp(cgs.clientinfo[i].name, p) == 0) {
 			return i;
 		}
 	}
 	return -1;
 }
 
-void CG_ShowResponseHead(void)
-{
+void CG_ShowResponseHead(void) {
 	Menus_OpenByName("voiceMenu");
 	trap->Cvar_Set("cl_conXOffset", "72");
 	cg.voiceTime = cg.time;
 }
 
-void CG_RunMenuScript(char** args)
-{
+void CG_RunMenuScript(char** args) {
 }
 
 qboolean CG_DeferMenuScript(char** args)
@@ -960,22 +861,18 @@ qboolean CG_DeferMenuScript(char** args)
 	return qfalse;
 }
 
-void CG_GetTeamColor(vec4_t* color)
-{
-	if (cg.snap->ps.persistant[PERS_TEAM] == TEAM_RED)
-	{
+void CG_GetTeamColor(vec4_t* color) {
+	if (cg.snap->ps.persistant[PERS_TEAM] == TEAM_RED) {
 		(*color)[0] = 1.0f;
 		(*color)[3] = 0.25f;
 		(*color)[1] = (*color)[2] = 0.0f;
 	}
-	else if (cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE)
-	{
+	else if (cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE) {
 		(*color)[0] = (*color)[1] = 0.0f;
 		(*color)[2] = 1.0f;
 		(*color)[3] = 0.25f;
 	}
-	else
-	{
+	else {
 		(*color)[0] = (*color)[2] = 0.0f;
 		(*color)[1] = 0.17f;
 		(*color)[3] = 0.25f;

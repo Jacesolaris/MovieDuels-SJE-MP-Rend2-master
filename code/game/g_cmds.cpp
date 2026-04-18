@@ -3,11 +3,11 @@
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
+Copyright (C) 2013 - 2015, OpenJK contributors
 
-This file is part of the SerenityJediEngine2026 source code.
+This file is part of the OpenJK source code.
 
-SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
+OpenJK is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -31,29 +31,28 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 extern bool in_camera;
 extern stringID_table_t SaberStyleTable[];
+extern stringID_table_t WPTable[];
 extern cvar_t* com_outcast;
 
+extern void SP_fx_runner(gentity_t* ent);
+extern qboolean Grievious_Classes(const gentity_t* self);
+extern void SP_NPC_Droid_Seeker(gentity_t* ent);
 extern void ForceHeal(gentity_t* self);
-extern void ForceGripAdvanced(gentity_t* self);
-extern void ForceGripBasic(gentity_t* self);
+extern void ForceGrip(gentity_t* self);
 extern void ForceTelepathy(gentity_t* self);
 extern void ForceRage(gentity_t* self);
 extern void ForceProtect(gentity_t* self);
 extern void ForceAbsorb(gentity_t* self);
 extern void ForceSeeing(gentity_t* self);
-extern void g_create_g2_attached_weapon_model(gentity_t* ent, const char* ps_weapon_model, int bolt_num,
-	int weapon_num);
-extern void G_StartMatrixEffect(const gentity_t* ent, int me_flags = 0, int length = 1000, float time_scale = 0.0f,
-	int spin_time = 0);
+extern void G_CreateG2AttachedWeaponModel(gentity_t* ent, const char* ps_weapon_model, int bolt_num, int weapon_num);
+extern void G_StartMatrixEffect(const gentity_t* ent, int me_flags = 0, int length = 1000, float time_scale = 0.0f, int spin_time = 0);
 extern void ItemUse_Bacta(gentity_t* ent);
 extern gentity_t* G_GetSelfForPlayerCmd();
-extern void force_stasis(gentity_t* self);
 extern void ForceDestruction(gentity_t* self);
-extern void ItemUse_UseCloak(gentity_t* ent);
-extern void ItemUse_Barrier(gentity_t* ent);
-extern void ItemUse_Barrier_with_saber(gentity_t* ent);
+extern void ForceStasis(gentity_t* self);
 extern void ItemUse_Jetpack(const gentity_t* ent);
-extern qboolean PM_SaberInAttack(int move);
+extern cvar_t* g_SerenityJediEngineMode;
+extern cvar_t* g_AllowReload;
 extern cvar_t* g_sex;
 extern qboolean Q3_TaskIDPending(const gentity_t* ent, taskID_t taskType);
 extern void G_SpeechEvent(const gentity_t* self, int event);
@@ -61,31 +60,31 @@ extern void G_AddVoiceEvent(const gentity_t* self, int event, int speak_debounce
 extern qboolean PM_WalkingAnim(int anim);
 extern qboolean PM_RunningAnim(int anim);
 extern qboolean BG_IsAlreadyinTauntAnim(int anim);
-extern cvar_t* g_sex;
 extern void G_PilotXWing(gentity_t* ent);
-extern void G_DriveATST(gentity_t* pEnt, gentity_t* atst);
-extern qboolean IsHoldingReloadableGun(const gentity_t* ent);
-extern void WP_ReloadGun(gentity_t* ent);
+extern void G_DriveATST(gentity_t* ent, gentity_t* atst);
+extern void ItemUse_UseCloak(gentity_t* ent);
 extern void RemoveBarrier(gentity_t* ent);
-extern void CancelReload(gentity_t* ent);
+extern void ItemUse_Barrier(gentity_t* ent);
+extern void ItemUse_Grapple(gentity_t* ent);
 extern Vehicle_t* G_IsRidingVehicle(const gentity_t* pEnt);
-extern void TurnBarrierOff(gentity_t* ent);
-
-extern void ForceRepulse(gentity_t* self);
+extern qboolean char_has_beskar_armor(const gentity_t* self);
+extern void ForceJediRepulse(gentity_t* self);
 extern void ForceGrasp(gentity_t* self);
 extern void ForceFear(gentity_t* self);
 extern void ForceLightningStrike(gentity_t* self);
 extern void ForceDeadlySight(gentity_t* self);
 extern void ForceBlast(gentity_t* self);
-extern void ForceInsanity(gentity_t* self);
-extern void ForceBlinding(gentity_t* self);
+extern void ForceProjection(gentity_t* self);
+
+// Pazaak client command handler (pzk ...)
+#include "g_pazaak.h"
 
 /*
 ==================
 CheatsOk
 ==================
 */
-static qboolean CheatsOk(const gentity_t* ent)
+qboolean CheatsOk(const gentity_t* ent)
 {
 	if (!g_cheats->integer)
 	{
@@ -105,7 +104,7 @@ static qboolean CheatsOk(const gentity_t* ent)
 ConcatArgs
 ==================
 */
-char* ConcatArgs(const int start)
+static char* ConcatArgs(const int start)
 {
 	static char line[MAX_STRING_CHARS];
 
@@ -213,7 +212,10 @@ static int clientNumberFromString(const gentity_t* to, char* s)
 	return -1;
 }
 
-extern qboolean he_is_jedi(const gentity_t* ent);
+extern qboolean HeIsJedi(const gentity_t* ent);
+extern qboolean Calo_Nord(const gentity_t* self);
+extern void TurnBarrierOff(gentity_t* ent);
+extern void TurnBarrierON(gentity_t* ent);
 
 static void G_Give(gentity_t* ent, const char* name, const char* args, const int argc)
 {
@@ -232,54 +234,140 @@ static void G_Give(gentity_t* ent, const char* name, const char* args, const int
 			return;
 	}
 
+	if (!Q_stricmp(name, "maxhealth"))
+	{
+		// Set a new max health value
+		if (argc == 3)
+		{
+			int newMaxHealth = Com_Clampi(1, 999, atoi(args));
+			ent->health = newMaxHealth;
+			ent->max_health = newMaxHealth;
+			if (ent->client)
+			{
+				ent->client->ps.stats[STAT_HEALTH] = ent->client->ps.stats[STAT_MAX_HEALTH] = newMaxHealth;
+				ent->client->ps.stats[STAT_ARMOR] = newMaxHealth;
+			}
+		}
+		else
+			ent->health = ent->client->ps.stats[STAT_MAX_HEALTH];
+		if (!give_all)
+			return;
+	}
+
+	if (cg_trueguns.integer > 0)
+	{
+		gi.cvar_set("cg_trueguns", "0");
+	}
+
 	if (give_all || Q_stricmp(name, "inventory") == 0)
 	{
 		// Huh?  Was doing a INV_MAX+1 which was wrong because then you'd actually have every inventory item including INV_MAX
 		ent->client->ps.stats[STAT_ITEMS] = (1 << INV_MAX) - (1 << INV_ELECTROBINOCULARS);
 
-		if (com_outcast->integer == 1 || com_outcast->integer == 4) //playing outcast
+		if (g_SerenityJediEngineMode->integer)
 		{
-			ent->client->ps.inventory[INV_LIGHTAMP_GOGGLES] = 1;
+			if (com_outcast->integer == 1) //playing outcast
+			{
+				ent->client->ps.inventory[INV_LIGHTAMP_GOGGLES] = 1;
+			}
+			else
+			{
+				ent->client->ps.inventory[INV_ELECTROBINOCULARS] = 1;
+			}
+			ent->client->ps.inventory[INV_BACTA_CANISTER] = 5;
+			ent->client->ps.inventory[INV_GOODIE_KEY] = 5;
+			ent->client->ps.inventory[INV_SECURITY_KEY] = 5;
+
+			if (HeIsJedi(ent))
+			{
+				ent->client->ps.inventory[INV_CLOAK] = 1;
+				ent->client->ps.inventory[INV_SEEKER] = 5;
+
+				ent->client->ps.inventory[INV_GRAPPLEHOOK] = 0;
+				ent->client->ps.inventory[INV_BARRIER] = 0;
+				ent->client->ps.inventory[INV_SENTRY] = 0;
+			}
+
+			if (Grievious_Classes(ent))
+			{
+				ent->client->ps.inventory[INV_GRAPPLEHOOK] = 1;
+			}
+
+			if (Calo_Nord(ent))
+			{
+				ent->client->ps.inventory[INV_BARRIER] = 1;
+				ent->client->ps.inventory[INV_SENTRY] = 1;
+			}
+
+			if (!HeIsJedi(ent))
+			{
+				if (ent->client->NPC_class == CLASS_DROIDEKA)
+				{
+					ent->client->ps.inventory[INV_BARRIER] = 1;
+
+					ent->client->ps.inventory[INV_CLOAK] = 0;
+					ent->client->ps.inventory[INV_SEEKER] = 0;
+					ent->client->ps.inventory[INV_ELECTROBINOCULARS] = 0;
+					ent->client->ps.inventory[INV_LIGHTAMP_GOGGLES] = 0;
+					ent->client->ps.inventory[INV_CLOAK] = 0;
+					ent->client->ps.inventory[INV_SEEKER] = 0;
+					ent->client->ps.inventory[INV_BACTA_CANISTER] = 0;
+					ent->client->ps.inventory[INV_SENTRY] = 0;
+
+					if (ent->client->ps.powerups[PW_GALAK_SHIELD] || ent->flags & FL_SHIELDED)
+					{
+						TurnBarrierOff(ent);
+					}
+				}
+				else
+				{
+					if (ent->client->NPC_class == CLASS_BOBAFETT
+						|| ent->client->NPC_class == CLASS_JANGO
+						|| ent->client->NPC_class == CLASS_JANGODUAL
+						|| ent->client->NPC_class == CLASS_MANDALORIAN
+						|| char_has_beskar_armor(ent))
+					{
+						ent->client->ps.inventory[INV_GRAPPLEHOOK] = 1;
+
+						if (ent->client->NPC_class == CLASS_JANGO
+							|| ent->client->NPC_class == CLASS_JANGODUAL
+							|| ent->client->NPC_class == CLASS_MANDALORIAN
+							|| char_has_beskar_armor(ent))
+						{
+							ent->flags |= FL_DINDJARIN; //low-level shots bounce off, no knockback
+						}
+
+						if (!Q_stricmp("boba_fett", ent->NPC_type))
+						{
+							ent->flags |= FL_BOBAFETT; //low-level shots bounce off, no knockback
+						}
+						ent->flags |= FL_SABERDAMAGE_RESIST; //Partially resistant to sabers
+					}
+					else
+					{
+						ent->client->ps.inventory[INV_GRAPPLEHOOK] = 0;
+					}
+					ent->client->ps.inventory[INV_BARRIER] = 1;
+					ent->client->ps.inventory[INV_SENTRY] = 5;
+
+					ent->client->ps.inventory[INV_CLOAK] = 0;
+					ent->client->ps.inventory[INV_SEEKER] = 0;
+				}
+			}
 		}
 		else
 		{
 			ent->client->ps.inventory[INV_ELECTROBINOCULARS] = 1;
-		}
-		ent->client->ps.inventory[INV_BACTA_CANISTER] = 5;
-		ent->client->ps.inventory[INV_GOODIE_KEY] = 5;
-		ent->client->ps.inventory[INV_SECURITY_KEY] = 5;
+			ent->client->ps.inventory[INV_BACTA_CANISTER] = 5;
+			ent->client->ps.inventory[INV_LIGHTAMP_GOGGLES] = 1;
+			ent->client->ps.inventory[INV_GOODIE_KEY] = 5;
+			ent->client->ps.inventory[INV_SECURITY_KEY] = 5;
+			ent->client->ps.inventory[INV_SEEKER] = 5;
+			ent->client->ps.inventory[INV_SENTRY] = 5;
 
-		if (he_is_jedi(ent))
-		{
-			ent->client->ps.inventory[INV_CLOAK] = 1;
-			ent->client->ps.inventory[INV_SEEKER] = 2;
-		}
-
-		if (!he_is_jedi(ent))
-		{
-			if (ent->client->NPC_class == CLASS_DROIDEKA)
-			{
-				ent->client->ps.inventory[INV_BARRIER] = 1;
-
-				ent->client->ps.inventory[INV_CLOAK] = 0;
-				ent->client->ps.inventory[INV_SEEKER] = 0;
-				ent->client->ps.inventory[INV_ELECTROBINOCULARS] = 0;
-				ent->client->ps.inventory[INV_LIGHTAMP_GOGGLES] = 0;
-				ent->client->ps.inventory[INV_CLOAK] = 0;
-				ent->client->ps.inventory[INV_SEEKER] = 0;
-				ent->client->ps.inventory[INV_BACTA_CANISTER] = 0;
-				ent->client->ps.inventory[INV_SENTRY] = 0;
-
-				if (ent->client->ps.powerups[PW_GALAK_SHIELD] || ent->flags & FL_SHIELDED)
-				{
-					TurnBarrierOff(ent);
-				}
-			}
-			else
-			{
-				ent->client->ps.inventory[INV_BARRIER] = 1;
-				ent->client->ps.inventory[INV_SENTRY] = 2;
-			}
+			ent->client->ps.inventory[INV_CLOAK] = 0;
+			ent->client->ps.inventory[INV_GRAPPLEHOOK] = 0;
+			ent->client->ps.inventory[INV_BARRIER] = 0;
 		}
 
 		if (!give_all)
@@ -309,11 +397,6 @@ static void G_Give(gentity_t* ent, const char* name, const char* args, const int
 		else
 			ent->client->ps.stats[STAT_ARMOR] = ent->client->ps.stats[STAT_MAX_HEALTH];
 
-		if (ent->client->ps.stats[STAT_ARMOR] > 0)
-			ent->client->ps.powerups[PW_BATTLESUIT] = Q3_INFINITE;
-		else
-			ent->client->ps.powerups[PW_BATTLESUIT] = 0;
-
 		if (!give_all)
 			return;
 	}
@@ -321,7 +404,17 @@ static void G_Give(gentity_t* ent, const char* name, const char* args, const int
 	if (give_all || !Q_stricmp(name, "force"))
 	{
 		if (argc == 3)
+		{
+			ent->client->ps.forcePowerMax = atoi(args);
+
+			// Such a big number it turns negative
+			if (ent->client->ps.forcePowerMax < 0)
+			{
+				ent->client->ps.forcePowerMax = 715827882;
+			}
+
 			ent->client->ps.forcePower = Com_Clampi(0, ent->client->ps.forcePowerMax, atoi(args));
+		}
 		else
 			ent->client->ps.forcePower = ent->client->ps.forcePowerMax;
 
@@ -331,22 +424,52 @@ static void G_Give(gentity_t* ent, const char* name, const char* args, const int
 
 	if (give_all || !Q_stricmp(name, "weapons"))
 	{
-		ent->client->ps.stats[STAT_WEAPONS] = (1 << MAX_PLAYER_WEAPONS) - (1 << WP_NONE);
+		for (int i = 0; i <= WP_MELEE; i++)
+		{
+			ent->client->ps.weapons[i] = 1;
+		}
+		// Skip the unusable weapons, add in extra weapons.
+		for (int i = WP_BATTLEDROID; i < WP_NUM_WEAPONS; i++)
+		{
+			ent->client->ps.weapons[i] = 1;
+		}
 		if (!give_all)
 			return;
 	}
 
 	if (!give_all && !Q_stricmp(name, "weaponnum"))
 	{
-		ent->client->ps.stats[STAT_WEAPONS] |= 1 << atoi(args);
+		ent->client->ps.weapons[atoi(args)] = 1;
+		return;
+	}
+
+	if (!give_all && !Q_stricmp(name, "weapon"))
+	{
+		int weaponNum = GetIDForString(WPTable, gi.argv(2));
+		if (weaponNum == -1)
+		{
+			gi.Printf("Invalid weapon. Maybe try WP_MELEE, or WP_BLASTER for instance?\n");
+			return;
+		}
+		ent->client->ps.weapons[weaponNum] = 1;
+		G_Give(ent, "ammo", "", 0); // Give weapon ammo
+		return;
+	}
+
+	if (!give_all && !Q_stricmp(name, "eweaps")) //for developing, gives you all the weapons, including enemy
+	{
+		for (int i = 0; i < WP_NUM_WEAPONS; i++)
+		{
+			ent->client->ps.weapons[i] = 1;
+		}
 		return;
 	}
 
 	if (give_all || !Q_stricmp(name, "ammo"))
 	{
-		int num = 500;
+		int num = 999;
 		if (argc == 3)
-			num = Com_Clampi(-1, 500, atoi(args));
+			num = Com_Clampi(-1, 999, atoi(args));
 		for (int i = AMMO_BLASTER; i < AMMO_MAX; i++)
 			ent->client->ps.ammo[i] = num != -1 ? num : ammoData[i].max;
 		if (!give_all)
@@ -395,15 +518,20 @@ static void G_Give(gentity_t* ent, const char* name, const char* args, const int
 
 static void Cmd_Give_f(gentity_t* ent)
 {
+	if (!CheatsOk(ent))
+	{
+		return;
+	}
+
 	if (ent->client->NPC_class == CLASS_DROIDEKA
 		&& ent->s.weapon == WP_DROIDEKA)
 	{
 		return;
 	}
+
 	G_Give(ent, gi.argv(1), ConcatArgs(2), gi.argc());
 }
 
-extern void SP_fx_runner(gentity_t* ent);
 //------------------
 static void Cmd_Fx(const gentity_t* ent)
 {
@@ -534,6 +662,264 @@ static void Cmd_Fx(const gentity_t* ent)
 	gi.Printf(S_COLOR_CYAN"fx dir <#><#><#>       fx dir 0 0 -1\n\n");
 }
 
+static void Cmd_Fx2(const gentity_t* ent)
+{
+	gentity_t* fx_ent = nullptr;
+
+	if (Q_stricmp(gi.argv(1), "play") == 0)
+	{
+		if (gi.argc() == 3)
+		{
+			vec3_t dir;
+			// I guess, only allow one active at a time
+			while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx2")) != nullptr)
+			{
+				G_FreeEntity(fx_ent);
+			}
+
+			fx_ent = G_Spawn();
+
+			fx_ent->fxFile = gi.argv(2);
+
+			// Move out in front of the person spawning the effect
+			AngleVectors(ent->currentAngles, dir, nullptr, nullptr);
+			VectorMA(ent->currentOrigin, 32, dir, fx_ent->s.origin);
+
+			SP_fx_runner(fx_ent);
+			fx_ent->delay = 2000; // adjusting delay
+			fx_ent->classname = "cmd_fx2"; //	and classname
+
+			return;
+		}
+	}
+	else if (Q_stricmp(gi.argv(1), "stop") == 0)
+	{
+		while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx2")) != nullptr)
+		{
+			G_FreeEntity(fx_ent);
+		}
+
+		return;
+	}
+	else if (Q_stricmp(gi.argv(1), "delay") == 0)
+	{
+		while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx2")) != nullptr)
+		{
+			if (gi.argc() == 3)
+			{
+				fx_ent->delay = atoi(gi.argv(2));
+			}
+			else
+			{
+				gi.Printf(S_COLOR_GREEN"FX2: current delay is: %i\n", fx_ent->delay);
+			}
+
+			return;
+		}
+	}
+	else if (Q_stricmp(gi.argv(1), "random") == 0)
+	{
+		while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx2")) != nullptr)
+		{
+			if (gi.argc() == 3)
+			{
+				fx_ent->random = atoi(gi.argv(2));
+			}
+			else
+			{
+				gi.Printf(S_COLOR_GREEN"FX2: current random is: %6.2f\n", fx_ent->random);
+			}
+
+			return;
+		}
+	}
+	else if (Q_stricmp(gi.argv(1), "origin") == 0)
+	{
+		while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx2")) != nullptr)
+		{
+			if (gi.argc() == 5)
+			{
+				fx_ent->s.origin[0] = atof(gi.argv(2));
+				fx_ent->s.origin[1] = atof(gi.argv(3));
+				fx_ent->s.origin[2] = atof(gi.argv(4));
+
+				G_SetOrigin(fx_ent, fx_ent->s.origin);
+			}
+			else
+			{
+				gi.Printf(S_COLOR_GREEN"FX2: current origin is: <%6.2f %6.2f %6.2f>\n",
+					fx_ent->currentOrigin[0], fx_ent->currentOrigin[1], fx_ent->currentOrigin[2]);
+			}
+
+			return;
+		}
+	}
+	else if (Q_stricmp(gi.argv(1), "dir") == 0)
+	{
+		while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx2")) != nullptr)
+		{
+			if (gi.argc() == 5)
+			{
+				fx_ent->s.angles[0] = atof(gi.argv(2));
+				fx_ent->s.angles[1] = atof(gi.argv(3));
+				fx_ent->s.angles[2] = atof(gi.argv(4));
+
+				if (!VectorNormalize(fx_ent->s.angles))
+				{
+					// must have been zero length
+					fx_ent->s.angles[2] = 1;
+				}
+			}
+			else
+			{
+				gi.Printf(S_COLOR_GREEN"FX2: current dir is: <%6.2f %6.2f %6.2f>\n",
+					fx_ent->s.angles[0], fx_ent->s.angles[1], fx_ent->s.angles[2]);
+			}
+
+			return;
+		}
+	}
+
+	gi.Printf(S_COLOR_CYAN"Fx2--------------------------------------------------------\n");
+	gi.Printf(S_COLOR_CYAN"commands:              sample usage:\n");
+	gi.Printf(S_COLOR_CYAN"----------------------------------------------------------\n");
+	gi.Printf(S_COLOR_CYAN"fx2 play <filename>     fx2 play sparks, fx2 play env/fire\n");
+	gi.Printf(S_COLOR_CYAN"fx2 stop                fx2 stop\n");
+	gi.Printf(S_COLOR_CYAN"fx2 delay <#>           fx2 delay 1000\n");
+	gi.Printf(S_COLOR_CYAN"fx2 random <#>          fx2 random 200\n");
+	gi.Printf(S_COLOR_CYAN"fx2 origin <#><#><#>    fx2 origin 10 20 30\n");
+	gi.Printf(S_COLOR_CYAN"fx2 dir <#><#><#>       fx2 dir 0 0 -1\n\n");
+}
+
+static void Cmd_Fx3(const gentity_t* ent)
+{
+	gentity_t* fx_ent = nullptr;
+
+	if (Q_stricmp(gi.argv(1), "play") == 0)
+	{
+		if (gi.argc() == 3)
+		{
+			vec3_t dir;
+			// I guess, only allow one active at a time
+			while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx3")) != nullptr)
+			{
+				G_FreeEntity(fx_ent);
+			}
+
+			fx_ent = G_Spawn();
+
+			fx_ent->fxFile = gi.argv(2);
+
+			// Move out in front of the person spawning the effect
+			AngleVectors(ent->currentAngles, dir, nullptr, nullptr);
+			VectorMA(ent->currentOrigin, 32, dir, fx_ent->s.origin);
+
+			SP_fx_runner(fx_ent);
+			fx_ent->delay = 2000; // adjusting delay
+			fx_ent->classname = "cmd_fx3"; //	and classname
+
+			return;
+		}
+	}
+	else if (Q_stricmp(gi.argv(1), "stop") == 0)
+	{
+		while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx3")) != nullptr)
+		{
+			G_FreeEntity(fx_ent);
+		}
+
+		return;
+	}
+	else if (Q_stricmp(gi.argv(1), "delay") == 0)
+	{
+		while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx3")) != nullptr)
+		{
+			if (gi.argc() == 3)
+			{
+				fx_ent->delay = atoi(gi.argv(2));
+			}
+			else
+			{
+				gi.Printf(S_COLOR_GREEN"FX3: current delay is: %i\n", fx_ent->delay);
+			}
+
+			return;
+		}
+	}
+	else if (Q_stricmp(gi.argv(1), "random") == 0)
+	{
+		while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx3")) != nullptr)
+		{
+			if (gi.argc() == 3)
+			{
+				fx_ent->random = atoi(gi.argv(2));
+			}
+			else
+			{
+				gi.Printf(S_COLOR_GREEN"FX3: current random is: %6.2f\n", fx_ent->random);
+			}
+
+			return;
+		}
+	}
+	else if (Q_stricmp(gi.argv(1), "origin") == 0)
+	{
+		while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx3")) != nullptr)
+		{
+			if (gi.argc() == 5)
+			{
+				fx_ent->s.origin[0] = atof(gi.argv(2));
+				fx_ent->s.origin[1] = atof(gi.argv(3));
+				fx_ent->s.origin[2] = atof(gi.argv(4));
+
+				G_SetOrigin(fx_ent, fx_ent->s.origin);
+			}
+			else
+			{
+				gi.Printf(S_COLOR_GREEN"FX3: current origin is: <%6.2f %6.2f %6.2f>\n",
+					fx_ent->currentOrigin[0], fx_ent->currentOrigin[1], fx_ent->currentOrigin[2]);
+			}
+
+			return;
+		}
+	}
+	else if (Q_stricmp(gi.argv(1), "dir") == 0)
+	{
+		while ((fx_ent = G_Find(fx_ent, FOFS(classname), "cmd_fx3")) != nullptr)
+		{
+			if (gi.argc() == 5)
+			{
+				fx_ent->s.angles[0] = atof(gi.argv(2));
+				fx_ent->s.angles[1] = atof(gi.argv(3));
+				fx_ent->s.angles[2] = atof(gi.argv(4));
+
+				if (!VectorNormalize(fx_ent->s.angles))
+				{
+					// must have been zero length
+					fx_ent->s.angles[2] = 1;
+				}
+			}
+			else
+			{
+				gi.Printf(S_COLOR_GREEN"FX3: current dir is: <%6.2f %6.2f %6.2f>\n",
+					fx_ent->s.angles[0], fx_ent->s.angles[1], fx_ent->s.angles[2]);
+			}
+
+			return;
+		}
+	}
+
+	gi.Printf(S_COLOR_CYAN"Fx3--------------------------------------------------------\n");
+	gi.Printf(S_COLOR_CYAN"commands:              sample usage:\n");
+	gi.Printf(S_COLOR_CYAN"----------------------------------------------------------\n");
+	gi.Printf(S_COLOR_CYAN"fx3 play <filename>     fx3 play sparks, fx3 play env/fire\n");
+	gi.Printf(S_COLOR_CYAN"fx3 stop                fx3 stop\n");
+	gi.Printf(S_COLOR_CYAN"fx3 delay <#>           fx3 delay 1000\n");
+	gi.Printf(S_COLOR_CYAN"fx3 random <#>          fx3 random 200\n");
+	gi.Printf(S_COLOR_CYAN"fx3 origin <#><#><#>    fx3 origin 10 20 30\n");
+	gi.Printf(S_COLOR_CYAN"fx3 dir <#><#><#>       fx3 dir 0 0 -1\n\n");
+}
+
 /*
 ==================
 Cmd_God_f
@@ -557,6 +943,63 @@ static void Cmd_God_f(gentity_t* ent)
 		msg = "godmode OFF\n";
 	else
 		msg = "godmode ON\n";
+
+	gi.SendServerCommand(ent - g_entities, "print \"%s\"", msg);
+}
+
+static void Cmd_Force_f(gentity_t* ent)
+{
+	const char* msg;
+
+	if (!CheatsOk(ent))
+	{
+		return;
+	}
+
+	ent->flags ^= FL_FORCEMODE;
+
+	if (!(ent->flags & FL_FORCEMODE))
+		msg = "unlimitedpower OFF\n";
+	else
+		msg = "unlimitedpower ON\n";
+
+	gi.SendServerCommand(ent - g_entities, "print \"%s\"", msg);
+}
+
+static void Cmd_Blockpoints_f(gentity_t* ent)
+{
+	const char* msg;
+
+	if (!CheatsOk(ent))
+	{
+		return;
+	}
+
+	ent->flags ^= FL_BLOCKPOINTMODE;
+
+	if (!(ent->flags & FL_BLOCKPOINTMODE))
+		msg = "thisweaponisyourlife OFF\n";
+	else
+		msg = "thisweaponisyourlife ON\n";
+
+	gi.SendServerCommand(ent - g_entities, "print \"%s\"", msg);
+}
+
+static void Cmd_Staminapoints_f(gentity_t* ent)
+{
+	const char* msg;
+
+	if (!CheatsOk(ent))
+	{
+		return;
+	}
+
+	ent->flags ^= FL_STAMINA_MODE;
+
+	if (!(ent->flags & FL_STAMINA_MODE))
+		msg = "unlimitedstamina OFF\n";
+	else
+		msg = "unlimitedstamina ON\n";
 
 	gi.SendServerCommand(ent - g_entities, "print \"%s\"", msg);
 }
@@ -624,24 +1067,16 @@ static void Cmd_Notarget_f(gentity_t* ent)
 {
 	const char* msg;
 
+	if (!CheatsOk(ent))
+	{
+		return;
+	}
+
 	ent->flags ^= FL_NOTARGET;
 	if (!(ent->flags & FL_NOTARGET))
 		msg = "notarget OFF\n";
 	else
 		msg = "notarget ON\n";
-
-	gi.SendServerCommand(ent - g_entities, "print \"%s\"", msg);
-}
-
-static void Cmd_Noforce_f(gentity_t* ent)
-{
-	const char* msg;
-
-	ent->flags ^= FL_NOFORCE;
-	if (!(ent->flags & FL_NOFORCE))
-		msg = "No Force OFF\n";
-	else
-		msg = "No Force ON\n";
 
 	gi.SendServerCommand(ent - g_entities, "print \"%s\"", msg);
 }
@@ -653,9 +1088,14 @@ Cmd_Noclip_f
 argv(0) noclip
 ==================
 */
-static void Cmd_Noclip_f(gentity_t* ent)
+static void Cmd_Noclip_f(const gentity_t* ent)
 {
 	const char* msg;
+
+	if (!CheatsOk(ent))
+	{
+		return;
+	}
 
 	if (ent->client->noclip)
 	{
@@ -666,7 +1106,6 @@ static void Cmd_Noclip_f(gentity_t* ent)
 		msg = "noclip ON\n";
 	}
 	ent->client->noclip = !ent->client->noclip;
-	ent->flags ^= FL_NOFORCE;
 
 	gi.SendServerCommand(ent - g_entities, "print \"%s\"", msg);
 }
@@ -683,6 +1122,11 @@ hide the scoreboard, and take a special screenshot
 */
 static void Cmd_LevelShot_f(const gentity_t* ent)
 {
+	if (!CheatsOk(ent))
+	{
+		return;
+	}
+
 	gi.SendServerCommand(ent - g_entities, "clientLevelShot");
 }
 
@@ -722,6 +1166,7 @@ static void Cmd_Where_f(const gentity_t* ent)
 	{
 		if (!PInUse(i))
 			continue;
+
 		const gentity_t* check = &g_entities[i];
 		if (!Q_stricmpn(s, check->classname, len))
 		{
@@ -747,6 +1192,8 @@ static void UserSpawn(const gentity_t* ent, const char* name)
 	//Spawn the ent
 	gentity_t* ent2 = G_Spawn();
 	ent2->classname = G_NewString(name);
+
+	//TODO: This should ultimately make sure this is a safe spawn!
 
 	//Spawn the entity and place it there
 	VectorSet(angles, 0, ent->s.apos.trBase[YAW], 0);
@@ -820,18 +1267,18 @@ static void Cmd_SetViewpos_f(gentity_t* ent)
 Cmd_SetObjective_f
 =================
 */
-qboolean g_check_player_dark_side();
+qboolean G_CheckPlayerDarkSide();
 
 static void Cmd_SetObjective_f(const gentity_t* ent)
 {
-	int objective_i;
+	int objectiveI;
 
 	if (gi.argc() == 2)
 	{
-		objective_i = atoi(gi.argv(1));
-		gi.Printf("objective #%d  display status=%d, status=%d\n", objective_i,
-			ent->client->sess.mission_objectives[objective_i].display,
-			ent->client->sess.mission_objectives[objective_i].status
+		objectiveI = atoi(gi.argv(1));
+		gi.Printf("objective #%d  display status=%d, status=%d\n", objectiveI,
+			ent->client->sess.mission_objectives[objectiveI].display,
+			ent->client->sess.mission_objectives[objectiveI].status
 		);
 		return;
 	}
@@ -842,13 +1289,18 @@ static void Cmd_SetObjective_f(const gentity_t* ent)
 		return;
 	}
 
-	objective_i = atoi(gi.argv(1));
-	const int display_status = atoi(gi.argv(2));
+	if (!CheatsOk(ent))
+	{
+		return;
+	}
+
+	objectiveI = atoi(gi.argv(1));
+	const int displayStatus = atoi(gi.argv(2));
 	const int status = atoi(gi.argv(3));
 
-	ent->client->sess.mission_objectives[objective_i].display = static_cast<qboolean>(display_status != 0);
-	ent->client->sess.mission_objectives[objective_i].status = status;
-	g_check_player_dark_side();
+	ent->client->sess.mission_objectives[objectiveI].display = static_cast<qboolean>(displayStatus != 0);
+	ent->client->sess.mission_objectives[objectiveI].status = status;
+	G_CheckPlayerDarkSide();
 }
 
 /*
@@ -882,6 +1334,7 @@ static void Cmd_UseElectrobinoculars_f(gentity_t* ent)
 	{
 		return;
 	}
+
 	if (G_IsRidingVehicle(ent))
 	{
 		return;
@@ -903,11 +1356,12 @@ Cmd_UseBacta_f
 */
 static void Cmd_UseBacta_f(gentity_t* ent)
 {
-	if (G_IsRidingVehicle(ent))
+	if (ent->health < 1 || in_camera)
 	{
 		return;
 	}
-	if (ent->health < 1 || in_camera)
+
+	if (G_IsRidingVehicle(ent))
 	{
 		return;
 	}
@@ -926,12 +1380,17 @@ static void Cmd_UseCloak_f(gentity_t* ent)
 	{
 		return;
 	}
+
 	if (G_IsRidingVehicle(ent))
 	{
 		return;
 	}
 
-	ItemUse_UseCloak(ent);
+	if (ent->client->ps.cloakFuel > 15)
+	{
+		//too low on fuel to start it up
+		ItemUse_UseCloak(ent);
+	}
 }
 
 /*
@@ -945,12 +1404,8 @@ static void Cmd_UseJetpack_f(const gentity_t* ent)
 	{
 		return;
 	}
-	if (G_IsRidingVehicle(ent))
-	{
-		return;
-	}
 
-	if (ent->client->ps.jetpackFuel > 10)
+	if (ent->client->ps.jetpackFuel > 15)
 	{
 		//too low on fuel to start it up
 		ItemUse_Jetpack(ent);
@@ -958,7 +1413,7 @@ static void Cmd_UseJetpack_f(const gentity_t* ent)
 }
 
 //----------------------------------------------------------------------------------
-static qboolean pick_seeker_spawn_point(vec3_t org, vec3_t fwd, vec3_t right, const int skip, vec3_t spot)
+static qboolean PickSeekerSpawnPoint(vec3_t org, vec3_t fwd, vec3_t right, const int skip, vec3_t spot)
 {
 	vec3_t mins{}, maxs, forward, end;
 	trace_t tr;
@@ -971,7 +1426,7 @@ static qboolean pick_seeker_spawn_point(vec3_t org, vec3_t fwd, vec3_t right, co
 	// to the front and side a bit
 	forward[2] = 0.3f; // start up a bit
 
-	VectorMA(org, 80, forward, end);
+	VectorMA(org, 48, forward, end);
 	VectorMA(end, -8, right, end);
 
 	gi.trace(&tr, org, mins, maxs, end, skip, MASK_PLAYERSOLID, static_cast<EG2_Collision>(0), 0);
@@ -983,7 +1438,7 @@ static qboolean pick_seeker_spawn_point(vec3_t org, vec3_t fwd, vec3_t right, co
 	}
 
 	// side
-	VectorMA(org, 80, right, end);
+	VectorMA(org, 48, right, end);
 
 	gi.trace(&tr, org, mins, maxs, end, skip, MASK_PLAYERSOLID, static_cast<EG2_Collision>(0), 0);
 
@@ -994,7 +1449,7 @@ static qboolean pick_seeker_spawn_point(vec3_t org, vec3_t fwd, vec3_t right, co
 	}
 
 	// other side
-	VectorMA(org, -80, right, end);
+	VectorMA(org, -48, right, end);
 
 	gi.trace(&tr, org, mins, maxs, end, skip, MASK_PLAYERSOLID, static_cast<EG2_Collision>(0), 0);
 
@@ -1005,7 +1460,7 @@ static qboolean pick_seeker_spawn_point(vec3_t org, vec3_t fwd, vec3_t right, co
 	}
 
 	// behind
-	VectorMA(org, -80, fwd, end);
+	VectorMA(org, -48, fwd, end);
 
 	gi.trace(&tr, org, mins, maxs, end, skip, MASK_PLAYERSOLID, static_cast<EG2_Collision>(0), 0);
 
@@ -1017,8 +1472,6 @@ static qboolean pick_seeker_spawn_point(vec3_t org, vec3_t fwd, vec3_t right, co
 
 	return qfalse;
 }
-
-extern void SP_NPC_Droid_Seeker(gentity_t* ent);
 
 /*
 ================
@@ -1037,7 +1490,7 @@ static void Cmd_UseSeeker_f(gentity_t* ent)
 	}
 
 	// don't use them if we don't have any...also don't use them if one is already going
-	if (ent->client && ent->client->ps.inventory[INV_SEEKER] > 0 && level.time > ent->client->ps.powerups[PW_SEEKER])
+	if (ent->client && ent->client->ps.inventory[INV_SEEKER] > 0)
 	{
 		gentity_t* tent = G_Spawn();
 
@@ -1049,22 +1502,20 @@ static void Cmd_UseSeeker_f(gentity_t* ent)
 
 			VectorCopy(ent->currentOrigin, spot); // does nothing really, just initialize the goods...
 
-			if (pick_seeker_spawn_point(ent->currentOrigin, fwd, right, ent->s.number, spot))
+			if (PickSeekerSpawnPoint(ent->currentOrigin, fwd, right, ent->s.number, spot))
 			{
 				VectorCopy(spot, tent->s.origin);
 				G_SetOrigin(tent, spot);
 				G_SetAngles(tent, ent->currentAngles);
-				//SP_NPC_Droid_Remote(tent);
+
 				SP_NPC_Droid_Seeker(tent);
 				G_Sound(tent, G_SoundIndex("sound/chars/seeker/misc/hiss"));
 
 				// make sure that we even have some
 				ent->client->ps.inventory[INV_SEEKER]--;
-				ent->client->ps.powerups[PW_SEEKER] = level.time + 1000;
-				// can only drop one every second..maybe this is annoying?
 			}
+			NPC_SetAnim(ent, SETANIM_TORSO, TORSO_HANDSIGNAL3, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 		}
-		NPC_SetAnim(ent, SETANIM_TORSO, TORSO_HANDSIGNAL3, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 	}
 }
 
@@ -1079,6 +1530,7 @@ static void Cmd_UseGoggles_f(gentity_t* ent)
 	{
 		return;
 	}
+
 	if (G_IsRidingVehicle(ent))
 	{
 		return;
@@ -1108,6 +1560,7 @@ static void Cmd_UseSentry_f(gentity_t* ent)
 	{
 		return;
 	}
+
 	if (ent->client->ps.inventory[INV_SENTRY] <= 0)
 	{
 		// have none to place...play sound?
@@ -1116,7 +1569,7 @@ static void Cmd_UseSentry_f(gentity_t* ent)
 
 	if (place_portable_assault_sentry(ent, ent->currentOrigin, ent->client->ps.viewangles))
 	{
-		NPC_SetAnim(ent, SETANIM_TORSO, BOTH_INV_USE, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+		NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ATTACK11, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 		ent->client->ps.inventory[INV_SENTRY]--;
 		G_AddEvent(ent, EV_USE_INV_SENTRY, 0);
 	}
@@ -1127,6 +1580,7 @@ static void Cmd_UseSentry_f(gentity_t* ent)
 }
 
 extern void CG_ChangeWeapon(int num);
+extern void ItemUse_Barrier_with_saber(gentity_t* ent);
 
 static void Cmd_UseBarrier_f(gentity_t* ent)
 {
@@ -1171,6 +1625,50 @@ static void Cmd_StopBarrier_f(gentity_t* ent)
 	RemoveBarrier(ent);
 }
 
+static void Cmd_UseGrapple_f(gentity_t* ent)
+{
+	if (ent->health < 1 || in_camera)
+	{
+		return;
+	}
+
+	if (!ent->client->ps.inventory[INV_GRAPPLEHOOK])
+	{
+		return;
+	}
+
+	if (G_IsRidingVehicle(ent))
+	{
+		return;
+	}
+	if (ent->s.weapon != WP_MELEE)
+	{
+		CG_ChangeWeapon(WP_MELEE);
+
+		const int actual_time = cg.time ? cg.time : level.time;
+		qboolean clear_to_activate_grapple = qtrue;
+
+		if (actual_time < 1500)
+		{
+			clear_to_activate_grapple = qfalse;
+		}
+		if (clear_to_activate_grapple)
+		{
+			if (!ent->client->hookhasbeenfired)
+			{
+				ItemUse_Grapple(ent);
+			}
+		}
+	}
+	else
+	{
+		if (!ent->client->hookhasbeenfired)
+		{
+			ItemUse_Grapple(ent);
+		}
+	}
+}
+
 /*
 ================
 Cmd_UseInventory_f
@@ -1205,13 +1703,14 @@ static void Cmd_UseInventory_f(gentity_t* ent)
 		return;
 	case INV_BARRIER:
 		Cmd_UseBarrier_f(ent);
-		return;
-	default:
-		return;
+		//return;
+	/*case INV_GRAPPLEHOOK:
+		Cmd_UseGrapple_f(ent);*/
+	default:;
 	}
 }
 
-static void Cmd_FlushCamFile_f(gentity_t* ent)
+static void Cmd_FlushCamFile_f()
 {
 	gi.FlushCamFile();
 }
@@ -1220,9 +1719,8 @@ static void G_Taunt(gentity_t* ent)
 {
 	if (ent->client)
 	{
-		if (ent->client->ps.weapon == WP_SABER
-			&& (ent->client->ps.saberAnimLevel == SS_STAFF
-				|| ent->client->ps.dualSabers))
+		if (ent->client->ps.weapon == WP_SABER && ent->client->ps.dualSabers
+			&& (ent->client->ps.saberAnimLevel == SS_FAST || ent->client->ps.saberAnimLevel == SS_TAVION))
 		{
 			ent->client->ps.taunting = level.time + 100;
 			//make sure all sabers are on
@@ -1230,7 +1728,7 @@ static void G_Taunt(gentity_t* ent)
 			if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
 			{
 				G_RemoveHolsterModels(ent);
-				wp_saber_add_g2_saber_models(ent, qtrue);
+				WP_SaberAddG2SaberModels(ent, qtrue);
 			}
 		}
 		else
@@ -1261,12 +1759,13 @@ enum
 	TAUNT_FLOURISH,
 	TAUNT_GLOAT,
 	TAUNT_SURRENDER,
-	TAUNT_RELOAD
+	TAUNT_RELOAD,
+	TAUNT_STANCE
 };
 
-static void G_TauntSound(gentity_t* ent, int taunt)
+static void G_TauntSound(const gentity_t* ent, const int taunt)
 {
-	if (BG_IsAlreadyinTauntAnim(ent->client->ps.torsoAnim))
+	if (BG_IsAlreadyinTauntAnim(ent->client->ps.legsAnim))
 	{
 		return;
 	}
@@ -1281,13 +1780,13 @@ static void G_TauntSound(gentity_t* ent, int taunt)
 		}
 		else
 		{
-			G_SpeechEvent(ent, Q_irand(EV_TAUNT1, EV_TAUNT3));
+			G_SpeechEvent(ent, Q_irand(EV_TAUNT1, EV_TAUNT5));
 		}
 		break;
 	case TAUNT_BOW:
 		break;
 	case TAUNT_MEDITATE:
-		//G_AddVoiceEvent(ent, EV_PUSHFAIL, 0);
+		G_AddVoiceEvent(ent, EV_PUSHFAIL, 0);
 		break;
 	case TAUNT_FLOURISH:
 		if (Q_irand(0, 1))
@@ -1321,16 +1820,28 @@ static void G_TauntSound(gentity_t* ent, int taunt)
 		break;
 	case TAUNT_RELOAD:
 		break;
+	case TAUNT_STANCE:
+		if (ent->client->ps.weapon == WP_SABER)
+		{
+			G_SpeechEvent(ent, Q_irand(EV_TAUNT1, EV_TAUNT5));
+		}
+		else
+		{
+			G_SpeechEvent(ent, Q_irand(EV_GLOAT1, EV_GLOAT3));
+		}
+		break;
 	}
 }
 
 extern qboolean PM_CrouchAnim(int anim);
-extern qboolean manual_saberblocking(const gentity_t* defender);
 extern qboolean Block_Button_Held(const gentity_t* defender);
+extern qboolean IsHoldingReloadableGun(const gentity_t* ent);
+extern void WP_ReloadGun(gentity_t* ent);
+extern void CancelReload(gentity_t* ent);
 extern qboolean NPC_IsMando(const gentity_t* self);
 extern qboolean PM_RestAnim(int anim);
 
-void G_SetTauntAnim(gentity_t* ent, const int taunt)
+static void G_SetTauntAnim(gentity_t* ent, const int taunt)
 {
 	const qboolean is_holding_block_button = ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;
 	//Normal Blocking
@@ -1346,11 +1857,6 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 	}
 
 	if (ent->client->ps.stats[STAT_HEALTH] <= 0)
-	{
-		return;
-	}
-
-	if (BG_IsAlreadyinTauntAnim(ent->client->ps.torsoAnim))
 	{
 		return;
 	}
@@ -1371,12 +1877,12 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 		return;
 	}
 
-	if (manual_saberblocking(ent))
+	if (ent->client->ps.PlayerEffectFlags & 1 << PEF_SPRINTING)
 	{
 		return;
 	}
 
-	if (ent->client->ps.PlayerEffectFlags & 1 << PEF_SPRINTING)
+	if (BG_IsAlreadyinTauntAnim(ent->client->ps.legsAnim))
 	{
 		return;
 	}
@@ -1389,19 +1895,18 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 	if (ent->client->ps.weaponTime <= 0 && ent->client->ps.saberLockTime < level.time)
 	{
 		int anim = -1;
-
 		switch (taunt)
 		{
 		case TAUNT_TAUNT:
 			G_TauntSound(ent, TAUNT_TAUNT);
-			if (ent->client->ps.weapon != WP_SABER) //SP
+
+			if (ent->client->ps.weapon != WP_SABER)
 			{
 				if (PM_WalkingAnim(ent->client->ps.legsAnim) || PM_RunningAnim(ent->client->ps.legsAnim))
 				{
-					//TORSO ONLY
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -1421,7 +1926,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 				{
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -1437,6 +1942,10 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 						}
 					}
 				}
+			}
+			else if (ent->client->friendlyfaction == FACTION_NEUTRAL) {
+				// No force powers so do basic taunt
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			}
 			else if (ent->client->ps.saber[0].tauntAnim != -1)
 			{
@@ -1449,172 +1958,54 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 			}
 			else
 			{
-				if (PM_WalkingAnim(ent->client->ps.legsAnim) || PM_RunningAnim(ent->client->ps.legsAnim))
+				switch (ent->client->ps.saberAnimLevel)
 				{
-					//TORSO ONLY
-					switch (ent->client->ps.saberAnimLevel)
+				case SS_FAST:
+				case SS_TAVION:
+					if (ent->client->ps.saber[1].Active())
 					{
-					case SS_FAST:
-					case SS_TAVION:
-						if (ent->client->ps.saber[1].Active())
-						{
-							//turn off second saber
-							G_Sound(ent, ent->client->ps.saber[1].soundOff);
-						}
-						else if (ent->client->ps.saber[0].Active())
-						{
-							//turn off first
-							G_Sound(ent, ent->client->ps.saber[0].soundOff);
-						}
-						ent->client->ps.SaberDeactivate();
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GESTURE1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						break;
-					case SS_MEDIUM:
-						if (ent->client->ps.saber[0].type == SABER_OBIWAN) //saber kylo
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_OBI,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						else
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						break;
-					case SS_STRONG:
-					case SS_DESANN:
-						if (ent->client->ps.saber[0].type == SABER_VADER) //saber kylo
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						else
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						break;
-					case SS_DUAL:
-						ent->client->ps.SaberActivate();
-						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-						{
-							G_RemoveHolsterModels(ent);
-							wp_saber_add_g2_saber_models(ent, qtrue);
-						}
-						if (ent->client->ps.saber[0].type == SABER_GRIE || ent->client->ps.saber[0].type == SABER_GRIE4)
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAFF_TAUNT,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						else
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_DUAL_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						break;
-					case SS_STAFF:
-						ent->client->ps.SaberActivate();
-						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-						{
-							G_RemoveHolsterModels(ent);
-							wp_saber_add_g2_saber_models(ent, qtrue);
-						}
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAFF_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						break;
-					default:;
+						//turn off second saber
+						G_Sound(ent, ent->client->ps.saber[1].soundOff);
 					}
-				}
-				else
-				{
-					switch (ent->client->ps.saberAnimLevel)
+					else if (ent->client->ps.saber[0].Active())
 					{
-					case SS_FAST:
-					case SS_TAVION:
-						if (ent->client->ps.saber[1].Active())
-						{
-							//turn off second saber
-							G_Sound(ent, ent->client->ps.saber[1].soundOff);
-						}
-						else if (ent->client->ps.saber[0].Active())
-						{
-							//turn off first
-							G_Sound(ent, ent->client->ps.saber[0].soundOff);
-						}
-						ent->client->ps.SaberDeactivate();
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GESTURE1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						break;
-					case SS_MEDIUM:
-						if (ent->client->ps.saber[0].type == SABER_OBIWAN) //saber kylo
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_OBI,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						else
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						break;
-					case SS_STRONG:
-					case SS_DESANN:
-						if (ent->client->ps.saber[0].type == SABER_VADER) //saber kylo
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						else
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						break;
-					case SS_DUAL:
-						ent->client->ps.SaberActivate();
-						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-						{
-							G_RemoveHolsterModels(ent);
-							wp_saber_add_g2_saber_models(ent, qtrue);
-						}
-						if (ent->client->ps.saber[0].type == SABER_GRIE || ent->client->ps.saber[0].type == SABER_GRIE4)
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAFF_TAUNT,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						else
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_DUAL_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						break;
-					case SS_STAFF:
-						ent->client->ps.SaberActivate();
-						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-						{
-							G_RemoveHolsterModels(ent);
-							wp_saber_add_g2_saber_models(ent, qtrue);
-						}
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAFF_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						break;
-					default:;
+						//turn off first
+						G_Sound(ent, ent->client->ps.saber[0].soundOff);
 					}
+					ent->client->ps.SaberDeactivate();
+					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GESTURE1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					break;
+				case SS_MEDIUM:
+				case SS_STRONG:
+				case SS_DESANN:
+					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					break;
+				case SS_DUAL:
+					ent->client->ps.SaberActivate();
+					if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
+					{
+						G_RemoveHolsterModels(ent);
+						WP_SaberAddG2SaberModels(ent, qtrue);
+					}
+					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_DUAL_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					break;
+				case SS_STAFF:
+					ent->client->ps.SaberActivate();
+					if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
+					{
+						G_RemoveHolsterModels(ent);
+						WP_SaberAddG2SaberModels(ent, qtrue);
+					}
+					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAFF_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					break;
+				default:;
 				}
 			}
 			break;
 		case TAUNT_BOW:
-			if (ent->client->ps.weapon != WP_SABER) //SP
+			if (ent->client->ps.weapon != WP_SABER)
 			{
-				if (PM_WalkingAnim(ent->client->ps.legsAnim) || PM_RunningAnim(ent->client->ps.legsAnim))
-				{
-					//TORSO ONLY
-					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_BOW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-				}
-				else
-				{
-					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_BOW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-				}
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_BOW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			}
 			else if (ent->client->ps.saber[0].bowAnim != -1)
 			{
@@ -1627,41 +2018,23 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 			}
 			else
 			{
-				if (PM_WalkingAnim(ent->client->ps.legsAnim) || PM_RunningAnim(ent->client->ps.legsAnim))
+				if (ent->client->ps.saber[1].Active())
 				{
-					//TORSO ONLY
-					if (ent->client->ps.saber[1].Active())
-					{
-						//turn off second saber
-						G_Sound(ent, ent->client->ps.saber[1].soundOff);
-					}
-					else if (ent->client->ps.saber[0].Active())
-					{
-						//turn off first
-						G_Sound(ent, ent->client->ps.saber[0].soundOff);
-					}
-					ent->client->ps.SaberDeactivate();
-					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_BOW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					//turn off second saber
+					G_Sound(ent, ent->client->ps.saber[1].soundOff);
 				}
-				else
+				else if (ent->client->ps.saber[0].Active())
 				{
-					if (ent->client->ps.saber[1].Active())
-					{
-						//turn off second saber
-						G_Sound(ent, ent->client->ps.saber[1].soundOff);
-					}
-					else if (ent->client->ps.saber[0].Active())
-					{
-						//turn off first
-						G_Sound(ent, ent->client->ps.saber[0].soundOff);
-					}
-					ent->client->ps.SaberDeactivate();
-					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_BOW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					//turn off first
+					G_Sound(ent, ent->client->ps.saber[0].soundOff);
 				}
+				ent->client->ps.SaberDeactivate();
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_BOW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			}
 			break;
 		case TAUNT_MEDITATE:
 			//G_TauntSound(ent, TAUNT_MEDITATE);
+
 			if (ent->client->ps.weapon != WP_SABER) //SP
 			{
 				if (PM_WalkingAnim(ent->client->ps.legsAnim) || PM_RunningAnim(ent->client->ps.legsAnim))
@@ -1669,7 +2042,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 					//TORSO ONLY
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -1689,11 +2062,11 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 				{
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_MEDITATE_SABER, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
-						anim = BOTH_MEDITATE1;
+						anim = BOTH_MEDITATE;
 					}
 				}
 			}
@@ -1726,12 +2099,20 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 						G_Sound(ent, ent->client->ps.saber[0].soundOff);
 					}
 					ent->client->ps.SaberDeactivate();
-					anim = BOTH_MEDITATE;
+					if (g_SerenityJediEngineMode->integer)
+					{
+						anim = BOTH_MEDITATE_SABER;
+					}
+					else
+					{
+						anim = BOTH_MEDITATE;
+					}
 				}
 			}
 			break;
 		case TAUNT_FLOURISH:
 			G_TauntSound(ent, TAUNT_FLOURISH);
+
 			if (ent->client->ps.weapon != WP_SABER) //SP
 			{
 				if (PM_WalkingAnim(ent->client->ps.legsAnim) || PM_RunningAnim(ent->client->ps.legsAnim))
@@ -1739,7 +2120,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 					//TORSO ONLY
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -1759,7 +2140,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 				{
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -1776,6 +2157,10 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 					}
 				}
 			}
+			else if (ent->client->friendlyfaction == FACTION_NEUTRAL) {
+				// No force powers so do basic taunt
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_FAST, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			}
 			else if (ent->client->ps.saber[0].flourishAnim != -1)
 			{
 				anim = ent->client->ps.saber[0].flourishAnim;
@@ -1783,6 +2168,11 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 			else if (ent->client->ps.dualSabers && ent->client->ps.saber[1].flourishAnim != -1)
 			{
 				anim = ent->client->ps.saber[1].flourishAnim;
+			}
+			else if ((ent->client->ps.saberAnimLevel == SS_FAST || ent->client->ps.saberAnimLevel == SS_TAVION)
+				&& ent->client->ps.dualSabers)
+			{
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_DUAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			}
 			else
 			{
@@ -1793,37 +2183,13 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 					{
 					case SS_FAST:
 					case SS_TAVION:
-						if (!ent->client->ps.SaberActive())
-						{
-							//turn on the saber if it's not on
-							ent->client->ps.SaberActivate();
-						}
 						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_FAST, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_MEDIUM:
-						if (!ent->client->ps.SaberActive())
-						{
-							//turn on the saber if it's not on
-							ent->client->ps.SaberActivate();
-						}
-						if (ent->client->ps.saber[0].type == SABER_OBIWAN) //saber kylo
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_OBI,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						else
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_MEDIUM,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_MEDIUM, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_STRONG:
 					case SS_DESANN:
-						if (!ent->client->ps.SaberActive())
-						{
-							//turn on the saber if it's not on
-							ent->client->ps.SaberActivate();
-						}
 						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_STRONG, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_DUAL:
@@ -1841,39 +2207,20 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 					{
 					case SS_FAST:
 					case SS_TAVION:
-						if (!ent->client->ps.SaberActive())
-						{
-							//turn on the saber if it's not on
-							ent->client->ps.SaberActivate();
-						}
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_FAST, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_BOTH, BOTH_SHOWOFF_FAST, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_MEDIUM:
-						if (!ent->client->ps.SaberActive())
-						{
-							//turn on the saber if it's not on
-							ent->client->ps.SaberActivate();
-						}
-						if (ent->client->ps.saber[0].type == SABER_OBIWAN) //saber kylo
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_OBI,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
-						else
-						{
-							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_MEDIUM,
-								SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						}
+						NPC_SetAnim(ent, SETANIM_BOTH, BOTH_SHOWOFF_MEDIUM, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_STRONG:
 					case SS_DESANN:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_STRONG, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_BOTH, BOTH_SHOWOFF_STRONG, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_DUAL:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_DUAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_BOTH, BOTH_SHOWOFF_DUAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_STAFF:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_STAFF, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_BOTH, BOTH_SHOWOFF_STAFF, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					default:;
 					}
@@ -1882,12 +2229,13 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 				if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
 				{
 					G_RemoveHolsterModels(ent);
-					wp_saber_add_g2_saber_models(ent, qtrue);
+					WP_SaberAddG2SaberModels(ent, qtrue);
 				}
 			}
 			break;
 		case TAUNT_GLOAT:
 			G_TauntSound(ent, TAUNT_GLOAT);
+
 			if (ent->client->ps.weapon != WP_SABER) //SP
 			{
 				if (PM_WalkingAnim(ent->client->ps.legsAnim) || PM_RunningAnim(ent->client->ps.legsAnim))
@@ -1895,7 +2243,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 					//TORSO ONLY
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -1915,7 +2263,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 				{
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -1931,6 +2279,10 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 						}
 					}
 				}
+			}
+			else if (ent->client->friendlyfaction == FACTION_NEUTRAL) {
+				// No force powers so do basic taunt
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VICTORY_FAST, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			}
 			else if (ent->client->ps.saber[0].gloatAnim != -1)
 			{
@@ -1950,55 +2302,48 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 					{
 					case SS_FAST:
 					case SS_TAVION:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VICTORY_FAST, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						if (!ent->client->ps.SaberActive())
 						{
 							//turn on the saber if it's not on
 							ent->client->ps.SaberActivate();
 						}
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VICTORY_FAST, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_MEDIUM:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VICTORY_MEDIUM, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						if (!ent->client->ps.SaberActive())
 						{
 							//turn on the saber if it's not on
 							ent->client->ps.SaberActivate();
 						}
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VICTORY_MEDIUM, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_STRONG:
 					case SS_DESANN:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VICTORY_STRONG, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						if (!ent->client->ps.SaberActive())
+						ent->client->ps.SaberActivate();
+						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
 						{
-							//turn on the saber if it's not on
-							ent->client->ps.SaberActivate();
+							G_RemoveHolsterModels(ent);
+							WP_SaberAddG2SaberModels(ent, qtrue);
 						}
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VICTORY_STRONG, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_DUAL:
+						ent->client->ps.SaberActivate();
 						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
 						{
 							G_RemoveHolsterModels(ent);
-							wp_saber_add_g2_saber_models(ent, qtrue);
+							WP_SaberAddG2SaberModels(ent, qtrue);
 						}
 						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VICTORY_DUAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						if (!ent->client->ps.SaberActive())
-						{
-							//turn on the saber if it's not on
-							ent->client->ps.SaberActivate();
-						}
 						break;
 					case SS_STAFF:
+						ent->client->ps.SaberActivate();
 						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
 						{
 							G_RemoveHolsterModels(ent);
-							wp_saber_add_g2_saber_models(ent, qtrue);
+							WP_SaberAddG2SaberModels(ent, qtrue);
 						}
 						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_STAFF, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						if (!ent->client->ps.SaberActive())
-						{
-							//turn on the saber if it's not on
-							ent->client->ps.SaberActivate();
-						}
 						break;
 					default:;
 					}
@@ -2026,34 +2371,15 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 						break;
 					case SS_STRONG:
 					case SS_DESANN:
-						if (!ent->client->ps.SaberActive())
-						{
-							//turn on the saber if it's not on
-							ent->client->ps.SaberActivate();
-						}
-						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-						{
-							G_RemoveHolsterModels(ent);
-							wp_saber_add_g2_saber_models(ent, qtrue);
-						}
+						ent->client->ps.SaberActivate();
 						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VICTORY_STRONG, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_DUAL:
 						ent->client->ps.SaberActivate();
-						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-						{
-							G_RemoveHolsterModels(ent);
-							wp_saber_add_g2_saber_models(ent, qtrue);
-						}
 						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VICTORY_DUAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					case SS_STAFF:
 						ent->client->ps.SaberActivate();
-						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-						{
-							G_RemoveHolsterModels(ent);
-							wp_saber_add_g2_saber_models(ent, qtrue);
-						}
 						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_STAFF, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 						break;
 					default:;
@@ -2063,6 +2389,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 			break;
 		case TAUNT_SURRENDER:
 			G_TauntSound(ent, TAUNT_SURRENDER);
+
 			if (ent->client->ps.weapon != WP_SABER) //SP
 			{
 				if (PM_WalkingAnim(ent->client->ps.legsAnim) || PM_RunningAnim(ent->client->ps.legsAnim))
@@ -2070,7 +2397,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 					//TORSO ONLY
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -2090,7 +2417,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 				{
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -2121,7 +2448,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 					//TORSO ONLY
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -2132,7 +2459,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 				{
 					if (ent->client->NPC_class == CLASS_VADER || ent->client->NPC_class == CLASS_DESANN)
 					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else
 					{
@@ -2147,13 +2474,18 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 							G_Sound(ent, ent->client->ps.saber[0].soundOff);
 						}
 						ent->client->ps.SaberDeactivate();
+						if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
+						{
+							G_RemoveHolsterModels(ent);
+							WP_SaberAddG2SaberModels(ent, qtrue);
+						}
 						anim = PLAYER_SURRENDER_START;
 					}
 				}
 			}
 			break;
 		case TAUNT_RELOAD:
-			if (IsHoldingReloadableGun(ent)) //SP
+			if (IsHoldingReloadableGun(ent) && g_AllowReload->integer == 1) //SP
 			{
 				if (ent->reloadTime > 0)
 				{
@@ -2165,147 +2497,96 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 				}
 				break;
 			}
-			if (PM_WalkingAnim(ent->client->ps.legsAnim) || PM_RunningAnim(ent->client->ps.legsAnim))
+			switch (ent->client->ps.saberAnimLevel)
 			{
-				//TORSO ONLY
-				switch (ent->client->ps.saberAnimLevel)
+			case SS_FAST:
+			case SS_TAVION:
+				if (ent->client->ps.saber[1].Active())
 				{
-				case SS_FAST:
-				case SS_TAVION:
-					if (ent->client->ps.saber[1].Active())
-					{
-						//turn off second saber
-						G_Sound(ent, ent->client->ps.saber[1].soundOff);
-					}
-					else if (ent->client->ps.saber[0].Active())
-					{
-						//turn off first
-						G_Sound(ent, ent->client->ps.saber[0].soundOff);
-					}
-					ent->client->ps.SaberDeactivate();
-					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GESTURE1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					break;
-				case SS_MEDIUM:
-					if (ent->client->ps.saber[0].type == SABER_OBIWAN) //saber kylo
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_OBI,
-							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT,
-							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					break;
-				case SS_STRONG:
-				case SS_DESANN:
-					if (ent->client->ps.saber[0].type == SABER_VADER) //saber kylo
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT,
-							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					break;
-				case SS_DUAL:
-					ent->client->ps.SaberActivate();
-					if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-					{
-						G_RemoveHolsterModels(ent);
-						wp_saber_add_g2_saber_models(ent, qtrue);
-					}
-					if (ent->client->ps.saber[0].type == SABER_GRIE || ent->client->ps.saber[0].type == SABER_GRIE4)
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAFF_TAUNT,
-							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_DUAL_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					break;
-				case SS_STAFF:
-					ent->client->ps.SaberActivate();
-					if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-					{
-						G_RemoveHolsterModels(ent);
-						wp_saber_add_g2_saber_models(ent, qtrue);
-					}
-					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAFF_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					break;
-				default:;
+					//turn off second saber
+					G_Sound(ent, ent->client->ps.saber[1].soundOff);
 				}
+				else if (ent->client->ps.saber[0].Active())
+				{
+					//turn off first
+					G_Sound(ent, ent->client->ps.saber[0].soundOff);
+				}
+				ent->client->ps.SaberDeactivate();
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GESTURE1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				break;
+			case SS_MEDIUM:
+			case SS_STRONG:
+			case SS_DESANN:
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				break;
+			case SS_DUAL:
+				ent->client->ps.SaberActivate();
+				if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
+				{
+					G_RemoveHolsterModels(ent);
+					WP_SaberAddG2SaberModels(ent, qtrue);
+				}
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_DUAL_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				break;
+			case SS_STAFF:
+				ent->client->ps.SaberActivate();
+				if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
+				{
+					G_RemoveHolsterModels(ent);
+					WP_SaberAddG2SaberModels(ent, qtrue);
+				}
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAFF_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				break;
+			default:;
+			}
+			break;
+		case TAUNT_STANCE:
+			G_TauntSound(ent, TAUNT_STANCE);
+
+			if (ent->client->ps.weapon != WP_SABER)
+			{
+				if (PM_WalkingAnim(ent->client->ps.legsAnim) || PM_RunningAnim(ent->client->ps.legsAnim))
+				{
+					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ATTACK_COMMAND, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				}
+				else
+				{
+					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ATTACK_COMMAND, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				}
+			}
+			else if (ent->client->ps.saber[0].combatstanceAnim != -1)
+			{
+				anim = ent->client->ps.saber[0].combatstanceAnim;
+			}
+			else if (ent->client->ps.dualSabers
+				&& ent->client->ps.saber[1].combatstanceAnim != -1)
+			{
+				anim = ent->client->ps.saber[1].combatstanceAnim;
 			}
 			else
 			{
 				switch (ent->client->ps.saberAnimLevel)
 				{
 				case SS_FAST:
+					NPC_SetAnim(ent, SETANIM_TORSO, TORSO_HANDSIGNAL1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					break;
 				case SS_TAVION:
-					if (ent->client->ps.saber[1].Active())
-					{
-						//turn off second saber
-						G_Sound(ent, ent->client->ps.saber[1].soundOff);
-					}
-					else if (ent->client->ps.saber[0].Active())
-					{
-						//turn off first
-						G_Sound(ent, ent->client->ps.saber[0].soundOff);
-					}
-					ent->client->ps.SaberDeactivate();
-					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GESTURE1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					NPC_SetAnim(ent, SETANIM_TORSO, TORSO_HANDSIGNAL2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					break;
 				case SS_MEDIUM:
-					if (ent->client->ps.saber[0].type == SABER_OBIWAN) //saber kylo
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_OBI,
-							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT,
-							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
+					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ORDER_RECIVED, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					break;
 				case SS_STRONG:
+					NPC_SetAnim(ent, SETANIM_TORSO, TORSO_HANDSIGNAL4, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					break;
 				case SS_DESANN:
-					if (ent->client->ps.saber[0].type == SABER_VADER) //saber kylo
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_VADERTAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ENGAGETAUNT,
-							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
+					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ATTACK_COMMAND, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					break;
 				case SS_DUAL:
-					ent->client->ps.SaberActivate();
-					if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-					{
-						G_RemoveHolsterModels(ent);
-						wp_saber_add_g2_saber_models(ent, qtrue);
-					}
-					if (ent->client->ps.saber[0].type == SABER_GRIE || ent->client->ps.saber[0].type == SABER_GRIE4)
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAFF_TAUNT,
-							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else
-					{
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_DUAL_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
+					NPC_SetAnim(ent, SETANIM_TORSO, TORSO_HANDSIGNAL1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					break;
 				case SS_STAFF:
-					ent->client->ps.SaberActivate();
-					if (ent->client->ps.dualSabers && ent->weaponModel[1] == -1)
-					{
-						G_RemoveHolsterModels(ent);
-						wp_saber_add_g2_saber_models(ent, qtrue);
-					}
-					NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAFF_TAUNT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+					NPC_SetAnim(ent, SETANIM_TORSO, TORSO_HANDSIGNAL2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					break;
 				default:;
 				}
@@ -2331,7 +2612,7 @@ void G_SetTauntAnim(gentity_t* ent, const int taunt)
 	}
 }
 
-void G_SetsaberdownorAnim(gentity_t* ent)
+static void G_SetsaberdownorAnim(gentity_t* ent)
 {
 	if (ent->client->ps.saberLockTime >= level.time)
 	{
@@ -2362,12 +2643,10 @@ void G_SetsaberdownorAnim(gentity_t* ent)
 				ent->client->ps.SaberActivate();
 			}
 		}
-		ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
-		ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
 	}
 	else
 	{
-		if (IsHoldingReloadableGun(ent)) //SP
+		if (IsHoldingReloadableGun(ent)) //sp
 		{
 			if (ent->reloadTime > 0)
 			{
@@ -2386,17 +2665,17 @@ void G_SetsaberdownorAnim(gentity_t* ent)
 }
 
 extern cvar_t* g_saberPickuppableDroppedSabers;
-extern void WP_RemoveSaber(gentity_t* ent, int saberNum);
+extern void WP_RemoveSaber(gentity_t* ent, int saber_num);
 extern void CG_ChangeWeapon(int num);
 extern void ChangeWeapon(const gentity_t* ent, int new_weapon);
 
-static void Cmd_SaberDrop_f(gentity_t* ent, const int saberNum)
+static void Cmd_SaberDrop_f(gentity_t* ent, const int saber_num)
 {
-	if (saberNum < 0)
+	if (saber_num < 0)
 	{
 		return;
 	}
-	if (saberNum > 1)
+	if (saber_num > 1)
 	{
 		return;
 	}
@@ -2404,7 +2683,7 @@ static void Cmd_SaberDrop_f(gentity_t* ent, const int saberNum)
 	{
 		return;
 	}
-	if (ent->weaponModel[saberNum] <= 0)
+	if (ent->weaponModel[saber_num] <= 0)
 	{
 		return;
 	}
@@ -2422,8 +2701,6 @@ static void Cmd_SaberDrop_f(gentity_t* ent, const int saberNum)
 	if (ent->client->ps.saber_move != LS_READY
 		&& ent->client->ps.saber_move != LS_PUTAWAY
 		&& ent->client->ps.saber_move != LS_DRAW
-		&& ent->client->ps.saber_move != LS_DRAW2
-		&& ent->client->ps.saber_move != LS_DRAW3
 		&& ent->client->ps.saber_move != LS_NONE)
 	{
 		return;
@@ -2434,8 +2711,8 @@ static void Cmd_SaberDrop_f(gentity_t* ent, const int saberNum)
 		return;
 	}
 
-	if (!ent->client->ps.saber[saberNum].name
-		|| !ent->client->ps.saber[saberNum].name[0])
+	if (!ent->client->ps.saber[saber_num].name
+		|| !ent->client->ps.saber[saber_num].name[0])
 	{
 		return;
 	}
@@ -2443,15 +2720,15 @@ static void Cmd_SaberDrop_f(gentity_t* ent, const int saberNum)
 	//have a valid string to use for saberType
 
 	//turn it into a pick-uppable item!
-	if (G_DropSaberItem(ent->client->ps.saber[saberNum].name,
-		ent->client->ps.saber[saberNum].blade[0].color,
-		saberNum == 0 ? ent->client->renderInfo.handRPoint : ent->client->renderInfo.handLPoint,
+	if (G_DropSaberItem(ent->client->ps.saber[saber_num].name,
+		ent->client->ps.saber[saber_num].blade[0].color,
+		saber_num == 0 ? ent->client->renderInfo.handRPoint : ent->client->renderInfo.handLPoint,
 		ent->client->ps.velocity,
 		ent->currentAngles)
 		!= nullptr)
 	{
 		//dropped it
-		WP_RemoveSaber(ent, saberNum);
+		WP_RemoveSaber(ent, saber_num);
 	}
 
 	if (ent->weaponModel[0] <= 0
@@ -2459,7 +2736,7 @@ static void Cmd_SaberDrop_f(gentity_t* ent, const int saberNum)
 	{
 		//no sabers left!
 		//remove saber from inventory
-		ent->client->ps.stats[STAT_WEAPONS] &= ~(1 << WP_SABER);
+		ent->client->ps.weapons[WP_SABER] = 0;
 		//change weapons
 		if (ent->s.number < MAX_CLIENTS)
 		{
@@ -2504,12 +2781,18 @@ void ClientCommand(const int clientNum)
 		Cmd_Give_f(ent);
 	else if (Q_stricmp(cmd, "god") == 0)
 		Cmd_God_f(ent);
+
+	else if (Q_stricmp(cmd, "unlimitedpower") == 0)
+		Cmd_Force_f(ent);
+	else if (Q_stricmp(cmd, "thisweaponisyourlife") == 0)
+		Cmd_Blockpoints_f(ent);
+	else if (Q_stricmp(cmd, "unlimitedstamina") == 0)
+		Cmd_Staminapoints_f(ent);
+
 	else if (Q_stricmp(cmd, "undying") == 0)
 		Cmd_Undying_f(ent);
 	else if (Q_stricmp(cmd, "notarget") == 0)
 		Cmd_Notarget_f(ent);
-	else if (Q_stricmp(cmd, "noforce") == 0)
-		Cmd_Noforce_f(ent);
 	else if (Q_stricmp(cmd, "noclip") == 0)
 	{
 		Cmd_Noclip_f(ent);
@@ -2535,12 +2818,46 @@ void ClientCommand(const int clientNum)
 	else if (Q_stricmp(cmd, "force_throw") == 0)
 	{
 		ent = G_GetSelfForPlayerCmd();
-		ForceThrow(ent, qfalse);
+		if (g_SerenityJediEngineMode->integer)
+		{
+			if (ent->client->NPC_class == CLASS_GALEN
+				&& (ent->s.weapon == WP_MELEE || ent->s.weapon == WP_NONE || ent->s.weapon == WP_SABER && !ent->
+					client->ps.SaberActive())
+				&& ent->client->ps.groundEntityNum == ENTITYNUM_NONE)
+			{
+				ForceRepulse(ent, qfalse);
+			}
+			else
+			{
+				ForceThrow_MD(ent, qfalse);
+			}
+		}
+		else
+		{
+			ForceThrow_JKA(ent, qfalse);
+		}
 	}
 	else if (Q_stricmp(cmd, "force_pull") == 0)
 	{
 		ent = G_GetSelfForPlayerCmd();
-		ForceThrow(ent, qtrue);
+		if (g_SerenityJediEngineMode->integer)
+		{
+			if (ent->client->NPC_class == CLASS_GALEN
+				&& (ent->s.weapon == WP_MELEE || ent->s.weapon == WP_NONE || ent->s.weapon == WP_SABER && !ent->
+					client->ps.SaberActive())
+				&& ent->client->ps.groundEntityNum == ENTITYNUM_NONE)
+			{
+				ForceRepulse(ent, qtrue);
+			}
+			else
+			{
+				ForceThrow_MD(ent, qtrue);
+			}
+		}
+		else
+		{
+			ForceThrow_JKA(ent, qtrue);
+		}
 	}
 	else if (Q_stricmp(cmd, "force_speed") == 0)
 	{
@@ -2555,14 +2872,7 @@ void ClientCommand(const int clientNum)
 	else if (Q_stricmp(cmd, "force_grip") == 0)
 	{
 		ent = G_GetSelfForPlayerCmd();
-		if (ent->client->ps.forcePower < 90)
-		{
-			ForceGripBasic(ent);
-		}
-		else
-		{
-			ForceGripAdvanced(ent);
-		}
+		ForceGrip(ent);
 	}
 	else if (Q_stricmp(cmd, "force_distract") == 0)
 	{
@@ -2589,35 +2899,20 @@ void ClientCommand(const int clientNum)
 		ent = G_GetSelfForPlayerCmd();
 		ForceSeeing(ent);
 	}
-	else if (Q_stricmp(cmd, "force_stasis") == 0)
-	{
-		ent = G_GetSelfForPlayerCmd();
-		force_stasis(ent);
-	}
-	else if (Q_stricmp(cmd, "force_deadlysight") == 0)
-	{
-		ent = G_GetSelfForPlayerCmd();
-		ForceDeadlySight(ent);
-	}
 	else if (Q_stricmp(cmd, "force_destruction") == 0)
 	{
 		ent = G_GetSelfForPlayerCmd();
 		ForceDestruction(ent);
 	}
+	else if (Q_stricmp(cmd, "force_stasis") == 0)
+	{
+		ent = G_GetSelfForPlayerCmd();
+		ForceStasis(ent);
+	}
 	else if (Q_stricmp(cmd, "force_grasp") == 0)
 	{
 		ent = G_GetSelfForPlayerCmd();
 		ForceGrasp(ent);
-	}
-	else if (Q_stricmp(cmd, "force_insanity") == 0)
-	{
-		ent = G_GetSelfForPlayerCmd();
-		ForceInsanity(ent);
-	}
-	else if (Q_stricmp(cmd, "force_blinding") == 0)
-	{
-		ent = G_GetSelfForPlayerCmd();
-		ForceBlinding(ent);
 	}
 	else if (Q_stricmp(cmd, "force_blast") == 0)
 	{
@@ -2627,7 +2922,7 @@ void ClientCommand(const int clientNum)
 	else if (Q_stricmp(cmd, "force_repulse") == 0)
 	{
 		ent = G_GetSelfForPlayerCmd();
-		ForceRepulse(ent);
+		ForceJediRepulse(ent);
 		ent->client->ps.powerups[PW_INVINCIBLE] = level.time + ent->client->ps.torsoAnimTimer + 2000;
 	}
 	else if (Q_stricmp(cmd, "force_strike") == 0)
@@ -2639,6 +2934,16 @@ void ClientCommand(const int clientNum)
 	{
 		ent = G_GetSelfForPlayerCmd();
 		ForceFear(ent);
+	}
+	else if (Q_stricmp(cmd, "force_deadlysight") == 0)
+	{
+		ent = G_GetSelfForPlayerCmd();
+		ForceDeadlySight(ent);
+	}
+	else if (Q_stricmp(cmd, "force_projection") == 0)
+	{
+		ent = G_GetSelfForPlayerCmd();
+		ForceProjection(ent);
 	}
 	else if (Q_stricmp(cmd, "addsaberstyle") == 0)
 	{
@@ -2684,13 +2989,32 @@ void ClientCommand(const int clientNum)
 		if (setStyle > SS_NONE && setStyle < SS_STAFF)
 		{
 			ent->client->ps.saberStylesKnown = 1 << setStyle;
-			cg.saber_anim_levelPending = ent->client->ps.saberAnimLevel = setStyle;
+			cg.saberAnimLevelPending = ent->client->ps.saberAnimLevel = setStyle;
 		}
 	}
-	else if (Q_stricmp(cmd, "saberdown") == 0)
+#ifdef NEW_FEEDER
+	else if (Q_stricmp(cmd, "setsaberstances") == 0)
 	{
 		ent = G_GetSelfForPlayerCmd();
-		G_SetsaberdownorAnim(ent);
+		if (!ent || !ent->client) {
+			return;
+		}
+		cg.saberAnimLevelPending = ent->client->ps.saberAnimLevel = atoi(gi.argv(1));
+		ent->client->ps.saberStylesKnown = atoi(gi.argv(2));
+	}
+#endif
+	else if (Q_stricmp(cmd, "saberdown") == 0)
+	{
+		if (IsHoldingReloadableGun(ent) && g_AllowReload->integer == 1) //SP
+		{
+			ent = G_GetSelfForPlayerCmd();
+			G_SetTauntAnim(ent, TAUNT_RELOAD);
+		}
+		else
+		{
+			ent = G_GetSelfForPlayerCmd();
+			G_SetsaberdownorAnim(ent);
+		}
 	}
 	else if (Q_stricmp(cmd, "taunt") == 0)
 	{
@@ -2727,6 +3051,19 @@ void ClientCommand(const int clientNum)
 		ent = G_GetSelfForPlayerCmd();
 		G_SetTauntAnim(ent, TAUNT_RELOAD);
 	}
+	else if (Q_stricmp(cmd, "combatstance") == 0)
+	{
+		ent = G_GetSelfForPlayerCmd();
+		G_SetTauntAnim(ent, TAUNT_STANCE);
+	}
+	else if (Q_stricmp(cmd, "victory") == 0)
+	{
+		G_Victory(ent);
+	}
+	else if (Q_stricmp(cmd, "pzk") == 0)
+	{
+		G_Pazaak_ProcessClientCommand(ent);
+	}
 	else if (Q_stricmp(cmd, "NPCdrive") == 0)
 	{
 		if (!CheatsOk(ent))
@@ -2747,8 +3084,6 @@ void ClientCommand(const int clientNum)
 			//G_DriveVehicle( found, NULL, gi.argv(2) );
 		}
 	}
-	else if (Q_stricmp(cmd, "victory") == 0)
-		G_Victory(ent);
 	else if (Q_stricmp(cmd, "fly_xwing") == 0)
 		G_PilotXWing(ent);
 	else if (Q_stricmp(cmd, "drive_atst") == 0)
@@ -2757,40 +3092,30 @@ void ClientCommand(const int clientNum)
 	}
 	else if (Q_stricmp(cmd, "thereisnospoon") == 0)
 		G_StartMatrixEffect(ent);
+	else if (Q_stricmp(cmd, "use_electrobinoculars") == 0)
+		Cmd_UseElectrobinoculars_f(ent);
+	else if (Q_stricmp(cmd, "use_bacta") == 0)
+		Cmd_UseBacta_f(ent);
+	else if (Q_stricmp(cmd, "use_seeker") == 0)
+		Cmd_UseSeeker_f(ent);
+	else if (Q_stricmp(cmd, "use_lightamp_goggles") == 0)
+		Cmd_UseGoggles_f(ent);
+	else if (Q_stricmp(cmd, "use_sentry") == 0)
+		Cmd_UseSentry_f(ent);
 	else if (Q_stricmp(cmd, "fx") == 0)
 		Cmd_Fx(ent);
-	else if (Q_stricmp(cmd, "use_electrobinoculars") == 0)
-	{
-		Cmd_UseElectrobinoculars_f(ent);
-	}
-	else if (Q_stricmp(cmd, "use_bacta") == 0)
-	{
-		Cmd_UseBacta_f(ent);
-	}
-	else if (Q_stricmp(cmd, "use_seeker") == 0)
-	{
-		Cmd_UseSeeker_f(ent);
-	}
-	else if (Q_stricmp(cmd, "use_lightamp_goggles") == 0)
-	{
-		Cmd_UseGoggles_f(ent);
-	}
-	else if (Q_stricmp(cmd, "use_sentry") == 0)
-	{
-		Cmd_UseSentry_f(ent);
-	}
+	else if (Q_stricmp(cmd, "fx2") == 0)
+		Cmd_Fx2(ent);
+	else if (Q_stricmp(cmd, "fx3") == 0)
+		Cmd_Fx3(ent);
 	else if (Q_stricmp(cmd, "use_cloak") == 0)
-	{
 		Cmd_UseCloak_f(ent);
-	}
 	else if (Q_stricmp(cmd, "use_barrier") == 0)
-	{
 		Cmd_UseBarrier_f(ent);
-	}
 	else if (Q_stricmp(cmd, "stop_barrier") == 0)
-	{
 		Cmd_StopBarrier_f(ent);
-	}
+	/*else if (Q_stricmp(cmd, "use_grapple") == 0)
+		Cmd_UseGrapple_f(ent);*/
 	else if (Q_stricmp(cmd, "invuse") == 0)
 	{
 		Cmd_UseInventory_f(ent);
@@ -2805,17 +3130,17 @@ void ClientCommand(const int clientNum)
 	}
 	else if (Q_stricmp(cmd, "flushcam") == 0)
 	{
-		Cmd_FlushCamFile_f(ent);
+		Cmd_FlushCamFile_f();
 	}
 	else if (Q_stricmp(cmd, "dropsaber") == 0)
 	{
 		const char* cmd2 = gi.argv(1);
-		int saberNum = 2; //by default, drop both
+		int saber_num = 2; //by default, drop both
 		if (cmd2 && cmd2[0])
 		{
-			saberNum = atoi(cmd2);
+			saber_num = atoi(cmd2);
 		}
-		if (saberNum > 1)
+		if (saber_num > 1)
 		{
 			//drop both
 			Cmd_SaberDrop_f(ent, 1);
@@ -2824,7 +3149,7 @@ void ClientCommand(const int clientNum)
 		else
 		{
 			//drop either left or right
-			Cmd_SaberDrop_f(ent, saberNum);
+			Cmd_SaberDrop_f(ent, saber_num);
 		}
 	}
 	else if ((Q_stricmp(cmd, "weather") == 0) || (Q_stricmp(cmd, "r_weather") == 0))
