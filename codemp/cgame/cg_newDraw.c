@@ -33,6 +33,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #  include "ui/menudef.h"
 #endif
 
+#include "cg_pazaak.h"
+
 extern displayContextDef_t cgDC;
 
 int CG_GetSelectedPlayer() {
