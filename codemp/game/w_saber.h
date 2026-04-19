@@ -128,7 +128,9 @@ extern float forcePushPullRadius[NUM_FORCE_POWER_LEVELS];
 #define MELEE_SWING_EXTRA_DAMAGE	 15
 #define DODGE_KICKCOST	             10
 
-#define MPCOST_PARRIED				 1
+#define MPCOST_PARRIED				 3
+#define MPCOST_MBLOCKED         	 5
 #define MPCOST_PARRIED_ATTACKFAKE	 2
 #define MPCOST_PARRYING				 -2
 #define MPCOST_PARRYING_ATTACKFAKE	 -4
+#define FPCOST_PARRYING_PURE		-10		

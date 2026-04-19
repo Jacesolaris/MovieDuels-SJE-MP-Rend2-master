@@ -59,7 +59,7 @@ extern saber_moveName_t pm_broken_parry_for_attack(int move);
 extern qboolean PM_InGetUp(const playerState_t* ps);
 extern qboolean PM_InForceGetUp(const playerState_t* ps);
 extern qboolean G_ControlledByPlayer(const gentity_t* self);
-extern void wp_block_points_regenerate(const gentity_t* self, int override_amt);
+extern void WP_BlockPointsRegenerate(const gentity_t* self, int override_amt);
 extern void PM_AddBlockFatigue(playerState_t* ps, int fatigue);
 extern saber_moveName_t pm_block_the_attack(int move);
 extern int g_block_the_attack(int move);
@@ -138,9 +138,11 @@ static void SabBeh_SaberShouldBeDisarmedBlocker(gentity_t* blocker, const gentit
 
 qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker, vec3_t hit_loc)
 {
-	vec3_t p_angles, p_right;
+	vec3_t p_angles;
+	vec3_t p_right;
 	vec3_t parrier_move = { 0 };
-	vec3_t hit_pos, hit_flat = { 0 };
+	vec3_t hit_pos;
+	vec3_t hit_flat = { 0 };
 
 	// Slight tolerance so attacks slightly off-center can still be blocked
 	const qboolean in_front_of_me =
@@ -149,10 +151,14 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 			blocker->client->ps.viewangles,
 			0.3f);
 
+	const qboolean blocking = blocker->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;	//Normal Blocking
+	const qboolean active_blocking = blocker->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK ? qtrue : qfalse;	//Active Blocking
+
+
 	// Player must be holding block (NPCs exempt)
 	if (!(blocker->r.svFlags & SVF_BOT))
 	{
-		if (!(blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)))
+		if (!(blocking|| active_blocking))
 			return qfalse;
 	}
 
@@ -216,7 +222,7 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 	// ------------------------------------------------------------
 	// Style-based threshold
 	// ------------------------------------------------------------
-	float threshold = 0.40f; // MP default
+	float threshold = 0.40f; // default
 
 	switch (blocker->client->ps.fd.saberAnimLevel)
 	{
@@ -908,9 +914,6 @@ qboolean sab_beh_attack_vs_block(
 
 			// Remove damage
 			wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
-
-			// Punish attacker
-			PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_TEN);
 		}
 		else
 		{
@@ -935,7 +938,7 @@ qboolean sab_beh_attack_vs_block(
 			Com_Printf(S_COLOR_YELLOW "Both Attacker and Blocker are now attacking\n");
 		}
 
-		sab_beh_attack_vs_attack(blocker, attacker);
+		sab_beh_attack_vs_attack(attacker, blocker);
 	}
 
 	// ------------------------------------------------------------
@@ -979,6 +982,7 @@ qboolean sab_beh_attack_vs_block(
 
 			sab_beh_add_balance(blocker, MPCOST_PARRYING_ATTACKFAKE);
 			sab_beh_add_mishap_Fake_attacker(attacker, blocker);
+			PM_AddFatigue(&blocker->client->ps, FPCOST_PARRYING_PURE); //parrying fatigue in force for parrying an attack fake
 
 			if ((d_attackinfo.integer || g_DebugSaberCombat.integer) &&
 				!(blocker->r.svFlags & SVF_BOT))
@@ -1072,6 +1076,7 @@ qboolean sab_beh_attack_vs_block(
 				else
 				{
 					sab_beh_attack_blocked(attacker, blocker, qtrue);
+
 					G_Stagger(blocker);
 
 					if (d_attackinfo.integer || g_DebugSaberCombat.integer)
@@ -1137,11 +1142,11 @@ qboolean sab_beh_block_vs_attack(
 
 				if (attacker->r.svFlags & SVF_BOT)
 				{
-					wp_block_points_regenerate(attacker, BLOCKPOINTS_FATIGUE);
+					WP_BlockPointsRegenerate(attacker, BLOCKPOINTS_FATIGUE);
 				}
 				else if (!blocker->client->ps.saberInFlight)
 				{
-					wp_block_points_regenerate(blocker, BLOCKPOINTS_FATIGUE);
+					WP_BlockPointsRegenerate(blocker, BLOCKPOINTS_FATIGUE);
 				}
 
 				if ((d_blockinfo.integer || g_DebugSaberCombat.integer) &&
@@ -1201,9 +1206,9 @@ qboolean sab_beh_block_vs_attack(
 
 					blocker->client->ps.userInt3 |= (1 << FLAG_PERFECTBLOCK);
 
-					if (attacker->r.svFlags & SVF_BOT)
+					if (blocker->r.svFlags & SVF_BOT)
 					{
-						g_do_m_block_response(attacker);
+						g_do_m_block_response(blocker);
 					}
 
 					if (!(blocker->r.svFlags & SVF_BOT))
@@ -1229,8 +1234,9 @@ qboolean sab_beh_block_vs_attack(
 					wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 
 					wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);
-					blocker->client->ps.saberFatigueChainCount = MISHAPLEVEL_NONE;
-					PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_TEN);
+					PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_TEN); //BP Punish Attacker
+					sab_beh_add_balance(blocker, -MPCOST_MBLOCKED); //SAC Reward blocker
+					sab_beh_add_balance(attacker, MPCOST_MBLOCKED); //SAC Punish attacker
 				}
 
 				// ------------------------------------------------
@@ -1305,6 +1311,18 @@ qboolean sab_beh_block_vs_attack(
 					PM_AddBlockFatigue(&blocker->client->ps, BLOCKPOINTS_TEN);
 				}
 
+				if (attacker->NPC && !G_ControlledByPlayer(attacker)) //NPC only
+				{
+					if (attacker->client->ps.fd.blockPoints <= BLOCKPOINTS_FATIGUE)
+					{
+						WP_BlockPointsRegenerate(attacker, BLOCKPOINTS_FATIGUE);
+					}
+					else
+					{
+						WP_BlockPointsRegenerate(attacker, BLOCKPOINTS_TEN);
+					}
+				}
+
 				if ((d_blockinfo.integer || g_DebugSaberCombat.integer) &&
 					!(blocker->r.svFlags & SVF_BOT))
 				{
@@ -1371,7 +1389,15 @@ qboolean sab_beh_block_vs_attack(
 						Com_Printf(S_COLOR_CYAN "NPC good Parry\n");
 					}
 
-					PM_AddBlockFatigue(&blocker->client->ps, BLOCKPOINTS_THREE);
+
+					if (blocker->r.svFlags & SVF_BOT)
+					{
+						WP_BlockPointsRegenerate(blocker, BLOCKPOINTS_TEN);
+					}
+					else 
+					{
+						PM_AddBlockFatigue(&blocker->client->ps, BLOCKPOINTS_THREE);
+					}
 				}
 
 				G_Sound(
@@ -1443,8 +1469,13 @@ qboolean sab_beh_block_vs_attack(
 			}
 
 			blocker->client->ps.saberEventFlags |= SEF_PARRIED;
+			attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
+			wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
+
 			wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);
-			blocker->client->ps.saberFatigueChainCount = MISHAPLEVEL_NONE;
+			PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_TEN); //BP Punish Attacker
+			sab_beh_add_balance(blocker, -MPCOST_MBLOCKED); //SAC Reward blocker
+			sab_beh_add_balance(attacker, MPCOST_MBLOCKED); //SAC Punish attacker
 		}
 		else
 		{

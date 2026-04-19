@@ -1391,7 +1391,7 @@ static int wp_absorb_conversion(const gentity_t* attacked, const int atd_abs_lev
 	return get_level;
 }
 
-void wp_force_power_regenerate(const gentity_t* self, const int override_amt)
+void WP_ForcePowerRegenerate(const gentity_t* self, const int override_amt)
 {
 	//called on a regular interval to regenerate force power.
 	if (!self->client)
@@ -1417,7 +1417,7 @@ void wp_force_power_regenerate(const gentity_t* self, const int override_amt)
 	}
 }
 
-void wp_block_points_regenerate(const gentity_t* self, const int override_amt)
+void WP_BlockPointsRegenerate(const gentity_t* self, const int override_amt)
 {
 	const qboolean is_holding_block_button = self->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;
 	//Normal Blocking
@@ -9116,7 +9116,7 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 			}
 
 			// Apply the regen
-			wp_force_power_regenerate(self, regenAmount);
+			WP_ForcePowerRegenerate(self, regenAmount);
 
 			// --- Apply regen delay (gametype‑dependent) ---
 			if (regenDelay == 0)
@@ -9268,18 +9268,18 @@ void WP_BlockPointsUpdate(const gentity_t* self)
 			//when not using the block, regenerate at 10 points per second
 			if (self->client->ps.fd.BlockPointsRegenDebounceTime < level.time)
 			{
-				wp_block_points_regenerate(self, self->client->ps.fd.BlockPointRegenAmount);
+				WP_BlockPointsRegenerate(self, self->client->ps.fd.BlockPointRegenAmount);
 
 				self->client->ps.fd.BlockPointsRegenDebounceTime = level.time + self->client->ps.fd.BlockPointRegenRate;
 
 				if (PM_RestAnim(self->client->ps.legsAnim))
 				{
-					wp_block_points_regenerate(self, 4);
+					WP_BlockPointsRegenerate(self, 4);
 					self->client->ps.powerups[PW_MEDITATE] = level.time + self->client->ps.torsoTimer + 3000;
 				}
 				else if (PM_CrouchAnim(self->client->ps.legsAnim))
 				{
-					wp_block_points_regenerate(self, 2);
+					WP_BlockPointsRegenerate(self, 2);
 				}
 				else
 				{

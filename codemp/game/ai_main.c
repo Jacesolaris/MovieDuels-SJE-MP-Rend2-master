@@ -1607,6 +1607,135 @@ static qboolean bot_in_saber_engagement(bot_state_t* bs)
 
 	return qtrue;
 }
+//======================================================================
+// bot_try_meditate
+//
+// MP analogue of SP "safe meditate / quickheal / block regen":
+// - Only when far enough from enemy
+// - Saber vs saber
+// - Weapon ready and not busy
+// - Block points low
+// - Meditation not on cooldown
+//
+// Returns qtrue if meditation was triggered this frame.
+//======================================================================
+static qboolean bot_try_meditate(bot_state_t* bs, bot_input_t* bi)
+{
+	const int client = bs->cur_ps.clientNum;
+
+	// Basic sanity
+	if (client < 0 || client >= level.maxclients)
+	{
+		return qfalse;
+	}
+
+	gentity_t* self = &g_entities[client];
+	gentity_t* enemy = bs->currentEnemy;
+
+	if (self == NULL || self->client == NULL)
+	{
+		return qfalse;
+	}
+
+	// Validate enemy before doing ANY distance or weapon checks
+	if (enemy == NULL || enemy->client == NULL || enemy->health <= 0)
+	{
+		return qfalse;
+	}
+
+	// Saber vs saber only
+	if (bs->cur_ps.weapon != WP_SABER ||
+		enemy->s.weapon != WP_SABER)
+	{
+		return qfalse;
+	}
+
+	// Weapon must be ready
+	if (bs->cur_ps.weaponTime > 0)
+	{
+		return qfalse;
+	}
+
+	// Don't meditate while actively attacking or alt‑attacking
+	if (bs->doAttack != 0 || bs->doAltAttack != 0)
+	{
+		return qfalse;
+	}
+
+	// Don't meditate mid‑jump
+	if (bs->jumpTime > level.time)
+	{
+		return qfalse;
+	}
+
+	// Distance check: must be safely away from enemy
+	const float dist = Distance(self->r.currentOrigin, enemy->r.currentOrigin);
+	if (dist <= 256.0f)
+	{
+		return qfalse;
+	}
+
+	// Cooldown: reuse PW_MEDITATE as a simple "regenerate" timer
+	if (self->client->ps.powerups[PW_MEDITATE] > level.time)
+	{
+		return qfalse;
+	}
+
+	// Block points must be low enough to justify meditating
+	if (bs->blockPoints >= BLOCKPOINTS_THIRTY)
+	{
+		return qfalse;
+	}
+
+	// ------------------------------------------------------------------
+	// At this point, conditions are met: trigger meditate behaviour
+	// ------------------------------------------------------------------
+
+	// Regenerate some block points (mirror SP intent: AddNPCBlockPointBonus)
+	bs->blockPoints += BLOCKPOINTS_FIFTEEN;
+
+	// Optional clamp — uncomment if you have a defined max
+
+	if (bs->blockPoints > BLOCK_POINTS_MAX)
+	{
+		bs->blockPoints = BLOCK_POINTS_MAX;
+	}
+
+	// Play a meditate‑style animation.
+	// Sith‑lords get quick‑heal, others meditate.
+	const int botClass = self->client->pers.botclass;
+
+	if (botClass == BCLASS_SITHLORD ||
+		botClass == BCLASS_DESANN ||
+		botClass == BCLASS_VADER ||
+		botClass == BCLASS_LUKE)
+	{
+		G_SetAnim(self,
+			NULL,
+			SETANIM_BOTH,
+			BOTH_FORCEHEAL_QUICK,
+			SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD,
+			0);
+	}
+	else
+	{
+		G_SetAnim(self,
+			NULL,
+			SETANIM_BOTH,
+			BOTH_MEDITATE_SABER,
+			SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD,
+			0);
+	}
+
+	// Cooldown: mimic SP behaviour using PW_MEDITATE
+	self->client->ps.powerups[PW_MEDITATE] = level.time + self->client->ps.torsoTimer + 3000;
+
+	// Clear attack inputs for this frame so we don't immediately break the meditate
+	bi->actionflags &= ~ACTION_ATTACK;
+	bi->actionflags &= ~ACTION_ALT_ATTACK;
+
+	return qtrue;
+}
 
 static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_time)
 {
@@ -1707,6 +1836,13 @@ static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_
 	{
 		bot_should_walk(bs, &bi);
 	}
+
+	// ------------------------------------------------------------
+	// MEDITATION / BLOCK REGEN LOGIC
+	// ------------------------------------------------------------
+	// Try to enter a meditate state when safe and low on block points.
+	// This may clear attack flags for this frame.
+	bot_try_meditate(bs, &bi);
 
 	// Manual overrides
 	if (bs->doWalk)       bi.actionflags |= ACTION_WALK;

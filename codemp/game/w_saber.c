@@ -139,7 +139,7 @@ extern int SabBeh_AnimateMassiveStaffSlowBounce(int anim);
 extern qboolean PM_SaberInFullDamageMove(const playerState_t* ps, int anim_index);
 extern void G_ClearEnemy(gentity_t* self);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-extern void wp_block_points_regenerate(const gentity_t* self, int override_amt);
+extern void WP_BlockPointsRegenerate(const gentity_t* self, int override_amt);
 extern void PM_AddBlockFatigue(playerState_t* ps, int fatigue);
 qboolean WP_SaberBouncedSaberDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 qboolean WP_SaberFatiguedParryDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
@@ -151,7 +151,7 @@ extern qboolean PM_WalkingOrRunningAnim(int anim);
 extern qboolean PM_RestAnim(int anim);
 extern qboolean sab_beh_block_vs_attack(gentity_t* blocker, gentity_t* attacker, int saber_num, int blade_num, vec3_t hit_loc);
 extern qboolean BG_HopAnim(int anim);
-extern void wp_force_power_regenerate(const gentity_t* self, int override_amt);
+extern void WP_ForcePowerRegenerate(const gentity_t* self, int override_amt);
 extern qboolean PM_SaberInOverHeadSlash(saber_moveName_t saber_move);
 extern qboolean PM_SaberInBackAttack(saber_moveName_t saber_move);
 qboolean WP_DoingForcedAnimationForForcePowers(const gentity_t* self);
@@ -8899,8 +8899,8 @@ void WP_saberBackToOwner(gentity_t* saberent)
 				}
 
 				// Regenerate block and force
-				wp_block_points_regenerate(saber_owner, BLOCKPOINTS_TWENTYFIVE);
-				wp_force_power_regenerate(saber_owner, BLOCKPOINTS_TWENTYFIVE);
+				WP_BlockPointsRegenerate(saber_owner, BLOCKPOINTS_TWENTYFIVE);
+				WP_ForcePowerRegenerate(saber_owner, BLOCKPOINTS_TWENTYFIVE);
 
 				// Schedule BOTH_STAND1TO2 to play 1.2 seconds later
 				saber_owner->client->ps.userInt1 |= BOT_PENDING_STAND_ANIM;

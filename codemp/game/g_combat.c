@@ -73,9 +73,9 @@ qboolean PM_RunningAnim(int anim);
 void ThrowSaberToAttacker(gentity_t* self, const gentity_t* attacker);
 extern qboolean G_ControlledByPlayer(const gentity_t* self);
 extern qboolean PM_SaberInNonIdleDamageMove(const playerState_t* ps, int anim_index);
-extern void wp_force_power_regenerate(const gentity_t* self, int override_amt);
+extern void WP_ForcePowerRegenerate(const gentity_t* self, int override_amt);
 extern qboolean manual_saberblocking(const gentity_t* defender);
-extern void wp_block_points_regenerate(const gentity_t* self, int override_amt);
+extern void WP_BlockPointsRegenerate(const gentity_t* self, int override_amt);
 extern void G_LetGoOfLedge(const gentity_t* ent);
 extern void ScalePlayer(gentity_t* self, int scale);
 
@@ -2684,7 +2684,7 @@ extern qboolean g_endPDuel;
 extern qboolean g_noPDuelCheck;
 extern void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner);
 extern void WP_saberBackToOwner(gentity_t* saberent);
-void AddFatigueKillBonus(const gentity_t* attacker, const gentity_t* victim, int means_of_death);
+void AddFatigueKillBonus(const gentity_t* attacker, const gentity_t* victim, const int mod);
 extern void BubbleShield_TurnOff(gentity_t* self);
 void G_CheckForblowingup(gentity_t* ent, const gentity_t* enemy, int damage);
 
@@ -7723,12 +7723,12 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 			}
 		}
 
-		if (targ->client && targ->health > 0 && attacker && attacker->client && mod != MOD_FORCE_LIGHTNING)
+		if (targ->client && targ->health > 0 && attacker && attacker->client && mod != MOD_FORCE_LIGHTNING &&
+			g_npcspskill.integer <= 1)
 		{
 			//targ is creature and attacker is creature
 			if (take > targ->health)
-			{
-				//damage is greated than target's health, only give experience for damage used to kill victim
+			{//damage is greated than target's health, so he gonna die ...Probably.
 				if (PM_SaberInNonIdleDamageMove(&attacker->client->ps, attacker->localAnimIndex))
 				{
 					//self is attacking
@@ -8175,17 +8175,18 @@ qboolean g_radius_damage(vec3_t origin, gentity_t* attacker, const float damage,
 
 	return hit_client;
 }
-#define FATIGUE_KILLBONUS 10 //the bonus you get for killing another player;
-#define FATIGUE_DAMAGEBONUS 5 //the FP bonus you get for killing another player
-#define FATIGUE_HURTBONUSMAX 5 //the FP bonus you get for killing another player
-#define FATIGUE_HURTBONUS 3 //the FP bonus you get for killing another player
-#define FATIGUE_SMALLBONUS 2 //the FP bonus you get for killing another player
 
-void AddFatigueKillBonus(const gentity_t* attacker,
-	const gentity_t* victim,
-	const int means_of_death)
+//Combat Reward Code
+
+#define FATIGUE_DAMAGEBONUS 25 //the bonus npc,s get for meditating;
+#define FATIGUE_KILLBONUS 10 //the bonus you get for killing another player;
+#define FATIGUE_HURTBONUSMAX 5 //the bonus you get for hurting another player alot;
+#define FATIGUE_HURTBONUS 3 //the bonus you get for hurting another player;
+#define FATIGUE_SMALLBONUS 2 //the bonus you get for hurting another player a small amount;
+
+void AddFatigueKillBonus(const gentity_t* attacker, const gentity_t* victim, const int mod)
 {
-	// Validate attacker and victim
+	// Validate attacker and victim first
 	if (attacker == NULL ||
 		attacker->client == NULL ||
 		victim == NULL ||
@@ -8194,6 +8195,12 @@ void AddFatigueKillBonus(const gentity_t* attacker,
 		return;
 	}
 
+	// Compute block‑button state safely
+	const qboolean is_holding_block_button =
+		((attacker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+		? qtrue
+		: qfalse;
+
 	// Ignore turret/vehicle weapons
 	if (victim->s.weapon == WP_TURRET ||
 		victim->s.weapon == WP_EMPLACED_GUN)
@@ -8201,32 +8208,138 @@ void AddFatigueKillBonus(const gentity_t* attacker,
 		return;
 	}
 
-	// Ignore non‑saber kills
-	if (means_of_death == MOD_CRUSH ||
-		means_of_death == MOD_FORCE_DARK)
+	// Ignore non‑saber damage types
+	if (mod == MOD_CRUSH ||
+		mod == MOD_FORCE_LIGHTNING)
 	{
 		return;
 	}
 
 	// BLOCK‑SPAMMER CHECK
-	if (manual_saberblocking(attacker) != 0 &&
+	if (is_holding_block_button == qtrue &&
 		(attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker) != 0))
 	{
 		// Reduced bonus
-		wp_block_points_regenerate(attacker, FATIGUE_HURTBONUSMAX);
-		wp_force_power_regenerate(attacker, FATIGUE_HURTBONUSMAX);
+		WP_BlockPointsRegenerate(attacker, FATIGUE_HURTBONUSMAX);
+		WP_ForcePowerRegenerate(attacker, FATIGUE_HURTBONUSMAX);
 	}
 	else
 	{
 		// Full kill bonus
-		wp_block_points_regenerate(attacker, FATIGUE_KILLBONUS);
-		wp_force_power_regenerate(attacker, FATIGUE_KILLBONUS);
+		WP_BlockPointsRegenerate(attacker, FATIGUE_KILLBONUS);
+		WP_ForcePowerRegenerate(attacker, FATIGUE_KILLBONUS);
+
+		// Reset fatigue chain if too high
+		if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_TEN)
+		{
+			attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_LIGHT;
+		}
+	}
+}
+
+void AddFatigueHurtBonus(const gentity_t* attacker, const gentity_t* victim, const int mod)
+{
+	// Validate attacker and victim first
+	if (attacker == NULL ||
+		attacker->client == NULL ||
+		victim == NULL ||
+		victim->client == NULL)
+	{
+		return;
 	}
 
-	// Reset fatigue chain if too high
-	if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
+	// Compute block‑button state safely
+	const qboolean is_holding_block_button =
+		((attacker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+		? qtrue
+		: qfalse;
+
+	// Ignore turret/vehicle weapons
+	if (victim->s.weapon == WP_TURRET ||
+		victim->s.weapon == WP_EMPLACED_GUN)
 	{
-		attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_MIN;
+		return;
+	}
+
+	// Ignore non‑saber damage types
+	if (mod == MOD_CRUSH ||
+		mod == MOD_FORCE_LIGHTNING)
+	{
+		return;
+	}
+
+	// BLOCK‑SPAMMER CHECK
+	if (is_holding_block_button == qtrue &&
+		(attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker) != 0))
+	{
+		// Reduced bonus
+		WP_BlockPointsRegenerate(attacker, FATIGUE_SMALLBONUS);
+		WP_ForcePowerRegenerate(attacker, FATIGUE_SMALLBONUS);
+	}
+	else
+	{
+		// Full hurt bonus
+		WP_BlockPointsRegenerate(attacker, FATIGUE_HURTBONUS);
+		WP_ForcePowerRegenerate(attacker, FATIGUE_HURTBONUS);
+
+		// Reset fatigue chain if too high
+		if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_TEN)
+		{
+			attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_LIGHT;
+		}
+	}
+}
+
+void AddFatigueHurtBonusMax(const gentity_t* attacker, const gentity_t* victim, const int mod)
+{
+	// Validate attacker and victim first
+	if (attacker == NULL ||
+		attacker->client == NULL ||
+		victim == NULL ||
+		victim->client == NULL)
+	{
+		return;
+	}
+
+	// Compute block‑button state safely
+	const qboolean is_holding_block_button =
+		((attacker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+		? qtrue
+		: qfalse;
+
+	// Ignore turret/vehicle weapons
+	if (victim->s.weapon == WP_TURRET ||
+		victim->s.weapon == WP_EMPLACED_GUN)
+	{
+		return;
+	}
+
+	// Ignore non‑saber damage types
+	if (mod == MOD_CRUSH ||
+		mod == MOD_FORCE_LIGHTNING)
+	{
+		return;
+	}
+
+	// BLOCK‑SPAMMER CHECK
+	if (is_holding_block_button == qtrue &&
+		(attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker) != 0))
+	{
+		// Reduced bonus
+		WP_BlockPointsRegenerate(attacker, FATIGUE_SMALLBONUS);
+		WP_ForcePowerRegenerate(attacker, FATIGUE_SMALLBONUS);
+	}
+	else
+	{
+		// Full max hurt bonus
+		WP_BlockPointsRegenerate(attacker, FATIGUE_HURTBONUSMAX);
+		WP_ForcePowerRegenerate(attacker, FATIGUE_HURTBONUSMAX);
+
+		// Reset fatigue chain if too high
+		if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_TEN)
+		{
+			attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_LIGHT;
+		}
 	}
 }
 
@@ -8249,118 +8362,15 @@ void AddFatigueMeleeBonus(const gentity_t* attacker, const gentity_t* victim)
 	}
 
 	// Apply melee bonus
-	wp_block_points_regenerate(attacker, FATIGUE_HURTBONUS);
-	wp_force_power_regenerate(attacker, FATIGUE_HURTBONUS);
-
-	// Reset fatigue chain if too high
-	if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
-	{
-		attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_MIN;
-	}
+	WP_BlockPointsRegenerate(attacker, FATIGUE_SMALLBONUS);
+	WP_ForcePowerRegenerate(attacker, FATIGUE_SMALLBONUS);
 }
 
-void AddFatigueHurtBonus(const gentity_t* attacker, const gentity_t* victim, const int mod)
-{
-	// Validate attacker and victim
-	if (attacker == NULL ||
-		attacker->client == NULL ||
-		victim == NULL ||
-		victim->client == NULL)
-	{
-		return;
-	}
-
-	// Ignore non‑saber damage types
-	if (mod == MOD_CRUSH ||
-		mod == MOD_FORCE_DARK)
-	{
-		return;
-	}
-
-	// Ignore turret/vehicle weapons
-	if (victim->s.weapon == WP_TURRET ||
-		victim->s.weapon == WP_EMPLACED_GUN)
-	{
-		return;
-	}
-
-	// BLOCK‑SPAMMER CHECK
-	if (manual_saberblocking(attacker) != 0 &&
-		(attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker) != 0))
-	{
-		// Reduced bonus
-		wp_block_points_regenerate(attacker, FATIGUE_SMALLBONUS);
-		wp_force_power_regenerate(attacker, FATIGUE_SMALLBONUS);
-	}
-	else
-	{
-		// Full hurt bonus
-		wp_block_points_regenerate(attacker, FATIGUE_HURTBONUS);
-		wp_force_power_regenerate(attacker, FATIGUE_HURTBONUS);
-	}
-
-	// Reset fatigue chain if too high
-	if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
-	{
-		attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_MIN;
-	}
-}
-
-void AddFatigueHurtBonusMax(const gentity_t* attacker,
-	const gentity_t* victim,
-	const int mod)
-{
-	// Validate attacker and victim
-	if (attacker == NULL ||
-		attacker->client == NULL ||
-		victim == NULL ||
-		victim->client == NULL)
-	{
-		return;
-	}
-
-	// Ignore non‑saber damage types
-	if (mod == MOD_CRUSH ||
-		mod == MOD_FORCE_DARK)
-	{
-		return;
-	}
-
-	// Ignore turret/vehicle weapons
-	if (victim->s.weapon == WP_TURRET ||
-		victim->s.weapon == WP_EMPLACED_GUN)
-	{
-		return;
-	}
-
-	// BLOCK‑SPAMMER CHECK
-	if (manual_saberblocking(attacker) != 0 &&
-		(attacker->s.number < MAX_CLIENTS || G_ControlledByPlayer(attacker) != 0))
-	{
-		// Reduced bonus
-		wp_block_points_regenerate(attacker, FATIGUE_SMALLBONUS);
-		wp_force_power_regenerate(attacker, FATIGUE_SMALLBONUS);
-	}
-	else
-	{
-		// Full max hurt bonus
-		wp_block_points_regenerate(attacker, FATIGUE_HURTBONUSMAX);
-		wp_force_power_regenerate(attacker, FATIGUE_HURTBONUSMAX);
-	}
-
-	// Reset fatigue chain if too high
-	if (attacker->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY)
-	{
-		attacker->client->ps.saberFatigueChainCount = MISHAPLEVEL_MIN;
-	}
-}
-
-static void add_npc_block_point_bonus(const gentity_t* self)
+static void AddNPCBlockPointBonus(const gentity_t* self)
 {
 	//get a small bonus
 	//add bonus
-	wp_block_points_regenerate(self, FATIGUE_HURTBONUS);
-	wp_force_power_regenerate(self, FATIGUE_HURTBONUSMAX);
+	WP_BlockPointsRegenerate(self, FATIGUE_DAMAGEBONUS);
 
 	if (self->client->ps.saberFatigueChainCount >= MISHAPLEVEL_TEN)
 	{
