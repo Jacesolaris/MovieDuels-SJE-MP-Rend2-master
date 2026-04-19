@@ -30,6 +30,18 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "ui/menudef.h"
 #include "ghoul2/G2.h"
 #include "ui/ui_public.h"
+#include "cg_pazaak.h"
+
+// Compatibility aliases for SP-style identifiers -> MP-style identifiers
+#ifndef gameModels
+#define gameModels game_models
+#endif
+#ifndef bolt_info
+#define bolt_info boltInfo
+#endif
+#ifndef num_frames
+#define num_frames numFrames
+#endif
 
 /*
 =================

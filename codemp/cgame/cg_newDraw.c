@@ -76,7 +76,7 @@ qhandle_t CG_StatusHandle(int task) {
 float CG_GetValue(int ownerDraw) {
 	clientInfo_t* ci;
 
-	const centity_t* cent = &cg_entities[cg.snap->ps.client_num];
+	const centity_t* cent = &cg_entities[cg.snap->ps.clientNum];
 	const playerState_t* ps = &cg.snap->ps;
 
 	switch (ownerDraw) {
