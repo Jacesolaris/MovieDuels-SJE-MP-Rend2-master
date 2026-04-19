@@ -3079,6 +3079,11 @@ qboolean client_spawn(gentity_t* ent, SavedGameJustLoaded_e e_saved_game_just_lo
 
 		client->airOutTime = level.time + 12000;
 
+		// initialize credits if not set (default starting currency)
+		if (client->ps.persistant[PERS_CREDITS] == 0) {
+			client->ps.persistant[PERS_CREDITS] = 1000; // default starting credits
+		}
+
 		for (i = 0; i < 3; i++)
 		{
 			ent->client->pers.cmd_angles[i] = 0.0f;
@@ -3158,6 +3163,11 @@ qboolean client_spawn(gentity_t* ent, SavedGameJustLoaded_e e_saved_game_just_lo
 		client->ps.persistant[PERS_TEAM] = client->sess.sessionTeam;
 
 		client->airOutTime = level.time + 12000;
+
+		// initialize credits if not set (default starting currency)
+		if (client->ps.persistant[PERS_CREDITS] == 0) {
+			client->ps.persistant[PERS_CREDITS] = 1000; // default starting credits
+		}
 
 		// clear entity values
 		client->ps.stats[STAT_MAX_HEALTH] = client->pers.maxHealth;

@@ -56,6 +56,8 @@ extern qboolean in_front(vec3_t spot, vec3_t from, vec3_t from_angles, float thr
 extern qboolean PM_SaberInStart(int move);
 extern qboolean PM_SaberInAttack(int move);
 
+#include "g_pazaak.h"
+
 extern cvar_t* g_spskill;
 extern qboolean stop_icarus;
 extern int killPlayerTimer;
@@ -1624,6 +1626,36 @@ void NPC_Use(gentity_t* self, gentity_t* other, gentity_t* activator)
 		if (activator && activator->s.number == 0 && self->client->NPC_class == CLASS_GONK)
 		{
 			Add_Batteries(activator, &self->client->ps.batteryCharge);
+		}
+
+		// If this NPC is a Pazaak vendor (targetname starts with "pazaak"), start a Pazaak game
+		if (activator && activator->s.number == 0 && self->targetname && Q_stricmpn(self->targetname, "pazaak", 6) == 0)
+		{
+			int bet = 0;
+			// allow optional bet encoded in name like "pazaak_100"
+			char buf[128];
+			Q_strncpyz(buf, self->targetname, sizeof(buf));
+			char* u = strchr(buf, '_');
+			if (u) bet = atoi(u + 1);
+
+			// start Pazaak with this NPC as opponent
+			if (!G_Pazaak_Start(activator, self))
+			{
+				gi.SendServerCommand(activator - g_entities, "print \"Pazaak: failed to start game\n\"");
+			}
+			else
+			{
+				if (bet > 0)
+				{
+					if (!G_Pazaak_PlaceBet(activator, bet))
+					{
+						gi.SendServerCommand(activator - g_entities, "print \"Pazaak: insufficient funds\n\"");
+					}
+				}
+			}
+
+			RestoreNPCGlobals();
+			return;
 		}
 
 		if (self->behaviorSet[BSET_USE])

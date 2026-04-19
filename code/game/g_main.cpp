@@ -3,11 +3,11 @@
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
+Copyright (C) 2013 - 2015, OpenJK contributors
 
-This file is part of the SerenityJediEngine2026 source code.
+This file is part of the OpenJK source code.
 
-SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
+OpenJK is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -35,11 +35,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "../ghoul2/ghoul2_gore.h"
 //rww - RAGDOLL_END
 
-#include "dmstates.h"
 #include "qcommon/ojk_saved_game_helper.h"
+#include <rd-common/mdx_format.h>
+
+#include "g_pazaak.h"
 
 extern void WP_SaberLoadParms();
-extern void WP_SaberLoadParms_yav();
 extern qboolean G_PlayerSpawned();
 
 extern void Rail_Initialize();
@@ -54,12 +55,13 @@ extern void Pilot_Reset();
 extern void Pilot_Update();
 
 extern void G_ASPreCacheFree();
-extern void player_Decloak(gentity_t* self);
 extern qboolean PM_RestAnim(int anim);
 extern qboolean PM_CrouchAnim(int anim);
+extern qboolean G_ControlledByPlayer(const gentity_t* self);
 extern void Boba_FlyStop(gentity_t* self);
 extern void Jetpack_Off(const gentity_t* ent);
-extern qboolean G_ControlledByPlayer(const gentity_t* self);
+extern qboolean jedi_saber_busy(const gentity_t* self);
+extern void player_decloak(gentity_t* self);
 extern void RemoveBarrier(gentity_t* ent);
 extern qboolean G_PointInBounds(const vec3_t point, const vec3_t mins, const vec3_t maxs);
 
@@ -82,16 +84,16 @@ static void ClearAllInUse()
 
 void SetInUse(const gentity_t* ent)
 {
-	assert(reinterpret_cast<uintptr_t>(ent) >= reinterpret_cast<uintptr_t>(g_entities));
-	assert(reinterpret_cast<uintptr_t>(ent) <= (uintptr_t)(g_entities + MAX_GENTITIES - 1));
+	assert((uintptr_t)ent >= (uintptr_t)g_entities);
+	assert((uintptr_t)ent <= (uintptr_t)(g_entities + MAX_GENTITIES - 1));
 	const unsigned int entNum = ent - g_entities;
 	g_entityInUseBits[entNum / 32] |= static_cast<unsigned>(1) << (entNum & 0x1f);
 }
 
 void ClearInUse(const gentity_t* ent)
 {
-	assert(reinterpret_cast<uintptr_t>(ent) >= reinterpret_cast<uintptr_t>(g_entities));
-	assert(reinterpret_cast<uintptr_t>(ent) <= (uintptr_t)(g_entities + MAX_GENTITIES - 1));
+	assert((uintptr_t)ent >= (uintptr_t)g_entities);
+	assert((uintptr_t)ent <= (uintptr_t)(g_entities + MAX_GENTITIES - 1));
 	const unsigned int entNum = ent - g_entities;
 	g_entityInUseBits[entNum / 32] &= ~(static_cast<unsigned>(1) << (entNum & 0x1f));
 }
@@ -177,11 +179,15 @@ cvar_t* g_subtitles;
 cvar_t* g_ICARUSDebug;
 
 cvar_t* com_buildScript;
+
 cvar_t* g_skippingcin;
 cvar_t* g_AIsurrender;
 cvar_t* g_numEntities;
+//cvar_t	*g_iscensored;
+
 cvar_t* g_saberAutoBlocking;
 cvar_t* g_saberRealisticCombat;
+cvar_t* debug_subdivision;
 cvar_t* g_saberDamageCapping;
 cvar_t* g_saberMoveSpeed;
 cvar_t* g_saberAnimSpeed;
@@ -192,8 +198,6 @@ cvar_t* g_saberLockRandomNess;
 cvar_t* g_saberRestrictForce;
 cvar_t* g_saberPickuppableDroppedSabers;
 cvar_t* g_dismemberProbabilities;
-cvar_t* com_outcast;
-cvar_t* g_saberRealisticImpact;
 
 cvar_t* g_speederControlScheme;
 
@@ -210,6 +214,27 @@ cvar_t* g_saber_color;
 cvar_t* g_saber2_color;
 cvar_t* g_saberDarkSideSaberColor;
 
+cvar_t* g_sentryexplode;
+
+// NPC attributes
+cvar_t* g_NPCtype;
+cvar_t* g_NPCskin;
+cvar_t* g_NPCteam;
+cvar_t* g_NPCweapon;
+cvar_t* g_NPCsaber;
+cvar_t* g_NPCsabercolor;
+cvar_t* g_NPCsabertwo;
+cvar_t* g_NPCsabertwocolor;
+cvar_t* g_NPChealth;
+cvar_t* g_NPCspawnscript;
+cvar_t* g_NPCfleescript;
+cvar_t* g_NPCdeathscript;
+cvar_t* g_NPChead;
+cvar_t* g_NPCtorso;
+cvar_t* g_NPClegs;
+
+cvar_t* g_darkkorriban;
+
 // kef -- used with DebugTraceForNPC
 cvar_t* g_npcdebug;
 
@@ -221,53 +246,95 @@ cvar_t* g_broadsword;
 cvar_t* g_allowBunnyhopping;
 
 cvar_t* g_InvertedHolsteredSabers;
+cvar_t* g_CannonHolsteredSabers;
 
 cvar_t* g_noIgniteTwirl;
+cvar_t* g_SerenityJediEngineMode;
+cvar_t* g_SaberPerfectBlockingTimerMissile;
+cvar_t* g_IsSaberDoingAttackDamage;
+cvar_t* g_DebugSaberCombat;
+cvar_t* g_lightningdamage;
+
+cvar_t* g_SaberPerfectBlockingTimerEasy;
+cvar_t* g_SaberPerfectBlockingTimerNormal;
+cvar_t* g_SaberPerfectBlockingTimerHard;
+
+cvar_t* g_SaberAttackSpeedMD;
+
+cvar_t* g_VaderBreath;
+cvar_t* com_outcast;
+
+cvar_t* g_gundismemberment;
+cvar_t* g_update7firststartup;
+
+cvar_t* g_totgfirststartup;
+
+cvar_t* g_allowgunnerbash;
 
 cvar_t* g_noAutoFollow;
 
-cvar_t* g_pullitems;
-cvar_t* g_pushitems;
-cvar_t* g_gripitems;
-cvar_t* g_stasistems;
-cvar_t* g_sentryexplode;
-cvar_t* g_vehAutoAimLead;
+cvar_t* g_AllowLedgeGrab;
 cvar_t* in_joystick;
+
+cvar_t* g_AllowReload;
+
+cvar_t* com_freeMelee;
+cvar_t* g_allowdualpistols;
+
+cvar_t* g_Bloodmist;
+
 cvar_t* g_Weather;
 
 cvar_t* g_allowAlignmentChange;
-cvar_t* g_IsSaberDoingAttackDamage;
-cvar_t* g_DebugSaberCombat;
-
-cvar_t* g_allowgunnerbash;
-cvar_t* g_allowslipping;
-cvar_t* g_allowClimbing;
-
-cvar_t* g_newgameplusJKA;
-cvar_t* g_newgameplusJKO;
-
-cvar_t* g_AllowWeaponDropping;
-cvar_t* g_WeaponRemovalTime;
-cvar_t* g_IconBackgroundSlow;
-
-cvar_t* g_AllowLedgeGrab;
-cvar_t* g_attackskill;
-cvar_t* g_saberLockCinematicCamera;
-
-cvar_t* g_remove_unused_weapons;
-
-cvar_t* com_rend2;
 cvar_t* r_AdvancedsurfaceSprites;
-
-cvar_t* g_AllowWeather;
 
 qboolean stop_icarus = qfalse;
 
+cvar_t* g_AllowMawKick;
+cvar_t* g_AllowWeaponDropping;
+cvar_t* g_WeaponRemovalTime;
+cvar_t* g_IconBackgroundSlow;
+cvar_t* g_AdvancedWeaponPickup;
+
+cvar_t* g_remove_unused_weapons;
+
+cvar_t* g_allowcallout;
+cvar_t* g_allowslipping;
+
+cvar_t* g_RealisticBlockingMode;
+
+cvar_t* g_debugFatigueBars;
+
+cvar_t* g_Advancedaitalk;
+cvar_t* com_kotor;
+cvar_t* g_attackskill;
+cvar_t* g_npcSpecialAttackFreq; // Modifier for special/kata attack frequency
+cvar_t* g_saberLockCinematicCamera;
+cvar_t* g_ffamode;
+
+cvar_t* g_SaberBounceOnWalls;
+cvar_t* g_SaberMustReturn;
+
+cvar_t* com_rend2;
+
+cvar_t* g_overpoweredsaberthrow;
+
+cvar_t* g_autoHealthRegen;
+
+cvar_t* g_allowSuperSaberLockBreaks;
+
+cvar_t* g_AllowWeather;
+cvar_t* g_debugItems;
+cvar_t* g_fixJOItems;
+
+cvar_t* g_npc_is_smart;
+cvar_t* g_npc_is_smart_range;
+
 extern char* G_GetLocationForEnt(const gentity_t* ent);
 extern void CP_FindCombatPointWaypoints();
-extern qboolean in_front(vec3_t spot, vec3_t from, vec3_t from_angles, float thresh_hold = 0.0f);
+extern qboolean InFront(vec3_t spot, vec3_t from, vec3_t fromAngles, float threshHold = 0.0f);
 
-void G_RunFrame(int levelTime);
+void G_RunFrame(int level_time);
 void ClearNPCGlobals();
 extern void AI_UpdateGroups();
 
@@ -283,11 +350,7 @@ static void G_DynamicMusicUpdate()
 	int danger = 0;
 	int battle = 0;
 	int entTeam;
-	qboolean clear_los;
-
-	//FIXME: intro and/or other cues? (one-shot music sounds)
-
-	//loops
+	qboolean clearLOS;
 
 	//player-based
 	if (!player)
@@ -404,10 +467,9 @@ static void G_DynamicMusicUpdate()
 			continue;
 		}
 
-		qboolean lo_scalced = clear_los = qfalse;
-		if (ent->enemy == player && (!ent->NPC || ent->NPC->confusionTime < level.time && ent->NPC->insanityTime <
-			level.time) || ent->client && ent->client->ps.weaponTime || !ent->client && ent->attackDebounceTime >
-			level.time)
+		qboolean LOScalced = clearLOS = qfalse;
+		if (ent->enemy == player && (!ent->NPC || ent->NPC->confusionTime < level.time) || ent->client && ent->client
+			->ps.weaponTime || !ent->client && ent->attackDebounceTime > level.time)
 		{
 			//mad
 			if (ent->health > 0)
@@ -447,9 +509,9 @@ static void G_DynamicMusicUpdate()
 					if (distSq > 1048576/*1024*1024*/)
 					{
 						//> 1024 away
-						clear_los = G_ClearLOS(player, player->client->renderInfo.eyePoint, ent);
-						lo_scalced = qtrue;
-						if (clear_los == qfalse)
+						clearLOS = G_ClearLOS(player, player->client->renderInfo.eyePoint, ent);
+						LOScalced = qtrue;
+						if (clearLOS == qfalse)
 						{
 							//No LOS
 							continue;
@@ -463,17 +525,17 @@ static void G_DynamicMusicUpdate()
 		if (level.dmState == DM_EXPLORE)
 		{
 			//only do these visibility checks if you're still in exploration mode
-			if (!in_front(ent->currentOrigin, player->currentOrigin, player->client->ps.viewangles, 0.0f))
+			if (!InFront(ent->currentOrigin, player->currentOrigin, player->client->ps.viewangles, 0.0f))
 			{
 				//not in front
 				continue;
 			}
 
-			if (!lo_scalced)
+			if (!LOScalced)
 			{
-				clear_los = G_ClearLOS(player, player->client->renderInfo.eyePoint, ent);
+				clearLOS = G_ClearLOS(player, player->client->renderInfo.eyePoint, ent);
 			}
-			if (!clear_los)
+			if (!clearLOS)
 			{
 				//can't see them directly
 				continue;
@@ -689,7 +751,7 @@ static void G_InitCvars()
 	g_stepSlideFix = gi.cvar("g_stepSlideFix", "1", CVAR_ARCHIVE);
 	g_sex = gi.cvar("sex", "f", CVAR_USERINFO | CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
 	g_spskill = gi.cvar("g_spskill", "2", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	g_knockback = gi.cvar("g_knockback", "1000", 0);
+	g_knockback = gi.cvar("g_knockback", "1000", CVAR_CHEAT);
 	g_dismemberment = gi.cvar("g_dismemberment", "3", CVAR_ARCHIVE);
 	//0 = none, 1 = arms and hands, 2 = legs, 3 = waist and head
 	// for now I'm making default 10 seconds
@@ -718,114 +780,79 @@ static void G_InitCvars()
 	g_npcdebug = gi.cvar("g_npcdebug", "0", 0);
 	g_navSafetyChecks = gi.cvar("g_navSafetyChecks", "0", 0);
 	// NOTE : I also create this is UI_Init()
-	g_subtitles = gi.cvar("g_subtitles", "1", CVAR_ARCHIVE);
+	g_subtitles = gi.cvar("g_subtitles", "0", CVAR_ARCHIVE);
 	com_buildScript = gi.cvar("com_buildscript", "0", 0);
 
 	g_saberAutoBlocking = gi.cvar("g_saberAutoBlocking", "1", CVAR_ARCHIVE);
 	//must press +block button to do any blocking
-	g_saberRealisticCombat = gi.cvar("g_saberRealisticCombat", "1", CVAR_ARCHIVE);
+	g_saberRealisticCombat = gi.cvar("g_saberMoreRealistic", "1", CVAR_ARCHIVE);
 	//makes collision more precise, increases damage
+	debug_subdivision = gi.cvar("debug_subdivision", "0", CVAR_ARCHIVE); //debug for dismemberment
 	g_dismemberProbabilities = gi.cvar("g_dismemberProbabilities", "1", CVAR_ARCHIVE);
 	//0 = ignore probabilities, 1 = use probabilities
-	g_saberDamageCapping = gi.cvar("g_saberDamageCapping", "1", CVAR_ARCHIVE);
+	g_saberDamageCapping = gi.cvar("g_saberDamageCapping", "1", CVAR_CHEAT);
 	//caps damage of sabers vs players and NPC who use sabers
 	g_saberMoveSpeed = gi.cvar("g_saberMoveSpeed", "1", CVAR_ARCHIVE); //how fast you run while attacking with a saber
-	g_saberAnimSpeed = gi.cvar("g_saberAnimSpeed", "1.0", CVAR_ARCHIVE); //how fast saber animations run
+	g_saberAnimSpeed = gi.cvar("g_saberAnimSpeed", "1", CVAR_ARCHIVE); //how fast saber animations run
 	g_saberAutoAim = gi.cvar("g_saberAutoAim", "1", CVAR_ARCHIVE);
 	//auto-aims at enemies when not moving or when just running forward
 	g_saberNewControlScheme = gi.cvar("g_saberNewControlScheme", "0", CVAR_ARCHIVE);
 	//use +forcefocus to pull off all the special moves
 	g_debugSaberLock = gi.cvar("g_debugSaberLock", "0", CVAR_CHEAT);
 	//just for debugging/development, makes saberlocks happen all the time
-	g_saberLockRandomNess = gi.cvar("g_saberLockRandomNess", "0", CVAR_ARCHIVE);
+	g_saberLockRandomNess = gi.cvar("g_saberLockRandomNess", "1", CVAR_ARCHIVE);
 	//just for debugging/development, controls frequency of saberlocks
 	g_saberRestrictForce = gi.cvar("g_saberRestrictForce", "0", CVAR_ARCHIVE);
 	//restricts certain force powers when using a 2-handed saber or 2 sabers
-	g_saberPickuppableDroppedSabers = gi.cvar("g_saberPickuppableDroppedSabers", "0", CVAR_ARCHIVE);
+	g_saberPickuppableDroppedSabers = gi.cvar("g_saberPickuppableDroppedSabers", "0", CVAR_CHEAT);
 	//lets you pick up sabers that are dropped
-
-	g_saberRealisticImpact = gi.cvar("g_saberRealisticImpact", "1", CVAR_ARCHIVE); //makes collision more realistic
 
 	g_AIsurrender = gi.cvar("g_AIsurrender", "0", CVAR_CHEAT);
 	g_numEntities = gi.cvar("g_numEntities", "0", 0);
-	com_outcast = gi.cvar("com_outcast", "0", CVAR_ARCHIVE | CVAR_SAVEGAME);
-	// Items
-	g_pullitems = gi.cvar("g_pullitems", "1", CVAR_ARCHIVE);
-	g_pushitems = gi.cvar("g_pushitems", "1", CVAR_ARCHIVE);
-	g_gripitems = gi.cvar("g_gripitems", "1", CVAR_ARCHIVE);
-	g_stasistems = gi.cvar("g_stasistems", "1", CVAR_ARCHIVE);
-	g_sentryexplode = gi.cvar("g_sentryexplode", "3", CVAR_ARCHIVE);
 
-	g_vehAutoAimLead = gi.cvar("g_vehAutoAimLead", "0", CVAR_ARCHIVE);
+	g_sentryexplode = gi.cvar("g_sentryexplode", "3", CVAR_ARCHIVE);
 
 	gi.cvar("newTotalSecrets", "0", CVAR_ROM);
 	gi.cvar_set("newTotalSecrets", "0"); //used to carry over the count from SP_target_secret to ClientBegin
 
 	g_speederControlScheme = gi.cvar("g_speederControlScheme", "2", CVAR_ARCHIVE); //2 is default, 1 is alternate
 
-	if (com_outcast->integer == 0) //playing academy
-	{
-		g_char_model = gi.cvar("g_char_model", "jedi_hm", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	}
-	else if (com_outcast->integer == 1) //playing outcast
-	{
-		g_char_model = gi.cvar("g_char_model", "kyle", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	}
-	else if (com_outcast->integer == 2) //playing creative
-	{
-		g_char_model = gi.cvar("g_char_model", "jedi_hm", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	}
-	else if (com_outcast->integer == 3) //playing yav
-	{
-		g_char_model = gi.cvar("g_char_model", "jedi_hm", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	}
-	else if (com_outcast->integer == 4) //playing darkforces
-	{
-		g_char_model = gi.cvar("g_char_model", "df2_kyle", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	}
-	else if (com_outcast->integer == 5) //playing kotor
-	{
-		g_char_model = gi.cvar("g_char_model", "jedi_hm", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	}
-	else if (com_outcast->integer == 6) //playing survival
-	{
-		g_char_model = gi.cvar("g_char_model", "jedi_hm", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	}
-	else if (com_outcast->integer == 7) //playing nina
-	{
-		g_char_model = gi.cvar("g_char_model", "jedi_nina", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	}
-	else if (com_outcast->integer == 8) //playing veng
-	{
-		g_char_model = gi.cvar("g_char_model", "jedi_hf", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	}
-	else
-	{
-		g_char_model = gi.cvar("g_char_model", "jedi_hm", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	}
-
+	g_char_model = gi.cvar("g_char_model", "jedi_hm", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
 	g_char_skin_head = gi.cvar("g_char_skin_head", "head_a1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
 	g_char_skin_torso = gi.cvar("g_char_skin_torso", "torso_a1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
 	g_char_skin_legs = gi.cvar("g_char_skin_legs", "lower_a1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-
 	g_char_color_red = gi.cvar("g_char_color_red", "255", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
 	g_char_color_green = gi.cvar("g_char_color_green", "255", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
 	g_char_color_blue = gi.cvar("g_char_color_blue", "255", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-
 	g_saber = gi.cvar("g_saber", "single_1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
 	g_saber2 = gi.cvar("g_saber2", "", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-
-	g_saber_color = gi.cvar("g_saber_color", "blue", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-	g_saber2_color = gi.cvar("g_saber2_color", "blue", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-
-	g_saberDarkSideSaberColor = gi.cvar("g_saberDarkSideSaberColor", "1", CVAR_ARCHIVE);
+	g_saber_color = gi.cvar("g_saber_color", "yellow", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+	g_saber2_color = gi.cvar("g_saber2_color", "yellow", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+	g_saberDarkSideSaberColor = gi.cvar("g_saberDarkSideSaberColor", "0", CVAR_ARCHIVE);
 	//when you turn evil, it turns your saber red!
+
+	g_NPCtype = gi.cvar("g_NPCtype", "stormtrooper", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPCskin = gi.cvar("g_NPCskin", "default", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPCteam = gi.cvar("g_NPCteam", "enemy", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPChealth = gi.cvar("g_NPChealth", "100", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPCspawnscript = gi.cvar("g_NPCspawnscript", "spawnscripts/no_follow", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPCfleescript = gi.cvar("g_NPCfleescript", "fleescripts/surrender", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPCdeathscript = gi.cvar("g_NPCdeathscript", "deathscripts/losehead", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPChead = gi.cvar("g_NPChead", "model_default", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPCtorso = gi.cvar("g_NPCtorso", "model_default", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPClegs = gi.cvar("g_NPClegs", "model_default", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPCweapon = gi.cvar("g_NPCweapon", "WP_BLASTER", CVAR_ARCHIVE | CVAR_NORESTART);
+
+	g_NPCsaber = gi.cvar("g_NPCsaber", "single_1", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPCsabertwo = gi.cvar("g_NPCsabertwo", "single_1", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPCsabercolor = gi.cvar("g_NPCsabercolor", "red", CVAR_ARCHIVE | CVAR_NORESTART);
+	g_NPCsabertwocolor = gi.cvar("g_NPCsabertwocolor", "red", CVAR_ARCHIVE | CVAR_NORESTART);
+
+	g_darkkorriban = gi.cvar("g_darkkorriban", "0", CVAR_INIT);
 
 	g_broadsword = gi.cvar("broadsword", "1", 0);
 
 	g_allowBunnyhopping = gi.cvar("g_allowBunnyhopping", "0", 0);
-
-	g_noAutoFollow = gi.cvar("g_noAutoFollow", "0", CVAR_ARCHIVE);
 
 	gi.cvar("tier_storyinfo", "0", CVAR_ROM | CVAR_SAVEGAME | CVAR_NORESTART);
 	gi.cvar("tiers_complete", "", CVAR_ROM | CVAR_SAVEGAME | CVAR_NORESTART);
@@ -835,52 +862,116 @@ static void G_InitCvars()
 
 	gi.cvar("g_clearstats", "1", CVAR_ROM | CVAR_NORESTART);
 
-	g_InvertedHolsteredSabers = gi.
-		cvar("g_InvertedHolsteredSabers", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+	g_InvertedHolsteredSabers = gi.cvar("g_InvertedHolsteredSabers", "0", CVAR_ARCHIVE);
 	//if 1, saber faces up when holstered not down
+	g_CannonHolsteredSabers = gi.cvar("g_CannonHolsteredSabers", "1", CVAR_ARCHIVE); //put the sabers in jka mode
 
-	g_noIgniteTwirl = gi.cvar("g_noIgniteTwirl", "0", CVAR_ARCHIVE); //if 1, don't do ignite twirl
+	g_noIgniteTwirl = gi.cvar("g_noIgniteTwirl", "1", CVAR_ARCHIVE); //if 1, don't do ignite twirl
+
+	g_SerenityJediEngineMode = gi.cvar("g_SerenityJediEngineMode", "0", CVAR_ARCHIVE); //Alternate saber combat system
+
+	g_SaberPerfectBlockingTimerMissile = gi.cvar("g_SaberPerfectBlockingTimerMissile", "750", CVAR_ARCHIVE);
+	//Alternate saber combat system 3 sec
+
+	g_SaberPerfectBlockingTimerEasy = gi.cvar("g_SaberPerfectBlockingTimerEasy", "250", CVAR_ARCHIVE);
+	//Alternate saber combat system 2 sec
+	g_SaberPerfectBlockingTimerNormal = gi.cvar("g_SaberPerfectBlockingTimerNormal", "150", CVAR_ARCHIVE);
+	//Alternate saber combat system 1.5 sec
+	g_SaberPerfectBlockingTimerHard = gi.cvar("g_SaberPerfectBlockingTimerHard", "50", CVAR_ARCHIVE);
+	//Alternate saber combat system 1 sec
+
+	g_SaberAttackSpeedMD = gi.cvar("g_SaberAttackSpeedMD", "0", CVAR_ARCHIVE); //how fast saber animations run
+
+	g_VaderBreath = gi.cvar("g_VaderBreath", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+
+	com_outcast = gi.cvar("com_outcast", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+
+	g_gundismemberment = gi.cvar("g_gundismemberment", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+
+	g_update7firststartup = gi.cvar("g_update7firststartup", "1", CVAR_ARCHIVE);
+
+	g_totgfirststartup = gi.cvar("g_totgfirststartup", "1", 0);
+
+	g_allowgunnerbash = gi.cvar("g_allowgunnerbash", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+
+	g_noAutoFollow = gi.cvar("g_noAutoFollow", "0", CVAR_ARCHIVE);
+
+	g_AllowLedgeGrab = gi.cvar("g_allowledgegrab", "0", CVAR_ARCHIVE);
 
 	in_joystick = gi.cvar("in_joystick", "1", CVAR_ARCHIVE_ND | CVAR_LATCH);
+
+	g_AllowReload = gi.cvar("g_AllowReload", "1", CVAR_ARCHIVE | CVAR_NORESTART);
+
+	com_freeMelee = gi.cvar("com_freeMelee", "1", CVAR_ARCHIVE | CVAR_NORESTART);
+
+	g_allowdualpistols = gi.cvar("g_allowdualpistols", "0", CVAR_ARCHIVE | CVAR_NORESTART);
+
+	g_Bloodmist = gi.cvar("g_Bloodmist", "0", CVAR_ARCHIVE);
 
 	g_Weather = gi.cvar("r_weather", "0", CVAR_ARCHIVE);
 
 	g_allowAlignmentChange = gi.cvar("g_allowAlignmentChange", "0", CVAR_ARCHIVE | CVAR_NORESTART);
 
+	g_AllowMawKick = gi.cvar("g_allowmawkick", "0", CVAR_ARCHIVE | CVAR_NORESTART); //maw has no legs
+
 	g_IsSaberDoingAttackDamage = gi.cvar("g_IsSaberDoingAttackDamage", "0", CVAR_ARCHIVE);
 
 	g_DebugSaberCombat = gi.cvar("g_DebugSaberCombat", "0", CVAR_ARCHIVE);
 
-	g_allowgunnerbash = gi.cvar("g_allowgunnerbash", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+	g_lightningdamage = gi.cvar("g_lightningdamage", "0", CVAR_ARCHIVE);
 
-	g_allowslipping = gi.cvar("g_allowslipping", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+	g_AllowWeaponDropping = gi.cvar("g_AllowWeaponDropping", "1", CVAR_ARCHIVE);
 
-	g_allowClimbing = gi.cvar("g_allowClimbing", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-
-	g_newgameplusJKA = gi.cvar("g_newgameplusJKA", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-
-	g_newgameplusJKO = gi.cvar("g_newgameplusJKO", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-
-	g_AllowWeaponDropping = gi.cvar("g_AllowWeaponDropping", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-
-	g_remove_unused_weapons = gi.cvar("g_remove_unused_weapons", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
-
-	g_WeaponRemovalTime = gi.cvar("g_WeaponRemovalTime", "10", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+	g_WeaponRemovalTime = gi.cvar("g_WeaponRemovalTime", "10", CVAR_ARCHIVE);
 	//number of seconds weapons stick around for, at least... 0 = never go away
 
 	g_IconBackgroundSlow = gi.cvar("g_iconbackgroundslow", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
 
-	g_AllowLedgeGrab = gi.cvar("g_allowledgegrab", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+	g_allowcallout = gi.cvar("g_allowattackorder", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+
+	g_remove_unused_weapons = gi.cvar("g_removedroppedweapons", "0", CVAR_ARCHIVE);
+
+	g_allowslipping = gi.cvar("g_allowslipping", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+
+	g_RealisticBlockingMode = gi.cvar("g_RealisticBlockingMode", "0", CVAR_ARCHIVE); //Alternate saber combat system
+
+	g_debugFatigueBars = gi.cvar("cg_drawfatiguepointbar", "0", CVAR_ARCHIVE);
+
+	g_AdvancedWeaponPickup = gi.cvar("g_AdvancedWeaponPickup", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+
+	g_Advancedaitalk = gi.cvar("g_Advancedaitalk", "0", CVAR_ARCHIVE);
+
+	com_kotor = gi.cvar("com_kotor", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
 
 	g_attackskill = gi.cvar("g_attackskill", "3", CVAR_ARCHIVE);
+	// Modifier for special/kata attack frequency (1.0 = default, lower = less frequent, higher = more frequent)
+	g_npcSpecialAttackFreq = gi.cvar("g_npcSpecialAttackFreq", "1.0", CVAR_ARCHIVE);
 
-	g_saberLockCinematicCamera = gi.cvar("g_saberLockCinematicCamera", "1", CVAR_ARCHIVE);
+	g_saberLockCinematicCamera = gi.cvar("g_saberLockCinematicCamera", "0", CVAR_ARCHIVE);
 
-	com_rend2 = gi.cvar("com_rend2", "0", CVAR_ARCHIVE | CVAR_SAVEGAME);
+	g_ffamode = gi.cvar("g_ffamode", "0", CVAR_ARCHIVE);
+
+	g_SaberBounceOnWalls = gi.cvar("g_saberbounceonwalls", "0", CVAR_ARCHIVE);
+
+	g_SaberMustReturn = gi.cvar("g_sabermustreturn", "1", CVAR_ARCHIVE);
+
+	com_rend2 = gi.cvar("com_rend2", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+
+	g_overpoweredsaberthrow = gi.cvar("g_overpoweredsaberthrow", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+
+	g_autoHealthRegen = gi.cvar("g_autoHealthRegen", "0", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+
+	g_allowSuperSaberLockBreaks = gi.cvar("g_allowSuperSaberLockBreaks", "1", CVAR_ARCHIVE);
+
+	g_AllowWeather = gi.cvar("g_AllowWeather", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
 
 	r_AdvancedsurfaceSprites = gi.cvar("r_advancedlod", "1", CVAR_ARCHIVE | CVAR_SAVEGAME);
 
-	g_AllowWeather = gi.cvar("g_AllowWeather", "1", CVAR_ARCHIVE | CVAR_SAVEGAME | CVAR_NORESTART);
+	g_debugItems = gi.cvar("g_debugItems", "0", CVAR_CHEAT);
+	g_fixJOItems = gi.cvar("g_fixJOItems", "1", CVAR_ARCHIVE);
+
+	g_npc_is_smart = gi.cvar("g_npc_is_smart", "0", CVAR_ARCHIVE | CVAR_SAVEGAME);
+	g_npc_is_smart_range = gi.cvar("g_npc_is_smart_range", "3500", CVAR_ARCHIVE);
 }
 
 /*
@@ -895,27 +986,27 @@ InitGame
 //	may get changed anyway if a new nav system is ever used. This way saves messing with g_local.h each time -slc
 int giMapChecksum;
 SavedGameJustLoaded_e g_eSavedGameJustLoaded;
-qboolean g_qb_load_transition = qfalse;
-void G_LoadExtraEntitiesFile();
+qboolean g_qbLoadTransition = qfalse;
 
-static void init_game(const char* mapname, const char* spawntarget, const int check_sum, const char* entities,
-	const int level_time, const int random_seed, const int global_time,
-	const SavedGameJustLoaded_e e_saved_game_just_loaded, const qboolean qb_load_transition)
+static void InitGame(const char* mapname, const char* spawntarget, const int checkSum, const char* entities,
+	const int levelTime,
+	const int randomSeed, const int globalTime, const SavedGameJustLoaded_e e_saved_game_just_loaded,
+	const qboolean qbLoadTransition)
 {
 	//rww - default this to 0, we will auto-set it to 1 if we run into a terrain ent
 	gi.cvar_set("RMG", "0");
 
 	g_bCollidableRoffs = qfalse;
 
-	giMapChecksum = check_sum;
+	giMapChecksum = checkSum;
 	g_eSavedGameJustLoaded = e_saved_game_just_loaded;
-	g_qb_load_transition = qb_load_transition;
+	g_qbLoadTransition = qbLoadTransition;
 
 	gi.Printf("------- Game Initialization -------\n");
 	gi.Printf("gamename: %s\n", GAMEVERSION);
 	gi.Printf("gamedate: %s\n", SOURCE_DATE);
 
-	srand(random_seed);
+	srand(randomSeed);
 
 	G_InitCvars();
 
@@ -923,8 +1014,8 @@ static void init_game(const char* mapname, const char* spawntarget, const int ch
 
 	// set some level globals
 	memset(&level, 0, sizeof level);
-	level.time = level_time;
-	level.globalTime = global_time;
+	level.time = levelTime;
+	level.globalTime = globalTime;
 	Q_strncpyz(level.mapname, mapname, sizeof level.mapname);
 	if (spawntarget != nullptr && spawntarget[0])
 	{
@@ -955,47 +1046,7 @@ static void init_game(const char* mapname, const char* spawntarget, const int ch
 	globals.num_entities = MAX_CLIENTS;
 
 	//Load sabers.cfg data
-
-	if (com_outcast->integer == 0) //academy
-	{
-		WP_SaberLoadParms();
-	}
-	else if (com_outcast->integer == 1)//playing outcast
-	{
-		WP_SaberLoadParms(); //outcast version
-	}
-	else if (com_outcast->integer == 2) //playing creative
-	{
-		WP_SaberLoadParms();
-	}
-	else if (com_outcast->integer == 3) //playing yav
-	{
-		WP_SaberLoadParms_yav();
-	}
-	else if (com_outcast->integer == 4) //playing darkforces
-	{
-		WP_SaberLoadParms();
-	}
-	else if (com_outcast->integer == 5) //playing kotor
-	{
-		WP_SaberLoadParms();
-	}
-	else if (com_outcast->integer == 6) //survival version
-	{
-		WP_SaberLoadParms();
-	}
-	else if (com_outcast->integer == 7) //nina version
-	{
-		WP_SaberLoadParms();
-	}
-	else if (com_outcast->integer == 8) //veng version
-	{
-		WP_SaberLoadParms();
-	}
-	else
-	{
-		WP_SaberLoadParms();
-	}
+	WP_SaberLoadParms();
 	//Set up NPC init data
 	NPC_InitGame();
 
@@ -1008,7 +1059,7 @@ static void init_game(const char* mapname, const char* spawntarget, const int ch
 
 	IT_LoadWeatherParms();
 
-	clear_registered_items();
+	ClearRegisteredItems();
 
 	// clear out old nav info, attempt to load from file
 	NAV::LoadFromFile(level.mapname, giMapChecksum);
@@ -1016,12 +1067,8 @@ static void init_game(const char* mapname, const char* spawntarget, const int ch
 	// parse the key/value pairs and spawn gentities
 	G_SpawnEntitiesFromString(entities);
 
-	G_LoadExtraEntitiesFile();
-
 	// general initialization
 	G_FindTeams();
-
-	//	SaveRegisteredItems();
 
 	gi.Printf("-----------------------------------\n");
 
@@ -1110,18 +1157,18 @@ extern "C" Q_EXPORT game_export_t* QDECL GetGameAPI(const game_import_t* import)
 	gi = *import;
 
 	globals.apiversion = GAME_API_VERSION;
-	globals.Init = init_game;
+	globals.Init = InitGame;
 	globals.Shutdown = ShutdownGame;
 
 	globals.WriteLevel = WriteLevel;
 	globals.ReadLevel = ReadLevel;
-	globals.GameAllowedToSaveHere = game_allowed_to_save_here;
+	globals.GameAllowedToSaveHere = GameAllowedToSaveHere;
 
 	globals.ClientThink = ClientThink;
-	globals.ClientConnect = client_connect;
+	globals.ClientConnect = ClientConnect;
 	globals.client_userinfo_changed = client_userinfo_changed;
 	globals.ClientDisconnect = ClientDisconnect;
-	globals.client_begin = client_begin;
+	globals.ClientBegin = ClientBegin;
 	globals.ClientCommand = ClientCommand;
 
 	globals.RunFrame = G_RunFrame;
@@ -1140,7 +1187,7 @@ extern "C" Q_EXPORT game_export_t* QDECL GetGameAPI(const game_import_t* import)
 	gameinfo_import.Cvar_VariableStringBuffer = gi.Cvar_VariableStringBuffer;
 	gameinfo_import.Cvar_Create = G_Cvar_Create;
 
-	GI_Init(&gameinfo_import);
+	GI_Init();
 
 	return &globals;
 }
@@ -1410,7 +1457,82 @@ static void G_Animate(gentity_t* self)
 	}
 }
 
-void g_player_guilt_death()
+/*
+-------------------------
+ResetTeamCounters
+-------------------------
+*/
+
+/*
+void ResetTeamCounters( void )
+{
+	//clear team enemy counters
+	for ( int team = TEAM_FREE; team < TEAM_NUM_TEAMS; team++ )
+	{
+		teamEnemyCount[team] = 0;
+		teamCount[team] = 0;
+	}
+}
+*/
+
+/*
+-------------------------
+UpdateTeamCounters
+-------------------------
+*/
+/*
+void UpdateTeamCounters( gentity_t *ent )
+{
+	if ( !ent->NPC )
+	{
+		return;
+	}
+	if ( !ent->client )
+	{
+		return;
+	}
+	if ( ent->health <= 0 )
+	{
+		return;
+	}
+	if ( (ent->s.eFlags&EF_NODRAW) )
+	{
+		return;
+	}
+	if ( ent->client->playerTeam == TEAM_FREE )
+	{
+		return;
+	}
+	//this is an NPC who is alive and visible and is on a specific team
+
+	teamCount[ent->client->playerTeam]++;
+	if ( !ent->enemy )
+	{
+		return;
+	}
+
+	//ent has an enemy
+	if ( !ent->enemy->client )
+	{//enemy is a normal ent
+		if ( ent->noDamageTeam == ent->client->playerTeam )
+		{//it's on my team, don't count it as an enemy
+			return;
+		}
+	}
+	else
+	{//enemy is another NPC/player
+		if ( ent->enemy->client->playerTeam == ent->client->playerTeam)
+		{//enemy is on the same team, don't count it as an enemy
+			return;
+		}
+	}
+
+	//ent's enemy is not on the same team
+	teamLastEnemyTime[ent->client->playerTeam] = level.time;
+	teamEnemyCount[ent->client->playerTeam]++;
+}
+*/
+void G_PlayerGuiltDeath()
 {
 	if (player && player->client)
 	{
@@ -1430,7 +1552,7 @@ void g_player_guilt_death()
 	}
 }
 
-extern void NPC_SetAnim(gentity_t* ent, int setAnimParts, int anim, int setAnimFlags, int i_blend);
+extern void NPC_SetAnim(gentity_t* ent, int set_anim_parts, int anim, int set_anim_flags, int i_blend);
 extern void G_MakeTeamVulnerable();
 int killPlayerTimer = 0;
 
@@ -1442,10 +1564,10 @@ static void G_CheckEndLevelTimers(gentity_t* ent)
 		ent->health = 0;
 		if (ent->client && ent->client->ps.stats[STAT_HEALTH] > 0)
 		{
-			g_player_guilt_death();
+			G_PlayerGuiltDeath();
 			//cg.missionStatusShow = qtrue;
 			statusTextIndex = MISSIONFAILED_TURNED;
-			//debounce respawn time
+			//denounce respawn time
 			ent->client->respawnTime = level.time + 2000;
 			//stop all scripts
 			stop_icarus = qtrue;
@@ -1456,7 +1578,7 @@ static void G_CheckEndLevelTimers(gentity_t* ent)
 }
 
 //rww - RAGDOLL_BEGIN
-class c_game_rag_doll_update_params final : public CRagDollUpdateParams
+class CGameRagDollUpdateParams : public CRagDollUpdateParams
 {
 	void EffectorCollision(const SRagDollEffectorCollision& data) override
 	{
@@ -1464,8 +1586,8 @@ class c_game_rag_doll_update_params final : public CRagDollUpdateParams
 
 		if (data.useTracePlane)
 		{
-			constexpr float magicFactor42 = 64.0f;
-			VectorScale(data.tr.plane.normal, magicFactor42, effectorPosDif);
+			constexpr float magic_factor42 = 64.0f;
+			VectorScale(data.tr.plane.normal, magic_factor42, effectorPosDif);
 		}
 		else
 		{
@@ -1502,9 +1624,12 @@ class c_game_rag_doll_update_params final : public CRagDollUpdateParams
 #ifdef _DEBUG
 	void DebugLine(vec3_t p1, vec3_t p2, const int color, const bool bbox) override
 	{
+		// SP cannot draw polygon debug surfaces.
+		// Only draw simple test lines.
 		if (!bbox)
 		{
-			CG_TestLine(p1, p2, 50, color, 1);
+			// lifetime = 50ms, depthTest = 1
+			CG_TestLine(p1, p2, 50, color, qtrue);
 		}
 	}
 #endif
@@ -1518,31 +1643,35 @@ public:
 static const char* g_effectorStringTable[] =
 {
 	//commented out the ones I don't want dragging to affect
+	//	"thoracic",
+	//	"rhand",
 	"lhand",
 	"rtibia",
 	"ltibia",
 	"rtalus",
 	"ltalus",
+	//	"rradiusX",
 	"lradiusX",
 	"rfemurX",
 	"lfemurX",
+	//	"ceyebrow",
 	nullptr //always terminate
 };
 
 extern qboolean g_standard_humanoid(gentity_t* self);
-extern void PM_SetTorsoAnimTimer(gentity_t* ent, int* torsoAnimTimer, int time);
-extern void PM_SetLegsAnimTimer(gentity_t* ent, int* legsAnimTimer, int time);
+extern void PM_SetTorsoAnimTimer(gentity_t* ent, int* torso_anim_timer, int time);
+extern void PM_SetLegsAnimTimer(gentity_t* ent, int* legs_anim_timer, int time);
 extern qboolean G_ReleaseEntity(const gentity_t* grabber);
 
 static void G_BodyDragUpdate(const gentity_t* ent, const gentity_t* dragger)
 {
-	vec3_t handVec;
+	vec3_t hand_vec;
 
 	assert(ent && ent->inuse && ent->client && ent->ghoul2.size() &&
 		dragger && dragger->inuse && dragger->client && dragger->ghoul2.size());
 
-	VectorSubtract(dragger->client->renderInfo.handRPoint, ent->client->renderInfo.torsoPoint, handVec);
-	const float handDist = VectorLength(handVec);
+	VectorSubtract(dragger->client->renderInfo.handRPoint, ent->client->renderInfo.torsoPoint, hand_vec);
+	const float handDist = VectorLength(hand_vec);
 
 	if (handDist > 64.0f)
 	{
@@ -1550,14 +1679,14 @@ static void G_BodyDragUpdate(const gentity_t* ent, const gentity_t* dragger)
 	}
 	else if (handDist > 12.0f)
 	{
-		VectorNormalize(handVec);
-		VectorScale(handVec, 256.0f, handVec);
-		handVec[2] = 0;
+		VectorNormalize(hand_vec);
+		VectorScale(hand_vec, 256.0f, hand_vec);
+		hand_vec[2] = 0;
 
 		//VectorAdd(ent->client->ps.velocity, handVec, ent->client->ps.velocity);
 		//VectorCopy(handVec, ent->client->ps.velocity);
-		ent->client->ps.velocity[0] = handVec[0];
-		ent->client->ps.velocity[1] = handVec[1];
+		ent->client->ps.velocity[0] = hand_vec[0];
+		ent->client->ps.velocity[1] = hand_vec[1];
 	}
 }
 
@@ -1589,157 +1718,198 @@ static int G_RagAnimForPositioning(gentity_t* ent)
 
 static inline qboolean G_RagWantsHumanoidsOnly(CGhoul2Info* ghlInfo)
 {
-	const char* gla_name = gi.G2API_GetGLAName(ghlInfo);
-	assert(gla_name);
+	if (!ghlInfo || !ghlInfo->mModel)
+	{
+		return qfalse;
+	}
 
-	if (!Q_stricmp("models/players/_humanoid/_humanoid", gla_name))
+	const char* GLAName = gi.G2API_GetGLAName(ghlInfo);
+	if (!GLAName)
 	{
-		//only _humanoid skeleton is expected to have these
-		return qtrue;
+		return qfalse; // Non‑humanoid or missing GLA (e.g., thrown saber)
 	}
-	if (!Q_stricmp("models/players/JK2anims/JK2anims", gla_name))
+
+	// List of humanoid GLA roots used in the mod
+	static const char* humanoidRoots[] =
 	{
-		//only _humanoid skeleton is expected to have these
-		return qtrue;
-	}
-	if (!Q_stricmp("models/players/_humanoid_sbd/_humanoid", gla_name))
+		"models/players/_humanoid",
+		"models/players/JK2anims",
+		"models/players/_humanoid_ani",
+		"models/players/_humanoid_bdroid",
+		"models/players/_humanoid_ben",
+		"models/players/_humanoid_cal",
+		"models/players/_humanoid_clo",
+		"models/players/_humanoid_deka",
+		"models/players/_humanoid_df2",
+		"models/players/_humanoid_dooku",
+		"models/players/_humanoid_galen",
+		"models/players/_humanoid_gon",
+		"models/players/_humanoid_grievous",
+		"models/players/_humanoid_jabba",
+		"models/players/_humanoid_jango",
+		"models/players/_humanoid_kotor",
+		"models/players/_humanoid_luke",
+		"models/players/_humanoid_mace",
+		"models/players/_humanoid_maul",
+		"models/players/_humanoid_md",
+		"models/players/_humanoid_melee",
+		"models/players/_humanoid_obi",
+		"models/players/_humanoid_obi3",
+		"models/players/_humanoid_pal",
+		"models/players/_humanoid_reb",
+		"models/players/_humanoid_ren",
+		"models/players/_humanoid_rey",
+		"models/players/_humanoid_sbd",
+		"models/players/_humanoid_vader",
+		"models/players/_humanoid_yoda"
+	};
+
+	for (int i = 0; i < ARRAY_LEN(humanoidRoots); i++)
 	{
-		//only _humanoid skeleton is expected to have these
-		return qtrue;
-	}
-	if (!Q_stricmp("models/players/_humanoid_yoda/_humanoid_yoda", gla_name))
-	{
-		//only _humanoid skeleton is expected to have these
-		return qtrue;
+		if (!Q_strncmp(GLAName, humanoidRoots[i], strlen(humanoidRoots[i])))
+		{
+			return qtrue;
+		}
 	}
 
 	return qfalse;
 }
 
-//rww - game interface for the ragdoll stuff.
-//Returns qtrue if the entity is now in a ragdoll state, otherwise qfalse.
-//(ported from MP's CG version)
+extern qboolean G_RagDollDisallowedClass(const class_t npc_class);
 
+// rww - game interface for the ragdoll stuff.
+// Returns qtrue if the entity is now in a ragdoll state, otherwise qfalse.
+// (ported from MP's CG version)
 qboolean G_RagDoll(gentity_t* ent, vec3_t forcedAngles)
 {
-	vec3_t G2Angles;
-	vec3_t usedOrg;
-	qboolean inSomething = qfalse;
+	vec3_t    G2Angles;
+	vec3_t    usedOrg;
+	qboolean  inSomething = qfalse;
 
-	if (!g_broadsword->integer || ent->client->NPC_class == CLASS_SBD || ent->client->NPC_class == CLASS_DROIDEKA)
+	// ------------------------------------------------------------
+	// Basic validation and global toggle
+	// ------------------------------------------------------------
+	if (ent == NULL || ent->inuse == qfalse || ent->client == NULL)
 	{
 		return qfalse;
 	}
 
-	if (!ent ||
-		!ent->inuse ||
-		!ent->client ||
-		ent->health > 0 ||
+	// If Broadsword is off OR this NPC class is not allowed to ragdoll
+	if (!g_broadsword->integer || G_RagDollDisallowedClass(ent->client->NPC_class))
+	{
+		return qfalse;
+	}
+
+	// ------------------------------------------------------------
+	// Eligibility checks for entering ragdoll
+	// ------------------------------------------------------------
+	if (ent->health > 0 ||
 		ent->client->noRagTime >= level.time ||
 		ent->client->noRagTime == -1 ||
-		ent->s.powerups & 1 << PW_DISRUPTION ||
-		!ent->e_DieFunc ||
+		(ent->s.powerups & (1 << PW_DISRUPTION)) != 0 ||
+		ent->e_DieFunc == NULL ||
 		ent->playerModel < 0 ||
-		!ent->ghoul2.size() ||
-		!G_RagWantsHumanoidsOnly(&ent->ghoul2[ent->playerModel])
-		)
+		ent->ghoul2.size() == 0 ||
+		!G_RagWantsHumanoidsOnly(&ent->ghoul2[ent->playerModel]))
 	{
 		return qfalse;
 	}
 
 	VectorCopy(forcedAngles, G2Angles);
 
+	// ------------------------------------------------------------
+	// If being held by another client, update drag state
+	// ------------------------------------------------------------
 	if (ent->client->ps.heldByClient <= ENTITYNUM_WORLD)
 	{
 		const gentity_t* grabbedBy = &g_entities[ent->client->ps.heldByClient];
 
-		if (grabbedBy->inuse && grabbedBy->client &&
-			grabbedBy->ghoul2.size())
+		if (grabbedBy->inuse &&
+			grabbedBy->client != NULL &&
+			grabbedBy->ghoul2.size() != 0)
 		{
 			G_BodyDragUpdate(ent, grabbedBy);
 		}
 	}
 
-	//--FIXME: do not go into ragdoll if in a spinning death anim or something, it really messes things up
-	//rww 12/17/02 - should be ok now actually with my new stuff
-
+	// ------------------------------------------------------------
+	// Decide whether to enter ragdoll
+	// ------------------------------------------------------------
 	VectorCopy(ent->client->ps.origin, usedOrg);
 
-	if (!ent->client->isRagging)
+	if (ent->client->isRagging == qfalse)
 	{
-		//If we're not in a ragdoll state, perform the checks.
+		// If held by a client, always allow rag
 		if (ent->client->ps.heldByClient <= ENTITYNUM_WORLD)
 		{
-			//want to rag no matter what then
 			inSomething = qtrue;
 		}
 		else if (ent->client->ps.groundEntityNum == ENTITYNUM_NONE)
 		{
+			// In air: check velocity magnitude
 			vec3_t cVel;
-
 			VectorCopy(ent->client->ps.velocity, cVel);
 
-			if (VectorNormalize(cVel) > 400)
+			if (VectorNormalize(cVel) > 400.0f)
 			{
-				//if he's flying through the air at a good enough speed, switch into ragdoll
 				inSomething = qtrue;
 			}
 		}
 
-		if (g_broadsword->integer > 1 && ent->client->NPC_class != CLASS_SBD && ent->client->NPC_class !=
-			CLASS_DROIDEKA)
+		// Broadsword > 1: always rag on death (except disallowed classes)
+		if (g_broadsword->integer > 1 &&
+			!G_RagDollDisallowedClass(ent->client->NPC_class))
 		{
-			//go into rag instantly upon death
 			inSomething = qtrue;
-			ent->client->ps.velocity[2] += 32;
+			ent->client->ps.velocity[2] += 32.0f;
 		}
 
-		if (!inSomething)
+		// If still undecided, do bolt‑based obstruction checks
+		if (inSomething == qfalse)
 		{
-			int i = 0;
-			int boltChecks[5]{};
-			vec3_t boltPoints[5]{};
-			vec3_t tAng;
-			//qboolean deathDone = qfalse;
-			trace_t tr;
-			mdxaBone_t boltMatrix;
+			int        i = 0;
+			int        boltChecks[5] = { 0 };
+			vec3_t     boltPoints[5] = { 0 };
+			vec3_t     tAng;
+			trace_t    tr;
+			mdxaBone_t bolt_matrix;
 
-			VectorSet(tAng, 0, ent->client->ps.viewangles[YAW], 0);
+			VectorSet(tAng, 0.0f, ent->client->ps.viewangles[YAW], 0.0f);
 
-			if (ent->client->ps.legsAnimTimer <= 0)
-			{
-				//Looks like the death anim is done playing
-				//deathDone = qtrue;
-			}
+			// Hands (if death anim done; currently always true)
+			boltChecks[0] = gi.G2API_AddBolt(&ent->ghoul2[ent->playerModel], "rhand");
+			boltChecks[1] = gi.G2API_AddBolt(&ent->ghoul2[ent->playerModel], "lhand");
 
-			//if (deathDone)
-			if (true)
-			{
-				//only trace from the hands if the death anim is already done.
-				boltChecks[0] = gi.G2API_AddBolt(&ent->ghoul2[ent->playerModel], "rhand");
-				boltChecks[1] = gi.G2API_AddBolt(&ent->ghoul2[ent->playerModel], "lhand");
-			}
+			// Head and feet
 			boltChecks[2] = gi.G2API_AddBolt(&ent->ghoul2[ent->playerModel], "cranium");
 			boltChecks[3] = gi.G2API_AddBolt(&ent->ghoul2[ent->playerModel], "rtalus");
 			boltChecks[4] = gi.G2API_AddBolt(&ent->ghoul2[ent->playerModel], "ltalus");
 
-			//Do the head first, because the hands reference it anyway.
-			gi.G2API_GetBoltMatrix(ent->ghoul2, ent->playerModel, boltChecks[2], &boltMatrix, tAng,
-				ent->client->ps.origin, cg.time ? cg.time : level.time, nullptr,
+			// Get head position first
+			gi.G2API_GetBoltMatrix(ent->ghoul2, ent->playerModel, boltChecks[2],
+				&bolt_matrix, tAng,
+				ent->client->ps.origin,
+				cg.time ? cg.time : level.time,
+				NULL,
 				ent->s.modelScale);
-			gi.G2API_GiveMeVectorFromMatrix(boltMatrix, ORIGIN, boltPoints[2]);
+			gi.G2API_GiveMeVectorFromMatrix(bolt_matrix, ORIGIN, boltPoints[2]);
 
 			while (i < 5)
 			{
-				vec3_t trEnd;
 				vec3_t trStart;
+				vec3_t trEnd;
+
 				if (i < 2)
 				{
-					//when doing hands, trace to the head instead of origin
-					gi.G2API_GetBoltMatrix(ent->ghoul2, ent->playerModel, boltChecks[i], &boltMatrix, tAng,
-						ent->client->ps.origin, cg.time ? cg.time : level.time, nullptr,
+					// Hands trace to head
+					gi.G2API_GetBoltMatrix(ent->ghoul2, ent->playerModel, boltChecks[i],
+						&bolt_matrix, tAng,
+						ent->client->ps.origin,
+						cg.time ? cg.time : level.time,
+						NULL,
 						ent->s.modelScale);
-					gi.G2API_GiveMeVectorFromMatrix(boltMatrix, ORIGIN, boltPoints[i]);
+					gi.G2API_GiveMeVectorFromMatrix(bolt_matrix, ORIGIN, boltPoints[i]);
+
 					VectorCopy(boltPoints[i], trStart);
 					VectorCopy(boltPoints[2], trEnd);
 				}
@@ -1747,40 +1917,26 @@ qboolean G_RagDoll(gentity_t* ent, vec3_t forcedAngles)
 				{
 					if (i > 2)
 					{
-						//2 is the head, which already has the bolt point.
-						gi.G2API_GetBoltMatrix(ent->ghoul2, ent->playerModel, boltChecks[i], &boltMatrix, tAng,
-							ent->client->ps.origin, cg.time ? cg.time : level.time, nullptr,
+						gi.G2API_GetBoltMatrix(ent->ghoul2, ent->playerModel, boltChecks[i],
+							&bolt_matrix, tAng,
+							ent->client->ps.origin,
+							cg.time ? cg.time : level.time,
+							NULL,
 							ent->s.modelScale);
-						gi.G2API_GiveMeVectorFromMatrix(boltMatrix, ORIGIN, boltPoints[i]);
+						gi.G2API_GiveMeVectorFromMatrix(bolt_matrix, ORIGIN, boltPoints[i]);
 					}
+
 					VectorCopy(boltPoints[i], trStart);
 					VectorCopy(ent->client->ps.origin, trEnd);
 				}
 
-				//Now that we have all that sorted out, trace between the two points we desire.
-				gi.trace(&tr, trStart, nullptr, nullptr, trEnd, ent->s.number, MASK_SOLID,
+				gi.trace(&tr, trStart, NULL, NULL, trEnd,
+					ent->s.number, MASK_SOLID,
 					static_cast<EG2_Collision>(0), 0);
 
-				if (tr.fraction != 1.0 || tr.startsolid || tr.allsolid)
+				if (tr.fraction != 1.0f || tr.startsolid || tr.allsolid)
 				{
-					//Hit something or start in solid, so flag it and break.
-					//This is a slight hack, but if we aren't done with the death anim, we don't really want to
-					//go into ragdoll unless our body has a relatively "flat" pitch.
-#if 0
-					vec3_t vSub;
-
-					//Check the pitch from the head to the right foot (should be reasonable)
-					VectorSubtract(boltPoints[2], boltPoints[3], vSub);
-					VectorNormalize(vSub);
-					vectoangles(vSub, vSub);
-
-					if (deathDone || (vSub[PITCH] < 50 && vSub[PITCH] > -50))
-					{
-						inSomething = qtrue;
-					}
-#else
 					inSomething = qtrue;
-#endif
 					break;
 				}
 
@@ -1788,69 +1944,103 @@ qboolean G_RagDoll(gentity_t* ent, vec3_t forcedAngles)
 			}
 		}
 
-		if (inSomething)
+		if (inSomething == qtrue)
 		{
 			ent->client->isRagging = qtrue;
 		}
 	}
 
+	// ------------------------------------------------------------
+	// If ragging, drive the ragdoll simulation
+	// ------------------------------------------------------------
 	if (ent->client->isRagging)
 	{
-		//We're in a ragdoll state, so make the call to keep our positions updated and whatnot.
-		CRagDollParams tParms{};
-		c_game_rag_doll_update_params tuParms;
-
-		const int ragAnim = G_RagAnimForPositioning(ent);
-
-		//these will be used as "base" frames for the ragoll settling.
-		tParms.startFrame = level.knownAnimFileSets[ent->client->clientInfo.animFileIndex].animations[ragAnim].
-			firstFrame;
-		tParms.endFrame = level.knownAnimFileSets[ent->client->clientInfo.animFileIndex].animations[ragAnim].firstFrame
-			+ level.knownAnimFileSets[ent->client->clientInfo.animFileIndex].animations[ragAnim].numFrames;
-#if 1
+		// NEW: Prevent forbidden classes from ever reaching the renderer
+		if (G_RagDollDisallowedClass(ent->client->NPC_class))
 		{
-			float currentFrame;
-			int startFrame, endFrame;
-			int flags;
+			ent->client->isRagging = qfalse;   // clear rag state
+			return qfalse;                     // skip ragdoll entirely
+		}
+		CRagDollParams          tParms;
+		CGameRagDollUpdateParams tuParms;
+		const int               ragAnim = G_RagAnimForPositioning(ent);
+
+		// Value‑initialize objects instead of memset to preserve vptrs for polymorphic types
+		// (memset on polymorphic objects can zero the vptr and cause crashes on virtual calls).
+		tParms = CRagDollParams();
+		tuParms = CGameRagDollUpdateParams();
+
+		// Base frames for ragdoll settling
+		tParms.startFrame =
+			level.knownAnimFileSets[ent->client->clientInfo.animFileIndex].animations[ragAnim].firstFrame;
+		tParms.endFrame =
+			level.knownAnimFileSets[ent->client->clientInfo.animFileIndex].animations[ragAnim].firstFrame +
+			level.knownAnimFileSets[ent->client->clientInfo.animFileIndex].animations[ragAnim].numFrames;
+
+		// Lock current anim frame on some key bones
+		{
+			float current_frame;
+			int   startFrame;
+			int   endFrame;
+			int   flags;
 			float animSpeed;
 
-			if (gi.G2API_GetBoneAnim(&ent->ghoul2[0], "model_root", cg.time ? cg.time : level.time, &currentFrame,
-				&startFrame, &endFrame, &flags, &animSpeed, nullptr))
+			if (gi.G2API_GetBoneAnim(&ent->ghoul2[0], "model_root",
+				cg.time ? cg.time : level.time,
+				&current_frame, &startFrame, &endFrame,
+				&flags, &animSpeed, NULL))
 			{
-				//lock the anim on the current frame.
-				constexpr int blendTime = 500;
+				const int blend_time = 500;
 
-				gi.G2API_SetBoneAnim(&ent->ghoul2[0], "lower_lumbar", currentFrame, currentFrame + 1, flags, animSpeed,
-					cg.time ? cg.time : level.time, currentFrame, blendTime);
-				gi.G2API_SetBoneAnim(&ent->ghoul2[0], "model_root", currentFrame, currentFrame + 1, flags, animSpeed,
-					cg.time ? cg.time : level.time, currentFrame, blendTime);
-				gi.G2API_SetBoneAnim(&ent->ghoul2[0], "Motion", currentFrame, currentFrame + 1, flags, animSpeed,
-					cg.time ? cg.time : level.time, currentFrame, blendTime);
+				gi.G2API_SetBoneAnim(&ent->ghoul2[0], "lower_lumbar",
+					current_frame, current_frame + 1,
+					flags, animSpeed,
+					cg.time ? cg.time : level.time,
+					current_frame, blend_time);
+				gi.G2API_SetBoneAnim(&ent->ghoul2[0], "model_root",
+					current_frame, current_frame + 1,
+					flags, animSpeed,
+					cg.time ? cg.time : level.time,
+					current_frame, blend_time);
+				gi.G2API_SetBoneAnim(&ent->ghoul2[0], "Motion",
+					current_frame, current_frame + 1,
+					flags, animSpeed,
+					cg.time ? cg.time : level.time,
+					current_frame, blend_time);
 			}
 		}
-#endif
 
-		gi.G2API_SetBoneAngles(&ent->ghoul2[ent->playerModel], "upper_lumbar", vec3_origin, BONE_ANGLES_POSTMULT,
-			POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, nullptr, 100, cg.time ? cg.time : level.time);
-		gi.G2API_SetBoneAngles(&ent->ghoul2[ent->playerModel], "lower_lumbar", vec3_origin, BONE_ANGLES_POSTMULT,
-			POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, nullptr, 100, cg.time ? cg.time : level.time);
-		gi.G2API_SetBoneAngles(&ent->ghoul2[ent->playerModel], "thoracic", vec3_origin, BONE_ANGLES_POSTMULT,
-			POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, nullptr, 100, cg.time ? cg.time : level.time);
-		gi.G2API_SetBoneAngles(&ent->ghoul2[ent->playerModel], "cervical", vec3_origin, BONE_ANGLES_POSTMULT,
-			POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, nullptr, 100, cg.time ? cg.time : level.time);
+		// Zero out spine angles to avoid fighting ragdoll
+		gi.G2API_SetBoneAngles(&ent->ghoul2[ent->playerModel], "upper_lumbar",
+			vec3_origin, BONE_ANGLES_POSTMULT,
+			POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z,
+			NULL, 100, cg.time ? cg.time : level.time);
+		gi.G2API_SetBoneAngles(&ent->ghoul2[ent->playerModel], "lower_lumbar",
+			vec3_origin, BONE_ANGLES_POSTMULT,
+			POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z,
+			NULL, 100, cg.time ? cg.time : level.time);
+		gi.G2API_SetBoneAngles(&ent->ghoul2[ent->playerModel], "thoracic",
+			vec3_origin, BONE_ANGLES_POSTMULT,
+			POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z,
+			NULL, 100, cg.time ? cg.time : level.time);
+		gi.G2API_SetBoneAngles(&ent->ghoul2[ent->playerModel], "cervical",
+			vec3_origin, BONE_ANGLES_POSTMULT,
+			POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z,
+			NULL, 100, cg.time ? cg.time : level.time);
 
+		// Fill ragdoll params
 		VectorCopy(G2Angles, tParms.angles);
 		VectorCopy(usedOrg, tParms.position);
 		VectorCopy(ent->s.modelScale, tParms.scale);
 		tParms.me = ent->s.number;
 		tParms.groundEnt = ent->client->ps.groundEntityNum;
-
 		tParms.collisionType = 1;
 		tParms.RagPhase = CRagDollParams::RP_DEATH_COLLISION;
-		tParms.fShotStrength = 4;
+		tParms.fShotStrength = 4.0f;
 
 		gi.G2API_SetRagDoll(ent->ghoul2, &tParms);
 
+		// Update params
 		tuParms.hasEffectorData = qfalse;
 		VectorClear(tuParms.effectorTotal);
 
@@ -1872,11 +2062,14 @@ qboolean G_RagDoll(gentity_t* ent, vec3_t forcedAngles)
 
 		gi.G2API_AnimateG2Models(ent->ghoul2, cg.time ? cg.time : level.time, &tuParms);
 
+		// --------------------------------------------------------
+		// Handle being dragged by another entity
+		// --------------------------------------------------------
 		if (ent->client->ps.heldByClient <= ENTITYNUM_WORLD)
 		{
 			const gentity_t* grabEnt = &g_entities[ent->client->ps.heldByClient];
 
-			if (grabEnt->client && grabEnt->ghoul2.size())
+			if (grabEnt->client != NULL && grabEnt->ghoul2.size() != 0)
 			{
 				vec3_t bOrg;
 				vec3_t thisHand;
@@ -1900,26 +2093,24 @@ qboolean G_RagDoll(gentity_t* ent, vec3_t forcedAngles)
 					gi.G2API_RagForceSolve(ent->ghoul2, qtrue);
 				}
 
-				//got the hand pos of him, now we want to make our hand go to it
+				// Drive our hand toward the grabber's hand
 				gi.G2API_RagEffectorGoal(ent->ghoul2, "rhand", bOrg);
 				gi.G2API_RagEffectorGoal(ent->ghoul2, "rradius", bOrg);
 				gi.G2API_RagEffectorGoal(ent->ghoul2, "rradiusX", bOrg);
 				gi.G2API_RagEffectorGoal(ent->ghoul2, "rhumerusX", bOrg);
 				gi.G2API_RagEffectorGoal(ent->ghoul2, "rhumerus", bOrg);
 
-				//Make these two solve quickly so we can update decently
 				gi.G2API_RagPCJGradientSpeed(ent->ghoul2, "rhumerus", 1.5f);
 				gi.G2API_RagPCJGradientSpeed(ent->ghoul2, "rradius", 1.5f);
 
-				//Break the constraints on them I suppose
-				VectorSet(pcjMin, -999, -999, -999);
-				VectorSet(pcjMax, 999, 999, 999);
+				VectorSet(pcjMin, -999.0f, -999.0f, -999.0f);
+				VectorSet(pcjMax, 999.0f, 999.0f, 999.0f);
 				gi.G2API_RagPCJConstraint(ent->ghoul2, "rhumerus", pcjMin, pcjMax);
 				gi.G2API_RagPCJConstraint(ent->ghoul2, "rradius", pcjMin, pcjMax);
 
 				ent->client->overridingBones = level.time + 2000;
 
-				//hit the thoracic velocity to the hand point
+				// Kick thoracic toward the hand
 				VectorSubtract(bOrg, thorPoint, hands);
 				VectorNormalize(hands);
 				VectorScale(hands, 2048.0f, hands);
@@ -1929,15 +2120,15 @@ qboolean G_RagDoll(gentity_t* ent, vec3_t forcedAngles)
 				VectorSubtract(ent->client->ragLastOrigin, ent->client->ps.origin, pDif);
 				VectorCopy(ent->client->ps.origin, ent->client->ragLastOrigin);
 
-				if (ent->client->ragLastOriginTime >= level.time && ent->client->ps.groundEntityNum != ENTITYNUM_NONE)
+				if (ent->client->ragLastOriginTime >= level.time &&
+					ent->client->ps.groundEntityNum != ENTITYNUM_NONE)
 				{
-					//make sure it's reasonably updated
 					float difLen = VectorLength(pDif);
+
 					if (difLen > 0.0f)
 					{
-						//if we're being dragged, then kick all the bones around a bit
 						vec3_t dVel;
-						int i = 0;
+						int    i = 0;
 
 						if (difLen < 12.0f)
 						{
@@ -1947,15 +2138,18 @@ qboolean G_RagDoll(gentity_t* ent, vec3_t forcedAngles)
 
 						while (g_effectorStringTable[i])
 						{
-							vec3_t rVel;
+							vec3_t r_vel;
+
 							VectorCopy(pDif, dVel);
-							dVel[2] = 0;
+							dVel[2] = 0.0f;
 
-							//Factor in a random velocity
-							VectorSet(rVel, Q_flrand(-0.1f, 0.1f), Q_flrand(-0.1f, 0.1f), Q_flrand(0.1f, 0.5));
-							VectorScale(rVel, 8.0f, rVel);
+							VectorSet(r_vel,
+								Q_flrand(-0.1f, 0.1f),
+								Q_flrand(-0.1f, 0.1f),
+								Q_flrand(0.1f, 0.5f));
+							VectorScale(r_vel, 8.0f, r_vel);
 
-							VectorAdd(dVel, rVel, dVel);
+							VectorAdd(dVel, r_vel, dVel);
 							VectorScale(dVel, 10.0f, dVel);
 
 							gi.G2API_RagEffectorKick(ent->ghoul2, g_effectorStringTable[i], dVel);
@@ -1964,21 +2158,23 @@ qboolean G_RagDoll(gentity_t* ent, vec3_t forcedAngles)
 						}
 					}
 				}
+
 				ent->client->ragLastOriginTime = level.time + 1000;
 			}
 		}
 		else if (ent->client->overridingBones)
 		{
-			//reset things to their normal rag state
+			// ----------------------------------------------------
+			// Reset overridden bones back to normal rag state
+			// ----------------------------------------------------
 			vec3_t pcjMin, pcjMax;
 			vec3_t dVel;
 
-			//got the hand pos of him, now we want to make our hand go to it
-			gi.G2API_RagEffectorGoal(ent->ghoul2, "rhand", nullptr);
-			gi.G2API_RagEffectorGoal(ent->ghoul2, "rradius", nullptr);
-			gi.G2API_RagEffectorGoal(ent->ghoul2, "rradiusX", nullptr);
-			gi.G2API_RagEffectorGoal(ent->ghoul2, "rhumerusX", nullptr);
-			gi.G2API_RagEffectorGoal(ent->ghoul2, "rhumerus", nullptr);
+			gi.G2API_RagEffectorGoal(ent->ghoul2, "rhand", NULL);
+			gi.G2API_RagEffectorGoal(ent->ghoul2, "rradius", NULL);
+			gi.G2API_RagEffectorGoal(ent->ghoul2, "rradiusX", NULL);
+			gi.G2API_RagEffectorGoal(ent->ghoul2, "rhumerusX", NULL);
+			gi.G2API_RagEffectorGoal(ent->ghoul2, "rhumerus", NULL);
 
 			VectorSet(dVel, 0.0f, 0.0f, -64.0f);
 			gi.G2API_RagEffectorKick(ent->ghoul2, "rhand", dVel);
@@ -2005,11 +2201,13 @@ qboolean G_RagDoll(gentity_t* ent, vec3_t forcedAngles)
 			}
 		}
 
-		if (tuParms.hasEffectorData)
+		// --------------------------------------------------------
+		// Apply accumulated effector velocity to player state
+		// --------------------------------------------------------
+		if (tuParms.hasEffectorData == qtrue)
 		{
 			VectorNormalize(tuParms.effectorTotal);
 			VectorScale(tuParms.effectorTotal, 7.0f, tuParms.effectorTotal);
-
 			VectorAdd(ent->client->ps.velocity, tuParms.effectorTotal, ent->client->ps.velocity);
 		}
 
@@ -2032,23 +2230,25 @@ Advances the non-player objects in the world
 int AITime = 0;
 int navTime = 0;
 #endif//	AI_TIMERS
+
 extern qboolean JET_Flying(const gentity_t* self);
 extern void jet_fly_stop(gentity_t* self);
 extern void Boba_StopFlameThrower(const gentity_t* self);
 
+constexpr auto SPRINT_DEFUEL_RATE = 150;
+constexpr auto JETPACK_DEFUEL_RATE = 200; //approx. 20 seconds of idle use from a fully charged fuel amt;
+constexpr auto JETPACK_REFUEL_RATE = 150; //seems fair;
+constexpr auto ENHANCED_REFUEL_RATE = 75; //seems fair;
+constexpr auto SPRINT_SLOW_REFUEL_RATE = 250;
+
 constexpr auto CLOAK_DEFUEL_RATE = 150; //approx. 20 seconds of idle use from a fully charged fuel amt;
 constexpr auto CLOAK_REFUEL_RATE = 100; //seems fair;
 
-constexpr auto JETPACK_DEFUEL_RATE = 500; //approx. 50 seconds of idle use from a fully charged fuel amt;
-constexpr auto JETPACK_REFUEL_RATE = 150; //seems fair;
-
-constexpr auto SPRINT_DEFUEL_RATE = 150;
-constexpr auto ENHANCED_REFUEL_RATE = 75; //seems fair;
-
 constexpr auto BARRIER_DEFUEL_RATE = 100; //approx. 50 seconds of idle use from a fully charged fuel amt;
 constexpr auto BARRIER_REFUEL_RATE = 200; //seems fair;
+constexpr auto DROIDEKA_BARRIER_DEFUEL_RATE = 1000;
 
-void G_RunFrame(const int levelTime)
+void G_RunFrame(const int level_time)
 {
 	gentity_t* ent;
 	int ents_inuse = 0; // someone's gonna be pissed I put this here...
@@ -2059,9 +2259,13 @@ void G_RunFrame(const int levelTime)
 
 	level.framenum++;
 	level.previousTime = level.time;
-	level.time = levelTime;
+	level.time = level_time;
 	g_entities[0].nearAllies = ENTITYNUM_NONE;
 
+	// advance Pazaak state machine
+	G_Pazaak_RunFrame(level_time);
+
+	//ResetTeamCounters();
 	NAV::DecayDangerSenses();
 	Rail_Update();
 	Troop_Update();
@@ -2133,7 +2337,7 @@ void G_RunFrame(const int levelTime)
 
 		if (ent->s.eType == ET_MISSILE)
 		{
-			g_run_missile(ent);
+			G_RunMissile(ent);
 			continue;
 		}
 
@@ -2168,7 +2372,7 @@ void G_RunFrame(const int levelTime)
 					{
 						//turn it off
 						ent->client->ps.cloakFuel = 0;
-						player_Decloak(ent);
+						player_decloak(ent);
 					}
 					ent->client->cloakDebReduce = level.time + CLOAK_DEFUEL_RATE;
 				}
@@ -2176,7 +2380,7 @@ void G_RunFrame(const int levelTime)
 			else if (ent->client->ps.cloakFuel < 100)
 			{
 				//recharge cloak
-				if (ent->client->cloakDebRecharge < level.time)
+				if (ent->client->cloakDebRecharge < level.time && !ent->client->ps.powerups[PW_CLOAKED])
 				{
 					ent->client->ps.cloakFuel++;
 					ent->client->cloakDebRecharge = level.time + CLOAK_REFUEL_RATE;
@@ -2195,13 +2399,21 @@ void G_RunFrame(const int levelTime)
 						ent->client->ps.BarrierFuel = 0;
 						RemoveBarrier(ent);
 					}
-					ent->client->BarrierDebReduce = level.time + BARRIER_DEFUEL_RATE;
+
+					if (ent->client->NPC_class == CLASS_DROIDEKA)
+					{
+						ent->client->BarrierDebReduce = level.time + DROIDEKA_BARRIER_DEFUEL_RATE;
+					}
+					else
+					{
+						ent->client->BarrierDebReduce = level.time + BARRIER_DEFUEL_RATE;
+					}
 				}
 			}
 			else if (ent->client->ps.BarrierFuel < 100)
 			{
 				//recharge cloak
-				if (ent->client->BarrierDebRecharge < level.time)
+				if (ent->client->BarrierDebRecharge < level.time && !ent->client->ps.powerups[PW_GALAK_SHIELD])
 				{
 					ent->client->ps.BarrierFuel++;
 					ent->client->BarrierDebRecharge = level.time + BARRIER_REFUEL_RATE;
@@ -2239,60 +2451,62 @@ void G_RunFrame(const int levelTime)
 
 			//////////////////////JETPACKFUEL//////////////////////////////////////////////////////////
 
-			if ((ent->s.number < MAX_CLIENTS || G_ControlledByPlayer(ent)) && (ent->client->jetPackOn || ent->client->flamethrowerOn))
+			if (g_SerenityJediEngineMode->integer)
 			{
-				//using jetpack, drain fuel
-				if (ent->client->jetPackDebReduce < level.time)
+				if ((ent->s.number < MAX_CLIENTS || G_ControlledByPlayer(ent)) && (ent->client->jetPackOn || ent->client->flamethrowerOn))
 				{
-					if ((ent->client->pers.cmd.forwardmove || ent->client->pers.cmd.upmove || ent->client->pers.cmd.
-						rightmove) && ent->client->jetPackOn)
+					//using jetpack, drain fuel
+					if (ent->client->jetPackDebReduce < level.time)
 					{
-						//take more if they're thrusting
-						ent->client->ps.jetpackFuel -= 10;
-					}
-					else if (ent->client->flamethrowerOn && ent->client->jetPackOn)
-					{
-						ent->client->ps.jetpackFuel -= 4;
-					}
-					else if (ent->client->ps.groundEntityNum == ENTITYNUM_NONE)
-					{
-						//in midair
-						ent->client->ps.jetpackFuel--;
-					}
-					else if (ent->client->flamethrowerOn || ent->client->jetPackOn)
-					{
-						ent->client->ps.jetpackFuel--;
-					}
-
-					if (ent->client->ps.jetpackFuel <= 0)
-					{
-						//turn it off
-						ent->client->ps.jetpackFuel = 0;
-						Jetpack_Off(ent);
-						if (JET_Flying(ent))
+						if ((ent->client->pers.cmd.forwardmove || ent->client->pers.cmd.upmove || ent->client->pers.cmd.
+							rightmove) && ent->client->jetPackOn)
 						{
-							jet_fly_stop(ent);
+							//take more if they're thrusting
+							ent->client->ps.jetpackFuel -= 10;
 						}
-						Boba_StopFlameThrower(ent);
+						else if (ent->client->flamethrowerOn && ent->client->jetPackOn)
+						{
+							ent->client->ps.jetpackFuel -= 4;
+						}
+						else if (ent->client->ps.groundEntityNum == ENTITYNUM_NONE)
+						{
+							//in midair
+							ent->client->ps.jetpackFuel--;
+						}
+						else if (ent->client->flamethrowerOn || ent->client->jetPackOn)
+						{
+							ent->client->ps.jetpackFuel--;
+						}
+
+						if (ent->client->ps.jetpackFuel <= 0)
+						{
+							//turn it off
+							ent->client->ps.jetpackFuel = 0;
+							Jetpack_Off(ent);
+							if (JET_Flying(ent))
+							{
+								jet_fly_stop(ent);
+							}
+							Boba_StopFlameThrower(ent);
+						}
+						ent->client->jetPackDebReduce = level.time + JETPACK_DEFUEL_RATE;
 					}
-					ent->client->jetPackDebReduce = level.time + JETPACK_DEFUEL_RATE;
 				}
-			}
-			else if (ent->client->ps.jetpackFuel < 100 && ent->client->ps.groundEntityNum != ENTITYNUM_NONE)
-			{
-				//recharge jetpack
-				if (ent->client->jetPackDebRecharge < level.time && !ent->client->flamethrowerOn && !ent->client->
-					jetPackOn)
+				else if (ent->client->ps.jetpackFuel < 100 && ent->client->ps.groundEntityNum != ENTITYNUM_NONE)
 				{
-					ent->client->ps.jetpackFuel++;
-					ent->client->jetPackDebRecharge = level.time + JETPACK_REFUEL_RATE;
+					//recharge jetpack
+					if (ent->client->jetPackDebRecharge < level.time && !ent->client->flamethrowerOn && !ent->client->
+						jetPackOn)
+					{
+						ent->client->ps.jetpackFuel++;
+						ent->client->jetPackDebRecharge = level.time + JETPACK_REFUEL_RATE;
+					}
 				}
 			}
 
-			if (ent->client->ps.PlayerEffectFlags & 1 << PEF_SPRINTING || ent->client->ps.PlayerEffectFlags & 1 <<
-				PEF_WEAPONSPRINTING)
+			if (ent->client->ps.PlayerEffectFlags & 1 << PEF_SPRINTING)
 			{
-				//using jetpack, drain fuel
+				//using sprint fuel
 				if (ent->client->sprintDebReduce < level.time)
 				{
 					ent->client->ps.sprintFuel--;
@@ -2306,11 +2520,11 @@ void G_RunFrame(const int levelTime)
 				}
 			}
 			else if (ent->client->ps.sprintFuel < 100 &&
-				!(ent->client->ps.PlayerEffectFlags & 1 << PEF_SPRINTING) &&
-				!(ent->client->ps.PlayerEffectFlags & 1 << PEF_WEAPONSPRINTING))
+				!ent->client->IsSprinting &&
+				!(ent->client->ps.PlayerEffectFlags & 1 << PEF_SPRINTING))
 			{
-				//recharge jetpack
-				if (ent->client->sprintkDebRecharge < level.time && !ent->client->IsSprinting)
+				//recharge sprint
+				if (ent->client->sprintkDebRecharge < level.time)
 				{
 					ent->client->ps.sprintFuel++;
 					if (PM_RestAnim(ent->client->ps.legsAnim) || PM_CrouchAnim(ent->client->ps.legsAnim))
@@ -2319,7 +2533,14 @@ void G_RunFrame(const int levelTime)
 					}
 					else
 					{
-						ent->client->sprintkDebRecharge = level.time + JETPACK_REFUEL_RATE;
+						if (ent->client->ps.sprintFuel < 15)
+						{
+							ent->client->sprintkDebRecharge = level.time + SPRINT_SLOW_REFUEL_RATE;
+						}
+						else
+						{
+							ent->client->sprintkDebRecharge = level.time + JETPACK_REFUEL_RATE;
+						}
 					}
 				}
 			}
@@ -2347,6 +2568,7 @@ void G_RunFrame(const int levelTime)
 
 		G_RunThink(ent); // be aware that ent may be free after returning from here, at least one func frees them
 		ClearNPCGlobals(); //	but these 2 funcs are ok
+		//UpdateTeamCounters( ent );	//	   to call anyway on a freed ent.
 	}
 
 	// perform final fixups on the player
@@ -2360,7 +2582,7 @@ void G_RunFrame(const int levelTime)
 		gi.Printf(S_COLOR_WHITE"Number of Entities in use : %d\n", ents_inuse);
 	}
 	//DEBUG STUFF
-	NAV::show_debug_info(ent->currentOrigin, ent->waypoint);
+	NAV::ShowDebugInfo(ent->currentOrigin, ent->waypoint);
 	NPC_ShowDebugInfo();
 
 	G_DynamicMusicUpdate();
@@ -2410,7 +2632,7 @@ void G_RunFrame(const int levelTime)
 
 extern qboolean player_locked;
 
-void g_load_save_write_misc_data()
+void G_LoadSave_WriteMiscData()
 {
 	ojk::SavedGameHelper saved_game(
 		gi.saved_game);
@@ -2420,7 +2642,7 @@ void g_load_save_write_misc_data()
 		player_locked);
 }
 
-void g_load_save_read_misc_data()
+void G_LoadSave_ReadMiscData()
 {
 	ojk::SavedGameHelper saved_game(
 		gi.saved_game);
@@ -2433,40 +2655,4 @@ void g_load_save_read_misc_data()
 IGhoul2InfoArray& TheGameGhoul2InfoArray()
 {
 	return gi.TheGhoul2InfoArray();
-}
-
-qboolean is_outcast_map()
-{
-	const char* info = CG_ConfigString(CS_SERVERINFO);
-	const char* s = Info_ValueForKey(info, "mapname");
-
-	if (strcmp(s, "kejim_post") == 0
-		|| strcmp(s, "kejim_base") == 0
-		|| strcmp(s, "artus_mine") == 0
-		|| strcmp(s, "artus_detention") == 0
-		|| strcmp(s, "artus_topside") == 0
-		|| strcmp(s, "valley") == 0
-		|| strcmp(s, "yavin_temple") == 0
-		|| strcmp(s, "yavin_trial") == 0
-		|| strcmp(s, "ns_streets") == 0
-		|| strcmp(s, "ns_hiedeout") == 0
-		|| strcmp(s, "ns_starpad") == 0
-		|| strcmp(s, "bespin_undercity") == 0
-		|| strcmp(s, "bespin_streets") == 0
-		|| strcmp(s, "bespin_platform") == 0
-		|| strcmp(s, "cairn_bay") == 0
-		|| strcmp(s, "cairn_assembly") == 0
-		|| strcmp(s, "cairn_reactor") == 0
-		|| strcmp(s, "cairn_dock1") == 0
-		|| strcmp(s, "doom_comm") == 0
-		|| strcmp(s, "doom_detention") == 0
-		|| strcmp(s, "doom_shields") == 0
-		|| strcmp(s, "yavin_swamp") == 0
-		|| strcmp(s, "yavin_canyon") == 0
-		|| strcmp(s, "yavin_courtyard") == 0
-		|| strcmp(s, "yavin_final") == 0)
-	{
-		return qtrue;
-	}
-	return qfalse;
 }
