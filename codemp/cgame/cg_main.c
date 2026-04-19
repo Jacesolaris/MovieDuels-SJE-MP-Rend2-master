@@ -438,6 +438,16 @@ const char* CG_Argv(const int arg)
 	return buffer;
 }
 
+/*
+================
+CG_Argc
+================
+*/
+int CG_Argc(void)
+{
+	return trap->Cmd_Argc();
+}
+
 //========================================================================
 
 //so shared code can get the local time depending on the side it's executed on

@@ -2007,6 +2007,7 @@ void CG_UpdateCvars(void);
 //
 const char* CG_ConfigString(int index);
 const char* CG_Argv(int arg);
+int CG_Argc(void);
 
 void CG_StartMusic(qboolean bForceStart);
 
