@@ -158,3 +158,9 @@ void CG_Pazaak_OwnerDraw(int ownerDraw, float x, float y, float w, float h, vec4
         CG_Text_Paint(x + w - 70, rowY + 20, 0.75f * scale, white, buf, 0, 0, ITEM_TEXTSTYLE_NORMAL, FONT_SMALL);
     }
 }
+
+// Provide definitions for globals used by imported SP code when they
+// are not otherwise present in this cgame build.
+qboolean InBriefing = qfalse;
+qboolean InCinematic = qfalse;
+int CinematicNum = 0;
