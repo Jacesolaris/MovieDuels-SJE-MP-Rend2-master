@@ -1233,10 +1233,19 @@ qboolean sab_beh_block_vs_attack(
 					attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
 					wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 
-					wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);
-					PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_TEN); //BP Punish Attacker
+					wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);//SAC Reward blocker
 					sab_beh_add_balance(blocker, -MPCOST_MBLOCKED); //SAC Reward blocker
-					sab_beh_add_balance(attacker, MPCOST_MBLOCKED); //SAC Punish attacker
+
+					if (attacker->r.svFlags & SVF_BOT)
+					{
+						PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_FATIGUE); //BP Punish Attacker
+						sab_beh_add_balance(attacker, BLOCKPOINTS_TEN); //SAC Punish attacker
+					}
+					else
+					{
+						PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_TEN); //BP Punish Attacker
+						sab_beh_add_balance(attacker, MPCOST_MBLOCKED); //SAC Punish attacker
+					}
 				}
 
 				// ------------------------------------------------
@@ -1260,7 +1269,7 @@ qboolean sab_beh_block_vs_attack(
 
 					if (attacker->r.svFlags & SVF_BOT)
 					{
-						PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_THREE);
+						sab_beh_add_balance(attacker, MPCOST_MBLOCKED); //SAC Punish attacker
 					}
 
 					PM_AddBlockFatigue(&blocker->client->ps, BLOCKPOINTS_FIVE);
@@ -1308,7 +1317,7 @@ qboolean sab_beh_block_vs_attack(
 
 				if (!(blocker->r.svFlags & SVF_BOT))
 				{
-					PM_AddBlockFatigue(&blocker->client->ps, BLOCKPOINTS_TEN);
+					PM_AddBlockFatigue(&blocker->client->ps, BLOCKPOINTS_FIVE);
 				}
 
 				if (attacker->NPC && !G_ControlledByPlayer(attacker)) //NPC only
@@ -1328,7 +1337,7 @@ qboolean sab_beh_block_vs_attack(
 				{
 					Com_Printf(
 						S_COLOR_CYAN
-						"Blocker Holding block button only (spamming block) cost 10\n"
+						"Blocker Holding block button only (spamming block) cost 5\n"
 					);
 				}
 
@@ -1392,7 +1401,10 @@ qboolean sab_beh_block_vs_attack(
 
 					if (blocker->r.svFlags & SVF_BOT)
 					{
-						WP_BlockPointsRegenerate(blocker, BLOCKPOINTS_TEN);
+						if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_FULL)
+						{
+							WP_BlockPointsRegenerate(blocker, BLOCKPOINTS_TEN);
+						}
 					}
 					else 
 					{

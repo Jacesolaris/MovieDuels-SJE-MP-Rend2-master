@@ -1387,7 +1387,10 @@ static void ClientTimerActions(gentity_t* ent, const int msec)
 			}
 			else if (isBot)
 			{
-				WP_SaberFatigueRegenerate(1);
+				if ((level.time & 1) == 0)  // even frame → regen
+				{
+					WP_SaberFatigueRegenerate(1);
+				}
 			}
 		}
 
