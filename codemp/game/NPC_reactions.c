@@ -43,7 +43,7 @@ extern qboolean PM_InKnockDown(const playerState_t* ps);
 extern qboolean PM_FlippingAnim(int anim);
 extern qboolean PM_RollingAnim(int anim);
 extern qboolean PM_InCartwheel(int anim);
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 extern int killPlayerTimer;
 
 /*

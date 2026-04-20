@@ -100,7 +100,7 @@ extern qboolean in_camera;
 extern qboolean PM_InGetUp(const playerState_t* ps);
 extern qboolean PM_InRoll(const playerState_t* ps);
 extern qboolean jedi_dodge_evasion(gentity_t* self, const gentity_t* shooter, trace_t* tr, int hit_loc);
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 extern void G_AddVoiceEvent(const gentity_t* self, int event, int speak_debounce_time);
 extern void AddFatigueMeleeBonus(const gentity_t* attacker, const gentity_t* victim);
 extern qboolean npc_is_dark_jedi(const gentity_t* self);
@@ -143,7 +143,7 @@ extern void WP_BlockPointsRegenerate(const gentity_t* self, int override_amt);
 extern void PM_AddBlockFatigue(playerState_t* ps, int fatigue);
 qboolean WP_SaberBouncedSaberDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 qboolean WP_SaberFatiguedParryDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
-extern void wp_block_points_regenerate_over_ride(const gentity_t* self, int override_amt);
+extern void WP_BlockPointsRegenerate_over_ride(const gentity_t* self, int override_amt);
 extern qboolean BG_FullBodyTauntAnim(int anim);
 extern int PM_InGrappleMove(int anim);
 extern qboolean PM_SaberInKillMove(int move);
@@ -3289,7 +3289,7 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 		return 0;
 	}
 
-	if (PM_kick_move(self->client->ps.saber_move))
+	if (PM_KickMove(self->client->ps.saber_move))
 	{
 		return 0;
 	}
@@ -3707,7 +3707,7 @@ int wp_saber_must_bolt_block(gentity_t* self, const gentity_t* atk, const qboole
 		return 0;
 	}
 
-	if (PM_kick_move(self->client->ps.saber_move))
+	if (PM_KickMove(self->client->ps.saber_move))
 	{
 		return 0;
 	}
@@ -6301,7 +6301,7 @@ static QINLINE qboolean CheckSaberDamage(
 			{
 				if (g_saberRealisticCombat.integer > 2)
 				{
-					if (PM_kick_move(self->client->ps.saber_move) ||
+					if (PM_KickMove(self->client->ps.saber_move) ||
 						PM_KickingAnim(self->client->ps.legsAnim) ||
 						PM_KickingAnim(self->client->ps.torsoAnim))
 					{
@@ -6324,7 +6324,7 @@ static QINLINE qboolean CheckSaberDamage(
 				}
 				else
 				{
-					if (PM_kick_move(self->client->ps.saber_move) ||
+					if (PM_KickMove(self->client->ps.saber_move) ||
 						PM_KickingAnim(self->client->ps.legsAnim) ||
 						PM_KickingAnim(self->client->ps.torsoAnim))
 					{
@@ -6348,7 +6348,7 @@ static QINLINE qboolean CheckSaberDamage(
 			}
 			else
 			{
-				if (PM_kick_move(self->client->ps.saber_move) ||
+				if (PM_KickMove(self->client->ps.saber_move) ||
 					PM_KickingAnim(self->client->ps.legsAnim) ||
 					PM_KickingAnim(self->client->ps.torsoAnim))
 				{
@@ -6372,7 +6372,7 @@ static QINLINE qboolean CheckSaberDamage(
 		}
 		else
 		{
-			if (PM_kick_move(self->client->ps.saber_move) ||
+			if (PM_KickMove(self->client->ps.saber_move) ||
 				PM_KickingAnim(self->client->ps.legsAnim) ||
 				PM_KickingAnim(self->client->ps.torsoAnim))
 			{
@@ -12663,7 +12663,7 @@ qboolean manual_meleeblocking(const gentity_t* defender) //Is this guy blocking 
 	if (defender->client->ps.weapon == WP_MELEE
 		&& defender->client->buttons & BUTTON_WALKING
 		&& defender->client->buttons & BUTTON_BLOCK
-		&& !PM_kick_move(defender->client->ps.saber_move)
+		&& !PM_KickMove(defender->client->ps.saber_move)
 		&& !PM_KickingAnim(defender->client->ps.torsoAnim)
 		&& !PM_KickingAnim(defender->client->ps.legsAnim)
 		&& !PM_InRoll(&defender->client->ps)
@@ -12689,7 +12689,7 @@ qboolean manual_melee_dodging(const gentity_t* defender) //Is this guy dodgeing 
 		&& defender->client->buttons & BUTTON_USE
 		&& !(defender->client->buttons & BUTTON_WALKING)
 		&& !(defender->client->buttons & BUTTON_BLOCK)
-		&& !PM_kick_move(defender->client->ps.saber_move)
+		&& !PM_KickMove(defender->client->ps.saber_move)
 		&& !PM_KickingAnim(defender->client->ps.torsoAnim)
 		&& !PM_KickingAnim(defender->client->ps.legsAnim)
 		&& !PM_InRoll(&defender->client->ps)
@@ -12812,7 +12812,7 @@ int PlayerCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can 
 		|| PM_SaberInBounce(defender->client->ps.saber_move) // Saber is bouncing
 		|| PM_SaberInKnockaway(defender->client->ps.saber_move) // Saber is being knocked away
 		|| PM_SaberInBrokenParry(defender->client->ps.saber_move) // Your parry got smashed open
-		|| PM_kick_move(defender->client->ps.saber_move) // If you are doing a kick / melee / slap
+		|| PM_KickMove(defender->client->ps.saber_move) // If you are doing a kick / melee / slap
 		|| SaberAttacking(defender) // you are saber attacking
 		|| PM_InGrappleMove(defender->client->ps.torsoAnim) // Trying to grab
 		|| defender->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] < FORCE_LEVEL_1
@@ -12866,7 +12866,7 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 		|| PM_SaberInBounce(defender->client->ps.saber_move) // Saber is bouncing
 		|| PM_SaberInKnockaway(defender->client->ps.saber_move) // Saber is being knocked away
 		|| PM_SaberInBrokenParry(defender->client->ps.saber_move) // Your parry got smashed open
-		|| PM_kick_move(defender->client->ps.saber_move) // If you are doing a kick / melee / slap
+		|| PM_KickMove(defender->client->ps.saber_move) // If you are doing a kick / melee / slap
 		|| SaberAttacking(defender) // you are saber attacking
 		|| PM_InGrappleMove(defender->client->ps.torsoAnim) // Trying to grab
 		|| defender->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] < FORCE_LEVEL_1

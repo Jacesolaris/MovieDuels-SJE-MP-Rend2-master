@@ -621,7 +621,7 @@ static void SentryTouch(gentity_t* ent, gentity_t* other, trace_t* trace)
 {
 }
 
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 extern qboolean PM_InKnockDown(const playerState_t* ps);
 
 //----------------------------------------------------------------

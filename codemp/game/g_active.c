@@ -1489,6 +1489,7 @@ static void G_VehicleAttachDroidUnit(gentity_t* vehEnt)
 //called gameside only from pmove code (convenience)
 extern qboolean BG_SabersOff(const playerState_t* ps);
 extern qboolean PM_ReloadAnim(int anim);
+extern qboolean PM_PainAnim(int anim);
 
 void G_CheapWeaponFire(const int entNum, const int ev)
 {
@@ -1503,6 +1504,10 @@ void G_CheapWeaponFire(const int entNum, const int ev)
 	{
 	case EV_FIRE_WEAPON:
 		if (PM_ReloadAnim(ent->client->ps.torsoAnim))
+		{
+			return;
+		}
+		if (PM_PainAnim(ent->client->ps.torsoAnim))
 		{
 			return;
 		}
@@ -1536,6 +1541,10 @@ void G_CheapWeaponFire(const int entNum, const int ev)
 		break;
 	case EV_ALTFIRE:
 		if (PM_ReloadAnim(ent->client->ps.torsoAnim))
+		{
+			return;
+		}
+		if (PM_PainAnim(ent->client->ps.torsoAnim))
 		{
 			return;
 		}
@@ -1719,6 +1728,10 @@ static void ClientEvents(gentity_t* ent, int old_event_sequence)
 			{
 				return;
 			}
+			if (PM_PainAnim(ent->client->ps.torsoAnim))
+			{
+				return;
+			}
 
 			if (ent->client->frozenTime > level.time)
 			{
@@ -1733,6 +1746,10 @@ static void ClientEvents(gentity_t* ent, int old_event_sequence)
 
 		case EV_ALTFIRE:
 			if (PM_ReloadAnim(Client->ps.torsoAnim))
+			{
+				return;
+			}
+			if (PM_PainAnim(ent->client->ps.torsoAnim))
 			{
 				return;
 			}
@@ -2743,7 +2760,7 @@ typedef enum tauntTypes_e
 
 qboolean IsHoldingReloadableGun(const gentity_t* ent);
 extern saberInfo_t* BG_MySaber(int clientNum, int saber_num);
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 extern qboolean PM_LungeAnim(int anim);
 extern qboolean PM_RollingAnim(int anim);
 extern qboolean Block_Button_Held(const gentity_t* defender);
@@ -5719,7 +5736,7 @@ static void ClientThink_real(gentity_t* ent)
 	if (!(ent->r.svFlags & SVF_BOT))
 	{
 		if (IsPressingDashButton(ent)
-			&& !PM_kick_move(ent->client->ps.saber_move)
+			&& !PM_KickMove(ent->client->ps.saber_move)
 			&& !PM_SaberInAttack(ent->client->ps.saber_move))
 		{
 			if (client->Dash_Count <= 2)

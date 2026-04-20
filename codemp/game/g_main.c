@@ -85,8 +85,8 @@ qboolean G_EntIsBreakable(int entityNum);
 qboolean G_EntIsRemovableUsable(int entNum);
 void CP_FindCombatPointWaypoints(void);
 extern void G_CheckSpecialPersistentEvents(gentity_t* ent);
-extern qboolean PM_RestAnim(int anim);
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_RestAnim(const int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 extern void WP_BlockPointsUpdate(const gentity_t* self);
 
 /*

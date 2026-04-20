@@ -90,7 +90,7 @@ extern qboolean PM_FlippingAnim(int anim);
 extern qboolean PM_RollingAnim(int anim);
 extern qboolean PM_InKnockDown(const playerState_t* ps);
 extern qboolean BG_InRoll(const playerState_t* ps, int anim);
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 void NPC_CheckEvasion(void);
 extern void ForceDashAnimDash(gentity_t* self);
 
@@ -3130,7 +3130,7 @@ extern saber_moveName_t G_PickAutoKick(gentity_t* self, const gentity_t* enemy);
 extern float NPC_EnemyRangeFromBolt(int boltIndex);
 extern qboolean PM_SaberInTransition(int move);
 extern void ForceDrain(gentity_t* self);
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 static qboolean shoot;
 static float enemyDist;
 #define MELEE_DIST_SQUARED 6400

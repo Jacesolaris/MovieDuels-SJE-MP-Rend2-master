@@ -59,7 +59,7 @@ extern qboolean PM_FaceProtectAnim(int anim);
 extern void NPC_SetPainEvent(gentity_t* self);
 extern qboolean PM_InKnockDown(const playerState_t* ps);
 extern qboolean PM_RollingAnim(int anim);
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 extern qboolean BG_KnockDownAnim(int anim);
 extern qboolean PM_InAnimForSaberMove(int anim, int saber_move);
 extern qboolean PM_SaberInStart(int move);
@@ -72,7 +72,6 @@ extern void g_atst_check_pain(gentity_t* self, gentity_t* other, int damage);
 qboolean PM_RunningAnim(int anim);
 void ThrowSaberToAttacker(gentity_t* self, const gentity_t* attacker);
 extern qboolean G_ControlledByPlayer(const gentity_t* self);
-extern qboolean PM_SaberInNonIdleDamageMove(const playerState_t* ps, int anim_index);
 extern void WP_ForcePowerRegenerate(const gentity_t* self, int override_amt);
 extern qboolean manual_saberblocking(const gentity_t* defender);
 extern void WP_BlockPointsRegenerate(const gentity_t* self, int override_amt);
@@ -7729,19 +7728,12 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 			//targ is creature and attacker is creature
 			if (take > targ->health)
 			{//damage is greated than target's health, so he gonna die ...Probably.
-				if (PM_SaberInNonIdleDamageMove(&attacker->client->ps, attacker->localAnimIndex))
-				{
-					//self is attacking
-					AddFatigueHurtBonusMax(attacker, targ, mod);
-				}
+
+				AddFatigueHurtBonusMax(attacker, targ, mod);
 			}
 			else
 			{
-				if (PM_SaberInNonIdleDamageMove(&attacker->client->ps, attacker->localAnimIndex))
-				{
-					//self is attacking
-					AddFatigueHurtBonus(attacker, targ, mod);
-				}
+				AddFatigueHurtBonus(attacker, targ, mod);
 			}
 		}
 

@@ -24,8 +24,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "cg_local.h"
 #include "ui/ui_shared.h"
 #if defined(__has_include)
-#  if __has_include("ui/jamp/menudef.h")
-#    include "ui/jamp/menudef.h"
+#  if __has_include("ui/MD_MP/menudef.h") // This is a hack to allow the menu definitions to be used in the MP code without including the entire menu system
+#    include "ui/MD_MP/menudef.h"
 #  else
 #    include "ui/menudef.h"
 #  endif
@@ -37,7 +37,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 extern displayContextDef_t cgDC;
 
-int CG_GetSelectedPlayer() {
+static int CG_GetSelectedPlayer() {
 	if (cg_currentSelectedPlayer.integer < 0 || cg_currentSelectedPlayer.integer >= numSortedTeamPlayers) {
 		cg_currentSelectedPlayer.integer = 0;
 	}
@@ -322,7 +322,7 @@ static void CG_Text_Paint_Limit(float* maxX, float x, float y, float scale, vec4
 #define PIC_WIDTH 12
 
 extern const char* CG_GetLocationString(const char* loc); //cg_main.c
-void CG_DrawNewTeamInfo(rectDef_t* rect, float text_x, float text_y, float scale, vec4_t color, qhandle_t shader) {
+static void CG_DrawNewTeamInfo(rectDef_t* rect, float text_x, float text_y, float scale, vec4_t color, qhandle_t shader) {
 	int i, len;
 	const char* p;
 	vec4_t		hcolor;
@@ -424,7 +424,7 @@ void CG_DrawNewTeamInfo(rectDef_t* rect, float text_x, float text_y, float scale
 	}
 }
 
-void CG_DrawTeamSpectators(rectDef_t* rect, float scale, vec4_t color, qhandle_t shader) {
+static void CG_DrawTeamSpectators(rectDef_t* rect, float scale, vec4_t color, qhandle_t shader) {
 	if (cg.spectatorLen) {
 		float maxX;
 
@@ -484,7 +484,7 @@ void CG_DrawTeamSpectators(rectDef_t* rect, float scale, vec4_t color, qhandle_t
 	}
 }
 
-void CG_DrawMedal(int ownerDraw, rectDef_t* rect, float scale, vec4_t color, qhandle_t shader) {
+static void CG_DrawMedal(int ownerDraw, rectDef_t* rect, float scale, vec4_t color, qhandle_t shader) {
 	const score_t* score = &cg.scores[cg.selectedScore];
 	float value = 0;
 	const char* text = NULL;
@@ -550,7 +550,8 @@ void CG_DrawMedal(int ownerDraw, rectDef_t* rect, float scale, vec4_t color, qha
 }
 
 //
-void CG_OwnerDraw(float x, float y, float w, float h, float text_x, float text_y, int ownerDraw, int ownerDrawFlags, int align, float special, float scale, vec4_t color, qhandle_t shader, int textStyle, int font) {
+void CG_OwnerDraw(float x, float y, float w, float h, float text_x, float text_y, int ownerDraw, int ownerDrawFlags, int align, float special, float scale, vec4_t color, qhandle_t shader, int textStyle, int font)
+{
 	// handle Pazaak ownerdraws first
 	if (ownerDraw >= UI_JKG_PAZAAK_BASE && ownerDraw <= (UI_JKG_PAZAAK_BASE + 16)) {
 		extern void CG_Pazaak_OwnerDraw(int ownerDraw, float x, float y, float w, float h, vec4_t color, qhandle_t shader, float scale);
@@ -783,7 +784,7 @@ CG_HideTeamMenus
 ==================
 
 */
-void CG_HideTeamMenu() {
+static void CG_HideTeamMenu() {
 	Menus_CloseByName("teamMenu");
 	Menus_CloseByName("getMenu");
 }
@@ -794,7 +795,7 @@ CG_ShowTeamMenus
 ==================
 
 */
-void CG_ShowTeamMenu() {
+static void CG_ShowTeamMenu() {
 	Menus_OpenByName("teamMenu");
 }
 

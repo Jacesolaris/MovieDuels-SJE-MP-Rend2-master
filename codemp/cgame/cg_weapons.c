@@ -993,7 +993,7 @@ void CG_AddViewWeaponDuals(refEntity_t* parent, playerState_t* ps, centity_t* ce
 				const float cs = cosf(spinRad);
 				const float sn = sinf(spinRad);
 
-				vec3_t ny, nz;
+				vec3_t ny = { 0 }, nz = { 0 };
 				for (int i = 0; i < 3; i++)
 				{
 					ny[i] = cs * barrelEnt.axis[1][i] + sn * barrelEnt.axis[2][i];
@@ -1520,7 +1520,7 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 				const float cs = cosf(spinRad);
 				const float sn = sinf(spinRad);
 
-				vec3_t ny, nz;
+				vec3_t ny = { 0 }, nz = { 0 };
 				for (int i = 0; i < 3; i++)
 				{
 					ny[i] = cs * barrelEnt.axis[1][i] + sn * barrelEnt.axis[2][i];
@@ -3084,6 +3084,7 @@ Caused by an EV_FIRE_WEAPON event
 ================
 */
 extern qboolean PM_WeponRestAnim(int anim);
+extern qboolean PM_PainAnim(int anim);
 
 void CG_FireWeapon(centity_t* cent, const qboolean alt_fire)
 {
@@ -3106,6 +3107,12 @@ void CG_FireWeapon(centity_t* cent, const qboolean alt_fire)
 	}
 
 	if (PM_WeponRestAnim(cent->currentState.torsoAnim))
+	{
+		return;
+	}
+
+
+	if (PM_PainAnim(cent->currentState.torsoAnim))
 	{
 		return;
 	}

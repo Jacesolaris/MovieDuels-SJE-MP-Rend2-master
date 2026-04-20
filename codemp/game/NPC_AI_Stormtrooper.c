@@ -2951,7 +2951,7 @@ NPC_BSST_Attack
 -------------------------
 */
 
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 #define MELEE_DIST_SQUARED 6400
 
 void NPC_BSST_Attack(void)

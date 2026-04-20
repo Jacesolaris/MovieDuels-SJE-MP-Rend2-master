@@ -73,7 +73,7 @@ extern void G_KnockOver(gentity_t* self, const gentity_t* attacker, const vec3_t
 extern qboolean PM_InKnockDown(const playerState_t* ps);
 extern qboolean PM_SaberInTransitionAny(int move);
 extern qboolean PM_Saberinstab(int move);
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 extern qboolean PM_RestAnim(int anim);
 extern void BG_ReduceSaberMishapLevel(playerState_t* ps);
 extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength, const qboolean breakSaberLock);
@@ -1442,7 +1442,7 @@ void WP_BlockPointsRegenerate(const gentity_t* self, const int override_amt)
 	}
 }
 
-void wp_block_points_regenerate_over_ride(const gentity_t* self, const int override_amt)
+void WP_BlockPointsRegenerate_over_ride(const gentity_t* self, const int override_amt)
 {
 	if (self->client->ps.fd.blockPoints < BLOCK_POINTS_MAX)
 	{
@@ -2553,7 +2553,7 @@ static void ForceSpeedDash(gentity_t* self)
 		return;
 	}
 
-	if (PM_kick_move(self->client->ps.saber_move))
+	if (PM_KickMove(self->client->ps.saber_move))
 	{
 		return;
 	}
@@ -9322,7 +9322,7 @@ void WP_BlockPointsUpdate(const gentity_t* self)
 		{
 			if (self->client->ps.fd.BlockPointsRegenDebounceTime < level.time)
 			{
-				wp_block_points_regenerate_over_ride(self, self->client->ps.fd.BlockPointRegenAmount);
+				WP_BlockPointsRegenerate_over_ride(self, self->client->ps.fd.BlockPointRegenAmount);
 
 				self->client->ps.fd.BlockPointsRegenDebounceTime = level.time + self->client->ps.fd.BlockPointRegenRate;
 

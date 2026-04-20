@@ -52,7 +52,7 @@ qboolean PM_RunningAnim(int anim);
 qboolean PM_WalkingAnim(int anim);
 float Distance2(const vec3_t p1, const vec3_t p2);
 extern qboolean WalkCheck(const gentity_t* self);
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 const int FROZEN_TIME = 5000;
 
 extern qboolean WP_DoingForcedAnimationForForcePowers(const gentity_t* self);
@@ -6277,6 +6277,7 @@ static qboolean doesnot_drain_mishap(const gentity_t* ent)
 extern void FireOverheatFail(gentity_t* ent);
 extern qboolean PM_ReloadAnim(int anim);
 extern qboolean PM_WeponRestAnim(int anim);
+extern qboolean PM_PainAnim(int anim);
 
 void FireWeapon(gentity_t* ent, const qboolean alt_fire)
 {
@@ -6331,6 +6332,11 @@ void FireWeapon(gentity_t* ent, const qboolean alt_fire)
 	}
 
 	if (ent && ent->client && PM_WeponRestAnim(ent->client->ps.torsoAnim))
+	{
+		return;
+	}
+
+	if (ent && ent->client && PM_PainAnim(ent->client->ps.torsoAnim))
 	{
 		return;
 	}

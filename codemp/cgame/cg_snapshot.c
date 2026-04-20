@@ -155,73 +155,104 @@ The transition point from snap to nextSnap has passed
 ===================
 */
 extern qboolean CG_UsingEWeb(void); //cg_predict.c
+//======================================================================
+// CG_TransitionSnapshot
+//
+// Safely transitions from cg.snap → cg.nextSnap, updating entity states,
+// handling teleport flags, and executing server commands.
+//======================================================================
 static void CG_TransitionSnapshot(void)
 {
-	centity_t* cent;
-	int i;
-
-	if (!cg.snap)
+	// ------------------------------------------------------------------
+	// Validate required snapshots
+	// ------------------------------------------------------------------
+	if (cg.snap == NULL)
 	{
 		trap->Error(ERR_DROP, "CG_TransitionSnapshot: NULL cg.snap");
+		return;
 	}
-	if (!cg.nextSnap)
+
+	if (cg.nextSnap == NULL)
 	{
 		trap->Error(ERR_DROP, "CG_TransitionSnapshot: NULL cg.nextSnap");
+		return;
 	}
 
-	// execute any server string commands before transitioning entities
-	CG_ExecuteNewServerCommands(cg.nextSnap->serverCommandSequence);
-
-	// if we had a map_restart, set everthing with initial
-	if (!cg.snap)
+	// Local alias for static analysis clarity
+	snapshot_t* next = cg.nextSnap;
+	if (next == NULL)
 	{
+		trap->Error(ERR_DROP, "CG_TransitionSnapshot: NULL next snapshot (race)");
+		return;
 	}
 
-	// clear the currentValid flag for all entities in the existing snapshot
-	for (i = 0; i < cg.snap->numEntities; i++)
+	// ------------------------------------------------------------------
+	// Execute pending server commands before entity transitions
+	// ------------------------------------------------------------------
+	CG_ExecuteNewServerCommands(next->serverCommandSequence);
+
+	// ------------------------------------------------------------------
+	// Mark all current snapshot entities as invalid
+	// ------------------------------------------------------------------
+	for (int i = 0; i < cg.snap->numEntities; i++)
 	{
-		cent = &cg_entities[cg.snap->entities[i].number];
+		centity_t* cent = &cg_entities[cg.snap->entities[i].number];
 		cent->currentValid = qfalse;
 	}
 
-	// move nextSnap to snap and do the transitions
+	// ------------------------------------------------------------------
+	// Move nextSnap → snap
+	// ------------------------------------------------------------------
 	snapshot_t* oldFrame = cg.snap;
 	cg.snap = cg.nextSnap;
 
-	BG_PlayerStateToEntityState(&cg.snap->ps, &cg_entities[cg.snap->ps.clientNum].currentState, qfalse);
+	// Player entity state update
+	BG_PlayerStateToEntityState(
+		&cg.snap->ps,
+		&cg_entities[cg.snap->ps.clientNum].currentState,
+		qfalse);
+
 	cg_entities[cg.snap->ps.clientNum].interpolate = qfalse;
 
-	for (i = 0; i < cg.snap->numEntities; i++)
+	// ------------------------------------------------------------------
+	// Transition all entities in the new snapshot
+	// ------------------------------------------------------------------
+	for (int i = 0; i < cg.snap->numEntities; i++)
 	{
-		cent = &cg_entities[cg.snap->entities[i].number];
+		centity_t* cent = &cg_entities[cg.snap->entities[i].number];
 		CG_TransitionEntity(cent);
-
-		// remember time of snapshot this entity was last updated in
 		cent->snapShotTime = cg.snap->serverTime;
 	}
 
+	// nextSnap is consumed
 	cg.nextSnap = NULL;
 
-	// check for playerstate transition events
-	if (oldFrame)
+	// ------------------------------------------------------------------
+	// Handle playerstate transition events
+	// ------------------------------------------------------------------
+	if (oldFrame != NULL)
 	{
 		playerState_t* ops = &oldFrame->ps;
 		const playerState_t* ps = &cg.snap->ps;
-		// teleporting checks are irrespective of prediction
+
+		// Teleport detection
 		if ((ps->eFlags ^ ops->eFlags) & EF_TELEPORT_BIT)
 		{
-			cg.thisFrameTeleport = qtrue; // will be cleared by prediction code
+			cg.thisFrameTeleport = qtrue;
 		}
 
-		// if we are not doing client side movement prediction for any
-		// reason, then the client events and view changes will be issued now
-		if (cg.demoPlayback || cg.snap->ps.pm_flags & PMF_FOLLOW
-			|| cg_noPredict.integer || g_synchronousClients.integer || CG_UsingEWeb())
+		// If prediction is disabled, transition playerstate immediately
+		if (cg.demoPlayback == qtrue ||
+			(ps->pm_flags & PMF_FOLLOW) ||
+			cg_noPredict.integer ||
+			g_synchronousClients.integer ||
+			CG_UsingEWeb() == qtrue)
 		{
 			CG_TransitionPlayerState(ps, ops);
 		}
 	}
 }
+
 
 /*
 ===================

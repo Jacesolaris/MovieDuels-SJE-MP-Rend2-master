@@ -3803,7 +3803,7 @@ int PM_CheckKick(void)
 	if (!PM_SaberInBounce(pm->ps->saber_move)
 		&& !PM_SaberInKnockaway(pm->ps->saber_move)
 		&& !PM_SaberInBrokenParry(pm->ps->saber_move)
-		&& !PM_kick_move(pm->ps->saber_move)
+		&& !PM_KickMove(pm->ps->saber_move)
 		&& !PM_KickingAnim(pm->ps->torsoAnim)
 		&& !PM_KickingAnim(pm->ps->legsAnim)
 		&& !BG_InRoll(pm->ps, pm->ps->legsAnim)
@@ -3906,7 +3906,7 @@ int PM_MeleeMoveForConditions(void)
 	if (!PM_SaberInBounce(pm->ps->saber_move)
 		&& !PM_SaberInKnockaway(pm->ps->saber_move)
 		&& !PM_SaberInBrokenParry(pm->ps->saber_move)
-		&& !PM_kick_move(pm->ps->saber_move)
+		&& !PM_KickMove(pm->ps->saber_move)
 		&& !PM_KickingAnim(pm->ps->torsoAnim)
 		&& !PM_KickingAnim(pm->ps->legsAnim)
 		&& !BG_InRoll(pm->ps, pm->ps->legsAnim)
@@ -7191,7 +7191,7 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 			|| new_move == LS_PULL_ATTACK_STAB
 			|| new_move == LS_PULL_ATTACK_SWING
 			|| PM_SaberInBrokenParry(new_move)
-			|| PM_kick_move(new_move))
+			|| PM_KickMove(new_move))
 		{
 			parts = SETANIM_BOTH;
 		}
@@ -7277,14 +7277,14 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 		if (pm->ps->weapon == WP_SABER && !BG_SabersOff(pm->ps))
 		{
 #ifdef _GAME
-			if (!(g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT))
+			if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT)
 			{
-				PM_SaberFatigue(pm->ps, new_move); //drainblockpoints low cost
+				PM_NPCFatigue(pm->ps, new_move); //drainblockpoints low cost
 			}
 			else
 #endif
 			{
-				PM_NPCFatigue(pm->ps, new_move); //drainblockpoints low cost
+				PM_SaberFatigue(pm->ps, new_move); //drain blockpoints low cost
 			}
 
 			//update the flag
@@ -7553,7 +7553,7 @@ qboolean PM_DoSlap(void)
 	if (!PM_SaberInBounce(pm->ps->saber_move)
 		&& !PM_SaberInKnockaway(pm->ps->saber_move)
 		&& !PM_SaberInBrokenParry(pm->ps->saber_move)
-		&& !PM_kick_move(pm->ps->saber_move)
+		&& !PM_KickMove(pm->ps->saber_move)
 		&& !PM_KickingAnim(pm->ps->torsoAnim)
 		&& !PM_KickingAnim(pm->ps->legsAnim)
 		&& !BG_InRoll(pm->ps, pm->ps->legsAnim)
@@ -7669,7 +7669,7 @@ qboolean PM_SaberInFullDamageMove(const playerState_t* ps, const int anim_index)
 		|| PM_SaberInDamageMove(ps->saber_move)
 		|| pm_saber_in_special_attack(ps->torsoAnim) //jacesolaris 2019 test for idle kill
 		|| PM_SaberDoDamageAnim(ps->torsoAnim)
-		&& !PM_kick_move(ps->saber_move)
+		&& !PM_KickMove(ps->saber_move)
 		&& !PM_InSaberLock(ps->torsoAnim)
 		|| PM_SuperBreakWinAnim(ps->torsoAnim))
 	{

@@ -4,8 +4,8 @@
 #include "cg_local.h"
 #include "cg_pazaak.h"
 #if defined(__has_include)
-#  if __has_include("ui/jamp/menudef.h")
-#    include "ui/jamp/menudef.h"
+#  if __has_include("ui/MD_MP/menudef.h")// MOVIEDUELS has a different path for this header
+#    include "ui/MD_MP/menudef.h"
 #  else
 #    include "ui/menudef.h"
 #  endif
@@ -158,9 +158,3 @@ void CG_Pazaak_OwnerDraw(int ownerDraw, float x, float y, float w, float h, vec4
         CG_Text_Paint(x + w - 70, rowY + 20, 0.75f * scale, white, buf, 0, 0, ITEM_TEXTSTYLE_NORMAL, FONT_SMALL);
     }
 }
-
-// Provide definitions for globals used by imported SP code when they
-// are not otherwise present in this cgame build.
-qboolean InBriefing = qfalse;
-qboolean InCinematic = qfalse;
-int CinematicNum = 0;

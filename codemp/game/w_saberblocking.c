@@ -75,12 +75,13 @@ extern qboolean WP_SaberMBlockDirection(gentity_t* self, vec3_t hitloc, qboolean
 extern qboolean WP_SaberBlockNonRandom(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 extern qboolean WP_SaberBouncedSaberDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 extern qboolean WP_SaberFatiguedParryDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
-extern void wp_block_points_regenerate_over_ride(const gentity_t* self, int override_amt);
+extern void WP_BlockPointsRegenerate_over_ride(const gentity_t* self, int override_amt);
 void sab_beh_animate_heavy_slow_bounce_attacker(gentity_t* attacker);
 extern void G_StaggerAttacker(gentity_t* atk);
 extern void G_BounceAttacker(gentity_t* atk);
 extern void wp_saber_clear_damage_for_ent_num(gentity_t* attacker, int entityNum, int saber_num, int blade_num);
 extern void g_do_m_block_response(const gentity_t* speaker_npc_self);
+extern qboolean Rosh_BeingHealed(const gentity_t* self);
 //////////Defines////////////////
 
 static void sab_beh_saber_should_be_disarmed_attacker(gentity_t* attacker, const gentity_t* blocker)
@@ -406,76 +407,66 @@ static void sab_beh_add_mishap_Fake_attacker(gentity_t* attacker, const gentity_
 
 static void sab_beh_add_mishap_blocker(gentity_t* blocker, const gentity_t* attacker)
 {
-	// Clamp mishap values
-	if (blocker->client->ps.fd.blockPoints <= MISHAPLEVEL_NONE ||
-		blocker->client->ps.saberFatigueChainCount <= MISHAPLEVEL_NONE)
+	if (blocker->client->ps.fd.blockPoints <= MISHAPLEVEL_NONE)
 	{
 		blocker->client->ps.fd.blockPoints = MISHAPLEVEL_NONE;
-		blocker->client->ps.saberFatigueChainCount = MISHAPLEVEL_NONE;
-		return;
 	}
-
-	// Validate saber entity before disarming
-	int saberEntNum = blocker->client->ps.saberEntityNum;
-	if (saberEntNum < 0 || saberEntNum >= ENTITYNUM_WORLD)
-		return;
-
-	// Random mishap branch (0,1,2)
-	const int rand_num = Q_irand(0, 2);
-
-	switch (rand_num)
+	else if (blocker->client->ps.saberFatigueChainCount <= MISHAPLEVEL_NONE)
 	{
-	case 0:
-		// Simple stagger
-		G_Stagger(blocker);
+		blocker->client->ps.saberFatigueChainCount = MISHAPLEVEL_NONE;
+	}
+	else
+	{
+		//overflowing causes a full mishap.
+		const int rand_num = Q_irand(0, 2);
 
-		if (d_blockinfo.integer || g_DebugSaberCombat.integer)
-			Com_Printf(S_COLOR_RED "blocker staggering\n");
-		break;
-
-	case 1:
-		if (blocker->r.svFlags & SVF_BOT)
+		switch (rand_num)
 		{
-			// 75% chance to disarm, 25% chance to stagger
-			const int roll = Q_irand(0, 3);  // values: 0,1,2,3
-
-			if (roll == 0)
+		case 0:
+			G_Stagger(blocker);
+			if (d_blockinfo.integer || g_DebugSaberCombat.integer)
+				Com_Printf(S_COLOR_RED "blocker staggering\n");
+			break;
+		case 1:
+			if (blocker->r.svFlags & SVF_BOT)
 			{
-				// 25% chance
-				G_Stagger(blocker);
+				// 75% chance to disarm, 25% chance to stagger
+				const int roll = Q_irand(0, 3);  // values: 0,1,2,3
 
-				if (d_blockinfo.integer || g_DebugSaberCombat.integer)
+				if (roll == 0)
 				{
-					Com_Printf(S_COLOR_RED "NPC blocker staggering\n");
+					// 25% chance
+					G_Stagger(blocker);
+
+					if (d_blockinfo.integer || g_DebugSaberCombat.integer)
+					{
+						Com_Printf(S_COLOR_RED "NPC blocker staggering\n");
+					}
+				}
+				else
+				{
+					// 75% chance
+					SabBeh_SaberShouldBeDisarmedBlocker(blocker, attacker);
+					WP_BlockPointsRegenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
+
+					if (d_blockinfo.integer || g_DebugSaberCombat.integer)
+					{
+						Com_Printf(S_COLOR_RED "NPC blocker lost his saber\n");
+					}
 				}
 			}
 			else
 			{
-				// 75% chance
 				SabBeh_SaberShouldBeDisarmedBlocker(blocker, attacker);
-				wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
 
 				if (d_blockinfo.integer || g_DebugSaberCombat.integer)
 				{
-					Com_Printf(S_COLOR_RED "NPC blocker lost his saber\n");
+					Com_Printf(S_COLOR_RED "Player blocker lost his saber\n");
 				}
 			}
+			break;
+		default:;
 		}
-		else
-		{
-			// Player blocker always disarms on this branch
-			SabBeh_SaberShouldBeDisarmedBlocker(blocker, attacker);
-
-			if (d_blockinfo.integer || g_DebugSaberCombat.integer)
-			{
-				Com_Printf(S_COLOR_RED "Player blocker lost his saber\n");
-			}
-		}
-		break;
-
-	default:
-		// rand_num == 2 → no mishap
-		break;
 	}
 }
 
@@ -826,7 +817,7 @@ static qboolean sab_beh_attack_vs_attack(gentity_t* attacker, gentity_t* blocker
 		if (blocker->client->ps.fd.blockPoints < BLOCKPOINTS_TEN)
 		{
 			SabBeh_SaberShouldBeDisarmedBlocker(blocker, attacker);
-			wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
+			WP_BlockPointsRegenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
 		}
 		else
 		{
@@ -848,7 +839,7 @@ static qboolean sab_beh_attack_vs_attack(gentity_t* attacker, gentity_t* blocker
 		if (attacker->client->ps.fd.blockPoints < BLOCKPOINTS_TEN)
 		{
 			sab_beh_saber_should_be_disarmed_attacker(attacker, blocker);
-			wp_block_points_regenerate_over_ride(attacker, BLOCKPOINTS_FATIGUE);
+			WP_BlockPointsRegenerate_over_ride(attacker, BLOCKPOINTS_FATIGUE);
 		}
 		else
 		{
@@ -1102,7 +1093,20 @@ qboolean sab_beh_block_vs_attack(
 	vec3_t hit_loc
 )
 {
-	// Blocker state flags
+	// Early exits
+	if (!blocker || !blocker->client || !attacker) {
+		return qfalse;
+	}
+
+	if (Rosh_BeingHealed(blocker)) {
+		return qfalse;
+	}
+
+	if (PM_SuperBreakLoseAnim(blocker->client->ps.torsoAnim) ||
+		PM_SuperBreakWinAnim(blocker->client->ps.torsoAnim)) {
+		return qfalse;
+	}
+	//-(Im the blocker)
 	const qboolean accurate_parry =
 		g_accurate_blocking(blocker, attacker, hit_loc);
 
@@ -1233,7 +1237,7 @@ qboolean sab_beh_block_vs_attack(
 					attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
 					wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 
-					wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);//SAC Reward blocker
+					WP_BlockPointsRegenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);//SAC Reward blocker
 					sab_beh_add_balance(blocker, -MPCOST_MBLOCKED); //SAC Reward blocker
 
 					if (attacker->r.svFlags & SVF_BOT)
@@ -1484,7 +1488,7 @@ qboolean sab_beh_block_vs_attack(
 			attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
 			wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
 
-			wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);
+			WP_BlockPointsRegenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);
 			PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_TEN); //BP Punish Attacker
 			sab_beh_add_balance(blocker, -MPCOST_MBLOCKED); //SAC Reward blocker
 			sab_beh_add_balance(attacker, MPCOST_MBLOCKED); //SAC Punish attacker
@@ -1494,7 +1498,7 @@ qboolean sab_beh_block_vs_attack(
 			if (blocker->client->ps.fd.blockPoints < BLOCKPOINTS_TEN)
 			{
 				SabBeh_SaberShouldBeDisarmedBlocker(blocker, attacker);
-				wp_block_points_regenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
+				WP_BlockPointsRegenerate_over_ride(blocker, BLOCKPOINTS_FATIGUE);
 			}
 			else
 			{

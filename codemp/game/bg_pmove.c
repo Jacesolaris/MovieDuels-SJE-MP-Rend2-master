@@ -84,7 +84,7 @@ extern void PM_SetMeleeBlock(void);
 extern qboolean PM_MeleeblockAnim(int anim);
 extern qboolean PM_ForceAnim(int anim);
 extern qboolean BG_SprintAnim(int anim);
-qboolean PM_CrouchAnim(int anim);
+qboolean PM_CrouchAnim(const int anim);
 extern qboolean in_camera;
 extern qboolean PM_InRoll(const playerState_t* ps);
 extern qboolean PM_InAirKickingAnim(int anim);
@@ -13616,7 +13616,7 @@ static void PM_Weapon(void)
 			if (!PM_SaberInBounce(pm->ps->saber_move)
 				&& !PM_SaberInKnockaway(pm->ps->saber_move)
 				&& !PM_SaberInBrokenParry(pm->ps->saber_move)
-				&& !PM_kick_move(pm->ps->saber_move)
+				&& !PM_KickMove(pm->ps->saber_move)
 				&& !PM_KickingAnim(pm->ps->torsoAnim)
 				&& !PM_KickingAnim(pm->ps->legsAnim)
 				&& !BG_InRoll(pm->ps, pm->ps->legsAnim)
@@ -14360,7 +14360,7 @@ static void PM_Weapon(void)
 				if (!PM_SaberInBounce(pm->ps->saber_move)
 					&& !PM_SaberInKnockaway(pm->ps->saber_move)
 					&& !PM_SaberInBrokenParry(pm->ps->saber_move)
-					&& !PM_kick_move(pm->ps->saber_move)
+					&& !PM_KickMove(pm->ps->saber_move)
 					&& !PM_KickingAnim(pm->ps->torsoAnim)
 					&& !PM_KickingAnim(pm->ps->legsAnim)
 					&& !BG_InRoll(pm->ps, pm->ps->legsAnim)
@@ -15393,7 +15393,7 @@ void PM_UpdateViewAngles(int saberAnimLevel, playerState_t* ps, const usercmd_t*
 	if (ps->weapon == WP_SABER
 		&& !BG_SabersOff(ps)
 		&& !ps->saberInFlight
-		&& !PM_kick_move(ps->saber_move)
+		&& !PM_KickMove(ps->saber_move)
 		&& cmd->forwardmove >= 0
 		&& !PM_WalkingOrRunningAnim(ps->legsAnim)
 		&& !PM_WalkingOrRunningAnim(ps->torsoAnim)
@@ -18552,7 +18552,7 @@ static void PmoveSingle(pmove_t* pmove)
 	{
 		stiffenedUp = qtrue;
 	}
-	else if (PM_kick_move(pm->ps->saber_move) || PM_KickingAnim(pm->ps->legsAnim))
+	else if (PM_KickMove(pm->ps->saber_move) || PM_KickingAnim(pm->ps->legsAnim))
 	{
 		stiffenedUp = qtrue;
 		if (pm->ps->legsTimer <= 0)

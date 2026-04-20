@@ -32,7 +32,7 @@ extern qboolean WP_LobFire(const gentity_t* self, vec3_t start, vec3_t target, v
 	float min_speed, float max_speed, float ideal_speed, qboolean must_hit);
 extern void G_SoundOnEnt(gentity_t* ent, soundChannel_t channel, const char* sound_path);
 
-extern qboolean PM_CrouchAnim(int anim);
+extern qboolean PM_CrouchAnim(const int anim);
 
 #define MELEE_DIST_SQUARED 6400//80*80
 #define MIN_LOB_DIST_SQUARED 65536//256*256

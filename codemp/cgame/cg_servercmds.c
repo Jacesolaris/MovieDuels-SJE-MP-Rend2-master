@@ -1307,6 +1307,52 @@ static void CG_SiegeClassSelect_f(void) {
 	trap->OpenUIMenu(UIMENU_CLASSSEL); //UIMENU_CLASSSEL
 }
 
+qboolean InBriefing = qfalse;
+qboolean InCinematic = qfalse;
+int CinematicNum = 0;
+
+static void CG_menubrief_f(void)
+{
+	InBriefing = qtrue;
+	trap->Cvar_Set("ui_menubrief", CG_Argv(1));
+	trap->OpenUIMenu(UIMENU_BRIEFING);
+}
+
+static void CG_AdminMenu_f(void)
+{
+	trap->OpenUIMenu(UIMENU_ADMIN);
+}
+
+static void CG_inGameCinematic_f(void)
+{
+	fileHandle_t file;
+	char name[MAX_STRING_CHARS];
+	strcpy(name, va("video/%s.roq", CG_Argv(1)));
+
+	//precashe the file?
+	trap->FS_Open(name, &file, FS_READ); // trigger the file copy
+	if (file)
+	{
+		trap->FS_Close(file);
+	}
+
+	CinematicNum = trap->CIN_PlayCinematic(name, 0, 0, 0, 0, 0);
+	trap->CIN_RunCinematic(CinematicNum);
+	trap->CIN_SetExtents(CinematicNum, 0, 0, 640, 480);
+	trap->CIN_DrawCinematic(CinematicNum);
+	InCinematic = qtrue;
+}
+
+static void CG_LMSWin_f(void)
+{
+	trap->S_StartLocalSound(cgs.media.winnerSound, CHAN_ANNOUNCER);
+}
+
+static void CG_LMSLose_f(void)
+{
+	trap->S_StartLocalSound(cgs.media.loserSound, CHAN_ANNOUNCER);
+}
+
 static void CG_SiegeProfileMenu_f(void) {
 	if (!cg.demoPlayback) {
 		trap->Cvar_Set("ui_myteam", "3");
@@ -1595,8 +1641,13 @@ static serverCommand_t	commands[] = {
 	{ "spc",				CG_SiegeProfileMenu_f },
 	{ "sxd",				CG_ParseSiegeExtendedData },
 	{ "tchat",				CG_Chat_f },
-	{ "tinfo",			CG_ParseTeamInfo },
-	{ "pzk",			CG_Pazaak_ServerCmd_f },
+	{ "tinfo",			    CG_ParseTeamInfo },
+	{ "briefmenu",          CG_menubrief_f},
+	{ "inGameCinematic",    CG_inGameCinematic_f},
+	{ "LMSWin",             CG_LMSWin_f},
+	{ "LMSLose",            CG_LMSLose_f},
+	{ "pzk",			    CG_Pazaak_ServerCmd_f },
+	{ "openadminmenu",      CG_AdminMenu_f },
 };
 
 static const size_t numCommands = ARRAY_LEN(commands);
@@ -1609,7 +1660,8 @@ The string has been tokenized and can be retrieved with
 Cmd_Argc() / Cmd_Argv()
 =================
 */
-static void CG_ServerCommand(void) {
+static void CG_ServerCommand(void)
+{
 	const char* cmd = CG_Argv(0);
 
 	if (!cmd[0]) {
