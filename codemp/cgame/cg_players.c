@@ -2722,7 +2722,7 @@ static void CG_PlayerAnimEventDo(centity_t* cent, animevent_t* anim_event)
 	soundChannel_t channel = CHAN_AUTO;
 	const clientInfo_t* client;
 	qhandle_t swing_sound;
-	qhandle_t spin_sound;
+	qhandle_t spinSound;
 
 	if (!cent || !anim_event)
 	{
@@ -2817,35 +2817,35 @@ static void CG_PlayerAnimEventDo(centity_t* cent, animevent_t* anim_event)
 			&& client->saber[AED_SABER_SPIN_saber_num].spinSound)
 		{
 			//use override
-			spin_sound = client->saber[AED_SABER_SPIN_saber_num].spinSound;
+			spinSound = client->saber[AED_SABER_SPIN_saber_num].spinSound;
 		}
 		else
 		{
 			switch (anim_event->eventData[AED_SABER_SPIN_TYPE])
 			{
 			case 0: //saberspinoff
-				spin_sound = trap->S_RegisterSound("sound/weapons/saber/saberspinoff.wav");
+				spinSound = trap->S_RegisterSound("sound/weapons/saber/saberspinoff.wav");
 				break;
 			case 1: //saberspin
-				spin_sound = trap->S_RegisterSound("sound/weapons/saber/saberspin.wav");
+				spinSound = trap->S_RegisterSound("sound/weapons/saber/saberspin.wav");
 				break;
 			case 2: //saberspin1
-				spin_sound = trap->S_RegisterSound("sound/weapons/saber/saberspin1.wav");
+				spinSound = trap->S_RegisterSound("sound/weapons/saber/saberspin1.wav");
 				break;
 			case 3: //saberspin2
-				spin_sound = trap->S_RegisterSound("sound/weapons/saber/saberspin2.wav");
+				spinSound = trap->S_RegisterSound("sound/weapons/saber/saberspin2.wav");
 				break;
 			case 4: //saberspin3
-				spin_sound = trap->S_RegisterSound("sound/weapons/saber/saberspin3.wav");
+				spinSound = trap->S_RegisterSound("sound/weapons/saber/saberspin3.wav");
 				break;
 			default: //random saberspin1-3
-				spin_sound = trap->S_RegisterSound(va("sound/weapons/saber/saberspin%d.wav", Q_irand(1, 3)));
+				spinSound = trap->S_RegisterSound(va("sound/weapons/saber/saberspin%d.wav", Q_irand(1, 3)));
 				break;
 			}
 		}
-		if (spin_sound)
+		if (spinSound)
 		{
-			trap->S_StartSound(NULL, cent->currentState.clientNum, CHAN_AUTO, spin_sound);
+			trap->S_StartSound(NULL, cent->currentState.clientNum, CHAN_AUTO, spinSound);
 		}
 		break;
 	case AEV_FOOTSTEP:

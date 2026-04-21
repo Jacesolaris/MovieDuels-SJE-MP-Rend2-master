@@ -244,5 +244,8 @@ XCVAR_DEF(g_holocronDuration, "30", NULL, CVAR_LATCH, qtrue)
 XCVAR_DEF(g_holocronCooldown, "60", NULL, CVAR_LATCH, qtrue)
 XCVAR_DEF(g_maxHolocronGift, "1", NULL, CVAR_LATCH, qtrue)
 XCVAR_DEF(g_debugHolocron, "0", NULL, CVAR_ARCHIVE, qtrue)
+XCVAR_DEF(g_overpoweredsaberthrow, "1", NULL, CVAR_ARCHIVE, qtrue)
+XCVAR_DEF(g_sabermustreturn, "1", NULL, CVAR_ARCHIVE, qtrue)
+XCVAR_DEF(g_SaberBounceOnWalls, "0", NULL, CVAR_ARCHIVE, qtrue)
 
 #undef XCVAR_DEF

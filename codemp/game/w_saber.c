@@ -1025,13 +1025,29 @@ void wp_saber_init_blade_data(const gentity_t* ent)
 	//should we happen to be removed (we belong to an NPC and he is removed) then
 	//we want to attempt to remove our g2 instance on the client in case we had one.
 
-	saberent->touch = WP_SaberGotHit;
-
-	saberent->think = WP_SaberUpdateSelf;
+	saberent->touch = WP_SaberGotHit;saberent->think = WP_SaberUpdateSelf;
 	saberent->genericValue5 = 0;
 	saberent->nextthink = level.time + 50;
 
-	saberSpinSound = G_SoundIndex("sound/weapons/saber/saberspin.wav");
+	if (ent->client->saber[0].type == SABER_SITH_SWORD)
+	{
+		saberSpinSound = G_SoundIndex("sound/weapons/saber/saberspinoff.wav");
+	}
+	else
+	{
+		switch (ent->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
+		{//set the saber spin sound based on saber throw level
+		case FORCE_LEVEL_1:
+			saberSpinSound = G_SoundIndex("sound/weapons/saber/saberspin3.wav");
+			break;
+		case FORCE_LEVEL_2:
+			saberSpinSound = G_SoundIndex("sound/weapons/saber/saberspin2.wav");
+			break;
+		case FORCE_LEVEL_3:
+			saberSpinSound = G_SoundIndex("sound/weapons/saber/saberspin1.wav");
+			break;
+		}
+	}
 }
 
 #define LOOK_DEFAULT_SPEED	0.15f
@@ -6096,14 +6112,7 @@ void wp_saber_clear_damage_for_ent_num(gentity_t* attacker, const int entityNum,
 // Behaviour preserved 100%. Only safety, clarity, and structure improved.
 // ------------------------------------------------------------
 
-static QINLINE qboolean CheckSaberDamage(
-	gentity_t* self,
-	const int rSaberNum,
-	const int rBladeNum,
-	vec3_t saber_start,   // made const: function never modifies these
-	vec3_t saber_end,
-	const int trMask
-)
+static QINLINE qboolean CheckSaberDamage(gentity_t* self,const int rSaberNum,const int rBladeNum,vec3_t saber_start,vec3_t saber_end,const int trMask)
 {
 	// --- SAFETY IMPROVEMENT ---
 	// These were previously static, which is dangerous:
@@ -6877,6 +6886,16 @@ static QINLINE qboolean CheckSaberDamage(
 					self->client->ps.saberBounceMove =
 						LS_D1_BR + (saber_moveData[self->client->ps.saber_move].startQuad - Q_BR);
 				}
+				else if ((g_SaberBounceOnWalls.integer) &&
+					(PM_SaberInAttackPure(self->client->ps.saber_move) ||
+						self->client->ps.saber_move == LS_A_JUMP_T__B_ ||
+						self->client->ps.saber_move == LS_A_JUMP_PALP_))
+				{
+					WP_SaberBounceOnWallSound(self, rSaberNum, rBladeNum);
+					self->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
+					self->client->ps.saberBounceMove =
+						LS_D1_BR + (saber_moveData[self->client->ps.saber_move].startQuad - Q_BR);
+				}
 				else if ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) &&
 					!PM_SaberInAttackPure(self->client->ps.saber_move) &&
 					!PM_CrouchAnim(self->client->ps.legsAnim) &&
@@ -6909,8 +6928,8 @@ static QINLINE qboolean CheckSaberDamage(
 	}
 
 	// ------------------------------------------------------------
-// DEFENDER ANIMATIONS
-// ------------------------------------------------------------
+    // DEFENDER ANIMATIONS
+    // ------------------------------------------------------------
 	if (blocker && blocker->inuse && blocker->client)
 	{
 		// If the defender was in a damaging move, not in a saberlock,
@@ -8225,9 +8244,47 @@ void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner)
 	saberent->s.saberInFlight = qtrue;
 
 	saberent->s.apos.trType = TR_LINEAR;
-	saberent->s.apos.trDelta[0] = 600;
-	saberent->s.apos.trDelta[1] = 0;
-	saberent->s.apos.trDelta[2] = 0;
+
+	// Spin axis depends on overpoweredsaberthrow cvar
+	if (g_overpoweredsaberthrow.integer != 0)
+	{// Spin on Y axis (JKA default)
+		saberent->s.apos.trDelta[0] = 0;
+
+		switch (saber_owner->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
+		{
+		default:
+		case FORCE_LEVEL_1:
+			saberent->s.apos.trDelta[1] = 600;
+			break;
+		case FORCE_LEVEL_2:
+			saberent->s.apos.trDelta[1] = 800;
+			break;
+		case FORCE_LEVEL_3:
+			saberent->s.apos.trDelta[1] = 1200;
+			break;
+		}
+
+		saberent->s.apos.trDelta[2] = 0;
+	}
+	else
+	{// Spin on X axis (new style)
+		switch (saber_owner->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
+		{
+		default:
+		case FORCE_LEVEL_1: 
+			saberent->s.apos.trDelta[0] = 600; 
+			break;
+		case FORCE_LEVEL_2:
+			saberent->s.apos.trDelta[0] = 800;
+			break;
+		case FORCE_LEVEL_3:
+			saberent->s.apos.trDelta[0] = 1200;
+			break;
+		}
+
+		saberent->s.apos.trDelta[1] = 0;
+		saberent->s.apos.trDelta[2] = 0;
+	}
 
 	saberent->s.pos.trType = TR_LINEAR;
 	saberent->s.eType = ET_GENERAL;
@@ -9008,7 +9065,22 @@ void WP_thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* t
 	}
 	else
 	{
-		WP_saberKnockDown(saberent, saber_own, saber_own);
+		if (g_sabermustreturn.integer == 1) // If the saber must return, then it doesn't matter if it's a bot or not, just return it.
+		{
+			WP_saberReactivate(saberent, saber_own);
+
+			saberent->touch = WP_SaberGotHit;
+			saberent->think = WP_saberBackToOwner;
+			saberent->speed = 0;
+			saberent->genericValue5 = 0;
+			saberent->nextthink = level.time;
+
+			saberent->r.contents = CONTENTS_LIGHTSABER;
+		}
+		else
+		{
+			WP_saberKnockDown(saberent, saber_own, saber_own);
+		}
 	}
 }
 
@@ -9125,8 +9197,23 @@ static void WP_saberFirstThrown(gentity_t* saberent)
 		}
 		else
 		{
-			G_RunObject(saberent);
-			WP_thrownSaberBallistics(saberent, saber_own, qfalse);
+			if (g_sabermustreturn.integer == 1 && (saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW] >= FORCE_LEVEL_3))
+			{// If the saber must return, then it doesn't matter if it's a bot or not, just return it.
+				WP_saberReactivate(saberent, saber_own);
+
+				saberent->touch = WP_SaberGotHit;
+				saberent->think = WP_saberBackToOwner;
+				saberent->speed = 0;
+				saberent->genericValue5 = 0;
+				saberent->nextthink = level.time;
+
+				saberent->r.contents = CONTENTS_LIGHTSABER;
+			}
+			else
+			{
+				G_RunObject(saberent);
+				WP_thrownSaberBallistics(saberent, saber_own, qfalse);
+			}
 		}
 	}
 
@@ -11847,17 +11934,45 @@ nextStep:
 
 				saberent->s.saberInFlight = qtrue;
 
-				if (self->client->ps.fd.saberAnimLevel == SS_STAFF)
-				{
-					saberent->s.apos.trType = TR_LINEAR;
+				saberent->s.apos.trType = TR_LINEAR;
+				
+				// Spin axis depends on overpoweredsaberthrow cvar
+				if (g_overpoweredsaberthrow.integer != 0)
+				{// Spin on Y axis (JKA default)
 					saberent->s.apos.trDelta[0] = 0;
-					saberent->s.apos.trDelta[1] = 800;
+
+					switch (self->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
+					{
+					default:
+					case FORCE_LEVEL_1:
+						saberent->s.apos.trDelta[1] = 600; 
+						break;
+					case FORCE_LEVEL_2:
+						saberent->s.apos.trDelta[1] = 800; 
+						break;
+					case FORCE_LEVEL_3:
+						saberent->s.apos.trDelta[1] = 1200;
+						break;
+					}
+
 					saberent->s.apos.trDelta[2] = 0;
 				}
 				else
-				{
-					saberent->s.apos.trType = TR_LINEAR;;
-					saberent->s.apos.trDelta[0] = 600;
+				{// Spin on X axis (new style)
+					switch (self->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
+					{
+					default:
+					case FORCE_LEVEL_1: 
+						saberent->s.apos.trDelta[0] = 600; 
+						break;
+					case FORCE_LEVEL_2:
+						saberent->s.apos.trDelta[0] = 800; 
+						break;
+					case FORCE_LEVEL_3:
+						saberent->s.apos.trDelta[0] = 1200;
+						break;
+					}
+
 					saberent->s.apos.trDelta[1] = 0;
 					saberent->s.apos.trDelta[2] = 0;
 				}
@@ -14923,117 +15038,146 @@ static void WP_SaberBallisticsThink(gentity_t* saberEnt)
 
 void WP_thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, const qboolean stuck)
 {
-	//this function converts the saber from thrown saber that's being held on course by the force into a saber that's just ballastically moving.
-	const saberInfo_t* saber1 = BG_MySaber(saber_own->clientNum, 0);
-
-	if (stuck)
+	// Safety checks
+	if (!saberEnt)
 	{
+		Com_Printf("^1[WP_thrownSaberBallistics] ERROR: saberEnt was NULL\n");
+		return;
+	}
+	if (!saber_own || !saber_own->client)
+	{
+		Com_Printf("^1[WP_thrownSaberBallistics] ERROR: saber_own or saber_own->client was NULL\n");
+		return;
+	}
+
+	// Convert guided thrown saber into ballistic physics
+	// 'stuck' means the saber hit a surface and should stop moving.
+
+	if (stuck == qtrue)
+	{
+		// Stop all movement
 		VectorClear(saberEnt->s.pos.trDelta);
 		VectorClear(saberEnt->s.apos.trDelta);
 
+		// Stick into the surface
 		saberEnt->s.eFlags = EF_MISSILE_STICK;
 
 		saberEnt->s.pos.trType = TR_STATIONARY;
 		saberEnt->s.apos.trType = TR_STATIONARY;
 
-		if (saber_own->r.svFlags & SVF_BOT)
+		// Retrieve delay depends on bot vs player
+		if ((saber_own->r.svFlags & SVF_BOT) != 0)
+		{
 			saber_own->client->saberKnockedTime = level.time + SABER_BOTRETRIEVE_DELAY;
+		}
 		else
+		{
 			saber_own->client->saberKnockedTime = level.time + SABER_RETRIEVE_DELAY;
+		}
 
+		// Loop sound from saber definition
 		saberEnt->s.loopSound = saber_own->client->saber[0].soundLoop;
 		saberEnt->s.loopIsSoundset = qfalse;
 
 		saberEnt->bounceCount = 0;
 
-		// Make sure SaberBallisticsThink runs again
+		// Ensure ballistics think runs again
 		saberEnt->think = WP_SaberBallisticsThink;
 		saberEnt->nextthink = level.time + 50;
 	}
 	else
 	{
-		//otherwise, just move by normal ballistic physics
-		//spin just like we were in our saber throw.
+		// Ballistic movement (gravity + spin)
+		saberEnt->s.apos.trType = TR_LINEAR;
 
-		if (saber1 && saber1->type == SABER_VADER)
-		{
-			saberEnt->s.apos.trType = TR_LINEAR;
+		// Spin axis depends on overpoweredsaberthrow cvar
+		if (g_overpoweredsaberthrow.integer != 0)
+		{// Spin on Y axis (JKA default)
 			saberEnt->s.apos.trDelta[0] = 0;
-			saberEnt->s.apos.trDelta[1] = 600;
+
+			switch (saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
+			{
+			default:
+			case FORCE_LEVEL_1: 
+				saberEnt->s.apos.trDelta[1] = 600;
+				break;
+			case FORCE_LEVEL_2: 
+				saberEnt->s.apos.trDelta[1] = 800; 
+				break;
+			case FORCE_LEVEL_3: 
+				saberEnt->s.apos.trDelta[1] = 1200;
+				break;
+			}
+
 			saberEnt->s.apos.trDelta[2] = 0;
 		}
 		else
-		{
-			if (saber_own->client->ps.fd.saberAnimLevel == SS_DESANN || saber_own->client->ps.fd.saberAnimLevel ==
-				SS_TAVION)
+		{// Spin on X axis (new style)
+			switch (saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
 			{
-				saberEnt->s.apos.trType = TR_LINEAR;
-				saberEnt->s.apos.trDelta[0] = 0;
-				saberEnt->s.apos.trDelta[1] = 600;
-				saberEnt->s.apos.trDelta[2] = 0;
-			}
-			else if (saber_own->client->ps.fd.saberAnimLevel == SS_STAFF)
-			{
-				saberEnt->s.apos.trType = TR_LINEAR;
-				saberEnt->s.apos.trDelta[0] = 0;
-				saberEnt->s.apos.trDelta[1] = 1200;
-				saberEnt->s.apos.trDelta[2] = 0;
-			}
-			else if (saber_own->client->ps.fd.saberAnimLevel == SS_FAST)
-			{
-				saberEnt->s.apos.trType = TR_LINEAR;
+			default:
+			case FORCE_LEVEL_1: 
+				saberEnt->s.apos.trDelta[0] = 600; 
+				break;
+			case FORCE_LEVEL_2: 
+				saberEnt->s.apos.trDelta[0] = 800;  
+				break;
+			case FORCE_LEVEL_3:
 				saberEnt->s.apos.trDelta[0] = 1200;
-				saberEnt->s.apos.trDelta[1] = 0;
-				saberEnt->s.apos.trDelta[2] = 0;
+				break;
 			}
-			else
-			{
-				saberEnt->s.apos.trType = TR_LINEAR;
-				saberEnt->s.apos.trDelta[0] = 600;
-				saberEnt->s.apos.trDelta[1] = 0;
-				saberEnt->s.apos.trDelta[2] = 0;
-			}
+
+			saberEnt->s.apos.trDelta[1] = 0;
+			saberEnt->s.apos.trDelta[2] = 0;
 		}
 
-		//but now gravity has an effect.
+		// Gravity now applies
 		saberEnt->s.pos.trType = TR_GRAVITY;
 
-		//clear the entity flags
+		// Clear entity flags (ballistic sabers have no special eFlags)
 		saberEnt->s.eFlags = 0;
 
+		// Number of allowed bounces
 		saberEnt->bounceCount = BALLISTICSABER_BOUNCECOUNT;
 	}
 
-	//set up for saber style bouncing
+	// Saber-style bouncing
 	saberEnt->flags |= FL_BOUNCE_HALF;
 
-	//set transect timers and initial positions
+	// Setup angular trajectory
 	saberEnt->s.apos.trTime = level.time;
 	VectorCopy(saberEnt->r.currentAngles, saberEnt->s.apos.trBase);
 
+	// Setup positional trajectory
 	saberEnt->s.pos.trTime = level.time;
 	VectorCopy(saberEnt->r.currentOrigin, saberEnt->s.pos.trBase);
 
-	//let the player know that they've lost control of the saber.
+	// Player loses control of saber
 	saber_own->client->ps.saberEntityNum = 0;
 
-	//set the appropriate function pointer stuff
+	// Assign think/touch functions
 	saberEnt->think = WP_SaberBallisticsThink;
 	saberEnt->touch = WP_SaberBallisticsTouch;
 	saberEnt->nextthink = level.time + FRAMETIME;
 
+	// Link entity
 	trap->LinkEntity((sharedEntity_t*)saberEnt);
 
-	//add the saber model to our gentity ghoul2 instance
-	WP_SaberAddG2Model(saberEnt, saber_own->client->saber[0].model,
-		saber_own->client->saber[0].skin);
+	// Add saber G2 model
+	WP_SaberAddG2Model(
+		saberEnt,
+		saber_own->client->saber[0].model,
+		saber_own->client->saber[0].skin
+	);
 
 	saberEnt->s.modelGhoul2 = 1;
 	saberEnt->s.g2radius = 20;
 
+	// Convert to missile entity
 	saberEnt->s.eType = ET_MISSILE;
 	saberEnt->s.weapon = WP_SABER;
 }
+
 
 void DebounceSaberImpact(const gentity_t* self, const gentity_t* other_saberer, const int rsaber_num,
 	const int rblade_num, const int sabimpactentity_num)

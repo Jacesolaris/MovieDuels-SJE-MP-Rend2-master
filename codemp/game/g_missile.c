@@ -1253,8 +1253,8 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 	}
 
 	//
-    // Beskar / Boba Fett bounce handling
-    //
+	// Beskar / Boba Fett bounce handling
+	//
 	if ((beskar || boba_fett) &&
 		other->health > 0 &&
 		!PM_PainAnim(other->client->ps.torsoAnim) &&
@@ -1277,17 +1277,21 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 
 		if (other->client)
 		{
-			if (PM_CrouchAnim(other->client->ps.legsAnim))
-			{
-				vec3_t dir;
-				VectorSubtract(ent->r.currentOrigin, other->r.currentOrigin, dir);
-				VectorNormalize(dir);
+			if (Q_irand(0, 3))
+			{// 75% chance to play pain anim
+				if (PM_CrouchAnim(other->client->ps.legsAnim))
+				{
+					vec3_t dir;
+					VectorSubtract(ent->r.currentOrigin, other->r.currentOrigin, dir);
+					VectorNormalize(dir);
 
-				G_Knockdown(other, ent, dir, 50, qtrue);
-			}
-			else
-			{
-				G_SetAnim(other, NULL, SETANIM_TORSO, Q_irand(BOTH_PAIN2, BOTH_PAIN3), SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+					G_Knockdown(other, ent, dir, 50, qtrue);
+				}
+				else
+				{
+					G_SetAnim(other, NULL, SETANIM_TORSO, Q_irand(BOTH_PAIN2, BOTH_PAIN3), SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+					other->client->ps.torsoTimer = 400;
+				}
 			}
 		}
 
@@ -1568,18 +1572,21 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 				!PM_InKnockDown(&other->client->ps) &&
 				!WP_DoingForcedAnimationForForcePowers(other))
 			{
-				if (PM_CrouchAnim(other->client->ps.legsAnim))
-				{
-					vec3_t dir;
-					VectorSubtract(ent->r.currentOrigin, other->r.currentOrigin, dir);
-					VectorNormalize(dir);
+				if (Q_irand(0, 3))
+				{// 75% chance to play pain anim
+					if (PM_CrouchAnim(other->client->ps.legsAnim))
+					{
+						vec3_t dir;
+						VectorSubtract(ent->r.currentOrigin, other->r.currentOrigin, dir);
+						VectorNormalize(dir);
 
-					G_Knockdown(other, ent, dir, 50, qtrue);
-				}
-				else
-				{
-					G_SetAnim(other, NULL, SETANIM_TORSO,Q_irand(BOTH_PAIN2, BOTH_PAIN3),SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD,0);
-					other->client->ps.torsoTimer = 400;
+						G_Knockdown(other, ent, dir, 50, qtrue);
+					}
+					else
+					{
+						G_SetAnim(other, NULL, SETANIM_TORSO, Q_irand(BOTH_PAIN2, BOTH_PAIN3), SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+						other->client->ps.torsoTimer = 400;
+					}
 				}
 			}
 		}

@@ -7728,7 +7728,6 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 			//targ is creature and attacker is creature
 			if (take > targ->health)
 			{//damage is greated than target's health, so he gonna die ...Probably.
-
 				AddFatigueHurtBonusMax(attacker, targ, mod);
 			}
 			else
