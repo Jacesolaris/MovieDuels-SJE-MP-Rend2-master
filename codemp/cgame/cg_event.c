@@ -43,6 +43,46 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <game\bg_public.h>
 //==========================================================================
 
+// simple de-duplication for obituary/kill prints to avoid repeated/multi-line spam
+static char cg_lastObit[1024] = "";
+static int cg_lastObitTime = 0;
+
+static void CG_SanitizeStringForPrint(const char* in, char* out, int outLen)
+{
+	int i, j = 0;
+	if (!in || !out || outLen <= 0) return;
+	for (i = 0; in[i] && j < outLen - 1; i++)
+	{
+		char c = in[i];
+		if (c == '\n' || c == '\r')
+		{
+			/* replace newlines with space */
+			if (j == 0 || out[j-1] == ' ') continue; // avoid leading or duplicate spaces
+			out[j++] = ' ';
+		}
+		else
+		{
+			out[j++] = c;
+		}
+	}
+	/* trim trailing space */
+	while (j > 0 && out[j-1] == ' ') j--;
+	out[j] = '\0';
+}
+
+static qboolean CG_CheckAndStoreObit(const char* san)
+{
+	if (!san) return qfalse;
+	if (cg.time - cg_lastObitTime < 2000 && strcmp(san, cg_lastObit) == 0)
+	{
+		return qtrue; // duplicate within 2s
+	}
+	Q_strncpyz(cg_lastObit, san, sizeof cg_lastObit);
+	cg_lastObitTime = cg.time;
+	return qfalse;
+}
+
+
 extern qboolean WP_SaberBladeUseSecondBladeStyle(const saberInfo_t* saber, int blade_num);
 extern qboolean CG_VehicleWeaponImpact(centity_t* cent);
 extern qboolean CG_InFighter(void);
@@ -251,6 +291,23 @@ static void CG_Obituary(entityState_t* ent)
 	attacker = ent->otherentity_num2;
 	mod = ent->eventParm;
 
+	// Sometimes the server reports attacker==target for saber kills.
+	// Try to find a recent saber-owner who hit this target and use
+	// them as the attacker so the obituary isn't shown as a suicide.
+	if (attacker == target && mod == MOD_SABER)
+	{
+		int ci;
+		for (ci = 0; ci < MAX_CLIENTS; ci++)
+		{
+			if (cg_entities[ci].serverSaberHitIndex == target &&
+				(cg.time - cg_entities[ci].serverSaberHitTime) < 1000)
+			{
+				attacker = ci;
+				break;
+			}
+		}
+	}
+
 	if (target < 0 || target >= MAX_CLIENTS)
 	{
 		trap->Error(ERR_DROP, "CG_Obituary: target out of range");
@@ -450,7 +507,16 @@ static void CG_Obituary(entityState_t* ent)
 			message = (char*)CG_GetStringEdString("MD_MP_INGAME", message);
 		}
 
-		trap->Print("%s %s\n", target_name, message);
+		{
+			char obbuf[1024];
+			char san[1024];
+			Com_sprintf(obbuf, sizeof obbuf, "%s %s", target_name, message);
+			CG_SanitizeStringForPrint(obbuf, san, sizeof san);
+			if (!CG_CheckAndStoreObit(san))
+			{
+				trap->Print("%s\n", san);
+			}
+		}
 		return;
 	}
 
@@ -508,7 +574,14 @@ clientkilled:
 			trap->SE_GetStringTextString("MD_MP_INGAME_KILLED_MESSAGE", s_killed_str, sizeof s_killed_str);
 			s = va("%s %s", s_killed_str, target_name);
 		}
-		CG_CenterPrint(s, SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH);
+		{
+			char san[1024];
+			CG_SanitizeStringForPrint(s, san, sizeof san);
+			if (!CG_CheckAndStoreObit(san))
+			{
+				CG_CenterPrint(san, SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH);
+			}
+		}
 	}
 
 	// check for double client messages
@@ -733,10 +806,18 @@ clientkilled:
 				message = (char*)CG_GetStringEdString("MD_MP_INGAME", message);
 			}
 
-			trap->Print("%s %s %s\n", target_name, message, attacker_name);
-			if (target_veh_name[0])
 			{
-				trap->Print("%s %s %s\n", target_veh_name, message, attacker_name);
+				char obbuf[1024];
+				char san[1024];
+				Com_sprintf(obbuf, sizeof obbuf, "%s %s %s", target_name, message, attacker_name);
+				CG_SanitizeStringForPrint(obbuf, san, sizeof san);
+				if (!CG_CheckAndStoreObit(san)) trap->Print("%s\n", san);
+				if (target_veh_name[0])
+				{
+					Com_sprintf(obbuf, sizeof obbuf, "%s %s %s", target_veh_name, message, attacker_name);
+					CG_SanitizeStringForPrint(obbuf, san, sizeof san);
+					if (!CG_CheckAndStoreObit(san)) trap->Print("%s\n", san);
+				}
 			}
 			if (mod == MOD_TARGET_LASER)
 			{
@@ -745,22 +826,34 @@ clientkilled:
 			}
 			else
 			{
-				trap->Print("%s %s %s\n", target_name, message, attacker_name);
+				{
+					char obbuf[1024];
+					char san[1024];
+					Com_sprintf(obbuf, sizeof obbuf, "%s %s %s", target_name, message, attacker_name);
+					CG_SanitizeStringForPrint(obbuf, san, sizeof san);
+					if (!CG_CheckAndStoreObit(san)) trap->Print("%s\n", san);
 
-				if (attacker_veh_name[0]
-					&& attacker_veh_weap_name[0])
-				{
-					trap->Print("%s %s %s\n", attacker_veh_name, message, attacker_veh_weap_name);
-				}
-				else
-				{
-					if (attacker_veh_name[0])
+					if (attacker_veh_name[0]
+						&& attacker_veh_weap_name[0])
 					{
-						trap->Print("%s %s %s\n", target_name, message, attacker_veh_name);
+						Com_sprintf(obbuf, sizeof obbuf, "%s %s %s", attacker_veh_name, message, attacker_veh_weap_name);
+						CG_SanitizeStringForPrint(obbuf, san, sizeof san);
+						if (!CG_CheckAndStoreObit(san)) trap->Print("%s\n", san);
 					}
-					else if (attacker_veh_weap_name[0])
+					else
 					{
-						trap->Print("%s %s %s\n", target_name, message, attacker_veh_weap_name);
+						if (attacker_veh_name[0])
+						{
+							Com_sprintf(obbuf, sizeof obbuf, "%s %s %s", target_name, message, attacker_veh_name);
+							CG_SanitizeStringForPrint(obbuf, san, sizeof san);
+							if (!CG_CheckAndStoreObit(san)) trap->Print("%s\n", san);
+						}
+						else if (attacker_veh_weap_name[0])
+						{
+							Com_sprintf(obbuf, sizeof obbuf, "%s %s %s", target_name, message, attacker_veh_weap_name);
+							CG_SanitizeStringForPrint(obbuf, san, sizeof san);
+							if (!CG_CheckAndStoreObit(san)) trap->Print("%s\n", san);
+						}
 					}
 				}
 			}
@@ -769,7 +862,14 @@ clientkilled:
 	}
 
 	// we don't know what it was
-	trap->Print("%s %s\n", target_name, (char*)CG_GetStringEdString("MD_MP_INGAME", "DIED_GENERIC"));
+	{
+		char obbuf[1024];
+		char san[1024];
+		const char* gen = (char*)CG_GetStringEdString("MD_MP_INGAME", "DIED_GENERIC");
+		Com_sprintf(obbuf, sizeof obbuf, "%s %s", target_name, gen);
+		CG_SanitizeStringForPrint(obbuf, san, sizeof san);
+		if (!CG_CheckAndStoreObit(san)) trap->Print("%s\n", san);
+	}
 }
 
 //==========================================================================
