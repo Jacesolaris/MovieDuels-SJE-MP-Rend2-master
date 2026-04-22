@@ -3620,7 +3620,7 @@ void CL_GetPing(const int n, char* buf, const int buflen, int* pingtime)
 		}
 	}
 
-	CL_SetServerInfoByAddress(cl_pinglist[n].adr, nullptr, 0);
+	CL_SetServerInfoByAddress(cl_pinglist[n].adr, cl_pinglist[n].info, cl_pinglist[n].time);
 
 	*pingtime = time;
 }
