@@ -8183,36 +8183,35 @@ static void UI_BinaryServerInsertion(int num)
 UI_BuildServerDisplayList
 ==================
 */
-static void UI_BuildServerDisplayList(int force)
-{
-	if (!(force || uiInfo.uiDC.realTime > uiInfo.serverStatus.nextDisplayRefresh))
-	{
+static void UI_BuildServerDisplayList(int force) {
+	int i, count, clients, maxClients, ping, game, len, passw/*, visible*/;
+	char info[MAX_STRING_CHARS];
+//	qboolean startRefresh = qtrue; TTimo: unused
+	int	lanSource;
+
+	if (!(force || uiInfo.uiDC.realTime > uiInfo.serverStatus.nextDisplayRefresh)) {
 		return;
 	}
 	// if we shouldn't reset
-	if (force == 2)
-	{
+	if ( force == 2 ) {
 		force = 0;
 	}
 
 	// do motd updates here too
-	trap->Cvar_VariableStringBuffer("cl_motdString", uiInfo.serverStatus.motd, sizeof uiInfo.serverStatus.motd);
-	int len = strlen(uiInfo.serverStatus.motd);
-	if (len == 0)
-	{
-		Q_strncpyz(uiInfo.serverStatus.motd, "Welcome to MovieDuels MP!", sizeof uiInfo.serverStatus.motd);
+	trap->Cvar_VariableStringBuffer( "cl_motdString", uiInfo.serverStatus.motd, sizeof(uiInfo.serverStatus.motd) );
+	len = strlen(uiInfo.serverStatus.motd);
+	if (len == 0) {
+		Q_strncpyz( uiInfo.serverStatus.motd, "Welcome to MovieDuels MP!", sizeof( uiInfo.serverStatus.motd ) );
 		len = strlen(uiInfo.serverStatus.motd);
 	}
-	if (len != uiInfo.serverStatus.motdLen)
-	{
+	if (len != uiInfo.serverStatus.motdLen) {
 		uiInfo.serverStatus.motdLen = len;
 		uiInfo.serverStatus.motdWidth = -1;
 	}
 
-	const int lanSource = UI_SourceForLAN();
+	lanSource = UI_SourceForLAN();
 
-	if (force)
-	{
+	if (force) {
 		// clear number of displayed servers
 		uiInfo.serverStatus.numDisplayServers = 0;
 		uiInfo.serverStatus.numPlayersOnServers = 0;
@@ -8223,9 +8222,8 @@ static void UI_BuildServerDisplayList(int force)
 	}
 
 	// get the server count (comes from the master)
-	const int count = trap->LAN_GetServerCount(lanSource);
-	if (count == -1 || ui_netSource.integer == UIAS_LOCAL && count == 0)
-	{
+	count = trap->LAN_GetServerCount(lanSource);
+	if (count == -1 || (ui_netSource.integer == UIAS_LOCAL && count == 0) ) {
 		// still waiting on a response from the master
 		uiInfo.serverStatus.numDisplayServers = 0;
 		uiInfo.serverStatus.numPlayersOnServers = 0;
@@ -8233,102 +8231,92 @@ static void UI_BuildServerDisplayList(int force)
 		return;
 	}
 
-	trap->Cvar_Update(&ui_browserFilterInvalidInfo);
-	trap->Cvar_Update(&ui_browserShowEmpty);
-	trap->Cvar_Update(&ui_browserShowFull);
-	trap->Cvar_Update(&ui_browserShowPasswordProtected);
-	trap->Cvar_Update(&ui_serverFilterType);
-	trap->Cvar_Update(&ui_joinGametype);
+	trap->Cvar_Update( &ui_browserFilterInvalidInfo );
+	trap->Cvar_Update( &ui_browserShowEmpty );
+	trap->Cvar_Update( &ui_browserShowFull );
+	trap->Cvar_Update( &ui_browserShowPasswordProtected );
+	trap->Cvar_Update( &ui_serverFilterType );
+	trap->Cvar_Update( &ui_joinGametype );
 
-	//	visible = qfalse;
-	for (int i = 0; i < count; i++)
-	{
+//	visible = qfalse;
+	for (i = 0; i < count; i++) {
 		// if we already got info for this server
-		if (!trap->LAN_ServerIsVisible(lanSource, i))
-		{
+		if (!trap->LAN_ServerIsVisible(lanSource, i)) {
 			continue;
 		}
-		//		visible = qtrue;
+//		visible = qtrue;
 		// get the ping for this server
-		const int ping = trap->LAN_GetServerPing(lanSource, i);
-		if (ping > 0 || ui_netSource.integer == UIAS_FAVORITES)
-		{
-			char info[MAX_STRING_CHARS];
+		ping = trap->LAN_GetServerPing(lanSource, i);
+		if (ping > 0 || ui_netSource.integer == UIAS_FAVORITES) {
+
 			trap->LAN_GetServerInfo(lanSource, i, info, MAX_STRING_CHARS);
 
 			// don't list servers with invalid info
-			if (ui_browserFilterInvalidInfo.integer != 0 && !UI_ServerInfoIsValid(info))
-			{
-				trap->LAN_MarkServerVisible(lanSource, i, qfalse);
+			if ( ui_browserFilterInvalidInfo.integer != 0 && !UI_ServerInfoIsValid( info ) ) {
+				trap->LAN_MarkServerVisible( lanSource, i, qfalse );
 				continue;
 			}
 
-			const int clients = atoi(Info_ValueForKey(info, "clients"));
+			clients = atoi(Info_ValueForKey(info, "clients"));
 			uiInfo.serverStatus.numPlayersOnServers += clients;
 
-			if (ui_browserShowEmpty.integer == 0)
-			{
-				if (clients == 0)
-				{
+			if (ui_browserShowEmpty.integer == 0) {
+				if (clients == 0) {
 					trap->LAN_MarkServerVisible(lanSource, i, qfalse);
 					continue;
 				}
 			}
 
-			if (ui_browserShowFull.integer == 0)
-			{
-				const int maxClients = atoi(Info_ValueForKey(info, "sv_maxclients"));
-				if (clients == maxClients)
-				{
+			if (ui_browserShowFull.integer == 0) {
+				maxClients = atoi(Info_ValueForKey(info, "sv_maxclients"));
+				if (clients == maxClients) {
 					trap->LAN_MarkServerVisible(lanSource, i, qfalse);
 					continue;
 				}
 			}
 
-			if (ui_browserShowPasswordProtected.integer == 0)
-			{
-				const int passw = atoi(Info_ValueForKey(info, "needpass"));
-				if (passw && !ui_browserShowPasswordProtected.integer)
-				{
+			if ( ui_browserShowPasswordProtected.integer == 0 ) {
+				passw = atoi(Info_ValueForKey(info, "needpass"));
+				if (passw && !ui_browserShowPasswordProtected.integer) {
 					trap->LAN_MarkServerVisible(lanSource, i, qfalse);
 					continue;
 				}
 			}
 
-			if (uiInfo.joinGameTypes[ui_joinGametype.integer].gtEnum != -1)
-			{
-				const int game = atoi(Info_ValueForKey(info, "gametype"));
-				if (game != uiInfo.joinGameTypes[ui_joinGametype.integer].gtEnum)
-				{
+			if (uiInfo.joinGameTypes[ui_joinGametype.integer].gtEnum != -1) {
+				game = atoi(Info_ValueForKey(info, "gametype"));
+				if (game != uiInfo.joinGameTypes[ui_joinGametype.integer].gtEnum) {
 					trap->LAN_MarkServerVisible(lanSource, i, qfalse);
 					continue;
 				}
 			}
 
-			if (ui_serverFilterType.integer > 0 && ui_serverFilterType.integer <= uiInfo.modCount)
-			{
-				if (Q_stricmp(Info_ValueForKey(info, "game"), UI_FilterDir(ui_serverFilterType.integer)) != 0)
-				{
+			if (ui_serverFilterType.integer > 0 && ui_serverFilterType.integer <= uiInfo.modCount) {
+				if (Q_stricmp(Info_ValueForKey(info, "game"), UI_FilterDir( ui_serverFilterType.integer ) ) != 0) {
 					trap->LAN_MarkServerVisible(lanSource, i, qfalse);
 					continue;
 				}
 			}
 			// make sure we never add a favorite server twice
-			if (ui_netSource.integer == UIAS_FAVORITES)
-			{
+			if (ui_netSource.integer == UIAS_FAVORITES) {
 				UI_RemoveServerFromDisplayList(i);
 			}
 			// insert the server into the list
 			UI_BinaryServerInsertion(i);
 			// done with this server
-			if (ping > 0)
-			{
+			if (ping > 0) {
 				trap->LAN_MarkServerVisible(lanSource, i, qfalse);
 			}
 		}
 	}
 
 	uiInfo.serverStatus.refreshtime = uiInfo.uiDC.realTime;
+
+	// if there were no servers visible for ping updates
+//	if (!visible) {
+//		UI_StopServerRefresh();
+//		uiInfo.serverStatus.nextDisplayRefresh = 0;
+//	}
 }
 
 typedef struct serverStatusCvar_s
@@ -9131,7 +9119,7 @@ static const char* UI_FeederItemText(float feederID, int index, int column,
 			{
 			case SORT_HOST:
 			{
-				if (ping <= 0)
+				if (ping < 0)
 				{
 					return Info_ValueForKey(info, "addr");
 				}
@@ -9239,7 +9227,7 @@ static const char* UI_FeederItemText(float feederID, int index, int column,
 				return needPass;
 			case SORT_PING:
 			{
-				if (ping <= 0)
+				if (ping < 0)
 				{
 					return "...";
 				}
@@ -10175,57 +10163,54 @@ static qboolean MapList_Parse(char** p)
 	}
 }
 
-static void UI_ParseGameInfo(const char* teamFile)
-{
-	char* p;
+static void UI_ParseGameInfo(const char *teamFile) {
+	char    *token;
+	char *p;
+	char *buff = NULL;
 	//int mode = 0; TTimo: unused
 
-	char* buff = GetMenuBuffer(teamFile);
-	if (!buff)
-	{
+	buff = GetMenuBuffer(teamFile);
+	if (!buff) {
 		return;
 	}
 
 	p = buff;
 
-	COM_BeginParseSession("UI_ParseGameInfo");
+	COM_BeginParseSession ("UI_ParseGameInfo");
 
-	while (1)
-	{
-		const char* token = COM_ParseExt(&p, qtrue);
-		if (!token || token[0] == 0 || token[0] == '}')
-		{
+	while ( 1 ) {
+		token = COM_ParseExt( (const char **)(&p), qtrue );
+		if( !token || token[0] == 0 || token[0] == '}') {
 			break;
 		}
 
-		if (Q_stricmp(token, "}") == 0)
-		{
+		if ( Q_stricmp( token, "}" ) == 0 ) {
 			break;
 		}
 
-		if (Q_stricmp(token, "gametypes") == 0)
-		{
-			if (GameType_Parse(&p, qfalse))
-			{
+		if (Q_stricmp(token, "gametypes") == 0) {
+
+			if (GameType_Parse(&p, qfalse)) {
 				continue;
+			} else {
+				break;
 			}
-			break;
 		}
 
-		if (Q_stricmp(token, "joingametypes") == 0)
-		{
-			if (GameType_Parse(&p, qtrue))
-			{
+		if (Q_stricmp(token, "joingametypes") == 0) {
+
+			if (GameType_Parse(&p, qtrue)) {
 				continue;
+			} else {
+				break;
 			}
-			break;
 		}
 
-		if (Q_stricmp(token, "maps") == 0)
-		{
+		if (Q_stricmp(token, "maps") == 0) {
 			// start a new menu
 			MapList_Parse(&p);
 		}
+
 	}
 }
 
