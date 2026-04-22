@@ -8260,7 +8260,7 @@ void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner)
 			saberent->s.apos.trDelta[1] = 800;
 			break;
 		case FORCE_LEVEL_3:
-			saberent->s.apos.trDelta[1] = 1200;
+			saberent->s.apos.trDelta[1] = 1000;
 			break;
 		}
 
@@ -8278,7 +8278,7 @@ void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner)
 			saberent->s.apos.trDelta[0] = 800;
 			break;
 		case FORCE_LEVEL_3:
-			saberent->s.apos.trDelta[0] = 1200;
+			saberent->s.apos.trDelta[0] = 1000;
 			break;
 		}
 
@@ -11951,7 +11951,7 @@ nextStep:
 						saberent->s.apos.trDelta[1] = 800; 
 						break;
 					case FORCE_LEVEL_3:
-						saberent->s.apos.trDelta[1] = 1200;
+						saberent->s.apos.trDelta[1] = 1000;
 						break;
 					}
 
@@ -11969,7 +11969,7 @@ nextStep:
 						saberent->s.apos.trDelta[0] = 800; 
 						break;
 					case FORCE_LEVEL_3:
-						saberent->s.apos.trDelta[0] = 1200;
+						saberent->s.apos.trDelta[0] = 1000;
 						break;
 					}
 
@@ -15105,7 +15105,7 @@ void WP_thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, c
 				saberEnt->s.apos.trDelta[1] = 800; 
 				break;
 			case FORCE_LEVEL_3: 
-				saberEnt->s.apos.trDelta[1] = 1200;
+				saberEnt->s.apos.trDelta[1] = 1000;
 				break;
 			}
 
@@ -15123,7 +15123,7 @@ void WP_thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, c
 				saberEnt->s.apos.trDelta[0] = 800;  
 				break;
 			case FORCE_LEVEL_3:
-				saberEnt->s.apos.trDelta[0] = 1200;
+				saberEnt->s.apos.trDelta[0] = 1000;
 				break;
 			}
 

@@ -12135,7 +12135,7 @@ static qboolean PM_DoChargedWeapons(const qboolean vehicleRocketLock, const bgEn
 				pm->ps->weaponChargeSubtractTime = pm->cmd.serverTime + weaponData[pm->ps->weapon].altChargeSubTime;
 
 #ifdef _DEBUG
-				Com_Printf("Starting charge\n");
+				Com_Printf("Starting charge alt\n");
 #endif
 				assert(pm->ps->weapon > WP_NONE);
 				BG_AddPredictableEventToPlayerstate(EV_WEAPON_CHARGE_ALT, pm->ps->weapon, pm->ps);
@@ -12193,7 +12193,7 @@ static qboolean PM_DoChargedWeapons(const qboolean vehicleRocketLock, const bgEn
 				pm->ps->weaponChargeSubtractTime = pm->cmd.serverTime + weaponData[pm->ps->weapon].chargeSubTime;
 
 #ifdef _DEBUG
-				//	Com_Printf("Starting charge\n");
+				Com_Printf("Starting charge prim\n");
 #endif
 				BG_AddPredictableEventToPlayerstate(EV_WEAPON_CHARGE, pm->ps->weapon, pm->ps);
 			}

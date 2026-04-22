@@ -2609,7 +2609,7 @@ void DEMP2_AltRadiusDamage(gentity_t* ent)
 }
 
 //---------------------------------------------------------
-void DEMP2_AltDetonate(gentity_t* ent)
+static void DEMP2_AltDetonate(gentity_t* ent)
 //---------------------------------------------------------
 {
 	G_SetOrigin(ent, ent->r.currentOrigin);
@@ -2811,7 +2811,7 @@ static void WP_FlechetteMainFire(gentity_t* ent)
 }
 
 //---------------------------------------------------------
-void prox_mine_think(gentity_t* ent)
+static void prox_mine_think(gentity_t* ent)
 //---------------------------------------------------------
 {
 	qboolean blow = qfalse;
@@ -3035,7 +3035,7 @@ ROCKET LAUNCHER
 */
 
 //---------------------------------------------------------
-void rocketThink(gentity_t* ent)
+static void rocketThink(gentity_t* ent)
 //---------------------------------------------------------
 {
 	const vec3_t rup = { 0, 0, 1 };
@@ -3317,7 +3317,7 @@ THERMAL DETONATOR
 void thermalThinkStandard(gentity_t* ent);
 
 //---------------------------------------------------------
-void thermalDetonatorExplode(gentity_t* ent)
+static void thermalDetonatorExplode(gentity_t* ent)
 //---------------------------------------------------------
 {
 	if (!ent->count)
@@ -3362,7 +3362,7 @@ static void WP_GrenadeBlow(gentity_t* self)
 	{
 		vec3_t dir = { 0, 0, 1 };
 		int entitys[1024];
-		vec3_t mins, maxs, v;
+		vec3_t mins = { 0 }, maxs = { 0 }, v = { 0 };
 		int i;
 		for (i = 0; i < 3; i++)
 		{
@@ -3601,7 +3601,7 @@ qboolean WP_LobFire(const gentity_t* self, vec3_t start, vec3_t target, vec3_t m
 	float best_impact_dist = Q3_INFINITE; //fireSpeed,
 	vec3_t shot_vel, fail_case;
 	trace_t trace;
-	trajectory_t tr;
+	trajectory_t tr = { 0 };
 	int hit_count = 0;
 	const int max_hits = 7;
 
@@ -4171,7 +4171,7 @@ static void VectorNPos(vec3_t in, vec3_t out)
 
 void DetPackBlow(gentity_t* self);
 
-void charge_stick(gentity_t* self, gentity_t* other, trace_t* trace)
+static void charge_stick(gentity_t* self, gentity_t* other, trace_t* trace)
 {
 	if (other
 		&& other->flags & FL_BBRUSH
@@ -4327,7 +4327,7 @@ static void DetPackDie(gentity_t* self, gentity_t* inflictor, gentity_t* attacke
 	self->takedamage = qfalse;
 }
 
-void drop_charge(gentity_t* self, vec3_t start, vec3_t dir)
+static void drop_charge(gentity_t* self, vec3_t start, vec3_t dir)
 {
 	VectorNormalize(dir);
 
@@ -4821,7 +4821,7 @@ static void WP_FireConcussion(gentity_t* ent)
 //---------------------------------------------------------
 // FireStunBaton
 //---------------------------------------------------------
-void WP_FireStunBaton(gentity_t* ent, const qboolean alt_fire)
+static void WP_FireStunBaton(gentity_t* ent, const qboolean alt_fire)
 {
 	if (alt_fire)
 	{
