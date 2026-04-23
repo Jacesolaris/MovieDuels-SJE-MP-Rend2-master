@@ -3218,7 +3218,7 @@ static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t 
 							traceEnt->nextthink = level.time;
 						}
 
-						if (PM_RunningAnim(traceEnt->client->ps.legsAnim) && traceEnt->client->ps.stats[STAT_HEALTH] > 1)
+						if (PM_RunningAnim(traceEnt->client->ps.legsAnim)|| PM_SaberInKata(traceEnt->client->ps.saber_move) && traceEnt->client->ps.stats[STAT_HEALTH] > 1)
 						{
 							G_KnockOver(traceEnt, self, dir, 25, qtrue);
 						}

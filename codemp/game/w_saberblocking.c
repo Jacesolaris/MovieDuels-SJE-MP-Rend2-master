@@ -67,7 +67,7 @@ extern saber_moveName_t PM_SaberBounceForAttack(int move);
 extern void G_Stagger(gentity_t* hit_ent);
 extern void g_fatigue_bp_knockaway(gentity_t* blocker);
 extern qboolean PM_SuperBreakLoseAnim(int anim);
-extern qboolean ButterFingers(gentity_t* saberent, gentity_t* saber_owner, const gentity_t* other, const trace_t* tr);
+extern qboolean WP_ButterFingers(gentity_t* saberent, gentity_t* saber_owner, const gentity_t* other, const trace_t* tr);
 extern qboolean pm_saber_innonblockable_attack(int anim);
 extern qboolean pm_saber_in_special_attack(int anim);
 extern int G_GetParryForBlock(int block);
@@ -99,7 +99,7 @@ static void sab_beh_saber_should_be_disarmed_attacker(gentity_t* attacker, const
 	{
 		G_Stagger(attacker);
 
-		ButterFingers(
+		WP_ButterFingers(
 			&g_entities[saberEntNum],
 			attacker,
 			blocker,
@@ -128,7 +128,7 @@ static void SabBeh_SaberShouldBeDisarmedBlocker(gentity_t* blocker, const gentit
 	{
 		G_Stagger(blocker);
 
-		ButterFingers(
+		WP_ButterFingers(
 			saberEnt,
 			blocker,
 			attacker,
@@ -155,11 +155,10 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 	const qboolean blocking = blocker->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;	//Normal Blocking
 	const qboolean active_blocking = blocker->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK ? qtrue : qfalse;	//Active Blocking
 
-
 	// Player must be holding block (NPCs exempt)
 	if (!(blocker->r.svFlags & SVF_BOT))
 	{
-		if (!(blocking|| active_blocking))
+		if (!(blocking || active_blocking))
 			return qfalse;
 	}
 
@@ -1402,7 +1401,6 @@ qboolean sab_beh_block_vs_attack(
 						Com_Printf(S_COLOR_CYAN "NPC good Parry\n");
 					}
 
-
 					if (blocker->r.svFlags & SVF_BOT)
 					{
 						if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_FULL)
@@ -1410,7 +1408,7 @@ qboolean sab_beh_block_vs_attack(
 							WP_BlockPointsRegenerate(blocker, BLOCKPOINTS_TEN);
 						}
 					}
-					else 
+					else
 					{
 						PM_AddBlockFatigue(&blocker->client->ps, BLOCKPOINTS_THREE);
 					}

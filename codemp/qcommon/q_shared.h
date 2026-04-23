@@ -1443,6 +1443,7 @@ typedef struct playerState_s {
 	int     botPendingStyleTime;
 	int     holocronExpireTime;      // when the holocron should pop out
 	int     holocronGlobalCooldown;  // when the player can pick up another holocron
+	int     saberDisarmProtectTime;
 } playerState_t;
 
 typedef struct siegePers_s

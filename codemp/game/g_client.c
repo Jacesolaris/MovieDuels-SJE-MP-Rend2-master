@@ -6921,13 +6921,15 @@ static void ClassAmmoSetup(gentity_t* ent)
 	gclient_t* client = ent->client;
 
 	if (ent->r.svFlags & SVF_BOT)
-	{//bots get infinite ammo.
-		client->ps.ammo[AMMO_BLASTER] = 999;
-		client->ps.ammo[AMMO_POWERCELL] = 999;
-		client->ps.ammo[AMMO_METAL_BOLTS] = 999;
+	{
+		// Bots get true infinite ammo
+		client->ps.ammo[AMMO_BLASTER] = Q3_INFINITE;
+		client->ps.ammo[AMMO_POWERCELL] = Q3_INFINITE;
+		client->ps.ammo[AMMO_METAL_BOLTS] = Q3_INFINITE;
 	}
 	else
 	{
+		// Players get large finite ammo
 		client->ps.ammo[AMMO_BLASTER] = 900;
 		client->ps.ammo[AMMO_POWERCELL] = 900;
 		client->ps.ammo[AMMO_METAL_BOLTS] = 900;

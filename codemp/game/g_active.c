@@ -86,7 +86,7 @@ extern qboolean PM_RunningAnim(int anim);
 extern qboolean BG_IsAlreadyinTauntAnim(int anim);
 qboolean WP_SaberStyleValidForSaber(const saberInfo_t* saber1, const saberInfo_t* saber2, const int saberHolstered, const int saberAnimLevel);
 extern qboolean PM_SaberInBashedAnim(int anim);
-extern qboolean saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity);
+extern qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity);
 extern qboolean BG_SaberSprintAnim(int anim);
 extern qboolean BG_WeaponSprintAnim(int anim);
 extern void Sphereshield_On(gentity_t* self);
@@ -2898,8 +2898,7 @@ void G_SetTauntAnim(gentity_t* ent, int taunt)
 					{
 					case SS_FAST:
 					case SS_TAVION:
-						if (ent->client->ps.saberHolstered == 1
-							&& ent->client->saber[1].model[0])
+						if (ent->client->ps.saberHolstered == 1	&& ent->client->saber[1].model[0])
 						{
 							//turn off second saber
 							G_Sound(ent, CHAN_WEAPON, ent->client->saber[1].soundOff);
@@ -6553,7 +6552,7 @@ static void ClientThink_real(gentity_t* ent)
 
 			if (clientLost && clientLost->inuse && clientLost->client)
 			{
-				saberKnockOutOfHand(&g_entities[clientLost->client->ps.saberEntityNum], clientLost, vec3_origin);
+				WP_SaberDisarmed(&g_entities[clientLost->client->ps.saberEntityNum], clientLost, vec3_origin);
 			}
 		}
 
