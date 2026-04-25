@@ -3196,8 +3196,7 @@ static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t 
 
 					if (traceEnt->s.weapon != WP_EMPLACED_GUN)
 					{
-						if (traceEnt
-							&& traceEnt->health <= 35 && !class_is_gunner(traceEnt))
+						if (traceEnt && traceEnt->health <= 35 && !class_is_gunner(traceEnt))
 						{
 							traceEnt->client->stunDamage = 9;
 							traceEnt->client->stunTime = level.time + 1000;
@@ -3218,46 +3217,59 @@ static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t 
 							traceEnt->nextthink = level.time;
 						}
 
-						if (PM_RunningAnim(traceEnt->client->ps.legsAnim)|| PM_SaberInKata(traceEnt->client->ps.saber_move) && traceEnt->client->ps.stats[STAT_HEALTH] > 1)
+						if ((PM_RunningAnim(traceEnt->client->ps.legsAnim) ||
+							PM_SaberInKata(traceEnt->client->ps.saber_move) ||
+							PM_InKataAnim(traceEnt->client->ps.torsoAnim)) &&
+							traceEnt->client->ps.stats[STAT_HEALTH] > 1)
 						{
 							G_KnockOver(traceEnt, self, dir, 25, qtrue);
 						}
-						else if (traceEnt->client->ps.groundEntityNum == ENTITYNUM_NONE && traceEnt->client->ps.stats[STAT_HEALTH] > 1)
+						else if (traceEnt->client->ps.groundEntityNum == ENTITYNUM_NONE &&
+							traceEnt->client->ps.stats[STAT_HEALTH] > 1)
 						{
 							g_throw(traceEnt, dir, 2);
-							G_SetAnim(traceEnt, &traceEnt->client->pers.cmd, SETANIM_BOTH, Q_irand(BOTH_SLAPDOWNRIGHT, BOTH_SLAPDOWNLEFT), SETANIM_AFLAG_PACE, 0);
+							G_SetAnim(traceEnt, &traceEnt->client->pers.cmd, SETANIM_BOTH,
+								Q_irand(BOTH_SLAPDOWNRIGHT, BOTH_SLAPDOWNLEFT),
+								SETANIM_AFLAG_PACE, 0);
 						}
 						else
 						{
-							if (!PM_RunningAnim(traceEnt->client->ps.legsAnim)
-								&& !PM_InKnockDown(&traceEnt->client->ps)
-								&& traceEnt->client->ps.stats[STAT_HEALTH] > 1)
+							if (!PM_RunningAnim(traceEnt->client->ps.legsAnim) &&
+								!PM_InKnockDown(&traceEnt->client->ps) &&
+								traceEnt->client->ps.groundEntityNum != ENTITYNUM_NONE &&
+								traceEnt->client->ps.stats[STAT_HEALTH] > 1)
 							{
 								if (traceEnt->client->ps.stats[STAT_HEALTH] < 75)
 								{
-									G_SetAnim(traceEnt, &traceEnt->client->pers.cmd, SETANIM_TORSO, BOTH_COWER1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+									G_SetAnim(traceEnt, &traceEnt->client->pers.cmd, SETANIM_TORSO,
+										BOTH_COWER1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
 								}
 								else if (traceEnt->client->ps.stats[STAT_HEALTH] < 50)
 								{
-									G_SetAnim(traceEnt, &traceEnt->client->pers.cmd, SETANIM_TORSO, BOTH_SONICPAIN_HOLD, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+									G_SetAnim(traceEnt, &traceEnt->client->pers.cmd, SETANIM_TORSO,
+										BOTH_SONICPAIN_HOLD, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
 								}
 								else
 								{
-									G_SetAnim(traceEnt, &traceEnt->client->pers.cmd, SETANIM_TORSO, BOTH_FACEPROTECT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+									G_SetAnim(traceEnt, &traceEnt->client->pers.cmd, SETANIM_TORSO,
+										BOTH_FACEPROTECT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
 								}
 							}
 							else
 							{
-								if (traceEnt->client->ps.stats[STAT_HEALTH] < 2 && class_is_gunner(traceEnt))
+								if (traceEnt->client->ps.stats[STAT_HEALTH] < 2 &&
+									class_is_gunner(traceEnt))
 								{
 									vec3_t defaultDir;
 									VectorSet(defaultDir, 0, 0, 1);
-									G_PlayEffectID(G_EffectIndex("force/Lightningkill.efx"), traceEnt->r.currentOrigin, defaultDir);
+									G_PlayEffectID(G_EffectIndex("force/Lightningkill.efx"),
+										traceEnt->r.currentOrigin, defaultDir);
 								}
 							}
 						}
 					}
 				}
+
 
 				if (traceEnt->client)
 				{
@@ -5287,21 +5299,38 @@ static void RepulseDamage(gentity_t* self, gentity_t* enemy, vec3_t location, co
 
 static void PushDamage(gentity_t* self, gentity_t* enemy, vec3_t location, const int damageLevel)
 {
+	int dmg = 0;
+
 	switch (damageLevel)
 	{
 	case FORCE_LEVEL_1:
-		G_Damage(enemy, self, self, NULL, location, 10, DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK, MOD_UNKNOWN);
+		dmg = 10;
 		break;
+
 	case FORCE_LEVEL_2:
-		G_Damage(enemy, self, self, NULL, location, 15, DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK, MOD_UNKNOWN);
+		dmg = 15;
 		break;
+
 	case FORCE_LEVEL_3:
-		G_Damage(enemy, self, self, NULL, location, 20, DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK, MOD_UNKNOWN);
+		dmg = 20;
 		break;
+
 	default:
-		break;
+		return; // no damage for invalid level
 	}
+
+	G_Damage(
+		enemy,
+		self,
+		self,
+		NULL,
+		location,
+		dmg,
+		DAMAGE_DEATH_KNOCKBACK | DAMAGE_EXTRA_KNOCKBACK,
+		MOD_UNKNOWN
+	);
 }
+
 
 void ForceThrow(gentity_t* self, qboolean pull)
 {
