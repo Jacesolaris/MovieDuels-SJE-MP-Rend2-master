@@ -2365,17 +2365,16 @@ void ForceGrip(const gentity_t* self)
 		self->client->ps.fd.forceGripentity_num = ENTITYNUM_NONE;
 	}
 }
-
 int IsPressingDashButton(const gentity_t* self)
 {
 	if (PM_RunningAnim(self->client->ps.legsAnim)
 		&& !PM_SaberInAttack(self->client->ps.saber_move)
+		&& !PM_KickMove(self->client->ps.saber_move)
 		&& self->client->pers.cmd.upmove == 0
 		&& !self->client->hookhasbeenfired
 		&& (!(self->client->buttons & BUTTON_KICK))
 		&& (!(self->client->buttons & BUTTON_USE))
-		&& self->client->buttons & BUTTON_DASH
-		&& self->client->ps.pm_flags & PMF_DASH_HELD)
+		&& (self->client->buttons & BUTTON_DASH))
 	{
 		return qtrue;
 	}
@@ -2527,14 +2526,9 @@ void ForceDashAnimDash(gentity_t* self)
 
 static void ForceSpeedDash(gentity_t* self)
 {
+	// Must be alive
 	if (self->health <= 0)
 	{
-		return;
-	}
-
-	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE)
-	{
-		//can't dash in mid-air
 		return;
 	}
 
@@ -2543,42 +2537,56 @@ static void ForceSpeedDash(gentity_t* self)
 		return;
 	}
 
-	if (PM_InLedgeMove(self->client->ps.legsAnim))
+	// Must be on the ground
+	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE)
 	{
 		return;
 	}
 
-	if (PM_SaberInAttack(self->client->ps.saber_move))
+	// Cannot dash during ledge moves
+	if (PM_InLedgeMove(self->client->ps.legsAnim) == qtrue)
 	{
 		return;
 	}
 
-	if (PM_KickMove(self->client->ps.saber_move))
+	// Cannot dash during saber attacks
+	if (PM_SaberInAttack(self->client->ps.saber_move) == qtrue)
 	{
 		return;
 	}
 
-	if (PM_InSlopeAnim(self->client->ps.legsAnim))
+	// Cannot dash during kicks
+	if (PM_KickMove(self->client->ps.saber_move) == qtrue)
 	{
 		return;
 	}
 
+	// Cannot dash during slope animations
+	if (PM_InSlopeAnim(self->client->ps.legsAnim) == qtrue)
+	{
+		return;
+	}
+
+	// Speed debounce (saved absolute time can block dash after load)
 	if (self->client->ps.fd.forcePowerDebounce[FP_SPEED] > level.time)
 	{
-		//stops it while using it and also after using it, up to 3 second delay
 		return;
 	}
 
+	// Speed recovery (same issue)
 	if (self->client->ps.fd.forceSpeedRecoveryTime >= level.time)
 	{
 		return;
 	}
 
-	if (BG_InKnockDown(self->client->ps.legsAnim) || PM_InKnockDown(&self->client->ps))
+	// Cannot dash while knocked down
+	if (BG_InKnockDown(self->client->ps.legsAnim) == qtrue ||
+		PM_InKnockDown(&self->client->ps) == qtrue)
 	{
 		return;
 	}
 
+	// Class restrictions
 	if (self->client->NPC_class == CLASS_DROIDEKA ||
 		self->client->NPC_class == CLASS_VEHICLE ||
 		self->client->NPC_class == CLASS_SBD ||
@@ -2588,15 +2596,16 @@ static void ForceSpeedDash(gentity_t* self)
 		return;
 	}
 
-	if (self->client->ps.forceAllowDeactivateTime < level.time && self->client->ps.fd.forcePowersActive & 1 << FP_SPEED)
-	{
+	if ((self->client->ps.forceAllowDeactivateTime < level.time) &&
+		(self->client->ps.fd.forcePowersActive & (1 << FP_SPEED)))
+	{// stop using it
 		WP_ForcePowerStop(self, FP_SPEED);
 		return;
 	}
 
-	if (self->client->ps.fd.forcePowersActive & 1 << FP_SPEED) //If using speed at same time just in case
+	if (self->client->ps.fd.forcePowersActive & (1 << FP_SPEED))
 	{
-		if (PM_RunningAnim(self->client->ps.legsAnim))
+		if (PM_RunningAnim(self->client->ps.legsAnim) == qtrue)
 		{
 			ForceHopAnim(self);
 			WP_ForcePowerStop(self, FP_SPEED);
@@ -2607,29 +2616,26 @@ static void ForceSpeedDash(gentity_t* self)
 		}
 	}
 
+	// Cannot dash during saberlock
 	if (self->client->ps.saberLockTime > level.time)
 	{
 		return;
 	}
-
-	if (!IsPressingDashButton(self))
-	{
-		//it's already turned on.  turn it off.
-		return;
-	}
-
+	// Note that the above check , so you can still hold the button during a saber lock
+	// and have the dash start immediately after the lock ends, which is nice.
 	if (!(self->client->ps.communicatingflags & 1 << DASHING))
-	{
+	{// not actually dashing, so don't start the anim or sound
 		return;
 	}
 
-	if (!(self->client->ps.pm_flags & PMF_DASH_HELD))
-	{
+	// this is causing problems with the dash anim and sound not playing after loading a save, so I moved it down
+	if (!IsPressingDashButton(self))
+	{// not actually pressing the button, so don't start the anim or sound
 		return;
 	}
 
 	if (self->client->ps.groundEntityNum != ENTITYNUM_NONE)
-	{
+	{// animate and give the speed boost
 		vec3_t dir;
 
 		AngleVectors(self->client->ps.viewangles, dir, NULL, NULL);
@@ -8960,8 +8966,8 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 		}
 	}
 
-	if (self->client->ps.communicatingflags & 1 << DASHING)
-	{//dash is one of the powers with its own button.. if it's held, call the specific dash power function.
+	if ((IsPressingDashButton(self) == qtrue))
+	{// Dash is also a power with its own button,so just check if the button is being held and call the function if it is.
 		ForceSpeedDash(self);
 	}
 

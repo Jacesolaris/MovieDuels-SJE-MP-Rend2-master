@@ -5731,59 +5731,57 @@ static void ClientThink_real(gentity_t* ent)
 		}
 	}
 
-	// Activate the Time flags
+	// Activate the surrenderingTime flags
 	if (!(ent->r.svFlags & SVF_BOT))
 	{
-		if (IsPressingDashButton(ent)
-			&& !PM_KickMove(ent->client->ps.saber_move)
-			&& !PM_SaberInAttack(ent->client->ps.saber_move))
+		if ((client->ps.dashstartTime > level.time) ||
+			(client->ps.dashlaststartTime > level.time))
 		{
-			if (client->Dash_Count <= 2)
+			client->ps.dashstartTime = 0;
+			client->ps.dashlaststartTime = 0;
+			client->ps.Dash_Count = 0;
+			client->ps.communicatingflags &= ~(1 << DASHING);
+		}
+		if ((IsPressingDashButton(ent) == qtrue))
+		{
+			if (client->ps.Dash_Count < 2)
 			{
-				if (client->ps.dashstartTime <= 0 && level.time - client->ps.dashlaststartTime >= 100)
+				if ((client->ps.dashstartTime <= 0) &&
+					(level.time - client->ps.dashlaststartTime >= 100))
 				{
-					// They just pressed dash. Mark the time... 3000 wait between allowed dash.
 					client->ps.dashstartTime = level.time;
 					client->ps.dashlaststartTime = level.time;
-					client->Dash_Count++;
+					client->ps.Dash_Count++;
 
-					if (!(client->ps.communicatingflags & 1 << DASHING))
+					if ((client->ps.communicatingflags & (1 << DASHING)) == 0)
 					{
-						client->ps.communicatingflags |= 1 << DASHING;
+						client->ps.communicatingflags |= (1 << DASHING);
 					}
 				}
-				else
+				else if (level.time - client->ps.dashlaststartTime >= 10)
 				{
-					if (level.time - client->ps.dashlaststartTime >= 10)
-					{
-						// When dash was pressed, wait 3000 before letting go of dash.
-						client->ps.dashstartTime = 0;
-						client->ps.communicatingflags &= ~(1 << DASHING);
-					}
+					client->ps.dashstartTime = 0;
+					client->ps.communicatingflags &= ~(1 << DASHING);
 				}
 			}
 			else
 			{
-				if (client->ps.dashstartTime <= 0 && level.time - client->ps.dashlaststartTime >= 2500)
+				if ((client->ps.dashstartTime <= 0) &&
+					(level.time - client->ps.dashlaststartTime >= 2500))
 				{
-					// They just pressed dash. Mark the time... 8000 wait between allowed dash.
 					client->ps.dashstartTime = level.time;
 					client->ps.dashlaststartTime = level.time;
 
-					if (!(client->ps.communicatingflags & 1 << DASHING))
+					if ((client->ps.communicatingflags & (1 << DASHING)) == 0)
 					{
-						client->ps.communicatingflags |= 1 << DASHING;
+						client->ps.communicatingflags |= (1 << DASHING);
 					}
 				}
-				else
+				else if (level.time - client->ps.dashlaststartTime >= 2500)
 				{
-					if (level.time - client->ps.dashlaststartTime >= 2500)
-					{
-						// When dash was pressed, wait 3000 before letting go of dash.
-						client->ps.dashstartTime = 0;
-						client->Dash_Count = 0;
-						client->ps.communicatingflags &= ~(1 << DASHING);
-					}
+					client->ps.dashstartTime = 0;
+					client->ps.Dash_Count = 0;
+					client->ps.communicatingflags &= ~(1 << DASHING);
 				}
 			}
 		}
@@ -5913,9 +5911,6 @@ static void ClientThink_real(gentity_t* ent)
 		}
 		else
 		{
-			client->ps.respectingtime = 0;
-			client->ps.gesturingtime = 0;
-			client->ps.surrendertimeplayer = 0;
 			client->ps.communicatingflags &= ~(1 << CF_SABERLOCK_ADVANCE);
 			client->ps.communicatingflags &= ~(1 << CF_SABERLOCKING);
 			client->ps.communicatingflags &= ~(1 << SURRENDERING);

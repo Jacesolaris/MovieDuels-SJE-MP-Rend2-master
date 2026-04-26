@@ -1164,6 +1164,7 @@ netField_t entityStateFields[] =
 
 	{NETF(dashstartTime), 32},
 	{NETF(dashlaststartTime), 32},
+	{ NETF(Dash_Count), 32 },
 
 	{NETF(kickstartTime), 32},
 	{NETF(kicklaststartTime), 32},
@@ -1714,6 +1715,7 @@ netField_t playerStateFields[] =
 
 	{PSF(dashstartTime), 32},
 	{PSF(dashlaststartTime), 32},
+	{PSF(Dash_Count), 32},
 
 	{PSF(kickstartTime), 32},
 	{PSF(kicklaststartTime), 32},
@@ -1939,6 +1941,7 @@ netField_t pilotPlayerStateFields[] =
 
 	{PSF(dashstartTime), 32},
 	{PSF(dashlaststartTime), 32},
+	{PSF(Dash_Count), 32 },
 
 	{PSF(kickstartTime), 32},
 	{PSF(kicklaststartTime), 32},
@@ -2072,6 +2075,7 @@ netField_t vehPlayerStateFields[] =
 
 	{PSF(dashstartTime), 32},
 	{PSF(dashlaststartTime), 32},
+	{PSF(Dash_Count), 32 },
 
 	{PSF(kickstartTime), 32},
 	{PSF(kicklaststartTime), 32},
@@ -2285,6 +2289,7 @@ netField_t	playerStateFields[] =
 
 { PSF(dashstartTime), 32 },
 { PSF(dashlaststartTime), 32 },
+{ PSF(Dash_Count), 32 },
 
 { PSF(kickstartTime), 32 },
 { PSF(kicklaststartTime), 32 },
@@ -2312,42 +2317,55 @@ struct bitStorage_s
 static bitStorage_t* g_netfBitStorage = nullptr;
 static bitStorage_t* g_psfBitStorage = nullptr;
 
-//rww - Check the overrides files to see if the mod wants anything changed
+// rww - Check the overrides files to see if the mod wants anything changed
 void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 {
-	// Increased buffer to allow larger override files
-	char overrideFile[16384];
-	char entryName[4096]{};
-	char bits[4096]{};
-	char* fileName;
-	int ibits;
-	int i = 0;
-	int numFields;
-	fileHandle_t f;
-	bitStorage_t** bitStorage;
+	// NOTE:
+	// This function reads override definitions for playerStateFields (psf_overrides.txt)
+	// or entityStateFields (netf_overrides.txt) and applies custom bit widths.
+	// It also preserves original bit values in a linked list (bitStorage_t) so they
+	// can be restored on subsequent calls.
 
-	if (psfOverrides)
+	// Large local buffers for parsing override file lines
+	char overrideFile[16384];
+	char entryName[4096] = { 0 };
+	char bits[4096] = { 0 };
+
+	char* fileName = nullptr;
+	int ibits = 0;
+	int i = 0;
+	int numFields = 0;
+	fileHandle_t f = 0;
+	bitStorage_t** bitStorage = nullptr;
+
+	// Select which override file and storage to use
+	if (psfOverrides != qfalse)
 	{
-		fileName = "psf_overrides.txt";
+		fileName = const_cast<char*>("psf_overrides.txt");
 		bitStorage = &g_psfBitStorage;
 		numFields = static_cast<int>(std::size(playerStateFields));
 	}
 	else
 	{
-		fileName = "netf_overrides.txt";
+		fileName = const_cast<char*>("netf_overrides.txt");
 		bitStorage = &g_netfBitStorage;
 		numFields = static_cast<int>(std::size(entityStateFields));
 	}
 
-	if (*bitStorage)
+	// If we already have stored original bits, restore them first
+	if (*bitStorage != nullptr)
 	{
 		const bitStorage_t* restore = *bitStorage;
 
 		while (i < numFields)
 		{
-			assert(restore);
+			if (restore == nullptr)
+			{
+				Com_Printf("MSG_CheckNETFPSFOverrides: bitStorage chain ended early while restoring\n");
+				break;
+			}
 
-			if (psfOverrides)
+			if (psfOverrides != qfalse)
 			{
 				playerStateFields[i].bits = restore->bits;
 			}
@@ -2361,27 +2379,31 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 		}
 	}
 
+	// Open the override file from ext_data/MD_MP
 	const int len = FS_FOpenFileRead(va("ext_data/MD_MP/%s", fileName), &f, qfalse);
 
-	if (!f || len < 0)
+	if (f == 0 || len < 0)
 	{
+		// No file or invalid length, nothing to do
 		return;
 	}
 
-	// Updated limit check to match new buffer size
-	if (len >= 16384)
+	// Ensure file fits in our buffer
+	if (len >= static_cast<int>(sizeof(overrideFile)))
 	{
-		Com_Printf("WARNING: %s is >= 16384 bytes and is being ignored\n", fileName);
+		Com_Printf("WARNING: %s is >= %i bytes and is being ignored\n", fileName, static_cast<int>(sizeof(overrideFile)));
 		FS_FCloseFile(f);
 		return;
 	}
 
+	// Read file into buffer and null-terminate
 	FS_Read(overrideFile, len, f);
 	FS_FCloseFile(f);
 
-	overrideFile[len] = 0;
+	overrideFile[len] = '\0';
 
-	if (!*bitStorage)
+	// If we have no stored original bits yet, capture them now
+	if (*bitStorage == nullptr)
 	{
 		i = 0;
 
@@ -2389,7 +2411,7 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 		{
 			*bitStorage = static_cast<bitStorage_t*>(Z_Malloc(sizeof(bitStorage_t), TAG_GENERAL, qtrue));
 
-			if (psfOverrides)
+			if (psfOverrides != qfalse)
 			{
 				(*bitStorage)->bits = playerStateFields[i].bits;
 			}
@@ -2403,54 +2425,64 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 		}
 	}
 
+	// Parse the override file line by line
 	i = 0;
 
-	while (overrideFile[i])
+	while (overrideFile[i] != '\0')
 	{
+		// Skip comment lines starting with ';'
 		if (overrideFile[i] == ';')
 		{
-			while (overrideFile[i] != '\n')
+			while (overrideFile[i] != '\0' && overrideFile[i] != '\n')
 			{
 				i++;
 			}
 		}
 
+		// Process non-comment, non-empty lines
 		if (overrideFile[i] != ';' &&
 			overrideFile[i] != '\n' &&
-			overrideFile[i] != '\r')
+			overrideFile[i] != '\r' &&
+			overrideFile[i] != '\0')
 		{
 			int j = 0;
 
-			while (overrideFile[i] && overrideFile[i] != ',')
+			// Read entry name up to comma
+			while (overrideFile[i] != '\0' && overrideFile[i] != ',')
 			{
 				entryName[j] = overrideFile[i];
 				j++;
 				i++;
 			}
-			entryName[j] = 0;
+			entryName[j] = '\0';
 
-			if (!overrideFile[i])
+			if (overrideFile[i] == '\0')
 			{
-				Com_Printf("WARNING: Parsing error for %s\n", fileName);
+				Com_Printf("WARNING: Parsing error for %s (unexpected end of file after entry name)\n", fileName);
 				return;
 			}
 
+			// Skip comma and spaces
 			while (overrideFile[i] == ',' || overrideFile[i] == ' ')
 			{
 				i++;
 			}
 
+			// Read bits value up to newline or carriage return
 			j = 0;
-			while (overrideFile[i] != '\n' && overrideFile[i] != '\r')
+			while (overrideFile[i] != '\0' &&
+				overrideFile[i] != '\n' &&
+				overrideFile[i] != '\r')
 			{
 				bits[j] = overrideFile[i];
 				j++;
 				i++;
 			}
-			bits[j] = 0;
+			bits[j] = '\0';
 
-			if (bits[0])
+			if (bits[0] != '\0')
 			{
+				// Special token or numeric value
 				if (strcmp(bits, "GENTITYNUM_BITS") == 0)
 				{
 					ibits = GENTITYNUM_BITS;
@@ -2462,9 +2494,10 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 
 				j = 0;
 
+				// Apply override to matching field
 				while (j < numFields)
 				{
-					if (psfOverrides)
+					if (psfOverrides != qfalse)
 					{
 						if (strcmp(playerStateFields[j].name, entryName) == 0)
 						{
@@ -2483,6 +2516,7 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 					j++;
 				}
 
+				// No matching field found
 				if (j == numFields)
 				{
 					Com_Printf("WARNING: Value '%s' from %s is not valid\n", entryName, fileName);
@@ -2490,14 +2524,16 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 			}
 			else
 			{
-				Com_Printf("WARNING: Parsing error for %s\n", fileName);
+				Com_Printf("WARNING: Parsing error for %s (empty bits value)\n", fileName);
 				return;
 			}
 		}
 
+		// Advance to next character
 		i++;
 	}
 }
+
 
 //MAKE SURE THIS MATCHES THE ENUM IN BG_PUBLIC.H!!!
 //This is in caps, because it is important.
