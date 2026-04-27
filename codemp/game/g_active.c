@@ -4478,7 +4478,7 @@ static void ClientThink_real(gentity_t* ent)
 	}
 
 	// Delayed BOTH_STAND1TO2 animation
-	if (ps->userInt1 & BOT_PENDING_STAND_ANIM)
+	if (ps->userInt1 & BOT_PENDING_STAND_ANIM && ent->client->ps.weapon == WP_SABER)
 	{
 		if (level.time >= ps->botPendingStandTime)
 		{
@@ -4490,7 +4490,7 @@ static void ClientThink_real(gentity_t* ent)
 	}
 
 	// Delayed saber-style switch
-	if (ps->userInt1 & BOT_SABER_PENDING_MASK)
+	if (ps->userInt1 & BOT_SABER_PENDING_MASK && ent->client->ps.weapon == WP_SABER)
 	{
 		if (level.time >= ps->botPendingStyleTime)
 		{
