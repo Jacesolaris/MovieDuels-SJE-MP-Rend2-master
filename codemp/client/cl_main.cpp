@@ -263,24 +263,26 @@ record <demoname>
 
 Begins recording a demo from the current position
 ====================
-*/
-static char demoName[MAX_QPATH]; // compiler bug workaround
+*/static char demoName[MAX_QPATH];      // compiler bug workaround
+static byte demoBuf[MAX_MSGLEN];      // moved off stack to avoid large stack usage
+
 static void CL_Record_f(void)
 {
 	char name[MAX_OSPATH];
-	byte bufData[MAX_MSGLEN];
 	msg_t buf;
 	int i;
 	int len;
 	entityState_t nullstate;
 	char* s;
 
+	// Usage check
 	if (Cmd_Argc() > 2)
 	{
 		Com_Printf("record <demoname>\n");
 		return;
 	}
 
+	// Already recording?
 	if (clc.demorecording)
 	{
 		if (!clc.spDemoRecording)
@@ -290,30 +292,31 @@ static void CL_Record_f(void)
 		return;
 	}
 
+	// Must be in a level
 	if (cls.state != CA_ACTIVE)
 	{
 		Com_Printf("You must be in a level to record.\n");
 		return;
 	}
 
-	// sync 0 doesn't prevent recording, so not forcing it off .. everyone does g_sync 1 ; record ; g_sync 0 ..
+	// Warn about non‑synchronous clients when recording locally
 	if (NET_IsLocalAddress(clc.serverAddress) && !Cvar_VariableValue("g_synchronousClients"))
 	{
 		Com_Printf(S_COLOR_YELLOW "WARNING: You should set 'g_synchronousClients 1' for smoother demo recording\n");
 	}
 
+	// Demo name handling
 	if (Cmd_Argc() == 2)
 	{
 		s = Cmd_Argv(1);
-		Q_strncpyz(demoName, s, sizeof demoName);
-		Com_sprintf(name, sizeof name, "demos/%s.dm_%d", demoName, PROTOCOL_VERSION);
+		Q_strncpyz(demoName, s, sizeof(demoName));
+		Com_sprintf(name, sizeof(name), "demos/%s.dm_%d", demoName, PROTOCOL_VERSION);
 	}
 	else
 	{
-		// timestamp the file
-		CL_DemoFilename(demoName, sizeof demoName);
-
-		Com_sprintf(name, sizeof name, "demos/%s.dm_%d", demoName, PROTOCOL_VERSION);
+		// Timestamp the file
+		CL_DemoFilename(demoName, sizeof(demoName));
+		Com_sprintf(name, sizeof(name), "demos/%s.dm_%d", demoName, PROTOCOL_VERSION);
 
 		if (FS_FileExists(name))
 		{
@@ -322,8 +325,7 @@ static void CL_Record_f(void)
 		}
 	}
 
-	// open the demo file
-
+	// Open the demo file
 	Com_Printf("recording to %s.\n", name);
 	clc.demofile = FS_FOpenFileWrite(name);
 	if (!clc.demofile)
@@ -331,6 +333,7 @@ static void CL_Record_f(void)
 		Com_Printf("ERROR: couldn't open.\n");
 		return;
 	}
+
 	clc.demorecording = qtrue;
 	if (Cvar_VariableValue("ui_recordSPDemo"))
 	{
@@ -341,22 +344,22 @@ static void CL_Record_f(void)
 		clc.spDemoRecording = qfalse;
 	}
 
-	Q_strncpyz(clc.demoName, demoName, sizeof clc.demoName);
+	Q_strncpyz(clc.demoName, demoName, sizeof(clc.demoName));
 
-	// don't start saving messages until a non-delta compressed message is received
+	// Don't start saving messages until a non‑delta compressed message is received
 	clc.demowaiting = qtrue;
 
-	// write out the gamestate message
-	MSG_Init(&buf, bufData, sizeof bufData);
+	// Write out the gamestate message
+	MSG_Init(&buf, demoBuf, sizeof(demoBuf));
 	MSG_Bitstream(&buf);
 
-	// NOTE, MRE: all server->client messages now acknowledge
+	// All server->client messages now acknowledge
 	MSG_WriteLong(&buf, clc.reliableSequence);
 
 	MSG_WriteByte(&buf, svc_gamestate);
 	MSG_WriteLong(&buf, clc.serverCommandSequence);
 
-	// configstrings
+	// Configstrings
 	for (i = 0; i < MAX_CONFIGSTRINGS; i++)
 	{
 		if (!cl.gameState.stringOffsets[i])
@@ -369,8 +372,8 @@ static void CL_Record_f(void)
 		MSG_WriteBigString(&buf, s);
 	}
 
-	// baselines
-	Com_Memset(&nullstate, 0, sizeof nullstate);
+	// Baselines
+	Com_Memset(&nullstate, 0, sizeof(nullstate));
 	for (i = 0; i < MAX_GENTITIES; i++)
 	{
 		entityState_t* ent = &cl.entityBaselines[i];
@@ -384,29 +387,30 @@ static void CL_Record_f(void)
 
 	MSG_WriteByte(&buf, svc_EOF);
 
-	// finished writing the gamestate stuff
+	// Finished writing the gamestate stuff
 
-	// write the client num
+	// Write the client num
 	MSG_WriteLong(&buf, clc.clientNum);
-	// write the checksum feed
+	// Write the checksum feed
 	MSG_WriteLong(&buf, clc.checksumFeed);
 
-	// Filler for old RMG system.
+	// Filler for old RMG system
 	MSG_WriteShort(&buf, 0);
 
-	// finished writing the client packet
+	// Finished writing the client packet
 	MSG_WriteByte(&buf, svc_EOF);
 
-	// write it to the demo file
-	len = LittleLong clc.serverMessageSequence - 1;
+	// Write it to the demo file
+	len = LittleLong(clc.serverMessageSequence - 1);
 	FS_Write(&len, 4, clc.demofile);
 
-	len = LittleLong buf.cursize;
+	len = LittleLong(buf.cursize);
 	FS_Write(&len, 4, clc.demofile);
 	FS_Write(buf.data, buf.cursize, clc.demofile);
 
-	// the rest of the demo file will be copied from net messages
+	// The rest of the demo file will be copied from net messages
 }
+
 
 /*
 =======================================================================
@@ -1395,6 +1399,9 @@ static void CL_Configstrings_f(void)
 		}
 		Com_Printf("%4i: %s\n", i, cl.gameState.stringData + ofs);
 	}
+
+	// GCJ: Add this line to be able to report how much data our config strings are using
+	Com_Printf("Config String Length: %i\n", cl.gameState.dataCount);
 }
 
 /*

@@ -9387,9 +9387,15 @@ static float CG_DrawFPS(const float y)
 	const int fps = 1000 * FPS_FRAMES / total;
 
 	const char* s = va("%ifps", fps);
-	const int w = CG_DrawStrlen(s) * 8;
 
-	CG_DrawSmallString(635 - w + x_offset, y + 2, s, 1.0f);
+	const int w = CG_Text_Width(s, 0.5f, 0);
+	CG_DrawSmallStringColor(
+		635 - w + x_offset,
+		y + 2,
+		s,
+		colorTable[CT_LTGOLD1]
+	);
+
 
 	return y + BIGCHAR_HEIGHT + 4;
 }

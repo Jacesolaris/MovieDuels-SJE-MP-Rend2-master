@@ -1218,62 +1218,88 @@ typedef struct cgMedia_s {
 	// Saber shaders
 	//-----------------------------
 	qhandle_t	forceCoronaShader;
+	qhandle_t saberBlurShader;
+	qhandle_t swordTrailShader;
+	qhandle_t yellowDroppedSaberShader; // glow
 
-	qhandle_t	redSaberGlowShader;
-	qhandle_t	redSaberCoreShader;
-	qhandle_t	orangeSaberGlowShader;
-	qhandle_t	orangeSaberCoreShader;
-	qhandle_t	yellowSaberGlowShader;
-	qhandle_t	yellowSaberCoreShader;
-	qhandle_t	greenSaberGlowShader;
-	qhandle_t	greenSaberCoreShader;
-	qhandle_t	blueSaberGlowShader;
-	qhandle_t	blueSaberCoreShader;
-	qhandle_t	purpleSaberGlowShader;
-	qhandle_t	purpleSaberCoreShader;
-	qhandle_t	saberBlurShader;
-	qhandle_t	unstableBlurShader;
-	qhandle_t	swordTrailShader;
-	qhandle_t	rgbSaberGlowShader;
-	qhandle_t	rgbSaberCoreShader;
-	qhandle_t	rgbSaberCore2Shader;
-	qhandle_t	blackSaberGlowShader;
-	qhandle_t   blackSaberCoreShader;
-	qhandle_t	blackSaberTrail;
-	qhandle_t   sfxSaberTrailShader;
-	qhandle_t   sfxSaberBladeShader;
-	qhandle_t   sfxSaberBlade2Shader;
-	qhandle_t   sfxSaberEndShader;
-	qhandle_t   sfxSaberEnd2Shader;
-	qhandle_t   blackIgniteFlare;
-	qhandle_t   whiteIgniteFlare02;
-	qhandle_t   blackIgniteFlare02;
-	qhandle_t   redIgniteFlare;
-	qhandle_t   greenIgniteFlare;
-	qhandle_t   purpleIgniteFlare;
-	qhandle_t   blueIgniteFlare;
-	qhandle_t   orangeIgniteFlare;
-	qhandle_t   yellowIgniteFlare;
-	qhandle_t   rgbTFASaberCoreShader;
+	qhandle_t redSaberGlowShader;
+	qhandle_t redSaberCoreShader;
+	qhandle_t orangeSaberGlowShader;
+	qhandle_t orangeSaberCoreShader;
+	qhandle_t yellowSaberGlowShader;
+	qhandle_t yellowSaberCoreShader;
+	qhandle_t greenSaberGlowShader;
+	qhandle_t greenSaberCoreShader;
+	qhandle_t blueSaberGlowShader;
+	qhandle_t blueSaberCoreShader;
+	qhandle_t purpleSaberGlowShader;
+	qhandle_t purpleSaberCoreShader;
+	qhandle_t blackSaberGlowShader;
+	qhandle_t blackSaberCoreShader;
+	qhandle_t blackSaberBlurShader;
+
+	qhandle_t unstableRedSaberCoreShader;
+	qhandle_t unstableRedSaberCoreShader2;
+
+	qhandle_t unstableSaberCoreShader;
+
+	qhandle_t rgbSaberGlowShader;
+	qhandle_t rgbSaberCoreShader;
+	qhandle_t rgbIgniteFlare;
 	// Custom saber glow, blade & dlight color code
-	qhandle_t	customSaberGlowShader;
-	qhandle_t	customSaberCoreShader;
-	qhandle_t	limeSaberGlowShader;
-	qhandle_t	limeSaberCoreShader;
+	qhandle_t customSaberGlowShader;
+	qhandle_t customSaberCoreShader;
 
-	qhandle_t	unstableRedSaberCoreShader;
+	qhandle_t rgbTFASaberCoreShader;
+	qhandle_t unstableBlurShader;
+
+	// SFX Sabers
+	qhandle_t sfxSaberBladeShader;
+	qhandle_t sfxblackSaberBladeShader;
+	qhandle_t sfxSaberEndShader;
+	qhandle_t sfxSaberTrailShader;
+	qhandle_t blackSaberTrail;
 
 	//Original Trilogy Sabers
 	qhandle_t otSaberCoreShader;
+	qhandle_t otBlackSaberCoreShader;
 	qhandle_t redOTGlowShader;
 	qhandle_t orangeOTGlowShader;
 	qhandle_t yellowOTGlowShader;
 	qhandle_t greenOTGlowShader;
 	qhandle_t blueOTGlowShader;
 	qhandle_t purpleOTGlowShader;
+	qhandle_t rgbOTGlowShader;
+
+	//Episode VI Sabers
+	qhandle_t ep6SaberCoreShader;
+	qhandle_t ep6BlackSaberCoreShader;
+	qhandle_t redEp6GlowShader;
+	qhandle_t orangeEp6GlowShader;
+	qhandle_t yellowEp6GlowShader;
+	qhandle_t greenEp6GlowShader;
+	qhandle_t blueEp6GlowShader;
+	qhandle_t purpleEp6GlowShader;
+
+	//Episode VII Sabers
+	qhandle_t ep7SaberCoreShader;
+	qhandle_t ep7redSaberCoreShader;
+	qhandle_t ep7orangeSaberCoreShader;
+	qhandle_t ep7yellowSaberCoreShader;
+	qhandle_t ep7greenSaberCoreShader;
+	qhandle_t ep7blueSaberCoreShader;
+	qhandle_t ep7purpleSaberCoreShader;
+	qhandle_t ep7blackSaberCoreShader;
+	qhandle_t redEp7GlowShader;
+	qhandle_t orangeEp7GlowShader;
+	qhandle_t yellowEp7GlowShader;
+	qhandle_t greenEp7GlowShader;
+	qhandle_t blueEp7GlowShader;
+	qhandle_t purpleEp7GlowShader;
 
 	//Episode I Sabers
 	qhandle_t ep1SaberCoreShader;
+	qhandle_t ep1blackSaberCoreShader;
 	qhandle_t redEp1GlowShader;
 	qhandle_t orangeEp1GlowShader;
 	qhandle_t yellowEp1GlowShader;
@@ -1283,7 +1309,9 @@ typedef struct cgMedia_s {
 
 	//Episode II Sabers
 	qhandle_t ep2SaberCoreShader;
+	qhandle_t ep2blackSaberCoreShader;
 	qhandle_t whiteIgniteFlare;
+	qhandle_t blackIgniteFlare;
 	qhandle_t redEp2GlowShader;
 	qhandle_t orangeEp2GlowShader;
 	qhandle_t yellowEp2GlowShader;
@@ -1293,6 +1321,19 @@ typedef struct cgMedia_s {
 
 	//Episode III Sabers
 	qhandle_t ep3SaberCoreShader;
+	qhandle_t ep3redSaberCoreShader;
+	qhandle_t ep3orangeSaberCoreShader;
+	qhandle_t ep3yellowSaberCoreShader;
+	qhandle_t ep3greenSaberCoreShader;
+	qhandle_t ep3blueSaberCoreShader;
+	qhandle_t ep3purpleSaberCoreShader;
+	qhandle_t ep3blackSaberCoreShader;
+	qhandle_t redIgniteFlare;
+	qhandle_t orangeIgniteFlare;
+	qhandle_t yellowIgniteFlare;
+	qhandle_t greenIgniteFlare;
+	qhandle_t blueIgniteFlare;
+	qhandle_t purpleIgniteFlare;
 	qhandle_t redEp3GlowShader;
 	qhandle_t orangeEp3GlowShader;
 	qhandle_t yellowEp3GlowShader;
@@ -1300,7 +1341,15 @@ typedef struct cgMedia_s {
 	qhandle_t blueEp3GlowShader;
 	qhandle_t purpleEp3GlowShader;
 
-	qhandle_t	yellowDroppedSaberShader;
+	//rebels Sabers
+	qhandle_t RebelsSaberCoreShader;
+	qhandle_t RebelsblackSaberCoreShader;
+	qhandle_t RebelsredGlowShader;
+	qhandle_t RebelsorangeGlowShader;
+	qhandle_t RebelsyellowGlowShader;
+	qhandle_t RebelsgreenGlowShader;
+	qhandle_t RebelsblueGlowShader;
+	qhandle_t RebelspurpleGlowShader;
 
 	qhandle_t	rivetMarkShader;
 

@@ -57,23 +57,28 @@ static constexpr float s_flipMatrix[16] = {
 /*
 ** GL_Bind
 */
-void GL_Bind(image_t* image) {
+void GL_Bind(image_t* image)
+{
 	int texnum;
+	image_t* usedImage = image;
 
 	if (!image) {
-		ri->Printf(PRINT_ALL, S_COLOR_YELLOW  "GL_Bind: NULL image\n");
+		ri->Printf(PRINT_ALL, S_COLOR_YELLOW "GL_Bind: NULL image\n");
 		texnum = tr.defaultImage->texnum;
+		usedImage = tr.defaultImage;
 	}
 	else {
 		texnum = image->texnum;
 	}
 
-	if (r_nobind->integer && tr.dlightImage) {		// performance evaluation option
+	if (r_nobind->integer && tr.dlightImage) { // performance evaluation option
 		texnum = tr.dlightImage->texnum;
+		usedImage = tr.dlightImage;
 	}
 
 	if (glState.currenttextures[glState.currenttmu] != texnum) {
-		image->frameUsed = tr.frameCount;
+		// use usedImage which is guaranteed non-null
+		usedImage->frameUsed = tr.frameCount;
 		glState.currenttextures[glState.currenttmu] = texnum;
 		qglBindTexture(GL_TEXTURE_2D, texnum);
 	}

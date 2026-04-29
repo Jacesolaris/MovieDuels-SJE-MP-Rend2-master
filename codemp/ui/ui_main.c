@@ -5906,23 +5906,26 @@ static void UI_UpdateSaberHilt(qboolean second_saber)
 			ItemParse_model_g2skin_go(item, NULL);
 		}
 	}
-}static void UI_UpdateSaberColor(qboolean second_saber)
+}
+
+static void UI_UpdateSaberColor(qboolean second_saber)
 {
 	char str[32];
 
 	// Saber 1 RGB
 	Com_sprintf(str, sizeof(str), "%i,%i,%i",
-		ui_sab1_r.integer,
-		ui_sab1_g.integer,
-		ui_sab1_b.integer);
+		ui_rgb_saber_red.integer,
+		ui_rgb_saber_green.integer,
+		ui_rgb_saber_blue.integer);
 
 	trap->Cvar_Set("rgb_saber1", str);
 
 	// Saber 2 RGB
 	Com_sprintf(str, sizeof(str), "%i,%i,%i",
-		ui_sab2_r.integer,
-		ui_sab2_g.integer,
-		ui_sab2_b.integer);
+		ui_rgb_saber2_red.integer,
+		
+ui_rgb_saber2_green.integer,
+		ui_rgb_saber2_blue.integer);
 
 	trap->Cvar_Set("rgb_saber2", str);
 }
@@ -5952,13 +5955,13 @@ static void UI_GetSaberCvars(void)
 	ParseRGBSaber(strgb1, c1);
 	ParseRGBSaber(strgb2, c2);
 
-	trap->Cvar_Set("ui_sab1_r", va("%f", c1[0]));
-	trap->Cvar_Set("ui_sab1_g", va("%f", c1[1]));
-	trap->Cvar_Set("ui_sab1_b", va("%f", c1[2]));
+	trap->Cvar_Set("ui_rgb_saber_red", va("%f", c1[0]));
+	trap->Cvar_Set("ui_rgb_saber_green", va("%f", c1[1]));
+	trap->Cvar_Set("ui_rgb_saber_blue", va("%f", c1[2]));
 
-	trap->Cvar_Set("ui_sab2_r", va("%f", c2[0]));
-	trap->Cvar_Set("ui_sab2_g", va("%f", c2[1]));
-	trap->Cvar_Set("ui_sab2_b", va("%f", c2[2]));
+	trap->Cvar_Set("ui_rgb_saber2_red", va("%f", c2[0]));
+	trap->Cvar_Set("ui_rgb_saber2_green", va("%f", c2[1]));
+	trap->Cvar_Set("ui_rgb_saber2_blue", va("%f", c2[2]));
 
 	strncpy(scr1, UI_Cvar_VariableString("rgb_script1"), sizeof scr1);
 	strncpy(scr2, UI_Cvar_VariableString("rgb_script2"), sizeof scr2);

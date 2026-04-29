@@ -134,8 +134,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define MATERIAL_SHATTERGLASS	29			// glass with the Crisis Zone style shattering
 #define MATERIAL_ARMOR			30			// body armor
 #define MATERIAL_LAVA		    31			// freshly laid LAVA
-#define MATERIAL_COMPUTER		32			// computers/electronic equipment
-#define MATERIAL_LAST			33			// number of materials
+#define MATERIAL_LAST			32			// number of materials
 
 // Defined as a macro here so one change will affect all the relevant files
 
@@ -171,5 +170,4 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 	"plaster",		\
 	"shatterglass",	\
 	"armor",		\
-	"lava",	   		\
-	"computer"/* this was missing, see enums above, plus ShaderEd2 pulldown options */
+	"lava"/* this was missing, see enums above, plus ShaderEd2 pulldown options */

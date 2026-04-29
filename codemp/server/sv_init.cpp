@@ -1020,7 +1020,7 @@ void SV_Init(void)
 	sv_snapsPolicy = Cvar_Get("sv_snapsPolicy", "1", CVAR_ARCHIVE,
 		"Determines which policy of enforcement is used for client's \"snaps\" cvar");
 	Cvar_CheckRange(sv_snapsPolicy, 0, 2, qtrue);
-	sv_fps = Cvar_Get("sv_fps", "40", CVAR_SERVERINFO, "Server frames per second");
+	sv_fps = Cvar_Get("sv_fps", "120", CVAR_SERVERINFO, "Server frames per second");
 	sv_timeout = Cvar_Get("sv_timeout", "200", CVAR_TEMP);
 	sv_zombietime = Cvar_Get("sv_zombietime", "2", CVAR_TEMP);
 	Cvar_Get("nextmap", "", CVAR_TEMP);
