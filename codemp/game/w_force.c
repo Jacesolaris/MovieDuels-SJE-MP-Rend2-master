@@ -2924,18 +2924,31 @@ void ForceLightning(gentity_t* self)
 
 	if (self->r.svFlags & SVF_BOT && self->client->ps.weapon == WP_SABER) //npc force use limit
 	{
-		if (self->client->ps.weapon == WP_SABER && self->client->ps.fd.blockPoints < 75 || self->client->ps.fd.
-			forcePower < 75 || !WP_ForcePowerUsable(self, FP_LIGHTNING))
+		if (self->client->ps.weapon == WP_SABER &&
+			self->client->ps.fd.blockPoints < 75 ||
+			self->client->ps.fd.forcePower < 75 ||
+			!WP_ForcePowerUsable(self, FP_LIGHTNING))
 		{
 			return;
 		}
 	}
 	else
 	{
-		if (self->client->ps.fd.forcePower < 25 || !WP_ForcePowerUsable(self, FP_LIGHTNING))
+		if (self->client->ps.userInt3 & 1 << FLAG_PREBLOCK)
 		{
 			return;
 		}
+		if (self->client->ps.weaponTime > 0 &&
+			(!PM_SaberInParry(self->client->ps.saber_move) ||
+				!(self->client->ps.userInt3 & 1 << FLAG_PREBLOCK)))
+		{
+			return;
+		}
+	}
+
+	if (self->client->ps.fd.forcePower < 25 || !WP_ForcePowerUsable(self, FP_LIGHTNING))
+	{
+		return;
 	}
 
 	if (self->client->ps.fd.forcePowerDebounce[FP_LIGHTNING] > level.time)
@@ -2946,15 +2959,6 @@ void ForceLightning(gentity_t* self)
 	if (self->client->ps.saberLockTime > level.time)
 	{
 		//FIXME: can this be a way to break out?
-		return;
-	}
-	if (self->client->ps.userInt3 & 1 << FLAG_PREBLOCK)
-	{
-		return;
-	}
-	if (self->client->ps.weaponTime > 0 && (!PM_SaberInParry(self->client->ps.saber_move) || !(self->client->ps.userInt3
-		& 1 << FLAG_PREBLOCK)))
-	{
 		return;
 	}
 	// Make sure to turn off Force Protection and Force Absorb.
@@ -2988,6 +2992,7 @@ void ForceLightning(gentity_t* self)
 		G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/lightning3.wav"));
 	}
 
+	self->client->ps.weaponTime = self->client->ps.torsoTimer;
 	WP_ForcePowerStart(self, FP_LIGHTNING, 500);
 }
 

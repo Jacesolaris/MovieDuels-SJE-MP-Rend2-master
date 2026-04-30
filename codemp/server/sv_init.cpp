@@ -478,12 +478,14 @@ clients along with it.
 This is NOT called for map_restart
 ================
 */
+// Large systeminfo buffer moved out of SV_SpawnServer to avoid large stack usage
+static char sv_systemInfoBuffer[16384];
+
 void SV_SpawnServer(char* server, const qboolean killBots, const ForceReload_e eForceReload)
 {
-	int i;
-	int checksum;
-	qboolean isBot;
-	char systemInfo[16384];
+	int         i;
+	int         checksum;
+	qboolean    isBot;
 	const char* p;
 
 	SV_StopAutoRecordDemos();
@@ -561,14 +563,12 @@ void SV_SpawnServer(char* server, const qboolean killBots, const ForceReload_e e
 	Ghoul2 Insert Start
 	*/
 	// allocate the snapshot entities on the hunk
-	//	svs.snapshotEntities = (struct entityState_s *)Hunk_Alloc( sizeof(entityState_t)*svs.numSnapshotEntities, h_high );
 	svs.nextSnapshotEntities = 0;
 
 	// allocate the snapshot entities
 	svs.snapshotEntities = new entityState_s[svs.numSnapshotEntities];
 	// we CAN afford to do this here, since we know the STL vectors in Ghoul2 are empty
 	memset(svs.snapshotEntities, 0, sizeof(entityState_t) * svs.numSnapshotEntities);
-
 	/*
 	Ghoul2 Insert End
 	*/
@@ -580,7 +580,7 @@ void SV_SpawnServer(char* server, const qboolean killBots, const ForceReload_e e
 	// set nextmap to the same map, but it may be overriden
 	// by the game startup or another console command
 	Cvar_Set("nextmap", "map_restart 0");
-	//	Cvar_Set( "nextmap", va("map %s", server) );
+	//  Cvar_Set( "nextmap", va("map %s", server) );
 
 	for (i = 0; i < sv_maxclients->integer; i++)
 	{
@@ -607,7 +607,7 @@ void SV_SpawnServer(char* server, const qboolean killBots, const ForceReload_e e
 
 	// get a new checksum feed and restart the file system
 	srand(Com_Milliseconds());
-	sv.checksumFeed = rand() << 16 ^ rand() ^ Com_Milliseconds();
+	sv.checksumFeed = (rand() << 16) ^ rand() ^ Com_Milliseconds();
 	FS_Restart(sv.checksumFeed);
 
 	CM_LoadMap(va("maps/%s.bsp", server), qfalse, &checksum);
@@ -697,8 +697,9 @@ void SV_SpawnServer(char* server, const qboolean killBots, const ForceReload_e e
 				else
 				{
 					client_t* client = &svs.clients[i];
-					client->state = CS_ACTIVE;
 					sharedEntity_t* ent = SV_Gentity_num(i);
+
+					client->state = CS_ACTIVE;
 					ent->s.number = i;
 					client->gentity = ent;
 
@@ -745,6 +746,7 @@ void SV_SpawnServer(char* server, const qboolean killBots, const ForceReload_e e
 		Cvar_Set("sv_paks", "");
 		Cvar_Set("sv_pakNames", "");
 	}
+
 	// the server sends these to the clients so they can figure
 	// out which pk3s should be auto-downloaded
 	p = FS_ReferencedPakChecksums();
@@ -753,9 +755,9 @@ void SV_SpawnServer(char* server, const qboolean killBots, const ForceReload_e e
 	Cvar_Set("sv_referencedPakNames", p);
 
 	// save systeminfo and serverinfo strings
-	Q_strncpyz(systemInfo, Cvar_InfoString_Big(CVAR_SYSTEMINFO), sizeof systemInfo);
+	Q_strncpyz(sv_systemInfoBuffer, Cvar_InfoString_Big(CVAR_SYSTEMINFO), sizeof(sv_systemInfoBuffer));
 	cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
-	SV_SetConfigstring(CS_SYSTEMINFO, systemInfo);
+	SV_SetConfigstring(CS_SYSTEMINFO, sv_systemInfoBuffer);
 
 	SV_SetConfigstring(CS_SERVERINFO, Cvar_InfoString(CVAR_SERVERINFO));
 	cvar_modifiedFlags &= ~CVAR_SERVERINFO;
@@ -770,14 +772,6 @@ void SV_SpawnServer(char* server, const qboolean killBots, const ForceReload_e e
 
 	Hunk_SetMark();
 
-	/* MrE: 2000-09-13: now called in CL_DownloadsComplete
-	// don't call when running dedicated
-	if ( !com_dedicated->integer ) {
-		// note that this is called after setting the hunk mark with Hunk_SetMark
-		CL_StartHunkUsers();
-	}
-	*/
-
 	for (client_t* client = svs.clients; client - svs.clients < sv_maxclients->integer; client++)
 	{
 		// bots will not request gamestate, so it must be manually sent
@@ -790,6 +784,7 @@ void SV_SpawnServer(char* server, const qboolean killBots, const ForceReload_e e
 
 	SV_BeginAutoRecordDemos();
 }
+
 
 /*
 ===============
@@ -982,27 +977,18 @@ void SV_Init(void)
 	Cvar_Get("sv_keywords", "", CVAR_SERVERINFO);
 	Cvar_Get("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO | CVAR_ROM);
 	sv_mapname = Cvar_Get("mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM);
-	sv_privateClients = Cvar_Get("sv_privateClients", "0", CVAR_SERVERINFO,
-		"Number of reserved client slots available with password");
+	sv_privateClients = Cvar_Get("sv_privateClients", "0", CVAR_SERVERINFO,"Number of reserved client slots available with password");
 	Cvar_CheckRange(sv_privateClients, 0, MAX_CLIENTS, qtrue);
-	sv_hostname = Cvar_Get("sv_hostname", "*Jedi*", CVAR_SERVERINFO | CVAR_ARCHIVE,
-		"The name of the server that is displayed in the serverlist");
+	sv_hostname = Cvar_Get("sv_hostname", "*Jedi*", CVAR_SERVERINFO | CVAR_ARCHIVE,"The name of the server that is displayed in the serverlist");
 	sv_maxclients = Cvar_Get("sv_maxclients", "8", CVAR_SERVERINFO | CVAR_LATCH, "Max. connected clients");
-
-	//cvar_t	*sv_ratePolicy;		// 1-2
-	//cvar_t	*sv_clientRate;
-	sv_ratePolicy = Cvar_Get("sv_ratePolicy", "1", CVAR_ARCHIVE,
-		"Determines which policy of enforcement is used for client's \"rate\" cvar");
+	sv_ratePolicy = Cvar_Get("sv_ratePolicy", "1", CVAR_ARCHIVE,"Determines which policy of enforcement is used for client's \"rate\" cvar");
 	Cvar_CheckRange(sv_ratePolicy, 1, 2, qtrue);
-	sv_clientRate = Cvar_Get("sv_clientRate", "50000", CVAR_ARCHIVE);
-	sv_minRate = Cvar_Get("sv_minRate", "0", CVAR_ARCHIVE | CVAR_SERVERINFO,
-		"Min bandwidth rate allowed on server. Use 0 for unlimited.");
-	sv_maxRate = Cvar_Get("sv_maxRate", "0", CVAR_ARCHIVE | CVAR_SERVERINFO,
-		"Max bandwidth rate allowed on server. Use 0 for unlimited.");
+	sv_clientRate = Cvar_Get("sv_clientRate", "90000", CVAR_ARCHIVE);
+	sv_minRate = Cvar_Get("sv_minRate", "0", CVAR_ARCHIVE | CVAR_SERVERINFO,"Min bandwidth rate allowed on server. Use 0 for unlimited.");
+	sv_maxRate = Cvar_Get("sv_maxRate", "0", CVAR_ARCHIVE | CVAR_SERVERINFO,"Max bandwidth rate allowed on server. Use 0 for unlimited.");
 	sv_minPing = Cvar_Get("sv_minPing", "0", CVAR_ARCHIVE | CVAR_SERVERINFO);
 	sv_maxPing = Cvar_Get("sv_maxPing", "0", CVAR_ARCHIVE | CVAR_SERVERINFO);
-	sv_floodProtect = Cvar_Get("sv_floodProtect", "1", CVAR_ARCHIVE | CVAR_SERVERINFO,
-		"Protect against flooding of server commands");
+	sv_floodProtect = Cvar_Get("sv_floodProtect", "1", CVAR_ARCHIVE | CVAR_SERVERINFO,"Protect against flooding of server commands");
 	// systeminfo
 	Cvar_Get("sv_cheats", "1", CVAR_SYSTEMINFO | CVAR_ROM, "Allow cheats on server if set to 1");
 	sv_serverid = Cvar_Get("sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM);
@@ -1017,7 +1003,8 @@ void SV_Init(void)
 	sv_privatePassword = Cvar_Get("sv_privatePassword", "", CVAR_TEMP);
 	sv_snapsMin = Cvar_Get("sv_snapsMin", "10", CVAR_ARCHIVE); // 1 <=> sv_snapsMax
 	sv_snapsMax = Cvar_Get("sv_snapsMax", "40", CVAR_ARCHIVE); // sv_snapsMin <=> sv_fps
-	sv_snapsPolicy = Cvar_Get("sv_snapsPolicy", "1", CVAR_ARCHIVE,"Determines which policy of enforcement is used for client's \"snaps\" cvar");
+	sv_snapsPolicy = Cvar_Get("sv_snapsPolicy", "1", CVAR_ARCHIVE,
+		"Determines which policy of enforcement is used for client's \"snaps\" cvar");
 	Cvar_CheckRange(sv_snapsPolicy, 0, 2, qtrue);
 	sv_fps = Cvar_Get("sv_fps", "40", CVAR_SERVERINFO, "Server frames per second");
 	sv_timeout = Cvar_Get("sv_timeout", "200", CVAR_TEMP);

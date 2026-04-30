@@ -1804,6 +1804,7 @@ typedef struct cgEffects_s {
 	fxHandle_t	purplelightningwide;
 	fxHandle_t	purplelightning;
 	fxHandle_t	forceInvincibility;
+	fxHandle_t forceLightningWide_md;
 
 	fxHandle_t	yellowlightningwide;
 	fxHandle_t	yellowlightning;

@@ -12135,7 +12135,7 @@ static qboolean PM_DoChargedWeapons(const qboolean vehicleRocketLock, const bgEn
 				pm->ps->weaponChargeSubtractTime = pm->cmd.serverTime + weaponData[pm->ps->weapon].altChargeSubTime;
 
 #ifdef _DEBUG
-				Com_Printf("Starting charge alt\n");
+				//Com_Printf("Starting charge alt\n");
 #endif
 				assert(pm->ps->weapon > WP_NONE);
 				BG_AddPredictableEventToPlayerstate(EV_WEAPON_CHARGE_ALT, pm->ps->weapon, pm->ps);
@@ -12193,7 +12193,7 @@ static qboolean PM_DoChargedWeapons(const qboolean vehicleRocketLock, const bgEn
 				pm->ps->weaponChargeSubtractTime = pm->cmd.serverTime + weaponData[pm->ps->weapon].chargeSubTime;
 
 #ifdef _DEBUG
-				Com_Printf("Starting charge prim\n");
+				//Com_Printf("Starting charge prim\n");
 #endif
 				BG_AddPredictableEventToPlayerstate(EV_WEAPON_CHARGE, pm->ps->weapon, pm->ps);
 			}
@@ -12234,7 +12234,7 @@ rest:
 	{
 		// weapon has a charge, so let us do an attack
 #ifdef _DEBUG
-		Com_Printf("Charging Firing.  Charge time=%d\n", pm->cmd.serverTime - pm->ps->weaponChargeTime);
+		//Com_Printf("Charging Firing.  Charge time=%d\n", pm->cmd.serverTime - pm->ps->weaponChargeTime);
 #endif
 		if (pm->ps->weapon == WP_BOWCASTER)
 		{
@@ -12248,7 +12248,7 @@ rest:
 	{
 		// weapon has a charge, so let us do an alt-attack
 #ifdef _DEBUG
-		Com_Printf("Alt Charging Firing.  Charge time=%d\n", pm->cmd.serverTime - pm->ps->weaponChargeTime);
+		//Com_Printf("Alt Charging Firing.  Charge time=%d\n", pm->cmd.serverTime - pm->ps->weaponChargeTime);
 #endif
 
 		// reset Bryar charge level on fire

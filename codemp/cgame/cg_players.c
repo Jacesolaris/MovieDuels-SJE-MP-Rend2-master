@@ -19625,50 +19625,9 @@ SkipTrueView:
 				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
 				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
 			{
-				if (cent->currentState.botclass == BCLASS_DESANN)
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.redlightningwide, ef_org_r, axis, -1, -1, -1, -1);
-				}
-				else if (cent->currentState.botclass == BCLASS_ALORA)
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.purplelightningwide, ef_org_r, axis, -1, -1, -1, -1);
-				}
-				else if (cent->currentState.botclass == BCLASS_TAVION)
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.purplelightningwide, ef_org_r, axis, -1, -1, -1, -1);
-				}
-				else if (cent->currentState.botclass == BCLASS_KYLE)
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.yellowlightningwide, ef_org_r, axis, -1, -1, -1, -1);
-				}
-				else if (cent->currentState.botclass == BCLASS_SHADOWTROOPER)
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.greenlightningwide, ef_org_r, axis, -1, -1, -1, -1);
-				}
-				else
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.forceLightningWide, ef_org_r, axis, -1, -1, -1, -1);
-				}
-			}
-			if (cent->currentState.botclass == BCLASS_DESANN)
-			{
-				trap->FX_PlayEntityEffectID(cgs.effects.redlightningwide, ef_org_l, axis, -1, -1, -1, -1);
-			}
-			else if (cent->currentState.botclass == BCLASS_ALORA)
-			{
-				trap->FX_PlayEntityEffectID(cgs.effects.purplelightningwide, ef_org_l, axis, -1, -1, -1, -1);
-			}
-			else if (cent->currentState.botclass == BCLASS_TAVION)
-			{
-				trap->FX_PlayEntityEffectID(cgs.effects.purplelightningwide, ef_org_l, axis, -1, -1, -1, -1);
-			}
-			else if (cent->currentState.botclass == BCLASS_KYLE)
-			{
-				trap->FX_PlayEntityEffectID(cgs.effects.yellowlightningwide, ef_org_l, axis, -1, -1, -1, -1);
-			}
-			else if (cent->currentState.botclass == BCLASS_SHADOWTROOPER)
-			{
-				trap->FX_PlayEntityEffectID(cgs.effects.greenlightningwide, ef_org_l, axis, -1, -1, -1, -1);
+
+				trap->FX_PlayEntityEffectID(cgs.effects.forceLightningWide_md, ef_org_r, axis, -1, -1, -1, -1);
+				trap->FX_PlayEntityEffectID(cgs.effects.forceLightningWide_md, ef_org_l, axis, -1, -1, -1, -1);
 			}
 			else
 			{
@@ -19685,50 +19644,8 @@ SkipTrueView:
 				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
 				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
 			{
-				if (cent->currentState.botclass == BCLASS_DESANN)
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.redlightning, ef_org_r, axis, -1, -1, -1, -1);
-				}
-				else if (cent->currentState.botclass == BCLASS_ALORA)
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.purplelightning, ef_org_r, axis, -1, -1, -1, -1);
-				}
-				else if (cent->currentState.botclass == BCLASS_TAVION)
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.purplelightning, ef_org_r, axis, -1, -1, -1, -1);
-				}
-				else if (cent->currentState.botclass == BCLASS_KYLE)
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.yellowlightning, ef_org_r, axis, -1, -1, -1, -1);
-				}
-				else if (cent->currentState.botclass == BCLASS_SHADOWTROOPER)
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.greenlightning, ef_org_r, axis, -1, -1, -1, -1);
-				}
-				else
-				{
-					trap->FX_PlayEntityEffectID(cgs.effects.forceLightning, ef_org_r, axis, -1, -1, -1, -1);
-				}
-			}
-			if (cent->currentState.botclass == BCLASS_DESANN)
-			{
-				trap->FX_PlayEntityEffectID(cgs.effects.redlightning, ef_org_l, axis, -1, -1, -1, -1);
-			}
-			else if (cent->currentState.botclass == BCLASS_ALORA)
-			{
-				trap->FX_PlayEntityEffectID(cgs.effects.purplelightning, ef_org_l, axis, -1, -1, -1, -1);
-			}
-			else if (cent->currentState.botclass == BCLASS_TAVION)
-			{
-				trap->FX_PlayEntityEffectID(cgs.effects.purplelightning, ef_org_l, axis, -1, -1, -1, -1);
-			}
-			else if (cent->currentState.botclass == BCLASS_KYLE)
-			{
-				trap->FX_PlayEntityEffectID(cgs.effects.yellowlightning, ef_org_l, axis, -1, -1, -1, -1);
-			}
-			else if (cent->currentState.botclass == BCLASS_SHADOWTROOPER)
-			{
-				trap->FX_PlayEntityEffectID(cgs.effects.greenlightning, ef_org_l, axis, -1, -1, -1, -1);
+				trap->FX_PlayEntityEffectID(cgs.effects.forceLightning, ef_org_r, axis, -1, -1, -1, -1);
+				trap->FX_PlayEntityEffectID(cgs.effects.forceLightning, ef_org_l, axis, -1, -1, -1, -1);
 			}
 			else
 			{
