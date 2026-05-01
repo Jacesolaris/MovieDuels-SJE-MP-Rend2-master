@@ -6214,114 +6214,141 @@ qboolean PM_WalkingAnim(int anim);
 
 static void BG_SetAnimFinal(playerState_t* ps, const animation_t* animations, const int setAnimParts, const int anim, const int setAnimFlags)
 {
-	float editAnimSpeed = 1;
+	float editAnimSpeed = 1.0f;
 
-	if (!animations)
+	if (animations == NULL)
 	{
+		Com_Printf("BG_SetAnimFinal: animations is NULL\n");
 		return;
 	}
 
-	assert(anim > -1);
-	assert(animations[anim].firstFrame > 0 || animations[anim].numFrames > 0);
+	if (anim < 0)
+	{
+		Com_Printf("BG_SetAnimFinal: invalid anim index %d\n", anim);
+		return;
+	}
 
+	if (animations[anim].firstFrame <= 0 && animations[anim].numFrames <= 0)
+	{
+		Com_Printf("BG_SetAnimFinal: animation %d has no frames (firstFrame=%d, numFrames=%d)\n",
+			anim, animations[anim].firstFrame, animations[anim].numFrames);
+		return;
+	}
+
+	// Allow saber system to adjust animation speed
 	PM_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, anim, &editAnimSpeed, ps->userInt3);
 
 	// Set torso anim
-	if (setAnimParts & SETANIM_TORSO)
+	if ((setAnimParts & SETANIM_TORSO) != 0)
 	{
-		// Don't reset if it's already running the anim
-		if (ps->torsoAnim == anim && !(setAnimFlags & SETANIM_FLAG_RESTART) && !(setAnimFlags & SETANIM_FLAG_PACE))
+		// Don't restart if already playing and no restart/pace flags
+		if ((ps->torsoAnim == anim) &&
+			((setAnimFlags & SETANIM_FLAG_RESTART) == 0) &&
+			((setAnimFlags & SETANIM_FLAG_PACE) == 0))
 		{
 			goto setAnimLegs;
 		}
-		// or if a more important anim is running
-		if ((ps->torsoTimer > 0 || ps->torsoTimer == -1) &&
-			(setAnimFlags & SETANIM_FLAG_PACE && ps->torsoAnim == anim
-				|| !(setAnimFlags & SETANIM_FLAG_OVERRIDE)))
+
+		// Or if a more important anim is running
+		if (((ps->torsoTimer > 0) || (ps->torsoTimer == -1)) &&
+			(((setAnimFlags & SETANIM_FLAG_PACE) != 0 && ps->torsoAnim == anim) ||
+				((setAnimFlags & SETANIM_FLAG_OVERRIDE) == 0)))
 		{
 			goto setAnimLegs;
 		}
 
 		BG_StartTorsoAnim(ps, anim);
 
-		if (setAnimFlags & SETANIM_FLAG_HOLD)
+		if ((setAnimFlags & SETANIM_FLAG_HOLD) != 0)
 		{
-			if (setAnimFlags & SETANIM_FLAG_HOLDLESS)
+			if ((setAnimFlags & SETANIM_FLAG_HOLDLESS) != 0)
 			{
 				// Make sure to only wait in full 1/20 sec server frame intervals.
-				if (editAnimSpeed > 0)
+				if (editAnimSpeed > 0.0f)
 				{
 					if (animations[anim].numFrames < 2)
 					{
-						//single frame animations should just run with one frame worth of animation.
-						ps->torsoTimer = fabs(animations[anim].frameLerp) * (1 / editAnimSpeed);
+						// Single frame animations should just run with one frame worth of animation.
+						ps->torsoTimer = (int)(fabs((float)animations[anim].frameLerp) * (1.0f / editAnimSpeed));
 					}
 					else
 					{
-						ps->torsoTimer = (animations[anim].numFrames - 1) * fabs(animations[anim].frameLerp) * (1 /
-							editAnimSpeed);
+						ps->torsoTimer = (int)((animations[anim].numFrames - 1) * fabs((float)animations[anim].frameLerp) * (1.0f / editAnimSpeed));
 					}
 
 					if (ps->torsoTimer > 1)
 					{
-						//set the timer to be one unit of time less than the actual animation time so the timer will expire on the frame at which the animation finishes.
+						// Set the timer to be one unit of time less than the actual animation time
+						// so the timer will expire on the frame at which the animation finishes.
 						ps->torsoTimer--;
 					}
 				}
 			}
 			else
 			{
-				ps->torsoTimer = animations[anim].numFrames * fabs(animations[anim].frameLerp);
+				ps->torsoTimer = (int)((animations[anim].numFrames) * fabs((float)animations[anim].frameLerp));
 			}
 		}
 	}
 
 setAnimLegs:
 	// Set legs anim
-	if (setAnimParts & SETANIM_LEGS)
+	if ((setAnimParts & SETANIM_LEGS) != 0)
 	{
 		// Don't reset if it's already running the anim
-		if (ps->legsAnim == anim && !(setAnimFlags & SETANIM_FLAG_RESTART) && !(setAnimFlags & SETANIM_FLAG_PACE))
+		if ((ps->legsAnim == anim) &&
+			((setAnimFlags & SETANIM_FLAG_RESTART) == 0) &&
+			((setAnimFlags & SETANIM_FLAG_PACE) == 0))
 		{
 			goto setAnimDone;
 		}
-		// or if a more important anim is running
-		if ((ps->legsTimer > 0 || ps->legsTimer == -1) && (setAnimFlags & SETANIM_FLAG_PACE && ps->legsAnim ==
-			anim
-			|| !(setAnimFlags & SETANIM_FLAG_OVERRIDE)))
+
+		if (((ps->legsTimer > 0) || (ps->legsTimer == -1)) &&
+			(((setAnimFlags & SETANIM_FLAG_PACE) != 0 && ps->legsAnim == anim) ||
+				((setAnimFlags & SETANIM_FLAG_OVERRIDE) == 0)))
 		{
 			goto setAnimDone;
 		}
 
 		BG_StartLegsAnim(ps, anim);
 
-		if (setAnimFlags & SETANIM_FLAG_HOLD)
+		if ((setAnimFlags & SETANIM_FLAG_HOLD) != 0)
 		{
-			if (setAnimFlags & SETANIM_FLAG_HOLDLESS)
+			if ((setAnimFlags & SETANIM_FLAG_HOLDLESS) != 0)
 			{
-				int dur = (animations[anim].numFrames - 1) * fabs(animations[anim].frameLerp);
-				const int speedDif = dur - dur * editAnimSpeed;
-				dur += speedDif;
-				if (dur > 1)
+				// Make sure to only wait in full 1/20 sec server frame intervals.
+				if (editAnimSpeed > 0.0f)
 				{
-					ps->legsTimer = dur - 1;
-				}
-				else
-				{
-					ps->legsTimer = fabs(animations[anim].frameLerp);
+					if (animations[anim].numFrames < 2)
+					{
+						// Single frame animations should just run with one frame worth of animation.
+						ps->legsTimer = (int)(fabs((float)animations[anim].frameLerp) * (1.0f / editAnimSpeed));
+					}
+					else
+					{
+						ps->legsTimer = (int)((animations[anim].numFrames - 1) * fabs((float)animations[anim].frameLerp) * (1.0f / editAnimSpeed));
+					}
+
+					if (ps->legsTimer > 1)
+					{
+						// Set the timer to be one unit of time less than the actual animation time
+						// so the timer will expire on the frame at which the animation finishes.
+						ps->legsTimer--;
+					}
 				}
 			}
 			else
 			{
-				ps->legsTimer = animations[anim].numFrames * fabs(animations[anim].frameLerp);
+				ps->legsTimer = (int)((animations[anim].numFrames) * fabs((float)animations[anim].frameLerp));
 			}
 
-			if (PM_RunningAnim(anim) ||
-				PM_WalkingAnim(anim)) //these guys are ok, they don't actually reference pm
+			// Running/walking anims get shortened under Force Speed
+			if ((PM_RunningAnim(anim) == qtrue) ||
+				(PM_WalkingAnim(anim) == qtrue)) // these guys are ok, they don't actually reference pm
 			{
-				if (ps->fd.forcePowersActive & 1 << FP_SPEED)
+				if ((ps->fd.forcePowersActive & (1 << FP_SPEED)) != 0)
 				{
-					ps->legsTimer /= 1.7;
+					ps->legsTimer = (int)((float)ps->legsTimer / 1.7f);
 				}
 			}
 		}
@@ -6330,6 +6357,7 @@ setAnimLegs:
 setAnimDone:
 	return;
 }
+
 
 static void PM_SetAnimFinal(const int setAnimParts, const int anim, const int setAnimFlags)
 {
@@ -6403,6 +6431,26 @@ void BG_SetAnim(playerState_t* ps, const animation_t* animations, int setAnimPar
 		{
 			//still? Just return then I guess.
 			return;
+		}
+	}
+
+	if (ps->stats[STAT_HEALTH] > 0)
+	{
+		//don't lock anims if the guy is dead
+		if (ps->torsoTimer
+			&& PM_LockedAnim(ps->torsoAnim)
+			&& !PM_LockedAnim(anim))
+		{
+			//nothing can override these special anims
+			setAnimParts &= ~SETANIM_TORSO;
+		}
+
+		if (ps->legsTimer
+			&& PM_LockedAnim(ps->legsAnim)
+			&& !PM_LockedAnim(anim))
+		{
+			//nothing can override these special anims
+			setAnimParts &= ~SETANIM_LEGS;
 		}
 	}
 
