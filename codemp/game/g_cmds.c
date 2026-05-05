@@ -1511,7 +1511,7 @@ void StopFollowing(gentity_t* ent)
 	ent->client->ps.zoomMode = 0;
 	ent->client->ps.zoomLocked = qfalse;
 	ent->client->ps.zoomLockTime = 0;
-	ent->client->ps.saber_move = LS_NONE;
+	ent->client->ps.saberMove = LS_NONE;
 	ent->client->ps.legsAnim = 0;
 	ent->client->ps.legsTimer = 0;
 	ent->client->ps.torsoAnim = 0;
@@ -4138,7 +4138,7 @@ void Cmd_SaberAttackCycle_f(gentity_t* ent)
 
 		if (!ent->client->ps.saberInFlight)
 		{
-			if (!(ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK) && !PM_SaberInAttack(ent->client->ps.saber_move) && ent->client->ps.saberLockTime < level.time) // lets do a movement when changing styles // need better anims for this
+			if (!(ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK) && !PM_SaberInAttack(ent->client->ps.saberMove) && ent->client->ps.saberLockTime < level.time) // lets do a movement when changing styles // need better anims for this
 			{
 				if (select_level == SS_DUAL)
 				{
@@ -4370,15 +4370,15 @@ static void Cmd_DebugSetSaberMove_f(gentity_t* self)
 		return;
 	}
 
-	self->client->ps.saber_move = atoi(arg);
+	self->client->ps.saberMove = atoi(arg);
 	self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
 
-	if (self->client->ps.saber_move >= LS_MOVE_MAX)
+	if (self->client->ps.saberMove >= LS_MOVE_MAX)
 	{
-		self->client->ps.saber_move = LS_MOVE_MAX - 1;
+		self->client->ps.saberMove = LS_MOVE_MAX - 1;
 	}
 
-	Com_Printf("Anim for move: %s\n", animTable[saber_moveData[self->client->ps.saber_move].animToUse].name);
+	Com_Printf("Anim for move: %s\n", animTable[saber_moveData[self->client->ps.saberMove].animToUse].name);
 }
 
 static void Cmd_DebugSetSaberBlock_f(gentity_t* self)

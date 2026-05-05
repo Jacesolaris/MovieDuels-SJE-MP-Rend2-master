@@ -1210,7 +1210,7 @@ typedef struct playerState_s {
 
 	qboolean	saberInFlight;
 
-	int			saber_move;
+	int			saberMove;
 	int			saberBlocking;
 	int			saberBlocked;
 	int		    saberBounceMove;
@@ -1891,7 +1891,7 @@ typedef struct entityState_s {
 
 	qboolean	saberInFlight;
 	int			saberEntityNum;
-	int			saber_move;
+	int			saberMove;
 	int			forcePowersActive;
 	int			saberHolstered;//sent in only only 2 bits - should be 0, 1 or 2
 

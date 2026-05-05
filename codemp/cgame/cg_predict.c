@@ -847,7 +847,7 @@ static QINLINE void CG_EntityStateToPlayerState(entityState_t* s, playerState_t*
 	ps->legsFlip = s->legsFlip;
 	ps->torsoFlip = s->torsoFlip;
 	ps->clientNum = s->clientNum;
-	ps->saber_move = s->saber_move;
+	ps->saberMove = s->saberMove;
 }
 #endif
 
@@ -1101,7 +1101,7 @@ void CG_PredictPlayerState(void)
 			cgSendPS[i]->legsFlip = cg_entities[i].currentState.legsFlip;
 			cgSendPS[i]->torsoFlip = cg_entities[i].currentState.torsoFlip;
 			cgSendPS[i]->clientNum = cg_entities[i].currentState.clientNum;
-			cgSendPS[i]->saber_move = cg_entities[i].currentState.saber_move;
+			cgSendPS[i]->saberMove = cg_entities[i].currentState.saberMove;
 		}
 	}
 
@@ -1523,7 +1523,7 @@ revertES:
 			cg_entities[i].currentState.torsoAnim = cgSendPS[i]->torsoAnim;
 			cg_entities[i].currentState.legsAnim = cgSendPS[i]->legsAnim;
 			cg_entities[i].currentState.forceFrame = cgSendPS[i]->saberLockFrame;
-			cg_entities[i].currentState.saber_move = cgSendPS[i]->saber_move;
+			cg_entities[i].currentState.saberMove = cgSendPS[i]->saberMove;
 		}
 	}
 }

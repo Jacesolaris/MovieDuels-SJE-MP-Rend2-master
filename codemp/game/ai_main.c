@@ -9155,7 +9155,7 @@ void bot_behave_attack_basic(bot_state_t* bs, const gentity_t* target)
 		bot_weapon_detpack(bs, target);
 	}
 
-	if (!PM_SaberInKata(bs->cur_ps.saber_move) && bs->cur_ps.fd.forcePower > 60 &&
+	if (!PM_SaberInKata(bs->cur_ps.saberMove) && bs->cur_ps.fd.forcePower > 60 &&
 		bs->cur_ps.weapon == WP_SABER && dist < 128 && in_field_of_vision(bs->viewangles, 90, ang))
 	{
 		//KATA!
@@ -9218,9 +9218,9 @@ void bot_behave_attack_basic(bot_state_t* bs, const gentity_t* target)
 		&& bs->virtualWeapon == WP_SABER && in_field_of_vision(bs->viewangles, 100, ang))
 	{
 		//we're using a lightsaber
-		if (PM_SaberInIdle(bs->cur_ps.saber_move)
-			|| PM_SaberInBounce(bs->cur_ps.saber_move)
-			|| PM_SaberInReturn(bs->cur_ps.saber_move))
+		if (PM_SaberInIdle(bs->cur_ps.saberMove)
+			|| PM_SaberInBounce(bs->cur_ps.saberMove)
+			|| PM_SaberInReturn(bs->cur_ps.saberMove))
 		{
 			//we want to attack, and we need to choose a new attack swing, pick randomly.
 			movefor_attack_quad(bs, move_dir, Q_irand(Q_BR, Q_B));
@@ -9231,12 +9231,12 @@ void bot_behave_attack_basic(bot_state_t* bs, const gentity_t* target)
 			bs->saberBFTime = level.time + Q_irand(3000, 5000); //every 3-5 secs
 		}
 		else if (bs->saberBFTime < level.time
-			&& (PM_SaberInTransition(bs->cur_ps.saber_move)
-				|| PM_SaberInStart(bs->cur_ps.saber_move)))
+			&& (PM_SaberInTransition(bs->cur_ps.saberMove)
+				|| PM_SaberInStart(bs->cur_ps.saberMove)))
 		{
 			//we can and want to do a saber attack fake.
 			int fake_quad = Q_irand(Q_BR, Q_B);
-			while (fake_quad == saber_moveData[bs->cur_ps.saber_move].endQuad)
+			while (fake_quad == saber_moveData[bs->cur_ps.saberMove].endQuad)
 			{
 				//can't fake in the direction we're already trying to attack in
 				fake_quad = Q_irand(Q_BR, Q_B);
@@ -9384,7 +9384,7 @@ static void JediDirectionalDashDodge(bot_state_t* bs, const vec3_t enemyPos)
 
 		// ensure saber state is restored to "ready"
 		// set both current and next to avoid races with other logic
-		bs->cur_ps.saber_move = bs->cur_ps.saber_move = LS_READY;
+		bs->cur_ps.saberMove = bs->cur_ps.saberMove = LS_READY;
 		Cmd_SaberAttackCycle_f(&g_entities[bs->client]);
 		bs->nextStyleSwitchTime = level.time + Q_irand(1200, 1800);
 	}
@@ -11463,7 +11463,7 @@ static int bot_use_inventory_item(bot_state_t* bs)
 		}
 	}
 	if (bs->cur_ps.stats[STAT_HOLDABLE_ITEMS] & 1 << HI_CLOAK
-		&& !PM_SaberInAttack(bs->cur_ps.saber_move)
+		&& !PM_SaberInAttack(bs->cur_ps.saberMove)
 		&& !bs->cur_ps.powerups[PW_CLOAKED]
 		&& !(bs->cur_ps.communicatingflags & 1 << CLOAK_CHARGE_RESTRICTION))
 	{

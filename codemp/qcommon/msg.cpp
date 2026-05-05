@@ -996,7 +996,7 @@ netField_t entityStateFields[] =
 	// why was this changed from 0 to 8 ?
 	{NETF(eventParm), 8},
 	// unknown about size?
-	{NETF(saber_move), 8},
+	{NETF(saberMove), 8},
 	{NETF(apos.trDelta[1]), 0},
 	{NETF(boneAngles1[1]), 0},
 	// why raised from 8 to -16?
@@ -1547,7 +1547,7 @@ netField_t playerStateFields[] =
 	//Also used for channel tracker storage, but should never exceed entity number
 	{PSF(customRGBA[3]), 8}, //0-255
 	{PSF(weaponstate), 4},
-	{PSF(saber_move), 32},
+	{PSF(saberMove), 32},
 	//This value sometimes exceeds the max LS_ value and gets set to a crazy amount, so it needs 32 bits
 	{PSF(standheight), 10},
 	{PSF(crouchheight), 10},
@@ -1811,7 +1811,7 @@ netField_t pilotPlayerStateFields[] =
 	{PSF(saberEntityNum), GENTITYNUM_BITS},
 	//Also used for channel tracker storage, but should never exceed entity number
 	{PSF(customRGBA[3]), 8}, //0-255
-	{PSF(saber_move), 32},
+	{PSF(saberMove), 32},
 	//This value sometimes exceeds the max LS_ value and gets set to a crazy amount, so it needs 32 bits
 	{PSF(standheight), 10},
 	{PSF(crouchheight), 10},
@@ -2129,7 +2129,7 @@ netField_t	playerStateFields[] =
 { PSF(saberEntityNum), GENTITYNUM_BITS }, //Also used for channel tracker storage, but should never exceed entity number
 { PSF(customRGBA[3]), 8 }, //0-255
 { PSF(weaponstate), 4 },
-{ PSF(saber_move), 32 }, //This value sometimes exceeds the max LS_ value and gets set to a crazy amount, so it needs 32 bits
+{ PSF(saberMove), 32 }, //This value sometimes exceeds the max LS_ value and gets set to a crazy amount, so it needs 32 bits
 { PSF(standheight), 10 },
 { PSF(crouchheight), 10 },
 { PSF(basespeed), -16 },

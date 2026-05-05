@@ -501,9 +501,9 @@ qboolean PM_SaberInAttack(const int move)
 	return qfalse;
 }
 
-qboolean PM_SaberInKata(const saber_moveName_t saber_move)
+qboolean PM_SaberInKata(const saber_moveName_t saberMove)
 {
-	switch (saber_move)
+	switch (saberMove)
 	{
 	case LS_YODA_SPECIAL:
 	case LS_A1_SPECIAL:
@@ -522,9 +522,9 @@ qboolean PM_SaberInKata(const saber_moveName_t saber_move)
 	return qfalse;
 }
 
-qboolean PM_SaberInOverHeadSlash(const saber_moveName_t saber_move)
+qboolean PM_SaberInOverHeadSlash(const saber_moveName_t saberMove)
 {
-	switch (saber_move)
+	switch (saberMove)
 	{
 	case LS_A_FLIP_STAB:
 	case LS_A_FLIP_SLASH:
@@ -535,9 +535,9 @@ qboolean PM_SaberInOverHeadSlash(const saber_moveName_t saber_move)
 	return qfalse;
 }
 
-qboolean PM_SaberInBackAttack(const saber_moveName_t saber_move)
+qboolean PM_SaberInBackAttack(const saber_moveName_t saberMove)
 {
-	switch (saber_move)
+	switch (saberMove)
 	{
 	case LS_A_BACK:
 	case LS_A_BACK_CR:
@@ -648,7 +648,7 @@ qboolean PM_SaberDrawPutawayAnim(const int anim)
 	return qfalse;
 }
 
-qboolean PM_InAnimForSaberMove(int anim, const int saber_move)
+qboolean PM_InAnimForSaberMove(int anim, const int saberMove)
 {
 	switch (anim)
 	{
@@ -746,7 +746,7 @@ qboolean PM_InAnimForSaberMove(int anim, const int saber_move)
 	}
 	if (PM_SaberDrawPutawayAnim(anim))
 	{
-		if (saber_move == LS_DRAW || saber_move == LS_DRAW2 || saber_move == LS_DRAW3 || saber_move == LS_PUTAWAY)
+		if (saberMove == LS_DRAW || saberMove == LS_DRAW2 || saberMove == LS_DRAW3 || saberMove == LS_PUTAWAY)
 		{
 			return qtrue;
 		}
@@ -754,7 +754,7 @@ qboolean PM_InAnimForSaberMove(int anim, const int saber_move)
 	}
 	if (PM_SaberStanceAnim(anim))
 	{
-		if (saber_move == LS_READY)
+		if (saberMove == LS_READY)
 		{
 			return qtrue;
 		}
@@ -769,38 +769,38 @@ qboolean PM_InAnimForSaberMove(int anim, const int saber_move)
 	//drop the anim to the first level and start the checks there
 	anim -= (anim_level - FORCE_LEVEL_1) * SABER_ANIM_GROUP_SIZE;
 	//check level 1
-	if (anim == saber_moveData[saber_move].animToUse)
+	if (anim == saber_moveData[saberMove].animToUse)
 	{
 		return qtrue;
 	}
 	//check level 2
 	anim += SABER_ANIM_GROUP_SIZE;
-	if (anim == saber_moveData[saber_move].animToUse)
+	if (anim == saber_moveData[saberMove].animToUse)
 	{
 		return qtrue;
 	}
 	//check level 3
 	anim += SABER_ANIM_GROUP_SIZE;
-	if (anim == saber_moveData[saber_move].animToUse)
+	if (anim == saber_moveData[saberMove].animToUse)
 	{
 		return qtrue;
 	}
 	//check level 4
 	anim += SABER_ANIM_GROUP_SIZE;
-	if (anim == saber_moveData[saber_move].animToUse)
+	if (anim == saber_moveData[saberMove].animToUse)
 	{
 		return qtrue;
 	}
 	//check level 5
 	anim += SABER_ANIM_GROUP_SIZE;
-	if (anim == saber_moveData[saber_move].animToUse)
+	if (anim == saber_moveData[saberMove].animToUse)
 	{
 		return qtrue;
 	}
 	if (anim >= BOTH_P1_S1_T_ && anim <= BOTH_H1_S1_BR)
 	{
 		//parries, knockaways and broken parries
-		return anim == saber_moveData[saber_move].animToUse;
+		return anim == saber_moveData[saberMove].animToUse;
 	}
 	return qfalse;
 }

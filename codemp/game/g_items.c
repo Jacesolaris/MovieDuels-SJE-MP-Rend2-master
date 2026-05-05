@@ -1901,7 +1901,7 @@ void ItemUse_UseCloak(gentity_t* ent)
 				if (ent->health > 0
 					&& ent->painDebounceTime < level.time
 					&& !ent->client->ps.saberInFlight
-					&& !PM_SaberInAttack(ent->client->ps.saber_move)
+					&& !PM_SaberInAttack(ent->client->ps.saberMove)
 					&& ent->client->ps.fd.forceGripBeingGripped < level.time
 					&& !(ent->client->ps.communicatingflags & 1 << CLOAK_CHARGE_RESTRICTION))
 				{

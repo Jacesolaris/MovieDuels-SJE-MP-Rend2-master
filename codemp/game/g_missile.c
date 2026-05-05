@@ -373,12 +373,12 @@ static void g_reflect_missile_to_attacker(const gentity_t* ent, gentity_t* missi
 	//
 	// Add slop based on saber state
 	//
-	if (!PM_SaberInIdle(ent->client->ps.saber_move))
+	if (!PM_SaberInIdle(ent->client->ps.saberMove))
 	{
 		float min_slop, max_slop;
 
-		if (PM_SaberInAttack(ent->client->ps.saber_move) ||
-			PM_SaberInTransitionAny(ent->client->ps.saber_move) ||
+		if (PM_SaberInAttack(ent->client->ps.saberMove) ||
+			PM_SaberInTransitionAny(ent->client->ps.saberMove) ||
 			pm_saber_in_special_attack(ent->client->ps.torsoAnim) ||
 			ent->client->ps.fd.blockPoints < BLOCKPOINTS_KNOCKAWAY)
 		{
@@ -1346,7 +1346,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 	{
 		// Reset weaponTime if not attacking OR if using force powers
 		if (other->client &&
-			(!PM_SaberInAttack(other->client->ps.saber_move) ||
+			(!PM_SaberInAttack(other->client->ps.saberMove) ||
 				(pm->cmd.buttons & (BUTTON_FORCEPOWER |
 					BUTTON_FORCEGRIP |
 					BUTTON_DASH |
@@ -1384,7 +1384,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 			ent->methodOfDeath != MOD_CONC_ALT)
 		{
 			if (saber_owner->client &&
-				(!PM_SaberInAttack(saber_owner->client->ps.saber_move) ||
+				(!PM_SaberInAttack(saber_owner->client->ps.saberMove) ||
 					(pm->cmd.buttons & (BUTTON_FORCEPOWER |
 						BUTTON_FORCEGRIP |
 						BUTTON_DASH |
@@ -2227,7 +2227,7 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 					// Very low points = broken block
 					WP_BrokenBoltBlockKnockBack(blocker);
 					blocker->client->ps.saberBlocked = BLOCKED_NONE;
-					blocker->client->ps.saber_move = LS_NONE;
+					blocker->client->ps.saberMove = LS_NONE;
 				}
 				else
 				{
@@ -2277,7 +2277,7 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 				{
 					WP_BrokenBoltBlockKnockBack(blocker);
 					blocker->client->ps.saberBlocked = BLOCKED_NONE;
-					blocker->client->ps.saber_move = LS_NONE;
+					blocker->client->ps.saberMove = LS_NONE;
 				}
 				else
 				{
@@ -2352,7 +2352,7 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 				{
 					WP_BrokenBoltBlockKnockBack(blocker);
 					blocker->client->ps.saberBlocked = BLOCKED_NONE;
-					blocker->client->ps.saber_move = LS_NONE;
+					blocker->client->ps.saberMove = LS_NONE;
 				}
 				else
 				{

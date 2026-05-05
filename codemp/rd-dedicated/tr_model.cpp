@@ -234,7 +234,7 @@ void* RE_RegisterModels_Malloc(const int iSize, void* pvDiskBufferIfJustLoaded, 
 
 // Unfortunately the dedicated server also hates shader loading. So we need an alternate of this func.
 //
-void* RE_RegisterServerModels_Malloc(const int iSize, void* pvDiskBufferIfJustLoaded, const char* psModelFileName, qboolean* pqbAlreadyFound, const memtag_t eTag)
+static void* RE_RegisterServerModels_Malloc(const int iSize, void* pvDiskBufferIfJustLoaded, const char* psModelFileName, qboolean* pqbAlreadyFound, const memtag_t eTag)
 {
 	char sModelName[MAX_QPATH];
 
@@ -629,7 +629,7 @@ Ghoul2 Insert End
 ServerLoadMDXA - load a Ghoul 2 animation file
 =================
 */
-qboolean ServerLoadMDXA(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
+static qboolean ServerLoadMDXA(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
 	mdxaHeader_t* pinmodel, * mdxa;
 	int version;
@@ -1618,7 +1618,7 @@ void RE_HunkClearCrap(void)
 	tr.numSkins = 0;
 }
 
-void R_ModelFree(void)
+static void R_ModelFree(void)
 {
 	if (CachedModels)
 	{
@@ -1668,23 +1668,54 @@ R_GetTag
 */
 static md3Tag_t* R_GetTag(md3Header_t* mod, int frame, const char* tagName)
 {
+	// Basic safety
+	if (!mod || !tagName)
+	{
+		return NULL;
+	}
+
+	// No frames or no tags = nothing to return
+	if (mod->numFrames <= 0 || mod->numTags <= 0)
+	{
+		return NULL;
+	}
+
+	// Validate ofsTags
+	if (mod->ofsTags <= 0)
+	{
+		return NULL;
+	}
+
+	// Compute base pointer
+	md3Tag_t* base = (md3Tag_t*)((byte*)mod + mod->ofsTags);
+
+	// Guard against sentinel pointer (-1) or NULL
+	if (base == NULL || (intptr_t)base == -1)
+	{
+		return NULL;
+	}
+
+	// Clamp frame index
 	if (frame >= mod->numFrames)
 	{
-		// it is possible to have a bad frame while changing models, so don't error
 		frame = mod->numFrames - 1;
 	}
 
-	md3Tag_t* tag = reinterpret_cast<md3Tag_t*>(reinterpret_cast<byte*>(mod) + mod->ofsTags) + frame * mod->numTags;
+	// Compute tag pointer for this frame
+	md3Tag_t* tag = base + frame * mod->numTags;
+
+	// Iterate tags
 	for (int i = 0; i < mod->numTags; i++, tag++)
 	{
 		if (strcmp(tag->name, tagName) == 0)
 		{
-			return tag; // found it
+			return tag;
 		}
 	}
 
-	return nullptr;
+	return NULL;
 }
+
 
 /*
 ================

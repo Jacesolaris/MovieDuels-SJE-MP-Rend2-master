@@ -3372,7 +3372,7 @@ static void CG_SetLerpFrameAnimation(centity_t* cent, clientInfo_t* ci, lerpFram
 		if (!PM_WalkingOrRunningAnim(cent->currentState.legsAnim) && !PM_InKataAnim(cent->currentState.torsoAnim))
 		{
 			//make smooth animations
-			if ((is_holding_block_button_and_attack || is_holding_block_button) && cent->currentState.saber_move == LS_READY)
+			if ((is_holding_block_button_and_attack || is_holding_block_button) && cent->currentState.saberMove == LS_READY)
 			{
 				blendTime *= 1.8f;
 			}
@@ -3392,7 +3392,7 @@ static void CG_SetLerpFrameAnimation(centity_t* cent, clientInfo_t* ci, lerpFram
 				resume_frame = qtrue;
 			}
 			lf->animationTorsoSpeed = anim_speed_mult;
-			if ((is_holding_block_button_and_attack || is_holding_block_button) && cent->currentState.saber_move == LS_READY)
+			if ((is_holding_block_button_and_attack || is_holding_block_button) && cent->currentState.saberMove == LS_READY)
 			{
 				blendTime *= 1.8f;
 			}
@@ -3863,7 +3863,7 @@ static void CG_PlayerAnimation(centity_t* cent, int* legs_old, int* legs, float*
 		if (!PM_WalkingOrRunningAnim(cent->currentState.legsAnim) && !PM_InKataAnim(cent->currentState.torsoAnim))
 		{
 			//make smooth animations
-			if ((is_holding_block_button_and_attack || is_holding_block_button) && cent->currentState.saber_move == LS_READY)
+			if ((is_holding_block_button_and_attack || is_holding_block_button) && cent->currentState.saberMove == LS_READY)
 			{
 				speed_scale *= 0.3f;
 			}
@@ -12830,7 +12830,7 @@ void CG_AddSaberBlade(centity_t* cent, centity_t* scent, int renderfx, int saber
 							{
 								//ugh, need to have a real sound debouncer... or do this game-side
 								client->saber[saber_num].blade[blade_num].hitWallDebounceTime = cg.time;
-								if (PM_SaberInAttack(cent->currentState.saber_move)
+								if (PM_SaberInAttack(cent->currentState.saberMove)
 									|| pm_saber_in_special_attack(cent->currentState.torsoAnim))
 								{
 									trap->S_StartSound(trace.endpos, -1, CHAN_WEAPON,
@@ -12898,7 +12898,7 @@ CheckTrail:
 	{
 		int trail_dur;
 		// Use Raven's superior sabers.
-		saber_trail->duration = saber_moveData[cent->currentState.saber_move].trailLength;
+		saber_trail->duration = saber_moveData[cent->currentState.saberMove].trailLength;
 
 		if (cent->currentState.userInt3 & 1 << FLAG_ATTACKFAKE)
 		{
@@ -12935,7 +12935,7 @@ CheckTrail:
 			{
 				if (client->saber[saber_num].type == SABER_SITH_SWORD
 					|| (PM_SuperBreakWinAnim(cent->currentState.torsoAnim)
-						|| saber_moveData[cent->currentState.saber_move].trailLength > 0
+						|| saber_moveData[cent->currentState.saberMove].trailLength > 0
 						|| cent->currentState.powerups & 1 << PW_SPEED && cg_speedTrail.integer
 						|| cent->currentState.saberInFlight && saber_num == 0)
 					&& cg.time < saber_trail->lastTime + 2000)
@@ -13200,7 +13200,7 @@ CheckTrail:
 								trap->R_SetRefractionProperties(1.0f, 0.0f, qtrue, qtrue);
 								//don't need to do this every frame.. but..
 
-								if (PM_SaberInAttack(cent->currentState.saber_move)
+								if (PM_SaberInAttack(cent->currentState.saberMove)
 									|| PM_SuperBreakWinAnim(cent->currentState.torsoAnim))
 								{
 									//in attack, strong trail
@@ -13266,7 +13266,7 @@ CheckTrail:
 			dirlen1 = VectorLength(dir1);
 			dirlen2 = VectorLength(dir2);
 
-			if (saber_moveData[cent->currentState.saber_move].trailLength == 0)
+			if (saber_moveData[cent->currentState.saberMove].trailLength == 0)
 			{
 				dirlen0 *= 0.5;
 				dirlen1 *= 0.3;

@@ -1717,21 +1717,56 @@ void R_model_list_f(void) {
 R_GetTag
 ================
 */
-static md3Tag_t* R_GetTag(md3Header_t* mod, int frame, const char* tagName) {
-	if (frame >= mod->numFrames) {
-		// it is possible to have a bad frame while changing models, so don't error
+static md3Tag_t* R_GetTag(md3Header_t* mod, int frame, const char* tagName)
+{
+	// Basic safety
+	if (!mod || !tagName)
+	{
+		return NULL;
+	}
+
+	// No frames or no tags = nothing to return
+	if (mod->numFrames <= 0 || mod->numTags <= 0)
+	{
+		return NULL;
+	}
+
+	// Validate ofsTags
+	if (mod->ofsTags <= 0)
+	{
+		return NULL;
+	}
+
+	// Compute base pointer
+	md3Tag_t* base = (md3Tag_t*)((byte*)mod + mod->ofsTags);
+
+	// Guard against sentinel pointer (-1) or NULL
+	if (base == NULL || (intptr_t)base == -1)
+	{
+		return NULL;
+	}
+
+	// Clamp frame index
+	if (frame >= mod->numFrames)
+	{
 		frame = mod->numFrames - 1;
 	}
 
-	md3Tag_t* tag = (md3Tag_t*)((byte*)mod + mod->ofsTags) + frame * mod->numTags;
-	for (int i = 0; i < mod->numTags; i++, tag++) {
-		if (strcmp(tag->name, tagName) == 0) {
-			return tag;	// found it
+	// Compute tag pointer for this frame
+	md3Tag_t* tag = base + frame * mod->numTags;
+
+	// Iterate tags
+	for (int i = 0; i < mod->numTags; i++, tag++)
+	{
+		if (strcmp(tag->name, tagName) == 0)
+		{
+			return tag;
 		}
 	}
 
-	return nullptr;
+	return NULL;
 }
+
 
 /*
 ================

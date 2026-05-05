@@ -994,7 +994,7 @@ static qboolean R_LoadMD3(model_t* mod, int lod, void* buffer, const char* modNa
 
 	// swap all the tags
 	mdvModel->numTags = md3Model->numTags;
-	mdvModel->tags = tag = (mdvTag_t*)ri->Hunk_Alloc(sizeof(*tag) * (md3Model->numTags * md3Model->numFrames), h_low);
+	mdvModel->tags = tag = (mdvTag_t*)ri->Hunk_Alloc(sizeof(*tag) * (static_cast<unsigned long long>(md3Model->numTags) * md3Model->numFrames), h_low);
 
 	md3Tag = (md3Tag_t*)((byte*)md3Model + md3Model->ofsTags);
 	for (i = 0; i < md3Model->numTags * md3Model->numFrames; i++, tag++, md3Tag++)
@@ -1104,7 +1104,7 @@ static qboolean R_LoadMD3(model_t* mod, int lod, void* buffer, const char* modNa
 
 		// swap all the XyzNormals
 		surf->numVerts = md3Surf->numVerts;
-		surf->verts = v = (mdvVertex_t*)ri->Hunk_Alloc(sizeof(*v) * (md3Surf->numVerts * md3Surf->numFrames), h_low);
+		surf->verts = v = (mdvVertex_t*)ri->Hunk_Alloc(sizeof(*v) * (static_cast<unsigned long long>(md3Surf->numVerts) * md3Surf->numFrames), h_low);
 
 		md3xyz = (md3XyzNormal_t*)((byte*)md3Surf + md3Surf->ofsXyzNormals);
 		for (j = 0; j < md3Surf->numVerts * md3Surf->numFrames; j++, md3xyz++, v++)
@@ -1169,7 +1169,7 @@ static qboolean R_LoadMD3(model_t* mod, int lod, void* buffer, const char* modNa
 		int numIndexes = 0;
 
 		// +1 to add total vertex count
-		int* baseVertexes = (int*)ri->Hunk_AllocateTempMemory(sizeof(int) * (mdvModel->numSurfaces + 1));
+		int* baseVertexes = (int*)ri->Hunk_AllocateTempMemory(sizeof(int) * (static_cast<unsigned long long>(mdvModel->numSurfaces) + 1));
 		int* indexOffsets = (int*)ri->Hunk_AllocateTempMemory(sizeof(int) * mdvModel->numSurfaces);
 
 		// Calculate the required size of the vertex buffer.
@@ -1346,12 +1346,12 @@ static qboolean R_LoadMDR(model_t* mod, void* buffer, int filesize, const char* 
 		// mdrFrame_t is larger than mdrCompFrame_t:
 		size += pinmodel->numFrames * sizeof(frame->name);
 		// now add enough space for the uncompressed bones.
-		size += pinmodel->numFrames * pinmodel->numBones * ((sizeof(mdrBone_t) - sizeof(mdrCompBone_t)));
+		size += static_cast<unsigned long long>(pinmodel->numFrames) * pinmodel->numBones * ((sizeof(mdrBone_t) - sizeof(mdrCompBone_t)));
 	}
 
 	// simple bounds check
 	if (pinmodel->numBones < 0 ||
-		sizeof(*mdr) + pinmodel->numFrames * (sizeof(*frame) + (pinmodel->numBones - 1) * sizeof(*frame->bones)) > size)
+		sizeof(*mdr) + pinmodel->numFrames * (sizeof(*frame) + (static_cast<unsigned long long>(pinmodel->numBones) - 1) * sizeof(*frame->bones)) > size)
 	{
 		ri->Printf(PRINT_WARNING, "R_LoadMDR: %s has broken structure.\n", mod_name);
 		return qfalse;
@@ -1536,7 +1536,7 @@ static qboolean R_LoadMDR(model_t* mod, void* buffer, int filesize, const char* 
 				LL(curv->numWeights);
 
 				// simple bounds check
-				if (curv->numWeights < 0 || (byte*)(v + 1) + (curv->numWeights - 1) * sizeof(*weight) >(byte*) mdr + size)
+				if (curv->numWeights < 0 || (byte*)(v + 1) + (static_cast<unsigned long long>(curv->numWeights) - 1) * sizeof(*weight) >(byte*) mdr + size)
 				{
 					ri->Printf(PRINT_WARNING, "R_LoadMDR: %s has broken structure.\n", mod_name);
 					return qfalse;
@@ -1737,18 +1737,45 @@ void R_model_list_f(void) {
 R_GetTag
 ================
 */
-static mdvTag_t* R_GetTag(mdvModel_t* mod, int frame, const char* _tagName) {
-	int             i;
+static mdvTag_t* R_GetTag(mdvModel_t* mod, int frame, const char* _tagName)
+{
+	int          i;
 	mdvTag_t* tag;
 	mdvTagName_t* tagName;
 
-	if (frame >= mod->numFrames) {
+	// basic safety
+	if (!mod || !_tagName)
+	{
+		return NULL;
+	}
+
+	// no frames or no tags = nothing to return
+	if (mod->numFrames <= 0 || mod->numTags <= 0)
+	{
+		return NULL;
+	}
+
+	// guard against invalid / sentinel tag pointer
+	if (mod->tags == NULL || (mdvTag_t*)mod->tags == (mdvTag_t*)(intptr_t)-1)
+	{
+		return NULL;
+	}
+
+	// optional: same for tagNames if they can be missing
+	if (mod->tagNames == NULL)
+	{
+		return NULL;
+	}
+
+	if (frame >= mod->numFrames)
+	{
 		// it is possible to have a bad frame while changing models, so don't error
 		frame = mod->numFrames - 1;
 	}
 
 	tag = mod->tags + frame * mod->numTags;
 	tagName = mod->tagNames;
+
 	for (i = 0; i < mod->numTags; i++, tag++, tagName++)
 	{
 		if (!strcmp(tagName->name, _tagName))
@@ -1759,6 +1786,7 @@ static mdvTag_t* R_GetTag(mdvModel_t* mod, int frame, const char* _tagName) {
 
 	return NULL;
 }
+
 
 static void R_GetAnimTag(mdrHeader_t* mod, int framenum, const char* tagName, mdvTag_t* dest)
 {

@@ -167,7 +167,7 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 		return qfalse;
 
 	// Already in knockaway → allow continued parry
-	if (PM_SaberInKnockaway(blocker->client->ps.saber_move))
+	if (PM_SaberInKnockaway(blocker->client->ps.saberMove))
 		return qtrue;
 
 	// Cannot parry while kicking
@@ -176,7 +176,7 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 
 	// Cannot parry while transitioning or bouncing
 	if (PM_SaberInNonIdleDamageMove(&blocker->client->ps, blocker->localAnimIndex) ||
-		PM_SaberInBounce(blocker->client->ps.saber_move) ||
+		PM_SaberInBounce(blocker->client->ps.saberMove) ||
 		BG_InSlowBounce(&blocker->client->ps))
 		return qfalse;
 
@@ -513,7 +513,7 @@ static void sab_beh_animate_small_bounce(gentity_t* attacker)
 	// Player version
 	attacker->client->ps.userInt3 |= (1 << FLAG_SLOWBOUNCE);
 
-	int sm = attacker->client->ps.saber_move;
+	int sm = attacker->client->ps.saberMove;
 	if (sm < 0 || sm >= LS_MOVE_MAX)
 		return;
 
@@ -547,7 +547,7 @@ static void sab_beh_animate_heavy_slow_bounce_blocker(gentity_t* blocker, gentit
 	if (attacker)
 		G_AddEvent(attacker, Q_irand(EV_DEFLECT1, EV_DEFLECT3), 0);
 
-	int sm = blocker->client->ps.saber_move;
+	int sm = blocker->client->ps.saberMove;
 	if (sm < 0 || sm >= LS_MOVE_MAX)
 		return;
 
@@ -808,7 +808,7 @@ static qboolean sab_beh_attack_vs_attack(gentity_t* attacker, gentity_t* blocker
 	//
 	// CASE 4: Attacker in kata
 	//
-	if (PM_SaberInKata(attacker->client->ps.saber_move))
+	if (PM_SaberInKata(attacker->client->ps.saberMove))
 	{
 		sab_beh_add_balance(attacker, MPCOST_PARRIED);
 		sab_beh_add_balance(blocker, -MPCOST_PARRIED);
@@ -830,7 +830,7 @@ static qboolean sab_beh_attack_vs_attack(gentity_t* attacker, gentity_t* blocker
 	//
 	// CASE 5: Blocker in kata
 	//
-	if (PM_SaberInKata(blocker->client->ps.saber_move))
+	if (PM_SaberInKata(blocker->client->ps.saberMove))
 	{
 		sab_beh_add_balance(attacker, -MPCOST_PARRIED);
 		sab_beh_add_balance(blocker, MPCOST_PARRIED);
