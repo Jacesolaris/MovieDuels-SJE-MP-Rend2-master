@@ -935,8 +935,7 @@ static saber_moveName_t PM_NPCSaberAttackFromQuad(const int quad)
 				check_val = 1;
 			}
 
-			Next_Kill_Attack_Move_Check[pm->ps->clientNum] =
-				level.time + (90000 / check_val); // 20 secs / g_attackskill
+			Next_Kill_Attack_Move_Check[pm->ps->clientNum] =level.time + (40000 / check_val);
 		}
 	}
 #endif
@@ -3605,10 +3604,9 @@ static saber_moveName_t PM_SaberAttackForMovement(const saber_moveName_t curmove
 			else if (PM_SaberInKnockaway(curmove))
 			{//bounces should go to their default attack if you don't specify a direction but are attacking
 #ifdef _GAME
-				qboolean  bot = (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT);
-				qboolean  npc = (pm_entSelf->s.eType == ET_NPC);
-
-				if (bot || npc && Q_irand(0, 1)) // 50% chance
+				if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT ||
+					pm_entSelf->s.eType == ET_NPC) &&
+					Q_irand(0, 3))// randomly use NPC random or chain attack for knockaways
 				{
 					newmove = PM_NPCSaberAttackFromQuad(saber_moveData[curmove].endQuad);
 				}
@@ -6324,11 +6322,9 @@ weapChecks:
 			{
 				// 5. Determine attack from movement or NPC logic
 #ifdef _GAME
-				const qboolean bot = (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT);
-				const qboolean npc = (pm_entSelf->s.eType == ET_NPC);
-
-				// Corrected precedence: bot OR (npc AND 50% chance)
-				if ((bot || npc) && Q_irand(0, 1))
+				if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT ||
+					pm_entSelf->s.eType == ET_NPC) &&
+					Q_irand(0, 1))// randomly use NPC random or chain attack for knockaways
 				{
 					newmove = PM_NPCSaberAttackFromQuad(saber_moveData[curmove].endQuad);
 				}
