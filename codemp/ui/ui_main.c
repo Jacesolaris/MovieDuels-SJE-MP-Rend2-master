@@ -2652,12 +2652,33 @@ static void UI_DrawNetMapCinematic(rectDef_t* rect, float scale, vec4_t color)
 
 static void UI_DrawNetFilter(rectDef_t* rect, float scale, vec4_t color, int textStyle, int i_menu_font)
 {
+	// Load the localized "Game:" label
 	trap->SE_GetStringTextString("MENUS_GAME", holdSPString, sizeof holdSPString);
 
-	Text_Paint(rect->x, rect->y, scale, color,
-		va("%s %s", holdSPString, UI_FilterDescription(ui_serverFilterType.integer)), 0, 0, textStyle,
-		i_menu_font);
+	//Only show MovieDuels as the filter option, since that's the only one that works for MP
+	const char* fixedGameName = "MovieDuels";  //SERVER FILTER
+
+	Text_Paint(
+		rect->x,
+		rect->y,
+		scale,
+		color,
+		va("%s %s", holdSPString, fixedGameName),
+		0,
+		0,
+		textStyle,
+		i_menu_font
+	);
 }
+
+//static void UI_DrawNetFilter(rectDef_t* rect, float scale, vec4_t color, int textStyle, int i_menu_font)
+//{
+//	trap->SE_GetStringTextString("MENUS_GAME", holdSPString, sizeof holdSPString);
+//
+//	Text_Paint(rect->x, rect->y, scale, color,
+//		va("%s %s", holdSPString, UI_FilterDescription(ui_serverFilterType.integer)), 0, 0, textStyle,
+//		i_menu_font);
+//}
 
 static void UI_DrawTier(rectDef_t* rect, float scale, vec4_t color, int textStyle, int i_menu_font)
 {
@@ -3102,7 +3123,10 @@ static int UI_OwnerDrawWidth(int ownerDraw, float scale)
 		break;
 	case UI_NETFILTER:
 		trap->SE_GetStringTextString("MENUS_GAME", holdSPString, sizeof holdSPString);
-		s = va("%s %s", holdSPString, UI_FilterDescription(ui_serverFilterType.integer));
+
+		//Only show MovieDuels as the filter option, since that's the only one that works for MP
+		s = va("%s %s", holdSPString, "MovieDuels"); //SERVER FILTER
+		//s = va("%s %s", holdSPString, UI_FilterDescription(ui_serverFilterType.integer));
 		break;
 	case UI_TIER:
 		break;
@@ -3211,7 +3235,9 @@ static void UI_DrawServerRefreshDate(rectDef_t* rect, float scale, vec4_t color,
 		lowLight[1] = 0.8 * color[1];
 		lowLight[2] = 0.8 * color[2];
 		lowLight[3] = 0.8 * color[3];
-		LerpColor(color, lowLight, newColor, 0.5 + 0.5 * sin((float)(uiInfo.uiDC.realTime / PULSE_DIVISOR)));
+		LerpColor(color, lowLight, newColor,
+			0.5f + 0.5f * sinf((float)uiInfo.uiDC.realTime / (float)PULSE_DIVISOR));
+
 
 		trap->SE_GetStringTextString("MD_MP_INGAME_GETTINGINFOFORSERVERS", holdSPString, sizeof holdSPString);
 		Text_Paint(rect->x, rect->y, scale, newColor,
@@ -4452,27 +4478,19 @@ static qboolean UI_NetSource_HandleKey(int flags, float* special, int key)
 }
 
 static qboolean UI_NetFilter_HandleKey(int flags, float* special, int key)
-{
+{ //SERVER FILTER
+	//Only show MovieDuels as the filter option, since that's the only one that works for MP
 	if (key == A_MOUSE1 || key == A_MOUSE2 || key == A_ENTER || key == A_KP_ENTER)
 	{
 		int value = ui_serverFilterType.integer;
 
 		if (key == A_MOUSE2)
 		{
-			value--;
+			value = 0;
 		}
 		else
 		{
-			value++;
-		}
-
-		if (value > uiInfo.modCount)
-		{
 			value = 0;
-		}
-		else if (value < 0)
-		{
-			value = uiInfo.modCount;
 		}
 
 		trap->Cvar_Set("ui_serverFilterType", va("%d", value));
@@ -4483,6 +4501,39 @@ static qboolean UI_NetFilter_HandleKey(int flags, float* special, int key)
 	}
 	return qfalse;
 }
+
+//static qboolean UI_NetFilter_HandleKey(int flags, float* special, int key)
+//{
+//	if (key == A_MOUSE1 || key == A_MOUSE2 || key == A_ENTER || key == A_KP_ENTER)
+//	{
+//		int value = ui_serverFilterType.integer;
+//
+//		if (key == A_MOUSE2)
+//		{
+//			value--;
+//		}
+//		else
+//		{
+//			value++;
+//		}
+//
+//		if (value > uiInfo.modCount)
+//		{
+//			value = 0;
+//		}
+//		else if (value < 0)
+//		{
+//			value = uiInfo.modCount;
+//		}
+//
+//		trap->Cvar_Set("ui_serverFilterType", va("%d", value));
+//		trap->Cvar_Update(&ui_serverFilterType);
+//
+//		UI_BuildServerDisplayList(qtrue);
+//		return qtrue;
+//	}
+//	return qfalse;
+//}
 
 static qboolean UI_OpponentName_HandleKey(int flags, float* special, int key)
 {
@@ -8239,25 +8290,36 @@ static void UI_BuildServerDisplayList(int force) {
 	trap->Cvar_Update( &ui_browserShowFull );
 	trap->Cvar_Update( &ui_browserShowPasswordProtected );
 	trap->Cvar_Update( &ui_serverFilterType );
-	trap->Cvar_Update( &ui_joinGametype );
+	trap->Cvar_Update(&ui_joinGametype);
 
-//	visible = qfalse;
+	//	visible = qfalse;
 	for (i = 0; i < count; i++) {
 		// if we already got info for this server
 		if (!trap->LAN_ServerIsVisible(lanSource, i)) {
 			continue;
 		}
-//		visible = qtrue;
-		// get the ping for this server
+		//		visible = qtrue;
+				// get the ping for this server
 		ping = trap->LAN_GetServerPing(lanSource, i);
 		if (ping > 0 || ui_netSource.integer == UIAS_FAVORITES) {
 
 			trap->LAN_GetServerInfo(lanSource, i, info, MAX_STRING_CHARS);
 
 			// don't list servers with invalid info
-			if ( ui_browserFilterInvalidInfo.integer != 0 && !UI_ServerInfoIsValid( info ) ) {
-				trap->LAN_MarkServerVisible( lanSource, i, qfalse );
+			if (ui_browserFilterInvalidInfo.integer != 0 && !UI_ServerInfoIsValid(info)) {
+				trap->LAN_MarkServerVisible(lanSource, i, qfalse);
 				continue;
+			}
+
+			//Only show MovieDuels as the filter option, since that's the only one that works for MP
+			{
+				const char* hostname = Info_ValueForKey(info, "hostname");
+
+				if (Q_stricmp(hostname, "MovieDuels") != 0)//SERVER FILTER
+				{
+					trap->LAN_MarkServerVisible(lanSource, i, qfalse);
+					continue;
+				}
 			}
 
 			clients = atoi(Info_ValueForKey(info, "clients"));
@@ -10710,7 +10772,7 @@ static void UI_BuildPlayerModel_List(const qboolean inGameLoad)
 			int  iSkinParts = 0;
 
 			/* Read playerchoice_mp.txt into buffer */
-			char* buffer = (char*)malloc(filelen + 1);
+			char* buffer = (char*)malloc(filelen + 1.0f);
 			if (!buffer)
 			{
 				trap->FS_Close(f);
@@ -11167,7 +11229,7 @@ static void UI_Refresh(int realtime)
 		{
 			total = 1;
 		}
-		uiInfo.uiDC.FPS = 1000 * UI_FPS_FRAMES / total;
+		uiInfo.uiDC.FPS = 1000.0f * UI_FPS_FRAMES / total;
 	}
 
 	UI_UpdateCvars();
