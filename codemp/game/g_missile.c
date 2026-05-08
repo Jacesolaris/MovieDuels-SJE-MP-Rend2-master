@@ -61,9 +61,7 @@ extern float VectorDistance(vec3_t v1, vec3_t v2);
 qboolean PM_SaberInStart(int move);
 extern qboolean PM_SaberInReturn(int move);
 extern qboolean wp_saber_block_non_random_missile(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
-extern int wp_saber_must_bolt_block(gentity_t* self, const gentity_t* atk, qboolean check_b_box_block, vec3_t point,
-	int rSaberNum,
-	int rBladeNum);
+extern int wp_saber_must_bolt_block(gentity_t* self, const gentity_t* atk, qboolean check_b_box_block, vec3_t point,int rSaberNum,int rBladeNum);
 void wp_flechette_alt_blow(gentity_t* ent);
 void wp_stasis_missile_blow(gentity_t* ent);
 extern qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int hit_loc, int* dmg, const int mod);
@@ -93,6 +91,7 @@ extern qboolean PM_CrouchAnim(const int anim);
 extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength, const qboolean breakSaberLock);
 extern qboolean PM_PainAnim(int anim);
 extern qboolean PM_InKnockDown(const playerState_t* ps);
+extern qboolean PM_InKataAnim(int anim);
 
 static float vector_bolt_distance(vec3_t v1, vec3_t v2)
 {
@@ -1259,6 +1258,8 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 		other->health > 0 &&
 		!PM_PainAnim(other->client->ps.torsoAnim) &&
 		!BG_InDeathAnim(other->client->ps.torsoAnim) &&
+		!PM_InKataAnim(other->client->ps.legsAnim) &&
+		!PM_InKataAnim(other->client->ps.torsoAnim) &&
 		!PM_InKnockDown(&other->client->ps) &&
 		!WP_DoingForcedAnimationForForcePowers(other))
 	{
@@ -1569,6 +1570,8 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 				other->s.eType != ET_NPC && // prevents vehicle anim corruption
 				!BG_InDeathAnim(other->client->ps.torsoAnim) &&
 				!PM_PainAnim(other->client->ps.torsoAnim) &&
+				!PM_InKataAnim(other->client->ps.legsAnim) &&
+				!PM_InKataAnim(other->client->ps.torsoAnim) &&
 				!PM_InKnockDown(&other->client->ps) &&
 				!WP_DoingForcedAnimationForForcePowers(other))
 			{
