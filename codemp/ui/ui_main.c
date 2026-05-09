@@ -3238,7 +3238,6 @@ static void UI_DrawServerRefreshDate(rectDef_t* rect, float scale, vec4_t color,
 		LerpColor(color, lowLight, newColor,
 			0.5f + 0.5f * sinf((float)uiInfo.uiDC.realTime / (float)PULSE_DIVISOR));
 
-
 		trap->SE_GetStringTextString("MD_MP_INGAME_GETTINGINFOFORSERVERS", holdSPString, sizeof holdSPString);
 		Text_Paint(rect->x, rect->y, scale, newColor,
 			va((char*)holdSPString, trap->LAN_GetServerCount(UI_SourceForLAN())), 0, 0, textStyle, i_menu_font);
@@ -5974,8 +5973,8 @@ static void UI_UpdateSaberColor(qboolean second_saber)
 	// Saber 2 RGB
 	Com_sprintf(str, sizeof(str), "%i,%i,%i",
 		ui_rgb_saber2_red.integer,
-		
-ui_rgb_saber2_green.integer,
+
+		ui_rgb_saber2_green.integer,
 		ui_rgb_saber2_blue.integer);
 
 	trap->Cvar_Set("rgb_saber2", str);
@@ -8240,22 +8239,22 @@ UI_BuildServerDisplayList
 static void UI_BuildServerDisplayList(int force) {
 	int i, count, clients, maxClients, ping, game, len, passw/*, visible*/;
 	char info[MAX_STRING_CHARS];
-//	qboolean startRefresh = qtrue; TTimo: unused
+	//	qboolean startRefresh = qtrue; TTimo: unused
 	int	lanSource;
 
 	if (!(force || uiInfo.uiDC.realTime > uiInfo.serverStatus.nextDisplayRefresh)) {
 		return;
 	}
 	// if we shouldn't reset
-	if ( force == 2 ) {
+	if (force == 2) {
 		force = 0;
 	}
 
 	// do motd updates here too
-	trap->Cvar_VariableStringBuffer( "cl_motdString", uiInfo.serverStatus.motd, sizeof(uiInfo.serverStatus.motd) );
+	trap->Cvar_VariableStringBuffer("cl_motdString", uiInfo.serverStatus.motd, sizeof(uiInfo.serverStatus.motd));
 	len = strlen(uiInfo.serverStatus.motd);
 	if (len == 0) {
-		Q_strncpyz( uiInfo.serverStatus.motd, "Welcome to MovieDuels MP!", sizeof( uiInfo.serverStatus.motd ) );
+		Q_strncpyz(uiInfo.serverStatus.motd, "Welcome to MovieDuels MP!", sizeof(uiInfo.serverStatus.motd));
 		len = strlen(uiInfo.serverStatus.motd);
 	}
 	if (len != uiInfo.serverStatus.motdLen) {
@@ -8277,7 +8276,7 @@ static void UI_BuildServerDisplayList(int force) {
 
 	// get the server count (comes from the master)
 	count = trap->LAN_GetServerCount(lanSource);
-	if (count == -1 || (ui_netSource.integer == UIAS_LOCAL && count == 0) ) {
+	if (count == -1 || (ui_netSource.integer == UIAS_LOCAL && count == 0)) {
 		// still waiting on a response from the master
 		uiInfo.serverStatus.numDisplayServers = 0;
 		uiInfo.serverStatus.numPlayersOnServers = 0;
@@ -8285,11 +8284,11 @@ static void UI_BuildServerDisplayList(int force) {
 		return;
 	}
 
-	trap->Cvar_Update( &ui_browserFilterInvalidInfo );
-	trap->Cvar_Update( &ui_browserShowEmpty );
-	trap->Cvar_Update( &ui_browserShowFull );
-	trap->Cvar_Update( &ui_browserShowPasswordProtected );
-	trap->Cvar_Update( &ui_serverFilterType );
+	trap->Cvar_Update(&ui_browserFilterInvalidInfo);
+	trap->Cvar_Update(&ui_browserShowEmpty);
+	trap->Cvar_Update(&ui_browserShowFull);
+	trap->Cvar_Update(&ui_browserShowPasswordProtected);
+	trap->Cvar_Update(&ui_serverFilterType);
 	trap->Cvar_Update(&ui_joinGametype);
 
 	//	visible = qfalse;
@@ -8302,7 +8301,6 @@ static void UI_BuildServerDisplayList(int force) {
 				// get the ping for this server
 		ping = trap->LAN_GetServerPing(lanSource, i);
 		if (ping > 0 || ui_netSource.integer == UIAS_FAVORITES) {
-
 			trap->LAN_GetServerInfo(lanSource, i, info, MAX_STRING_CHARS);
 
 			// don't list servers with invalid info
@@ -8340,7 +8338,7 @@ static void UI_BuildServerDisplayList(int force) {
 				}
 			}
 
-			if ( ui_browserShowPasswordProtected.integer == 0 ) {
+			if (ui_browserShowPasswordProtected.integer == 0) {
 				passw = atoi(Info_ValueForKey(info, "needpass"));
 				if (passw && !ui_browserShowPasswordProtected.integer) {
 					trap->LAN_MarkServerVisible(lanSource, i, qfalse);
@@ -8357,7 +8355,7 @@ static void UI_BuildServerDisplayList(int force) {
 			}
 
 			if (ui_serverFilterType.integer > 0 && ui_serverFilterType.integer <= uiInfo.modCount) {
-				if (Q_stricmp(Info_ValueForKey(info, "game"), UI_FilterDir( ui_serverFilterType.integer ) ) != 0) {
+				if (Q_stricmp(Info_ValueForKey(info, "game"), UI_FilterDir(ui_serverFilterType.integer)) != 0) {
 					trap->LAN_MarkServerVisible(lanSource, i, qfalse);
 					continue;
 				}
@@ -10228,10 +10226,10 @@ static qboolean MapList_Parse(char** p)
 	}
 }
 
-static void UI_ParseGameInfo(const char *teamFile) {
-	char    *token;
-	char *p;
-	char *buff = NULL;
+static void UI_ParseGameInfo(const char* teamFile) {
+	char* token;
+	char* p;
+	char* buff = NULL;
 	//int mode = 0; TTimo: unused
 
 	buff = GetMenuBuffer(teamFile);
@@ -10241,32 +10239,32 @@ static void UI_ParseGameInfo(const char *teamFile) {
 
 	p = buff;
 
-	COM_BeginParseSession ("UI_ParseGameInfo");
+	COM_BeginParseSession("UI_ParseGameInfo");
 
-	while ( 1 ) {
-		token = COM_ParseExt( (const char **)(&p), qtrue );
-		if( !token || token[0] == 0 || token[0] == '}') {
+	while (1) {
+		token = COM_ParseExt((const char**)(&p), qtrue);
+		if (!token || token[0] == 0 || token[0] == '}') {
 			break;
 		}
 
-		if ( Q_stricmp( token, "}" ) == 0 ) {
+		if (Q_stricmp(token, "}") == 0) {
 			break;
 		}
 
 		if (Q_stricmp(token, "gametypes") == 0) {
-
 			if (GameType_Parse(&p, qfalse)) {
 				continue;
-			} else {
+			}
+			else {
 				break;
 			}
 		}
 
 		if (Q_stricmp(token, "joingametypes") == 0) {
-
 			if (GameType_Parse(&p, qtrue)) {
 				continue;
-			} else {
+			}
+			else {
 				break;
 			}
 		}
@@ -10275,7 +10273,6 @@ static void UI_ParseGameInfo(const char *teamFile) {
 			// start a new menu
 			MapList_Parse(&p);
 		}
-
 	}
 }
 

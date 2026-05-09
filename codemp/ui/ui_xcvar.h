@@ -168,6 +168,12 @@ XCVAR_DEF(cg_SFXSabersCoreSizeUSB, "1.0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_SFXSabersGlowSizeRebels, "1.0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_SFXSabersCoreSizeRebels, "1.0", NULL, CVAR_ARCHIVE)
 
+XCVAR_DEF(cg_SFXSabersGlowSizeCW, "1.0", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(cg_SFXSabersCoreSizeCW, "1.0", NULL, CVAR_ARCHIVE)
+
+XCVAR_DEF(cg_SFXSabersGlowSizeMaul, "1.0", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(cg_SFXSabersCoreSizeMaul, "1.0", NULL, CVAR_ARCHIVE)
+
 XCVAR_DEF(cg_SerenityJediEngineMode, "1", NULL, CVAR_ARCHIVE)
 
 XCVAR_DEF(ui_char_model_angle, "180", NULL, CVAR_ARCHIVE)

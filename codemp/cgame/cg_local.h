@@ -1351,6 +1351,44 @@ typedef struct cgMedia_s {
 	qhandle_t RebelsblueGlowShader;
 	qhandle_t RebelspurpleGlowShader;
 
+	//Clone Wars Sabers
+	qhandle_t cwSaberBlurShader;
+	qhandle_t cwSwordTrailShader;
+	qhandle_t cwSaberCoreShader;
+	qhandle_t cwredSaberCoreShader;
+	qhandle_t cworangeSaberCoreShader;
+	qhandle_t cwyellowSaberCoreShader;
+	qhandle_t cwgreenSaberCoreShader;
+	qhandle_t cwblueSaberCoreShader;
+	qhandle_t cwpurpleSaberCoreShader;
+	qhandle_t cwblackSaberCoreShader;
+	qhandle_t rgbCWGlowShader;
+	qhandle_t redCWGlowShader;
+	qhandle_t orangeCWGlowShader;
+	qhandle_t yellowCWGlowShader;
+	qhandle_t greenCWGlowShader;
+	qhandle_t blueCWGlowShader;
+	qhandle_t purpleCWGlowShader;
+
+	//Maul Sabers
+	qhandle_t maulSaberBlurShader;
+	qhandle_t maulSwordTrailShader;
+	qhandle_t maulSaberCoreShader;
+	qhandle_t maulredSaberCoreShader;
+	qhandle_t maulorangeSaberCoreShader;
+	qhandle_t maulyellowSaberCoreShader;
+	qhandle_t maulgreenSaberCoreShader;
+	qhandle_t maulblueSaberCoreShader;
+	qhandle_t maulpurpleSaberCoreShader;
+	qhandle_t maulblackSaberCoreShader;
+	qhandle_t rgbMaulGlowShader;
+	qhandle_t redMaulGlowShader;
+	qhandle_t orangeMaulGlowShader;
+	qhandle_t yellowMaulGlowShader;
+	qhandle_t greenMaulGlowShader;
+	qhandle_t blueMaulGlowShader;
+	qhandle_t purpleMaulGlowShader;
+
 	qhandle_t	rivetMarkShader;
 
 	qhandle_t	teamRedShader;
