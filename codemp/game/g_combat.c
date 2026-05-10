@@ -3838,7 +3838,7 @@ void PlayerPain(gentity_t* self, const int damage)
 			{
 				//FIXME: only strong-level saber attacks should make me play pain anim?
 				if (!G_CheckForStrongAttackMomentum(self) && !PM_SpinningSaberAnim(self->client->ps.legsAnim)
-					&& !pm_saber_in_special_attack(self->client->ps.torsoAnim)
+					&& !PM_SaberInSpecialAttack(self->client->ps.torsoAnim)
 					&& !PM_InKnockDown(&self->client->ps))
 				{
 					//strong attacks and spins cannot be interrupted by pain, no pain when in knockdown

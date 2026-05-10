@@ -73,7 +73,7 @@ extern qboolean PM_SaberInReflect(int move);
 extern qboolean PM_SaberInIdle(int move);
 extern qboolean PM_SaberInAttack(int move);
 extern qboolean PM_SaberInTransitionAny(int move);
-extern qboolean pm_saber_in_special_attack(int anim);
+extern qboolean PM_SaberInSpecialAttack(int anim);
 extern void CalcEntitySpot(const gentity_t* ent, spot_t spot, vec3_t point);
 extern qboolean pm_walking_or_standing(const gentity_t* self);
 extern qboolean G_ControlledByPlayer(const gentity_t* self);
@@ -378,7 +378,7 @@ static void g_reflect_missile_to_attacker(const gentity_t* ent, gentity_t* missi
 
 		if (PM_SaberInAttack(ent->client->ps.saberMove) ||
 			PM_SaberInTransitionAny(ent->client->ps.saberMove) ||
-			pm_saber_in_special_attack(ent->client->ps.torsoAnim) ||
+			PM_SaberInSpecialAttack(ent->client->ps.torsoAnim) ||
 			ent->client->ps.fd.blockPoints < BLOCKPOINTS_KNOCKAWAY)
 		{
 			// Moderately wild

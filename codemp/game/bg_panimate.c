@@ -1468,7 +1468,7 @@ qboolean PM_SpinningSaberAnim(const int anim)
 	return qfalse;
 }
 
-qboolean pm_saber_in_special_attack(const int anim)
+qboolean PM_SaberInSpecialAttack(const int anim)
 {
 	switch (anim)
 	{
@@ -6011,9 +6011,10 @@ void PM_SaberStartTransAnim(const int clientNum,
 	const int weapon,
 	const int anim,
 	float* animSpeed,
-	const int fatigued)
+	const int fatigued,
+	const int broken)
 {
-	char buf[128];
+	char	buf[128];
 
 	// Read global saber animation speed multiplier
 	trap->Cvar_VariableStringBuffer("g_saberAnimSpeed", buf, sizeof buf);
@@ -6031,17 +6032,27 @@ void PM_SaberStartTransAnim(const int clientNum,
 	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_ROLL_STAB)
 	{
 		const saberInfo_t* saber = BG_MySaber(clientNum, 0);
+		// ensure we check both sabers. Use the first non-NULL saber found.
+		if (!saber)
+		{
+			saber = BG_MySaber(clientNum, 1);
+		}
 
 		if (saber && saber->animSpeedScale != 1.0f)
 		{
 			*animSpeed *= saber->animSpeedScale;
 		}
+	}
 
-		saber = BG_MySaber(clientNum, 1);
-
-		if (saber && saber->animSpeedScale != 1.0f)
+	if (broken && PM_InSaberAnim(anim))
+	{
+		if (broken & (1 << BROKENLIMB_RARM))
 		{
-			*animSpeed *= saber->animSpeedScale;
+			*animSpeed *= 0.5f;
+		}
+		else if (broken & (1 << BROKENLIMB_LARM))
+		{
+			*animSpeed *= 0.65f;
 		}
 	}
 
@@ -6089,11 +6100,11 @@ void PM_SaberStartTransAnim(const int clientNum,
 
 			if (isBounce)
 			{
-				*animSpeed *= 0.6f;
+				*animSpeed *= 0.65f;
 			}
 			else if (isReturn)
 			{
-				*animSpeed *= 0.8f;
+				*animSpeed *= 0.85f;
 			}
 		}
 
@@ -6107,7 +6118,7 @@ void PM_SaberStartTransAnim(const int clientNum,
 
 			if (isBounce || isReturn)
 			{
-				*animSpeed *= 0.6f;
+				*animSpeed *= 0.65f;
 			}
 		}
 
@@ -6148,7 +6159,7 @@ void PM_SaberStartTransAnim(const int clientNum,
 
 			if (isMassive)
 			{
-				*animSpeed *= 0.5f;
+				*animSpeed *= 0.55f;
 			}
 		}
 
@@ -6185,7 +6196,7 @@ void PM_SaberStartTransAnim(const int clientNum,
 				*animSpeed *= 1.1f;
 				break;
 			case SS_MEDIUM:
-				*animSpeed *= 1.0f;
+				*animSpeed *= saberanimscale;
 				break;
 			case SS_STRONG:
 			case SS_DESANN:
@@ -6203,7 +6214,6 @@ void PM_SaberStartTransAnim(const int clientNum,
 		}
 	}
 }
-
 /*
 -------------------------
 PM_SetAnimFinal
@@ -6236,7 +6246,7 @@ static void BG_SetAnimFinal(playerState_t* ps, const animation_t* animations, co
 	}
 
 	// Allow saber system to adjust animation speed
-	PM_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, anim, &editAnimSpeed, ps->userInt3);
+	PM_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, anim, &editAnimSpeed, ps->userInt3, ps->brokenLimbs);
 
 	// Set torso anim
 	if ((setAnimParts & SETANIM_TORSO) != 0)
@@ -6357,7 +6367,6 @@ setAnimLegs:
 setAnimDone:
 	return;
 }
-
 
 static void PM_SetAnimFinal(const int setAnimParts, const int anim, const int setAnimFlags)
 {
@@ -6487,7 +6496,7 @@ float bg_get_torso_anim_point(const playerState_t* ps, const int anim_index)
 
 	//Be sure to scale by the proper anim speed just as if we were going to play the animation
 	PM_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, ps->torsoAnim, &anim_speed_factor,
-		ps->userInt3);
+		ps->userInt3, ps->brokenLimbs);
 
 	if (anim_speed_factor > 0)
 	{
@@ -6523,7 +6532,7 @@ float BG_GetLegsAnimPoint(const playerState_t* ps, const int anim_index)
 
 	//Be sure to scale by the proper anim speed just as if we were going to play the animation
 	PM_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, ps->legsAnim, &anim_speed_factor,
-		ps->userInt3);
+		ps->userInt3, ps->brokenLimbs);
 
 	if (anim_speed_factor > 0)
 	{

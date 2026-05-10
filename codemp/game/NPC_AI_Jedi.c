@@ -78,7 +78,7 @@ extern void WP_DeactivateSaber(const gentity_t* self);
 extern void WP_ActivateSaber(gentity_t* self);
 
 extern qboolean PM_SaberInStart(int move);
-extern qboolean pm_saber_in_special_attack(int anim);
+extern qboolean PM_SaberInSpecialAttack(int anim);
 extern qboolean PM_SaberInAttack(int move);
 extern qboolean PM_SaberInBounce(int move);
 extern qboolean PM_SaberInParry(int move);
@@ -3194,7 +3194,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 			&& !PM_SaberInBrokenParry(NPCS.NPC->client->ps.saberMove)
 			&& !PM_InRoll(&NPCS.NPC->client->ps)
 			&& !PM_InKnockDown(&NPCS.NPC->client->ps)
-			&& !pm_saber_in_special_attack(NPCS.NPC->client->ps.torsoAnim)
+			&& !PM_SaberInSpecialAttack(NPCS.NPC->client->ps.torsoAnim)
 			&& !NPCS.NPC->client->ps.weaponTime)
 		&& enemy_dist < 80
 		&& !(NPCS.ucmd.buttons & (BUTTON_ATTACK | BUTTON_ALT_ATTACK))
@@ -4419,7 +4419,7 @@ static evasionType_t Jedi_CheckFlipEvasions(gentity_t* self, const float rightdo
 		&& Q_irand(0, 1)
 		&& !BG_InRoll(&self->client->ps, self->client->ps.legsAnim)
 		&& !PM_InKnockDown(&self->client->ps)
-		&& !pm_saber_in_special_attack(self->client->ps.torsoAnim))
+		&& !PM_SaberInSpecialAttack(self->client->ps.torsoAnim))
 	{
 		vec3_t fwd, right, traceto, mins, maxs, fwdAngles;
 		trace_t trace;
@@ -4826,7 +4826,7 @@ qboolean Jedi_SaberBusy(const gentity_t* self)
 	if (self->client->ps.torsoTimer > 300
 		&& (PM_SaberInAttack(self->client->ps.saberMove) && self->client->ps.fd.saberAnimLevel == FORCE_LEVEL_3
 			|| PM_SpinningSaberAnim(self->client->ps.torsoAnim)
-			|| pm_saber_in_special_attack(self->client->ps.torsoAnim)
+			|| PM_SaberInSpecialAttack(self->client->ps.torsoAnim)
 			|| PM_SaberInBrokenParry(self->client->ps.saberMove)
 			|| PM_FlippingAnim(self->client->ps.torsoAnim)
 			|| PM_RollingAnim(self->client->ps.torsoAnim)))
@@ -5008,7 +5008,7 @@ evasionType_t jedi_saber_block_go(gentity_t* self, usercmd_t* cmd, vec3_t p_hitl
 		return EVASION_NONE;
 	}
 	if (PM_InSpecialJump(self->client->ps.legsAnim)
-		&& pm_saber_in_special_attack(self->client->ps.torsoAnim))
+		&& PM_SaberInSpecialAttack(self->client->ps.torsoAnim))
 	{
 		return EVASION_NONE;
 	}
@@ -5080,7 +5080,7 @@ evasionType_t jedi_saber_block_go(gentity_t* self, usercmd_t* cmd, vec3_t p_hitl
 					!PM_SaberInAttack(self->client->ps.saberMove) //not attacking
 					&& !PM_SaberInStart(self->client->ps.saberMove) //not starting an attack
 					&& !PM_SpinningSaberAnim(self->client->ps.torsoAnim) //not in a saber spin
-					&& !pm_saber_in_special_attack(self->client->ps.torsoAnim)))
+					&& !PM_SaberInSpecialAttack(self->client->ps.torsoAnim)))
 			{
 				//need to check all these because it overrides both torso and legs with the dodge
 				doDodge = qtrue;
@@ -5493,7 +5493,7 @@ evasionType_t jedi_saber_block_go(gentity_t* self, usercmd_t* cmd, vec3_t p_hitl
 								&& !PM_SaberInStart(self->client->ps.saberMove)
 								&& !BG_InRoll(&self->client->ps, self->client->ps.legsAnim)
 								&& !PM_InKnockDown(&self->client->ps)
-								&& !pm_saber_in_special_attack(self->client->ps.torsoAnim))
+								&& !PM_SaberInSpecialAttack(self->client->ps.torsoAnim))
 							{
 								//do the butterfly!
 								int butterflyAnim;

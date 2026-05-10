@@ -9136,7 +9136,7 @@ void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 					regenDelay = 2000;
 				}
 				else if (PM_SaberInAttack(self->client->ps.saberMove)
-					|| pm_saber_in_special_attack(self->client->ps.torsoAnim)
+					|| PM_SaberInSpecialAttack(self->client->ps.torsoAnim)
 					|| PM_SpinningSaberAnim(self->client->ps.torsoAnim)
 					|| PM_SaberInParry(self->client->ps.saberMove)
 					|| PM_SaberInReturn(self->client->ps.saberMove))
@@ -9297,7 +9297,7 @@ void WP_BlockPointsUpdate(const gentity_t* self)
 			&& self->client->ps.groundEntityNum != ENTITYNUM_NONE
 			&& WalkCheck(self)
 			&& !PM_SaberInAttack(self->client->ps.saberMove)
-			&& !pm_saber_in_special_attack(self->client->ps.torsoAnim)
+			&& !PM_SaberInSpecialAttack(self->client->ps.torsoAnim)
 			&& !PM_SpinningSaberAnim(self->client->ps.torsoAnim)
 			&& !PM_SaberInParry(self->client->ps.saberMove)
 			&& !PM_SaberInReturn(self->client->ps.saberMove)

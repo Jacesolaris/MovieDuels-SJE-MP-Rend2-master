@@ -3196,7 +3196,7 @@ static qboolean PM_ForceJumpingUp(void)
 		return qfalse;
 	}
 
-	if (pm_saber_in_special_attack(pm->ps->legsAnim))
+	if (PM_SaberInSpecialAttack(pm->ps->legsAnim))
 	{
 		return qfalse;
 	}
@@ -4183,7 +4183,7 @@ static qboolean PM_CanForceFall()
 	return !BG_InRoll(pm->ps, pm->ps->legsAnim) // not rolling
 		&& !PM_InKnockDown(pm->ps) // not knocked down
 		&& !BG_InDeathAnim(pm->ps->legsAnim) // not dead
-		&& !pm_saber_in_special_attack(pm->ps->torsoAnim) // not doing special attack
+		&& !PM_SaberInSpecialAttack(pm->ps->torsoAnim) // not doing special attack
 		&& !PM_SaberInAttack(pm->ps->saberMove) // not attacking
 		&& BG_CanUseFPNow(pm->gametype, pm->ps, pm->cmd.serverTime, FP_HEAL) // can use force power
 		&& !(pm->ps->pm_flags & PMF_JUMP_HELD) // have to have released jump since last press
@@ -7209,7 +7209,7 @@ static int pm_try_roll(void)
 	vec3_t fwd, right, traceto, mins, maxs, fwdAngles;
 	const float rollDist = 192; //was 64;
 
-	if (PM_SaberInAttack(pm->ps->saberMove) || pm_saber_in_special_attack(pm->ps->torsoAnim)
+	if (PM_SaberInAttack(pm->ps->saberMove) || PM_SaberInSpecialAttack(pm->ps->torsoAnim)
 		|| PM_SpinningSaberAnim(pm->ps->legsAnim)
 		|| PM_SaberInStart(pm->ps->saberMove))
 	{
@@ -17269,8 +17269,8 @@ static void BG_G2ClientSpineAngles(void* ghoul2, const int motionBolt, vec3_t ce
 		!BG_InRollES(cent, cent->legsAnim) &&
 		!BG_InRollAnim(cent) &&
 		!PM_SaberInSpecial(cent->saberMove) &&
-		!pm_saber_in_special_attack(cent->torsoAnim) &&
-		!pm_saber_in_special_attack(cent->legsAnim) &&
+		!PM_SaberInSpecialAttack(cent->torsoAnim) &&
+		!PM_SaberInSpecialAttack(cent->legsAnim) &&
 
 		!BG_InKnockDown(cent->torsoAnim) &&
 		!BG_InKnockDown(cent->legsAnim) &&
@@ -17284,8 +17284,8 @@ static void BG_G2ClientSpineAngles(void* ghoul2, const int motionBolt, vec3_t ce
 		!PM_InSpecialJump(ciTorso) &&
 		!BG_InDeathAnim(ciLegs) &&
 		!BG_InDeathAnim(ciTorso) &&
-		!pm_saber_in_special_attack(ciTorso) &&
-		!pm_saber_in_special_attack(ciLegs) &&
+		!PM_SaberInSpecialAttack(ciTorso) &&
+		!PM_SaberInSpecialAttack(ciLegs) &&
 
 		!(cent->eFlags & EF_DEAD) &&
 		cent->legsAnim != cent->torsoAnim &&
@@ -19124,7 +19124,7 @@ static void PmoveSingle(pmove_t* pmove)
 		pm->cmd.buttons = 0;
 	} //stiffenedup
 	else if (!in_camera && (PM_SaberInAttack(pm->ps->saberMove)
-		|| pm_saber_in_special_attack(pm->ps->torsoAnim)
+		|| PM_SaberInSpecialAttack(pm->ps->torsoAnim)
 		|| PM_SpinningSaberAnim(pm->ps->legsAnim)
 		|| PM_SaberInStart(pm->ps->saberMove)
 		|| PM_SaberInMassiveBounce(pm->ps->torsoAnim) && pm->ps->torsoTimer))

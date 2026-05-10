@@ -3380,8 +3380,7 @@ static void CG_SetLerpFrameAnimation(centity_t* cent, clientInfo_t* ci, lerpFram
 
 		animSpeed *= anim_speed_mult;
 
-		PM_SaberStartTransAnim(cent->currentState.number, cent->currentState.fireflag, cent->currentState.weapon,
-			new_animation, &animSpeed, cent->currentState.userInt3);
+		PM_SaberStartTransAnim(cent->currentState.number, cent->currentState.fireflag, cent->currentState.weapon, new_animation, &animSpeed, cent->currentState.userInt3, cent->currentState.brokenLimbs);
 
 		if (torso_only)
 		{
@@ -13380,7 +13379,7 @@ void CG_AddSaberBlade(centity_t* cent, centity_t* scent, int renderfx, int saber
 								//ugh, need to have a real sound debouncer... or do this game-side
 								client->saber[saber_num].blade[blade_num].hitWallDebounceTime = cg.time;
 								if (PM_SaberInAttack(cent->currentState.saberMove)
-									|| pm_saber_in_special_attack(cent->currentState.torsoAnim))
+									|| PM_SaberInSpecialAttack(cent->currentState.torsoAnim))
 								{
 									trap->S_StartSound(trace.endpos, -1, CHAN_WEAPON,
 										trap->S_RegisterSound(va(

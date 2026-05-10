@@ -2004,7 +2004,7 @@ qboolean PM_KickMove(int move);
 qboolean PM_SaberInIdle(int move);
 qboolean PM_FlippingAnim(int anim);
 qboolean PM_SpinningSaberAnim(int anim);
-qboolean pm_saber_in_special_attack(int anim);
+qboolean PM_SaberInSpecialAttack(int anim);
 qboolean PM_SaberInKata(saber_moveName_t saberMove);
 qboolean PM_InKataAnim(int anim);
 qboolean PM_InKataBotDashDodgeAnim(const int anim);
@@ -2015,7 +2015,7 @@ qboolean BG_InDeathAnim(int anim);
 qboolean BG_InSaberLockOld(int anim);
 qboolean PM_InSaberLock(int anim);
 
-void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const int weapon, const int anim, float* animSpeed, const int fatigued);
+void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const int weapon, const int anim, float* animSpeed, const int fatigued, const int broken);
 
 void WP_ForcePowerDrain(playerState_t* ps, forcePowers_t force_power, int override_amt);
 void BG_ForcePowerKill(playerState_t* ps);

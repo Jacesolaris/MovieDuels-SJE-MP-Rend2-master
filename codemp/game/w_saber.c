@@ -2147,7 +2147,7 @@ static void G_SaberBounce(const gentity_t* attacker, gentity_t* victim)
 
 	if (attacker->client->ps.saberBlocked == BLOCKED_NONE)
 	{
-		if (!pm_saber_in_special_attack(attacker->client->ps.torsoAnim))
+		if (!PM_SaberInSpecialAttack(attacker->client->ps.torsoAnim))
 		{
 			if (SaberAttacking(attacker))
 			{
@@ -7092,7 +7092,7 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 		// don't do this if already attacking!
 		if ((ucmd->buttons & BUTTON_ATTACK) ||
 			PM_SaberInAttack(self->client->ps.saberMove) ||
-			pm_saber_in_special_attack(self->client->ps.torsoAnim) ||
+			PM_SaberInSpecialAttack(self->client->ps.torsoAnim) ||
 			PM_SaberInTransitionAny(self->client->ps.saberMove))
 		{
 			do_full_routine = qfalse;
@@ -8566,8 +8566,7 @@ qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t ve
 		saber_owner->client->ps.saberDisarmProtectTime = level.time + protect_ms;
 
 #if _DEBUG
-		Com_Printf(S_COLOR_GREEN "[SABER DISARM] Timer started: expires at %i (now %i)\n",
-			saber_owner->client->ps.saberDisarmProtectTime, level.time);
+		//Com_Printf(S_COLOR_GREEN "[SABER DISARM] Timer started: expires at %i (now %i)\n",saber_owner->client->ps.saberDisarmProtectTime, level.time);
 #endif
 	}
 
@@ -8577,8 +8576,7 @@ qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t ve
 	if (saber_owner->client->ps.saberDisarmProtectTime > level.time)
 	{
 #if _DEBUG
-		Com_Printf(S_COLOR_YELLOW "[SABER DISARM] Timer active (%i > %i) — disarm prevented, saber kept in hand\n",
-			saber_owner->client->ps.saberDisarmProtectTime, level.time);
+		//Com_Printf(S_COLOR_YELLOW "[SABER DISARM] Timer active (%i > %i) — disarm prevented, saber kept in hand\n",saber_owner->client->ps.saberDisarmProtectTime, level.time);
 #endif
 
 		// Prevent immediate re‑attack
@@ -8592,7 +8590,7 @@ qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t ve
 	// 3. TIMER EXPIRED → NORMAL MP DISARM LOGIC
 	// ------------------------------------------------------------
 #if _DEBUG
-	Com_Printf(S_COLOR_CYAN "[SABER DISARM] Timer expired — disarm allowed\n");
+	//Com_Printf(S_COLOR_CYAN "[SABER DISARM] Timer expired — disarm allowed\n");
 #endif
 
 	// Reset timer so next disarm starts a new window
@@ -8637,7 +8635,7 @@ qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t ve
 	WP_saberKnockDown(saberent, saber_owner, saber_owner);
 
 #if _DEBUG
-	Com_Printf(S_COLOR_CYAN "[SABER DISARM] Saber knocked out of hand\n");
+	//Com_Printf(S_COLOR_CYAN "[SABER DISARM] Saber knocked out of hand\n");
 #endif
 
 	// Override the velocity on the knocked‑away saber
@@ -12563,7 +12561,7 @@ float manual_forceblocking(const gentity_t* defender)
 		|| BG_InRoll(&defender->client->ps, defender->client->ps.legsAnim)
 		|| PM_SuperBreakLoseAnim(defender->client->ps.torsoAnim)
 		|| PM_SuperBreakWinAnim(defender->client->ps.torsoAnim)
-		|| pm_saber_in_special_attack(defender->client->ps.torsoAnim)
+		|| PM_SaberInSpecialAttack(defender->client->ps.torsoAnim)
 		|| PM_InSpecialJump(defender->client->ps.torsoAnim)
 		|| defender->client->ps.groundEntityNum == ENTITYNUM_NONE
 		|| !WalkCheck(defender)
@@ -12634,7 +12632,7 @@ qboolean manual_saberblocking(const gentity_t* defender)
 		|| BG_InRoll(&defender->client->ps, defender->client->ps.legsAnim)
 		|| PM_SuperBreakLoseAnim(defender->client->ps.torsoAnim)
 		|| PM_SuperBreakWinAnim(defender->client->ps.torsoAnim)
-		|| pm_saber_in_special_attack(defender->client->ps.torsoAnim)
+		|| PM_SaberInSpecialAttack(defender->client->ps.torsoAnim)
 		|| PM_InSpecialJump(defender->client->ps.torsoAnim)
 		|| PM_SaberInBounce(defender->client->ps.saberMove)
 		|| PM_SaberInKnockaway(defender->client->ps.saberMove)
@@ -12708,7 +12706,7 @@ float manual_running_and_saberblocking(const gentity_t* defender)
 		|| BG_InRoll(&defender->client->ps, defender->client->ps.legsAnim)
 		|| PM_SuperBreakLoseAnim(defender->client->ps.torsoAnim)
 		|| PM_SuperBreakWinAnim(defender->client->ps.torsoAnim)
-		|| pm_saber_in_special_attack(defender->client->ps.torsoAnim)
+		|| PM_SaberInSpecialAttack(defender->client->ps.torsoAnim)
 		|| PM_InSpecialJump(defender->client->ps.torsoAnim)
 		|| PM_SaberInBounce(defender->client->ps.saberMove)
 		|| PM_SaberInKnockaway(defender->client->ps.saberMove)
@@ -12834,7 +12832,7 @@ float manual_npc_saberblocking(const gentity_t* defender)
 		|| BG_InRoll(&defender->client->ps, defender->client->ps.legsAnim)
 		|| PM_SuperBreakLoseAnim(defender->client->ps.torsoAnim)
 		|| PM_SuperBreakWinAnim(defender->client->ps.torsoAnim)
-		|| pm_saber_in_special_attack(defender->client->ps.torsoAnim)
+		|| PM_SaberInSpecialAttack(defender->client->ps.torsoAnim)
 		|| PM_InSpecialJump(defender->client->ps.torsoAnim)
 		|| PM_SaberInBounce(defender->client->ps.saberMove)
 		|| PM_SaberInKnockaway(defender->client->ps.saberMove)
@@ -12913,7 +12911,7 @@ int PlayerCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can 
 		|| BG_InFlipBack(defender->client->ps.torsoAnim) // Flipping back
 		|| PM_SuperBreakLoseAnim(defender->client->ps.torsoAnim) // lost a saber lock
 		|| PM_SuperBreakWinAnim(defender->client->ps.torsoAnim) // won a saber lock
-		|| pm_saber_in_special_attack(defender->client->ps.torsoAnim) // A special saber attack
+		|| PM_SaberInSpecialAttack(defender->client->ps.torsoAnim) // A special saber attack
 		|| PM_InSpecialJump(defender->client->ps.torsoAnim) // A Force jump
 		|| PM_SaberInBounce(defender->client->ps.saberMove) // Saber is bouncing
 		|| PM_SaberInKnockaway(defender->client->ps.saberMove) // Saber is being knocked away
@@ -12967,7 +12965,7 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 		|| BG_InFlipBack(defender->client->ps.torsoAnim) // Flipping back
 		|| PM_SuperBreakLoseAnim(defender->client->ps.torsoAnim) // lost a saber lock
 		|| PM_SuperBreakWinAnim(defender->client->ps.torsoAnim) // won a saber lock
-		|| pm_saber_in_special_attack(defender->client->ps.torsoAnim) // A special saber attack
+		|| PM_SaberInSpecialAttack(defender->client->ps.torsoAnim) // A special saber attack
 		|| PM_InSpecialJump(defender->client->ps.torsoAnim) // A Force jump
 		|| PM_SaberInBounce(defender->client->ps.saberMove) // Saber is bouncing
 		|| PM_SaberInKnockaway(defender->client->ps.saberMove) // Saber is being knocked away
@@ -13016,7 +13014,7 @@ float manual_npc_kick_absorbing(const gentity_t* defender)
 		|| BG_InRoll(&defender->client->ps, defender->client->ps.legsAnim)
 		|| PM_SuperBreakLoseAnim(defender->client->ps.torsoAnim)
 		|| PM_SuperBreakWinAnim(defender->client->ps.torsoAnim)
-		|| pm_saber_in_special_attack(defender->client->ps.torsoAnim)
+		|| PM_SaberInSpecialAttack(defender->client->ps.torsoAnim)
 		|| PM_InSpecialJump(defender->client->ps.torsoAnim)
 		|| PM_SaberInBounce(defender->client->ps.saberMove)
 		|| PM_SaberInReturn(defender->client->ps.saberMove)
@@ -15465,7 +15463,7 @@ void G_Beskar_Attack_Bounce(const gentity_t* self, gentity_t* other)
 	}
 	if (self->client->ps.saberBlocked == BLOCKED_NONE)
 	{
-		if (!pm_saber_in_special_attack(self->client->ps.torsoAnim))
+		if (!PM_SaberInSpecialAttack(self->client->ps.torsoAnim))
 		{
 			if (SaberAttacking(self))
 			{

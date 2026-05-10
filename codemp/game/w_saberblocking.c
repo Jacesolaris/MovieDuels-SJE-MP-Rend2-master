@@ -69,7 +69,7 @@ extern void g_fatigue_bp_knockaway(gentity_t* blocker);
 extern qboolean PM_SuperBreakLoseAnim(int anim);
 extern qboolean WP_ButterFingers(gentity_t* saberent, gentity_t* saber_owner, const gentity_t* other, const trace_t* tr);
 extern qboolean pm_saber_innonblockable_attack(int anim);
-extern qboolean pm_saber_in_special_attack(int anim);
+extern qboolean PM_SaberInSpecialAttack(int anim);
 extern int G_GetParryForBlock(int block);
 extern qboolean WP_SaberMBlockDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 extern qboolean WP_SaberBlockNonRandom(gentity_t* self, vec3_t hitloc, qboolean missileBlock);

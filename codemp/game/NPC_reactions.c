@@ -36,7 +36,7 @@ extern qboolean Jedi_WaitingAmbush(const gentity_t* self);
 extern void Jedi_Ambush(gentity_t* self);
 extern qboolean NPC_SomeoneLookingAtMe(gentity_t* ent);
 
-extern qboolean pm_saber_in_special_attack(int anim);
+extern qboolean PM_SaberInSpecialAttack(int anim);
 extern qboolean PM_SpinningSaberAnim(int anim);
 extern qboolean PM_SpinningAnim(int anim);
 extern qboolean PM_InKnockDown(const playerState_t* ps);
@@ -305,7 +305,7 @@ void NPC_ChoosePainAnimation(gentity_t* self, const gentity_t* other, vec3_t poi
 			//not being force-gripped or force-drained
 			if (G_CheckForStrongAttackMomentum(self)
 				|| PM_SpinningAnim(self->client->ps.legsAnim)
-				|| pm_saber_in_special_attack(self->client->ps.torsoAnim)
+				|| PM_SaberInSpecialAttack(self->client->ps.torsoAnim)
 				|| PM_InKnockDown(&self->client->ps)
 				|| PM_RollingAnim(self->client->ps.legsAnim)
 				|| PM_FlippingAnim(self->client->ps.legsAnim) && !PM_InCartwheel(self->client->ps.legsAnim))
