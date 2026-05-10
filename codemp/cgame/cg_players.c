@@ -4145,7 +4145,7 @@ qboolean CG_RagDoll(centity_t* cent, vec3_t forced_angles)
 
 			// Bolt indices and positions
 			int    bolt_checks[5] = { 0 };
-			vec3_t bolt_points[5] = { 0 };
+			vec3_t bolt_points[5] = { {0,0,0} };
 			vec3_t t_ang;
 
 			trace_t     tr;
@@ -12169,17 +12169,25 @@ static void CG_DoCWSaber(vec3_t origin, vec3_t dir, float length, float length_m
 	ignite_radius -= length;
 	ignite_radius *= 2.2f;
 
+	effectradius *= 0.6f;
+	coreradius *= 0.85f;
+
 	if (ignite_radius < 0.0f)
 	{
 		ignite_radius = 0.0f;
 	}
 
 	// Main glow
-	VectorCopy(origin, saber.origin);
+	const float glowLength = length - effectradius * 0.5f;
+
+	// Move glow slightly so its closer to the core
+	VectorMA(origin, effectradius * 0.25f, dir, saber.origin);
 	VectorCopy(dir, saber.axis[0]);
+
 	saber.reType = RT_SABER_GLOW;
 	saber.customShader = glow;
 	saber.radius = effectradius;
+	saber.saberLength = glowLength;
 	saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
 	saber.renderfx = rfx;
 
@@ -12422,17 +12430,25 @@ static void CG_DoMaulSaber(vec3_t origin, vec3_t dir, float length, float length
 	ignite_radius -= length;
 	ignite_radius *= 2.2f;
 
+	effectradius *= 0.6f;
+	coreradius *= 0.85f;
+
 	if (ignite_radius < 0.0f)
 	{
 		ignite_radius = 0.0f;
 	}
 
 	// Main glow
-	VectorCopy(origin, saber.origin);
+	const float glowLength = length - effectradius * 0.5f;
+
+	// Move glow slightly so its closer to the core
+	VectorMA(origin, effectradius * 0.25f, dir, saber.origin);
 	VectorCopy(dir, saber.axis[0]);
+
 	saber.reType = RT_SABER_GLOW;
 	saber.customShader = glow;
 	saber.radius = effectradius;
+	saber.saberLength = glowLength;
 	saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
 	saber.renderfx = rfx;
 
@@ -13797,7 +13813,7 @@ CheckTrail:
 			if (saber_moveData[cent->currentState.saberMove].trailLength == 0)
 			{
 				dirlen0 *= 0.5f;
-				dirlen1 *= 0.3;
+				dirlen1 *= 0.3f;
 			}
 			else
 			{
@@ -13829,20 +13845,20 @@ CheckTrail:
 			switch (scolor)
 			{
 			case SABER_RED:
-			VectorSet(rgb1, 255.0f, 0.0f, 0.0f);
-			break;
-		case SABER_ORANGE:
-			VectorSet(rgb1, 253.0f, 125.0f, 80.0f);
-			break;
-		case SABER_YELLOW:
-			VectorSet(rgb1, 250.0f, 250.0f, 160.0f);
-			break;
-		case SABER_GREEN:
-			VectorSet(rgb1, 100.0f, 240.0f, 100.0f);
-			break;
-		case SABER_PURPLE:
-			VectorSet(rgb1, 196.0f, 0.0f, 196.0f);
-			break;
+				VectorSet(rgb1, 255.0f, 0.0f, 0.0f);
+				break;
+			case SABER_ORANGE:
+				VectorSet(rgb1, 253.0f, 125.0f, 80.0f);
+				break;
+			case SABER_YELLOW:
+				VectorSet(rgb1, 250.0f, 250.0f, 160.0f);
+				break;
+			case SABER_GREEN:
+				VectorSet(rgb1, 100.0f, 240.0f, 100.0f);
+				break;
+			case SABER_PURPLE:
+				VectorSet(rgb1, 196.0f, 0.0f, 196.0f);
+				break;
 			case SABER_LIME:
 				VectorSet(rgb1, 0.0f, 255.0f, 0.0f);
 				break;
@@ -14176,7 +14192,6 @@ JustDoIt:
 
 			if (draw_len > 2)
 			{
-
 				if (client->saber[saber_num].type == SABER_SITH_SWORD || client->saber[saber_num].trailStyle == 1)
 				{
 					fx.mShader = cgs.media.swordTrailShader;
