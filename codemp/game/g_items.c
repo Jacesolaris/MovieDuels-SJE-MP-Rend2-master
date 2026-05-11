@@ -26,7 +26,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/q_shared.h"
 #include <assert.h>
 #include <string.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 
 /*
 

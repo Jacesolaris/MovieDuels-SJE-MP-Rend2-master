@@ -35,10 +35,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_local.h"
 #include "w_saber.h"
 #include "ai_main.h"
-#include <qcommon\q_shared.h>
+#include <qcommon/q_shared.h>
 #include "bg_public.h"
-#include <qcommon\q_platform.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_math.h>
 #include "g_public.h"
 #include <string.h>
 

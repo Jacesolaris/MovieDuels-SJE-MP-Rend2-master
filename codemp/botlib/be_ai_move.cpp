@@ -47,10 +47,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "be_ea.h"
 #include "be_ai_goal.h"
 #include "be_ai_move.h"
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include "be_aas_reach.h"
-#include <qcommon\q_platform.h>
-#include <game\surfaceflags.h>
+#include <qcommon/q_platform.h>
+#include <game/surfaceflags.h>
 #include "be_aas_entity.h"
 #include "be_aas_route.h"
 #include "be_aas_bsp.h"

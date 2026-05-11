@@ -44,16 +44,16 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #elif defined(UI_BUILD)
 #include "ui/ui_local.h"
 #endif
-#include <qcommon\q_platform.h>
+#include <qcommon/q_platform.h>
 #include <string.h>
-#include <qcommon\qfiles.h>
+#include <qcommon/qfiles.h>
 #include <assert.h>
 #include "teams.h"
 #include "bg_vehicles.h"
 #include <math.h>
 #include <stdlib.h>
-#include <qcommon\q_string.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_string.h>
+#include <qcommon/q_math.h>
 #include "anims.h"
 #include "bg_weapons.h"
 

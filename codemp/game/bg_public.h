@@ -43,9 +43,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "anims.h"
 #include "bg_vehicles.h"
 #include "surfaceflags.h"
-#include <qcommon\q_platform.h>
-#include <qcommon\q_math.h>
-#include <qcommon\q_shared.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_shared.h>
 
 //these two defs are shared now because we do clientside ent parsing
 #define	MAX_SPAWN_VARS			64

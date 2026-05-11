@@ -3,8 +3,8 @@
 #include <qcommon/q_shared.h>
 #include <stdio.h>
 #include "cg_holster.h"
-#include <qcommon\q_math.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_string.h>
 
 extern int BG_SiegeGetPairedValue(const char* buf, char* key, char* outbuf);
 extern int BG_SiegeGetValueGroup(const char* buf, char* group, char* outbuf);

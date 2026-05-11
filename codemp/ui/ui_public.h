@@ -22,8 +22,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
-#include <qcommon\q_shared.h>
-#include <rd-common\tr_types.h>
+#include <qcommon/q_shared.h>
+#include <rd-common/tr_types.h>
 
 #define UI_API_VERSION 4
 #define UI_LEGACY_API_VERSION 7

@@ -28,8 +28,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <cmath>
 #include <string>
-#include <qcommon\GenericParser2.h>
-#include <qcommon\qcommon.h>
+#include <qcommon/GenericParser2.h>
+#include <qcommon/qcommon.h>
 #include <cctype>
 #include <vector>
 

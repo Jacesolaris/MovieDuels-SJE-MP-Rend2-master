@@ -24,13 +24,13 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // g_bot.c
 
 #include "g_local.h"
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include "g_public.h"
-#include <qcommon\q_color.h>
+#include <qcommon/q_color.h>
 #include <string.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include "bg_public.h"
-#include <qcommon\q_shared.h>
+#include <qcommon/q_shared.h>
 #include <stdlib.h>
 
 #define BOT_BEGIN_DELAY_BASE		2000

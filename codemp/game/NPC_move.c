@@ -27,10 +27,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_nav.h"
 #include "anims.h"
 #include "bg_public.h"
-#include <qcommon\q_platform.h>
+#include <qcommon/q_platform.h>
 #include "g_local.h"
-#include <qcommon\q_math.h>
-#include <qcommon\q_shared.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_shared.h>
 
 qboolean G_BoundsOverlap(const vec3_t mins1, const vec3_t maxs1, const vec3_t mins2, const vec3_t maxs2);
 int NAV_Steer(gentity_t* self, vec3_t dir, float distance);

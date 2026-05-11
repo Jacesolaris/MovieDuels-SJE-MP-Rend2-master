@@ -45,13 +45,13 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_weapons.h"
 #include <string.h>
 #include "g_local.h"
-#include <qcommon\q_platform.h>
-#include <qcommon\q_shared.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_shared.h>
+#include <qcommon/q_math.h>
 #include <assert.h>
-#include <qcommon\q_color.h>
+#include <qcommon/q_color.h>
 #include "bg_saga.h"
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include "bg_public.h"
 
 #define METROID_JUMP 1

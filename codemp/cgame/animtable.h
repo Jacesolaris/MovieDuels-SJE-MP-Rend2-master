@@ -1,4 +1,4 @@
-#include <game\anims.h>
+#include <game/anims.h>
 /*
 ===========================================================================
 Copyright (C) 1999 - 2005, Id Software, Inc.

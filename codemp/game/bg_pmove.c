@@ -49,9 +49,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #endif
 #include "surfaceflags.h"
 #include <assert.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include "teams.h"
-#include <qcommon\q_platform.h>
+#include <qcommon/q_platform.h>
 #include "anims.h"
 #include <stdlib.h>
 #include <math.h>

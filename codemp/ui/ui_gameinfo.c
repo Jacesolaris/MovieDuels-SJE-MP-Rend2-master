@@ -26,14 +26,14 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "ui_local.h"
-#include <qcommon\qfiles.h>
-#include <qcommon\q_color.h>
+#include <qcommon/qfiles.h>
+#include <qcommon/q_color.h>
 #include "ui_shared.h"
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include <string.h>
-#include <qcommon\q_shared.h>
-#include <game\bg_public.h>
-#include <qcommon\q_platform.h>
+#include <qcommon/q_shared.h>
+#include <game/bg_public.h>
+#include <qcommon/q_platform.h>
 
 //
 // arena and bot info

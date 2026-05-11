@@ -28,7 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/MiniHeap.h"
 #include "qcommon/stringed_ingame.h"
 #include "sv_gameapi.h"
-#include <rd-common\tr_public.h>
+#include <rd-common/tr_public.h>
 
 /*
 ===============

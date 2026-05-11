@@ -11,7 +11,9 @@
 
 #include "q_color.h"
 #include <stdarg.h>
+#ifdef _WIN32
 #include <corecrt.h>
+#endif
 
 int Q_isprint(const int c)
 {

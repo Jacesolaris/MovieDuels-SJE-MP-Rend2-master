@@ -23,9 +23,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #include "bg_public.h"
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include "g_local.h"
-#include <qcommon\q_platform.h>
+#include <qcommon/q_platform.h>
 
 #define CTF_CAPTURE_BONUS		100		// what you get for capture
 #define CTF_TEAM_BONUS			25		// what your team gets for capture

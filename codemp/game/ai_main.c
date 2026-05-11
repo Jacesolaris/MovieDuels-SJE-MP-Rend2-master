@@ -48,11 +48,11 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "teams.h"
 #include "anims.h"
 #include "surfaceflags.h"
-#include <qcommon\q_platform.h>
-#include <qcommon\q_math.h>
-#include <qcommon\q_color.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_color.h>
 #include "bg_public.h"
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include "bg_saga.h"
  //
 

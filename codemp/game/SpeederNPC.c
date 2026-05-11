@@ -27,12 +27,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_public.h"
 #include "bg_vehicles.h"
 #include "anims.h"
-#include <qcommon\q_shared.h>
+#include <qcommon/q_shared.h>
 #include "bg_weapons.h"
 #include <string.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include <math.h>
-#include <qcommon\q_platform.h>
+#include <qcommon/q_platform.h>
 
 #ifdef _GAME //SP or gameside MP
 extern vec3_t player_mins;

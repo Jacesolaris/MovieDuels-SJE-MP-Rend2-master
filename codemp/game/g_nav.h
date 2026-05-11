@@ -21,7 +21,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 
 //This file is shared by the exe nav code.
 //If you modify it without recompiling the exe with new code, there could be issues.

@@ -33,7 +33,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // ui_cvar.c
 #define XCVAR_PROTO
 #include "ui_xcvar.h"
-#include <qcommon\qfiles.h>
+#include <qcommon/qfiles.h>
 #undef XCVAR_PROTO
 void UI_RegisterCvars(void);
 void UI_UpdateCvars(void);
