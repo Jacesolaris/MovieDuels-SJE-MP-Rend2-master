@@ -27,7 +27,6 @@ set(InMovieDuels TRUE)
 # Project name
 set(ProjectName "MovieDuels-MP" CACHE STRING "Project Name")
 project(${ProjectName})
-enable_language(RC)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
