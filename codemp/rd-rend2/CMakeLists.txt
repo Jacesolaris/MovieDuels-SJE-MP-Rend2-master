@@ -182,14 +182,16 @@ set_target_properties(${MPRend2} PROPERTIES PROJECT_LABEL "MP Rend2 Renderer")
 target_link_libraries(${MPRend2} ${MPRend2Libraries})
 target_include_directories(${MPRend2} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-set_source_files_properties(../win32/MovieDuels-glsl-MP.rc PROPERTIES LANGUAGE RC)
 # GLSL shader file generator
 add_executable(MovieDuels-glsl-MP
 	${MPDir}/rd-rend2/glsl/compact.cpp
 	${MPDir}/rd-rend2/tr_allocator.cpp
 	${MPDir}/rd-rend2/tr_allocator.h
 	${MPDir}/rd-rend2/tr_glsl_parse.cpp)
-target_sources(MovieDuels-glsl-MP PRIVATE ../win32/MovieDuels-glsl-MP.rc)
+if(WIN32)
+	set_source_files_properties(../win32/MovieDuels-glsl-MP.rc PROPERTIES LANGUAGE RC)
+	target_sources(MovieDuels-glsl-MP PRIVATE ../win32/MovieDuels-glsl-MP.rc)
+endif()
 target_compile_definitions(MovieDuels-glsl-MP PRIVATE "GLSL_BUILDTOOL" "NOMINMAX")
 if (NOT WIN32 AND NOT APPLE)
 	target_compile_definitions(MovieDuels-glsl-MP PRIVATE "ARCH_STRING=\"${Architecture}\"")
