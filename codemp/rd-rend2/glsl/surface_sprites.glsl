@@ -61,6 +61,12 @@ void main()
 	float distanceToCamera = length(V);
 	float fadeScale = smoothstep(u_FadeStartDistance, u_FadeEndDistance,
 						distanceToCamera);
+	
+	if (fadeScale >= 1.0)
+	{
+		gl_Position = vec4(0.0);
+		return;
+	}
 	width += u_FadeScale * fadeScale * width;
 
 #if defined(FX_SPRITE)

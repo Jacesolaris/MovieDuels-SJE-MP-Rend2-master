@@ -1691,6 +1691,172 @@ static void RB_SurfaceGrid(srfGridMesh_t* cv)
 	}
 }
 
+#define DISK_DEF	4
+#define TUBE_DEF	6
+
+static void RB_SurfaceClouds()
+{
+	// Disk definition
+	float diskStripDef[DISK_DEF] = {
+				0.0f,
+				0.4f,
+				0.7f,
+				1.0f };
+
+	float diskAlphaDef[DISK_DEF] = {
+				1.0f,
+				1.0f,
+				0.4f,
+				0.0f };
+
+	float diskCurveDef[DISK_DEF] = {
+				0.0f,
+				0.0f,
+				0.008f,
+				0.02f };
+
+	// tube definition
+	float tubeStripDef[TUBE_DEF] = {
+				0.0f,
+				0.05f,
+				0.1f,
+				0.5f,
+				0.7f,
+				1.0f };
+
+	float tubeAlphaDef[TUBE_DEF] = {
+				0.0f,
+				0.45f,
+				1.0f,
+				1.0f,
+				0.45f,
+				0.0f };
+
+	float tubeCurveDef[TUBE_DEF] = {
+				0.0f,
+				0.004f,
+				0.006f,
+				0.01f,
+				0.006f,
+				0.0f };
+
+	refEntity_t* e;
+	vec3_t		pt, oldpt;
+	vec3_t		pt2, oldpt2;
+	float		latheStep = 30.0f;
+	float		s, c, temp;
+	float* stripDef, * alphaDef, * curveDef, ct;
+	int			i, t, vbase;
+
+	e = &backEnd.currentEntity->e;
+
+	// select which type we shall be doing
+	if (e->renderfx & RF_GROW) // doing tube type
+	{
+		ct = TUBE_DEF;
+		stripDef = tubeStripDef;
+		alphaDef = tubeAlphaDef;
+		curveDef = tubeCurveDef;
+		e->backlerp *= -1; // needs to be reversed
+	}
+	else
+	{
+		ct = DISK_DEF;
+		stripDef = diskStripDef;
+		alphaDef = diskAlphaDef;
+		curveDef = diskCurveDef;
+	}
+
+	// do the strip def, then lathe this around to make a 3d model
+	for (i = 0; i < ct - 1; i++)
+	{
+		VectorSet(oldpt, (stripDef[i] * (e->radius - e->rotation)) + e->rotation, 0, curveDef[i] * e->radius * e->backlerp);
+		VectorSet(oldpt2, (stripDef[i + 1] * (e->radius - e->rotation)) + e->rotation, 0, curveDef[i + 1] * e->radius * e->backlerp);
+
+		// lathe section around in a complete circle
+		for (t = latheStep; t <= 360; t += latheStep)
+		{
+			// rotate every time except last seg
+			if (t < 360.0f)
+			{
+				VectorCopy(oldpt, pt);
+				VectorCopy(oldpt2, pt2);
+
+				s = sin(DEG2RAD(latheStep));
+				c = cos(DEG2RAD(latheStep));
+
+				// rotate lathe points
+				temp = c * pt[0] - s * pt[1];	// c -s 0
+				pt[1] = s * pt[0] + c * pt[1];	// s  c 0
+				pt[0] = temp;					// 0  0 1
+
+				temp = c * pt2[0] - s * pt2[1];	 // c -s 0
+				pt2[1] = s * pt2[0] + c * pt2[1];// s  c 0
+				pt2[0] = temp;					 // 0  0 1
+			}
+			else
+			{
+				// just glue directly to the def points.
+				VectorSet(pt, (stripDef[i] * (e->radius - e->rotation)) + e->rotation, 0, curveDef[i] * e->radius * e->backlerp);
+				VectorSet(pt2, (stripDef[i + 1] * (e->radius - e->rotation)) + e->rotation, 0, curveDef[i + 1] * e->radius * e->backlerp);
+			}
+
+			RB_CHECKOVERFLOW(4, 6);
+
+			vbase = tess.numVertexes;
+
+			// Actually generate the necessary verts
+			VectorAdd(e->origin, oldpt, tess.xyz[tess.numVertexes]);
+			tess.texCoords[tess.numVertexes][0][0] = tess.xyz[tess.numVertexes][0] * 0.1f;
+			tess.texCoords[tess.numVertexes][0][1] = tess.xyz[tess.numVertexes][1] * 0.1f;
+			tess.vertexColors[tess.numVertexes][0] =
+				tess.vertexColors[tess.numVertexes][1] =
+				tess.vertexColors[tess.numVertexes][2] = e->shaderRGBA[0] * alphaDef[i] / 255.0f;
+			tess.vertexColors[tess.numVertexes][3] = e->shaderRGBA[3] / 255.0f;
+			tess.numVertexes++;
+
+			VectorAdd(e->origin, oldpt2, tess.xyz[tess.numVertexes]);
+			tess.texCoords[tess.numVertexes][0][0] = tess.xyz[tess.numVertexes][0] * 0.1f;
+			tess.texCoords[tess.numVertexes][0][1] = tess.xyz[tess.numVertexes][1] * 0.1f;
+			tess.vertexColors[tess.numVertexes][0] =
+				tess.vertexColors[tess.numVertexes][1] =
+				tess.vertexColors[tess.numVertexes][2] = e->shaderRGBA[0] * alphaDef[i + 1] / 255.0f;
+			tess.vertexColors[tess.numVertexes][3] = e->shaderRGBA[3] / 255.0f;
+			tess.numVertexes++;
+
+			VectorAdd(e->origin, pt, tess.xyz[tess.numVertexes]);
+			tess.texCoords[tess.numVertexes][0][0] = tess.xyz[tess.numVertexes][0] * 0.1f;
+			tess.texCoords[tess.numVertexes][0][1] = tess.xyz[tess.numVertexes][1] * 0.1f;
+			tess.vertexColors[tess.numVertexes][0] =
+				tess.vertexColors[tess.numVertexes][1] =
+				tess.vertexColors[tess.numVertexes][2] = e->shaderRGBA[0] * alphaDef[i] / 255.0f;
+			tess.vertexColors[tess.numVertexes][3] = e->shaderRGBA[3] / 255.0f;
+			tess.numVertexes++;
+
+			VectorAdd(e->origin, pt2, tess.xyz[tess.numVertexes]);
+			tess.texCoords[tess.numVertexes][0][0] = tess.xyz[tess.numVertexes][0] * 0.1f;
+			tess.texCoords[tess.numVertexes][0][1] = tess.xyz[tess.numVertexes][1] * 0.1f;
+			tess.vertexColors[tess.numVertexes][0] =
+				tess.vertexColors[tess.numVertexes][1] =
+				tess.vertexColors[tess.numVertexes][2] = e->shaderRGBA[0] * alphaDef[i + 1] / 255.0f;
+			tess.vertexColors[tess.numVertexes][3] = e->shaderRGBA[3] / 255.0f;
+			tess.numVertexes++;
+
+			tess.indexes[tess.numIndexes++] = vbase;
+			tess.indexes[tess.numIndexes++] = vbase + 1;
+			tess.indexes[tess.numIndexes++] = vbase + 3;
+
+			tess.indexes[tess.numIndexes++] = vbase + 3;
+			tess.indexes[tess.numIndexes++] = vbase + 2;
+			tess.indexes[tess.numIndexes++] = vbase;
+
+			// Shuffle new points to old
+			VectorCopy2(pt, oldpt);
+			VectorCopy2(pt2, oldpt2);
+		}
+	}
+}
+
 /*
 ===========================================================================
 
@@ -1767,8 +1933,48 @@ static void RB_SurfaceEntity(surfaceType_t* surfType)
 	case RT_LIGHTNING:
 		RB_SurfaceLightningBolt();
 		break;
+	case RT_ENT_CHAIN:
+	{
+		static trRefEntity_t tempEnt = *backEnd.currentEntity;
+
+		//rww - if not static then currentEntity is garbage because
+		//this is a local. This was not static in sof2.. but I guess
+		//they never check ce.renderfx so it didn't show up.
+
+		const int start = backEnd.currentEntity->e.uRefEnt.uMini.miniStart;
+		const int count = backEnd.currentEntity->e.uRefEnt.uMini.miniCount;
+		assert(count > 0);
+		backEnd.currentEntity = &tempEnt;
+
+		assert(backEnd.currentEntity->e.renderfx >= 0);
+
+		for (int i = 0, j = start; i < count; i++, j++)
+		{
+			backEnd.currentEntity->e = backEnd.refdef.entities[j].e;
+
+			assert(backEnd.currentEntity->e.renderfx >= 0);
+
+			RB_SurfaceEntity(surfType);
+		}
+	}
+	break;
+	case RT_CLOUDS:
+		RB_SurfaceClouds();
+		break;
 	default:
 		RB_SurfaceAxis();
+		break;
+	}
+
+	// Tell the backend to merge the drawcalls except
+	// for types that can't be merged
+	// TODO: Create RT_BEAM internal shader and make it compatible with pass system
+	switch (backEnd.currentEntity->e.reType) {
+	case RT_BEAM:
+	case RT_ENT_CHAIN:
+		break;
+	default:
+		tess.shader->entityMergable = qtrue;
 		break;
 	}
 }

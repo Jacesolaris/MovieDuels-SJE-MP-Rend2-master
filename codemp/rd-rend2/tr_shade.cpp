@@ -137,20 +137,18 @@ to overflow.
 */
 void RB_BeginSurface(shader_t* shader, const int fogNum, const int cubemapIndex)
 {
-	shader_t* state = (shader->remappedShader) ? shader->remappedShader : shader;
-
 	tess.numIndexes = 0;
 	tess.firstIndex = 0;
 	tess.numVertexes = 0;
 	tess.multiDrawPrimitives = 0;
-	tess.shader = state;
+	tess.shader = shader;
 	tess.fogNum = fogNum;
 	tess.cubemapIndex = cubemapIndex;
 	tess.dlightBits = 0;		// will be OR'd in by surface functions
 	tess.pshadowBits = 0;       // will be OR'd in by surface functions
-	tess.xstages = state->stages;
-	tess.numPasses = state->numUnfoggedPasses;
-	tess.currentStageIteratorFunc = state->optimalStageIteratorFunc;
+	tess.xstages = shader->stages;
+	tess.numPasses = shader->numUnfoggedPasses;
+	tess.currentStageIteratorFunc = shader->optimalStageIteratorFunc;
 	tess.externalIBO = nullptr;
 	tess.useInternalVBO = qtrue;
 

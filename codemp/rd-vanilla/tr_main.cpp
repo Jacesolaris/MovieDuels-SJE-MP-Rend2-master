@@ -1114,13 +1114,14 @@ R_AddDrawSurf
 void R_AddDrawSurf(surfaceType_t* surface, const shader_t* shader, int fogIndex, const int dlightMap)
 {
 	int			index;
+	const shader_t* drawShader = (shader->remappedShader) ? shader->remappedShader : shader;
 
 	if (tr.refdef.rdflags & RDF_NOFOG)
 	{
 		fogIndex = 0;
 	}
 
-	if ((shader->surfaceFlags & SURF_FORCESIGHT) && !(tr.refdef.rdflags & RDF_ForceSightOn))
+	if ((drawShader->surfaceFlags & SURF_FORCESIGHT) && !(tr.refdef.rdflags & RDF_ForceSightOn))
 	{	//if shader is only seen with ForceSight and we don't have ForceSight on, then don't draw
 		return;
 	}
@@ -1130,7 +1131,7 @@ void R_AddDrawSurf(surfaceType_t* surface, const shader_t* shader, int fogIndex,
 	index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
 	// the sort data is packed into a single 32 bit value so it can be
 	// compared quickly during the qsorting process
-	tr.refdef.drawSurfs[index].sort = (shader->sortedIndex << QSORT_SHADERNUM_SHIFT) | tr.shiftedEntityNum | (fogIndex << QSORT_FOGNUM_SHIFT) | (int)dlightMap;
+	tr.refdef.drawSurfs[index].sort = (drawShader->sortedIndex << QSORT_SHADERNUM_SHIFT) | tr.shiftedEntityNum | (fogIndex << QSORT_FOGNUM_SHIFT) | (int)dlightMap;
 	tr.refdef.drawSurfs[index].surface = surface;
 	tr.refdef.numDrawSurfs++;
 }
@@ -1319,6 +1320,11 @@ static void R_AddEntitySurfaces(void)
 					Com_Error(ERR_DROP, "R_AddEntitySurfaces: Bad modeltype");
 				}
 			}
+			break;
+
+		case RT_ENT_CHAIN:
+			shader = R_GetShaderByHandle(ent->e.customShader);
+			R_AddDrawSurf(&entitySurface, shader, R_SpriteFogNum(ent), false);
 			break;
 
 		default:
