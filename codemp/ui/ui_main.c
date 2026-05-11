@@ -44,18 +44,18 @@ USER INTERFACE MAIN
 #include "game/bg_saga.h"
 #include "ui_shared.h"
 #include <string.h>
-#include <qcommon\q_shared.h>
-#include <game\bg_weapons.h>
+#include <qcommon/q_shared.h>
+#include <game/bg_weapons.h>
 #include "ui_public.h"
 #include "keycodes.h"
-#include <qcommon\q_color.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_color.h>
+#include <qcommon/q_string.h>
 #include <assert.h>
-#include <game\bg_public.h>
-#include <qcommon\q_platform.h>
-#include <game\anims.h>
+#include <game/bg_public.h>
+#include <qcommon/q_platform.h>
+#include <game/anims.h>
 #include <math.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include "menudef.h"
 #include <search.h>
 

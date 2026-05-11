@@ -24,9 +24,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "qcommon/qfiles.h"
 #include "ui_shared.h"
-#include <qcommon\q_math.h>
-#include <qcommon\q_platform.h>
-#include <qcommon\q_shared.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_shared.h>
 
 #define NUM_FORCE_STAR_IMAGES  9
 #define FORCE_NONJEDI	0

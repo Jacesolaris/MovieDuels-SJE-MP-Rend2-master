@@ -23,7 +23,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "g_local.h"
 #include "bg_saga.h"
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include <search.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,10 +32,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_public.h"
 #include "g_team.h"
 #include "teams.h"
-#include <qcommon\q_shared.h>
-#include <qcommon\q_color.h>
-#include <qcommon\q_math.h>
-#include <qcommon\q_platform.h>
+#include <qcommon/q_shared.h>
+#include <qcommon/q_color.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_platform.h>
 
 teamgame_t teamgame;
 

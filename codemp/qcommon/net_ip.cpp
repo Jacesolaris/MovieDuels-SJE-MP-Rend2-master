@@ -38,7 +38,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #ifdef _WIN32
 #include <winsock.h>
 #include <Windows.h>
-#include <qcommon\q_platform.h>
+#include <qcommon/q_platform.h>
 
 using socklen_t = int;
 
@@ -83,7 +83,7 @@ static qboolean winsockInitialized = qfalse;
 #ifdef __sun
 #include <sys/filio.h>
 #endif
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include <cstdlib>
 #include "q_shared.h"
 #include <string.h>
@@ -94,7 +94,7 @@ static qboolean winsockInitialized = qfalse;
 #include <string.h>
 #include <cassert>
 #include <cstdint>
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include <cstdlib>
 #include <cstdlib>
 

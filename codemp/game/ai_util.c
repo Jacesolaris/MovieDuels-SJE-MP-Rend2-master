@@ -26,8 +26,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "botlib/botlib.h"
 #include "ai_main.h"
 #include "bg_weapons.h"
-#include <qcommon\q_color.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_color.h>
+#include <qcommon/q_math.h>
 #include <string.h>
 #include "bg_public.h"
 #include <stdlib.h>

@@ -34,7 +34,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include "server/sv_gameapi.h"
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 
 static void SV_CloseDownload(client_t* cl);
 

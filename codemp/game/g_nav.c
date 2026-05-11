@@ -30,11 +30,11 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_local.h"
 #include "g_public.h"
 #include "surfaceflags.h"
-#include <qcommon\q_shared.h>
-#include <qcommon\q_color.h>
-#include <qcommon\q_math.h>
-#include <qcommon\q_platform.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_shared.h>
+#include <qcommon/q_color.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_string.h>
 
 extern qboolean G_EntIsUnlockedDoor(int entityNum);
 extern qboolean G_EntIsDoor(int entityNum);

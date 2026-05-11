@@ -1,10 +1,10 @@
 #include "g_local.h"
 #include <stdio.h>
-#include <qcommon\q_string.h>
-#include <qcommon\q_platform.h>
+#include <qcommon/q_string.h>
+#include <qcommon/q_platform.h>
 #include "g_public.h"
-#include <qcommon\q_math.h>
-#include <qcommon\q_shared.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_shared.h>
 
 //the max autosave file size define
 #define MAX_AUTOSAVE_FILESIZE 1024

@@ -24,7 +24,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // cg_marks.c -- wall marks
 
 #include "cg_local.h"
-#include <qcommon\q_shared.h>
+#include <qcommon/q_shared.h>
 
 /*
 ===================================================================

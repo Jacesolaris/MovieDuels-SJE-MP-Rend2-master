@@ -44,8 +44,8 @@ extern stringID_table_t saber_moveTable[];
 #endif
 #include "anims.h"
 #include "bg_vehicles.h"
-#include <qcommon\q_platform.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_math.h>
 
 extern qboolean BG_SabersOff(const playerState_t* ps);
 saberInfo_t* BG_MySaber(int clientNum, int saber_num);

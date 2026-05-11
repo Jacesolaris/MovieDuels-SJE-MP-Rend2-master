@@ -36,18 +36,18 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "w_saber.h"
 #include "ai_main.h"
 #include <string.h>
-#include <qcommon\q_platform.h>
-#include <qcommon\q_shared.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_shared.h>
+#include <qcommon/q_math.h>
 #include "bg_public.h"
 #include "anims.h"
 #include <assert.h>
 #include "g_public.h"
 #include "bg_weapons.h"
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include "b_public.h"
 #include "teams.h"
-#include <qcommon\q_color.h>
+#include <qcommon/q_color.h>
 #include "bg_saga.h"
 #include "bg_vehicles.h"
 

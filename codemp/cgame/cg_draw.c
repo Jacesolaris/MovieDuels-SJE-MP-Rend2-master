@@ -39,10 +39,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "game/bg_saga.h"
 #include "ui/ui_shared.h"
 #include "ui/ui_public.h"
-#include <qcommon\q_math.h>
-#include <game\bg_public.h>
-#include <qcommon\q_platform.h>
-#include <qcommon\q_shared.h>
+#include <qcommon/q_math.h>
+#include <game/bg_public.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_shared.h>
 
 extern float CG_RadiusForCent(const centity_t* cent);
 qboolean CG_WorldCoordToScreenCoordFloat(vec3_t world_coord, float* x, float* y);
@@ -558,15 +558,15 @@ int CG_Text_Height(const char* text, const float scale, const int i_menu_font)
 
 #include "qcommon/qfiles.h"	// for STYLE_BLINK etc
 #include <math.h>
-#include <rd-common\tr_types.h>
+#include <rd-common/tr_types.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <game\surfaceflags.h>
+#include <game/surfaceflags.h>
 #include <stdio.h>
-#include <game\bg_vehicles.h>
+#include <game/bg_vehicles.h>
 #include <string.h>
-#include <game\bg_weapons.h>
-#include <ui\menudef.h>
+#include <game/bg_weapons.h>
+#include <ui/menudef.h>
 
 void CG_Text_Paint(const float x, const float y, const float scale, vec4_t color, const char* text, float adjust,
 	const int limit, const int style,

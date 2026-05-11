@@ -30,20 +30,20 @@ Ghoul2 Insert Start
 */
 #include "qcommon/q_shared.h"
 #include "ghoul2/G2.h"
-#include <qcommon\q_math.h>
-#include <qcommon\q_platform.h>
-#include <rd-common\tr_types.h>
-#include <game\bg_public.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_platform.h>
+#include <rd-common/tr_types.h>
+#include <game/bg_public.h>
 #include <assert.h>
-#include <game\bg_weapons.h>
-#include <qcommon\qfiles.h>
-#include <qcommon\q_string.h>
-#include <game\anims.h>
-#include <game\teams.h>
+#include <game/bg_weapons.h>
+#include <qcommon/qfiles.h>
+#include <qcommon/q_string.h>
+#include <game/anims.h>
+#include <game/teams.h>
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
-#include <game\bg_vehicles.h>
+#include <game/bg_vehicles.h>
 /*
 Ghoul2 Insert end
 */

@@ -27,20 +27,20 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "fx_local.h"
 #include "ui/ui_public.h"
 #include "ghoul2/G2.h"
-#include <qcommon\qfiles.h>
+#include <qcommon/qfiles.h>
 #include <stdlib.h>
-#include <game\surfaceflags.h>
+#include <game/surfaceflags.h>
 #include <assert.h>
-#include <game\bg_weapons.h>
-#include <qcommon\q_string.h>
-#include <qcommon\q_color.h>
-#include <game\bg_vehicles.h>
-#include <game\teams.h>
-#include <qcommon\q_shared.h>
+#include <game/bg_weapons.h>
+#include <qcommon/q_string.h>
+#include <qcommon/q_color.h>
+#include <game/bg_vehicles.h>
+#include <game/teams.h>
+#include <qcommon/q_shared.h>
 #include <string.h>
-#include <qcommon\q_math.h>
-#include <qcommon\q_platform.h>
-#include <game\bg_public.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_platform.h>
+#include <game/bg_public.h>
 //==========================================================================
 
 // simple de-duplication for obituary/kill prints to avoid repeated/multi-line spam

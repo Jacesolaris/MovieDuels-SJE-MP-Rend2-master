@@ -26,14 +26,14 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "ai_main.h"
 #include <string.h>
 #include "bg_saga.h"
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include "g_public.h"
 #include "bg_public.h"
-#include <qcommon\q_color.h>
-#include <qcommon\q_platform.h>
+#include <qcommon/q_color.h>
+#include <qcommon/q_platform.h>
 #include "bg_weapons.h"
 #include <stdlib.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include "surfaceflags.h"
 
 float gWPRenderTime = 0;
