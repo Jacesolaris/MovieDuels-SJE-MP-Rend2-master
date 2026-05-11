@@ -31,19 +31,19 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 #include "cg_holster.h"
-#include <game\anims.h>
-#include <game\bg_public.h>
-#include <game\bg_vehicles.h>
-#include <game\bg_weapons.h>
-#include <game\surfaceflags.h>
-#include <game\teams.h>
-#include <qcommon\qfiles.h>
-#include <qcommon\q_shared.h>
-#include <rd-common\tr_types.h>
-#include <qcommon\q_color.h>
-#include <qcommon\q_math.h>
-#include <qcommon\q_platform.h>
-#include <qcommon\q_string.h>
+#include <game/anims.h>
+#include <game/bg_public.h>
+#include <game/bg_vehicles.h>
+#include <game/bg_weapons.h>
+#include <game/surfaceflags.h>
+#include <game/teams.h>
+#include <qcommon/qfiles.h>
+#include <qcommon/q_shared.h>
+#include <rd-common/tr_types.h>
+#include <qcommon/q_color.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_string.h>
 
 extern void CheckCameraLocation(vec3_t oldeye_origin);
 extern vmCvar_t cg_thirdPersonAlpha;

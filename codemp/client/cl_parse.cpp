@@ -33,7 +33,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #else
 #include <zlib.h>
 #endif
-#include <qcommon\q_color.h>
+#include <qcommon/q_color.h>
 
 static char hiddenCvarVal[128];
 

@@ -33,13 +33,13 @@ FORCE INTERFACE
 #include "ui_force.h"
 #include "keycodes.h"
 #include <stdlib.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include <string.h>
 #include "menudef.h"
-#include <qcommon\q_math.h>
-#include <qcommon\q_shared.h>
-#include <game\bg_public.h>
-#include <qcommon\q_platform.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_shared.h>
+#include <game/bg_public.h>
+#include <qcommon/q_platform.h>
 #include "ui_shared.h"
 
 int uiForceSide = FORCE_LIGHTSIDE;

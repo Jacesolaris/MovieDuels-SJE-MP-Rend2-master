@@ -25,10 +25,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "bg_saga.h"
 #include "bg_weapons.h"
-#include <qcommon\q_platform.h>
+#include <qcommon/q_platform.h>
 #include "g_local.h"
-#include <qcommon\q_math.h>
-#include <qcommon\q_shared.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_shared.h>
 
 #define MAX_CHAT_BUFFER_SIZE 8192
 #define MAX_CHAT_LINE_SIZE 128

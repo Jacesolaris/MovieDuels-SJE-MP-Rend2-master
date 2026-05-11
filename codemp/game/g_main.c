@@ -29,15 +29,15 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "b_local.h"
 #include "g_dynmusic.h"
 #include "anims.h"
-#include <qcommon\q_color.h>
+#include <qcommon/q_color.h>
 #include <corecrt.h>
 #include <time.h>
 #include <stdarg.h>
 #include <search.h>
 #include "b_public.h"
 #include "g_public.h"
-#include <qcommon\q_shared.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_shared.h>
+#include <qcommon/q_math.h>
 #include "surfaceflags.h"
 #include <ctype.h>
 #include <assert.h>
@@ -45,8 +45,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include "bg_public.h"
 #include "g_team.h"
-#include <qcommon\q_platform.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_string.h>
 
 level_locals_t level;
 

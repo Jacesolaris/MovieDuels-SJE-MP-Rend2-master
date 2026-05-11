@@ -34,9 +34,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_dynmusic.h"
 #include "g_roff.h"
 #include "g_camera.h"
-#include <qcommon\q_platform.h>
+#include <qcommon/q_platform.h>
 #include "g_local.h"
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include "bg_weapons.h"
 #include "g_team.h"
 #include <math.h>
@@ -49,7 +49,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include "g_public.h"
 #include <stdarg.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include "anims.h"
 
 qboolean BG_SabersOff(const playerState_t* ps);

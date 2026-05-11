@@ -43,17 +43,17 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <assert.h>
 #include "teams.h"
 #include "g_team.h"
-#include <qcommon\q_color.h>
+#include <qcommon/q_color.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include <string.h>
 #include "g_public.h"
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include "bg_weapons.h"
 #include "bg_public.h"
-#include <qcommon\q_platform.h>
-#include <qcommon\q_shared.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_shared.h>
 
 extern qboolean in_camera;
 //rww - for getting bot commands...

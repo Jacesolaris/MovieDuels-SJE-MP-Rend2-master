@@ -35,7 +35,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "game/bg_public.h"
 #include "game/anims.h"
 #include "ghoul2/G2.h"
-#include <qcommon\q_color.h>
+#include <qcommon/q_color.h>
 #include <string.h>
 #include "menudef.h"
 

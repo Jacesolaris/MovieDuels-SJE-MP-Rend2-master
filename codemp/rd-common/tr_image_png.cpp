@@ -24,9 +24,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "tr_common.h"
 #include <png.h>
-#include <qcommon\q_shared.h>
+#include <qcommon/q_shared.h>
 #include <pngconf.h>
-#include <qcommon\q_platform.h>
+#include <qcommon/q_platform.h>
 #include <csetjmp>
 #include <cstdint>
 #include <string.h>

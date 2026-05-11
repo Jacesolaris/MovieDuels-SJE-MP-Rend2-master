@@ -1,8 +1,8 @@
 // leave this line at the top of all AI_xxxx.cpp files for PCH reasons...
 #include "b_local.h"
-#include <qcommon\q_shared.h>
+#include <qcommon/q_shared.h>
 #include "g_local.h"
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 
 extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength, const qboolean breakSaberLock);
 extern void G_SoundOnEnt(gentity_t* ent, soundChannel_t channel, const char* sound_path);

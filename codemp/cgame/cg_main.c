@@ -26,16 +26,16 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "cg_local.h"
 
 #include "ui/ui_shared.h"
-#include <game\bg_weapons.h>
+#include <game/bg_weapons.h>
 #include "cg_public.h"
-#include <qcommon\q_math.h>
-#include <qcommon\q_platform.h>
-#include <qcommon\q_shared.h>
-#include <game\bg_vehicles.h>
-#include <game\bg_public.h>
-#include <qcommon\qfiles.h>
-#include <qcommon\q_color.h>
-#include <ui\menudef.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_shared.h>
+#include <game/bg_vehicles.h>
+#include <game/bg_public.h>
+#include <qcommon/qfiles.h>
+#include <qcommon/q_color.h>
+#include <ui/menudef.h>
 #include <assert.h>
 // display context for new ui stuff
 displayContextDef_t cgDC;

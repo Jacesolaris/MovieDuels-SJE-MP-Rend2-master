@@ -50,12 +50,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 #include <string.h>
 #include <assert.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include <stdlib.h>
 #include "g_public.h"
-#include <qcommon\q_math.h>
-#include <qcommon\q_platform.h>
-#include <qcommon\q_color.h>
+#include <qcommon/q_math.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_color.h>
 
 qboolean PM_SaberInTransition(int move);
 qboolean PM_SaberInDeflect(int move);

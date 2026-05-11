@@ -39,8 +39,8 @@ typedef struct gclient_s gclient_t;
 #include "ai.h"
 #include "anims.h"
 #include "teams.h"
-#include <qcommon\q_platform.h>
-#include <qcommon\q_math.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_math.h>
 
 extern int gPainMOD;
 extern int gPainHitLoc;

@@ -37,17 +37,17 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/q_shared.h"
 #include "bg_vehicles.h"
 #include "b_public.h"
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include "bg_weapons.h"
 #include "bg_public.h"
 #include "g_public.h"
 #include "anims.h"
 #include "surfaceflags.h"
 #include <string.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include "teams.h"
-#include <qcommon\q_platform.h>
-#include <qcommon\q_color.h>
+#include <qcommon/q_platform.h>
+#include <qcommon/q_color.h>
 
 #define	MISSILE_PRESTEP_TIME	50
 

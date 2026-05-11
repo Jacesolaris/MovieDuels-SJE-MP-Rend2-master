@@ -32,16 +32,16 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_local.h"
 #include "bg_saga.h"
 #include "surfaceflags.h"
-#include <qcommon\q_math.h>
+#include <qcommon/q_math.h>
 #include "g_public.h"
 #include <assert.h>
 #include <string.h>
-#include <qcommon\q_string.h>
+#include <qcommon/q_string.h>
 #include <stdlib.h>
 #include "bg_public.h"
 #include "bg_weapons.h"
-#include <qcommon\q_shared.h>
-#include <qcommon\q_platform.h>
+#include <qcommon/q_shared.h>
+#include <qcommon/q_platform.h>
 
 #define SIEGEITEM_STARTOFFRADAR 8
 
