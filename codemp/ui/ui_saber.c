@@ -2424,7 +2424,7 @@ static void UI_DoCWSaber(vec3_t origin, vec3_t dir, float length, float lengthMa
 
 	float coreradius = (radius * 0.4f + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersCoreSizeCW.value;
 
-	effectradius *= 0.6f;
+	effectradius *= 0.4f;
 	coreradius *= 0.85f;
 
 	// Main glow
@@ -2585,7 +2585,7 @@ static void UI_DoMaulSaber(vec3_t origin, vec3_t dir, float length, float length
 
 	float coreradius = (radius * 0.4f + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersCoreSizeMaul.value;
 
-	effectradius *= 0.6f;
+	effectradius *= 0.4f;
 	coreradius *= 0.85f;
 
 	// Main glow

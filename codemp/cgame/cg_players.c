@@ -62,6 +62,8 @@ extern qboolean PM_InKataAnim(int anim);
 extern qboolean PM_StandingAtReadyAnim(int anim);
 extern qboolean PM_WalkingOrRunningAnim(int anim);
 extern qboolean pm_saber_innonblockable_attack(int anim);
+extern qboolean PM_SuperBreakWinAnim(int anim);
+extern qboolean G_DrawSaberTrailForAnimation(int anim);
 
 #define MIN_SABERBLADE_DRAW_LENGTH 0.5f
 
@@ -7373,7 +7375,8 @@ static void CG_DoSaber(vec3_t origin, vec3_t dir, float length, float length_max
 	if (do_light)
 	{
 		CG_RGBForSaberColor(color, rgb, cnum, bnum);
-		trap->R_AddLightToScene(mid, length * 1.4f + Q_flrand(0.0f, 1.0f) * 3.0f, rgb[0], rgb[1], rgb[2]);
+		VectorScale(rgb, 0.66f, rgb);
+		trap->R_AddLightToScene(mid, length * 2.0f + Q_flrand(0.0f, 1.0f) * 10.0f, rgb[0], rgb[1], rgb[2]);
 	}
 
 	memset(&saber, 0, sizeof(refEntity_t));
@@ -12113,7 +12116,8 @@ static void CG_DoCWSaber(vec3_t origin, vec3_t dir, float length, float length_m
 	if (do_light)
 	{
 		CG_RGBForSaberColor(color, rgb, cnum, bnum);
-		trap->R_AddLightToScene(mid, length * 1.4f + Q_flrand(0.0f, 1.0f) * 3.0f, rgb[0], rgb[1], rgb[2]);
+		VectorScale(rgb, 0.66f, rgb);
+		trap->R_AddLightToScene(mid, length * 2.0f + Q_flrand(0.0f, 1.0f) * 10.0f, rgb[0], rgb[1], rgb[2]);
 	}
 
 	memset(&saber, 0, sizeof(refEntity_t));
@@ -12168,7 +12172,7 @@ static void CG_DoCWSaber(vec3_t origin, vec3_t dir, float length, float length_m
 	ignite_radius -= length;
 	ignite_radius *= 2.2f;
 
-	effectradius *= 0.6f;
+	effectradius *= 0.4f;
 	coreradius *= 0.85f;
 
 	if (ignite_radius < 0.0f)
@@ -12374,7 +12378,8 @@ static void CG_DoMaulSaber(vec3_t origin, vec3_t dir, float length, float length
 	if (do_light)
 	{
 		CG_RGBForSaberColor(color, rgb, cnum, bnum);
-		trap->R_AddLightToScene(mid, length * 1.4f + Q_flrand(0.0f, 1.0f) * 3.0f, rgb[0], rgb[1], rgb[2]);
+		VectorScale(rgb, 0.66f, rgb);
+		trap->R_AddLightToScene(mid, length * 2.0f + Q_flrand(0.0f, 1.0f) * 10.0f, rgb[0], rgb[1], rgb[2]);
 	}
 
 	memset(&saber, 0, sizeof(refEntity_t));
@@ -13124,8 +13129,6 @@ static void CG_SaberCompWork(vec3_t start, vec3_t end, centity_t* owner,
 #define SABER_TRAIL_TIME	40.0f
 #define FX_USE_ALPHA		0x08000000
 
-qboolean PM_SuperBreakWinAnim(int anim);
-
 void CG_AddSaberBlade(centity_t* cent, centity_t* scent, int renderfx, int saber_num, int blade_num, vec3_t origin,
 	vec3_t angles, qboolean from_saber, qboolean dont_draw)
 {
@@ -13444,31 +13447,20 @@ CheckTrail:
 
 	if (cg_SFXSabers.integer == 0 || cg_SFXSabers.integer == 10 || cg_SFXSabers.integer == 11)
 	{
-		int trail_dur;
+		int trail_dur = saber_trail->duration / 5.0f;
 		// Use Raven's superior sabers.
 		saber_trail->duration = saber_moveData[cent->currentState.saberMove].trailLength;
 
-		if (cent->currentState.userInt3 & 1 << FLAG_ATTACKFAKE)
-		{
-			//attack faking, have a longer saber trail
-			saber_trail->duration *= 2;
-		}
-
-		if (cent->currentState.userInt3 & 1 << FLAG_FATIGUED)
-		{
-			//fatigued players have slightly shorter saber trails since they're moving slower.
-			saber_trail->duration *= .5;
-		}
-
-		trail_dur = saber_trail->duration / 5.0f;
-
 		if (!trail_dur)
 		{
-			//hmm.. ok, default
 			if (PM_SuperBreakWinAnim(cent->currentState.torsoAnim)
 				|| PM_InKataAnim(cent->currentState.torsoAnim))
-			{
-				trail_dur = 150;
+			{// Super Break and Kata animations get a longer trail.
+				trail_dur = 150.0f;
+			}
+			else if(G_DrawSaberTrailForAnimation(cent->currentState.torsoAnim))
+			{// Certain saber animations get a longer trail.
+				trail_dur = 200.0f;
 			}
 			else
 			{
@@ -13484,6 +13476,7 @@ CheckTrail:
 			{
 				if (client->saber[saber_num].type == SABER_SITH_SWORD
 					|| (PM_SuperBreakWinAnim(cent->currentState.torsoAnim)
+						|| G_DrawSaberTrailForAnimation(cent->currentState.torsoAnim)
 						|| PM_InKataAnim(cent->currentState.torsoAnim)
 						|| saber_moveData[cent->currentState.saberMove].trailLength > 0
 						|| cent->currentState.powerups & 1 << PW_SPEED && cg_speedTrail.integer
@@ -13735,10 +13728,10 @@ CheckTrail:
 
 								if (PM_SaberInAttack(cent->currentState.saberMove)
 									|| PM_SuperBreakWinAnim(cent->currentState.torsoAnim)
-									|| PM_InKataAnim(cent->currentState.torsoAnim))
-								{
-									//in attack, strong trail
-									fx.mKillTime = 300;
+									|| PM_InKataAnim(cent->currentState.torsoAnim)
+									|| G_DrawSaberTrailForAnimation(cent->currentState.torsoAnim))
+								{//in attack, strong trail
+									fx.mKillTime = 250;
 								}
 								else
 								{

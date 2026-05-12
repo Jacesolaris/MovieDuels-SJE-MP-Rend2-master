@@ -7271,7 +7271,7 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 	{
 		//successfully changed anims
 		if (pm->ps->weapon == WP_SABER && !BG_SabersOff(pm->ps))
-		{
+		{// saber is on
 #ifdef _GAME
 			if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT)
 			{
@@ -7296,7 +7296,7 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 				pm->ps->userInt3 &= ~(1 << FLAG_PARRIED);
 				pm->ps->userInt3 &= ~(1 << FLAG_BLOCKING);
 				pm->ps->userInt3 &= ~(1 << FLAG_BLOCKED);
-				//cancel out pre-block flag
+				//cancel out Mblock flag
 				pm->ps->userInt3 &= ~(1 << FLAG_MBLOCKBOUNCE);
 			}
 
@@ -7306,8 +7306,7 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 			}
 
 			if (!PM_SaberInParry(new_move))
-			{
-				//cancel out pre-block flag
+			{//cancel out pre-block flag
 				pm->ps->userInt3 &= ~(1 << FLAG_PREBLOCK);
 			}
 			if (PM_SaberInAttack(new_move) || PM_SaberInSpecialAttack(anim))
@@ -7357,40 +7356,37 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 						}
 					}
 				}
-				//else if (setflags & SETANIM_FLAG_RESTART && PM_SaberInSpecialAttack(anim))
-				//{
-				//	//sigh, if restarted a special, then set the weaponTime *again*
-				//	if (!PM_InCartwheel(pm->ps->torsoAnim))
-				//	{
-				//		//can still attack during a cartwheel/arial
-				//		pm->ps->weaponTime = pm->ps->torsoTimer; //so we know our weapon is busy
-				//	}
-				//}
-			}
-			/*else if (PM_SaberInStart(new_move))
-			{
-				const int damage_delay = 150;
-				if (pm->ps->torsoTimer < damage_delay)
+				else if (setflags & SETANIM_FLAG_RESTART && PM_SaberInSpecialAttack(anim))
 				{
-					pm->ps->torsoTimer;
+					//sigh, if restarted a special, then set the weaponTime *again*
+					if (!PM_InCartwheel(pm->ps->torsoAnim))
+					{
+						//can still attack during a cartwheel/arial
+						pm->ps->weaponTime = pm->ps->torsoTimer; //so we know our weapon is busy
+					}
 				}
-			}*/
-
-			if (PM_SaberInSpecial(new_move) &&
-				pm->ps->weaponTime < pm->ps->torsoTimer)
-			{
-				//rww 01-02-03 - I think this will solve the issue of special attacks being interrupt able, hopefully without side effects
-				pm->ps->weaponTime = pm->ps->torsoTimer;
 			}
+			else if (PM_SaberInStart(new_move))
+			{//don't damage on the first few frames of a start anim because it may pop from one position to some drastically different one, killing the enemy without hitting them.
+				int damageDelay = 150;
+				if (pm->ps->torsoTimer < damageDelay)
+				{
+					damageDelay = pm->ps->torsoTimer;
+				}
+			}
+		}
+
+		if (PM_SaberInSpecial(new_move) &&
+			pm->ps->weaponTime < pm->ps->torsoTimer)
+		{ //rww 01-02-03 - I think this will solve the issue of special attacks being interruptable, hopefully without side effects
+			pm->ps->weaponTime = pm->ps->torsoTimer;
 		}
 
 		pm->ps->saberMove = new_move;
 		pm->ps->saberBlocking = saber_moveData[new_move].blocking;
 
-		pm->ps->torsoAnim = anim;
-
 		if (pm->ps->clientNum == 0)
-		{ //only update this for the player, not npcs, since it is only used for the saber trail
+		{
 			if (pm->ps->saberBlocked >= BLOCKED_UPPER_RIGHT_PROJ && pm->ps->saberBlocked <= BLOCKED_TOP_PROJ
 				&& new_move >= LS_REFLECT_UP && new_move <= LS_REFLECT_LL)
 			{
@@ -7398,16 +7394,14 @@ void PM_SetSaberMove(saber_moveName_t new_move)
 			}
 			else
 			{
-				if (pm->ps->weaponTime <= 0)
-				{//only clear if we are not in the middle of an attack, or if we are switching to a non-blocking move
-					pm->ps->saberBlocked = BLOCKED_NONE;
-				}
+				pm->ps->saberBlocked = BLOCKED_NONE;
 			}
 		}
 		else if (pm->ps->saberBlocked <= BLOCKED_ATK_BOUNCE ||
 			!BG_SabersOff(pm->ps) ||
 			(new_move < LS_PARRY_UR || new_move > LS_REFLECT_LL))
-		{//only clear if we are not blocking a projectile or if we are switching to a non-blocking move, or if sabers are off
+		{
+			//NPCs only clear blocked if not blocking?
 			pm->ps->saberBlocked = BLOCKED_NONE;
 		}
 	}
