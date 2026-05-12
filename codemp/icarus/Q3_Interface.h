@@ -324,7 +324,7 @@ void ICam_Shake(float intensity, int duration);
 void RemoveComma(char* comma);
 void ICam_Follow(const char* cameraGroup, float speed, float initLerp);
 void Q3_SetBroadcast(int entID, qboolean broadcast);
-void Q3_SetRenderCullRadius(int entID, float float_data);
+static void Q3_SetRenderCullRadius(int entID, float float_data);
 void Q3_SetForcePower(int entID, int forcePower, qboolean powerOn);
 
 #ifdef __cplusplus

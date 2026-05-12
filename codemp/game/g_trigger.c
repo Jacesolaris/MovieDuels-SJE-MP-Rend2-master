@@ -26,6 +26,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 int gTrigFallSound;
 
+gentity_t* airspace[32];
+int numAirspaces;
+
 void init_trigger(gentity_t* self)
 {
 	if (!VectorCompare(self->s.angles, vec3_origin))

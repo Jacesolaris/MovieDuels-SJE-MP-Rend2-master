@@ -30,7 +30,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_dynmusic.h"
 #include "anims.h"
 #include <qcommon/q_color.h>
+#if defined(_WIN32)
 #include <corecrt.h>
+#endif
 #include <time.h>
 #include <stdarg.h>
 #include <search.h>

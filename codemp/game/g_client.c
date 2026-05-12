@@ -702,6 +702,7 @@ Find the spot that we DON'T want to use
 ================
 */
 static qboolean SafeSpawn_FindOffset(const vec3_t baseOrigin, vec3_t outOrigin);
+static qboolean SafeSpawn_IsOccupied(const vec3_t origin);
 
 static gentity_t* SelectNearestDeathmatchSpawnPoint(vec3_t from)
 {

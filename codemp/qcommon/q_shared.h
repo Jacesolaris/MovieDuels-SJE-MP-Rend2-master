@@ -742,8 +742,13 @@ qboolean Info_NextPair(const char** head, char* key, char* value);
 
 // this is only here so the functions in q_shared.c and bg_*.c can link
 #if defined( _GAME ) || defined( _CGAME ) || defined( UI_BUILD )
+#if !defined(_MSC_VER)
+extern void (*Com_Error)(int level, const char* error, ...);
+extern void (*Com_Printf)(const char* msg, ...);
+#else
 void (*Com_Error)(int level, const char* error, ...);
 void (*Com_Printf)(const char* msg, ...);
+#endif
 #else
 void NORETURN QDECL Com_Error(int level, const char* error, ...);
 void QDECL Com_Printf(const char* msg, ...);

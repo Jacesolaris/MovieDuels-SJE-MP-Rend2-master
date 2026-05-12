@@ -54,6 +54,7 @@ int RE_SavePNG(const char* filename, const byte* buf, const size_t width, const 
 	see where it it is documented in the libpng manual.
 	*/
 	constexpr int depth = 8;
+	png_byte** row_pointers = nullptr;
 
 	fp = ri->FS_FOpenFileWrite(filename, qtrue);
 	if (!fp) {
@@ -90,7 +91,7 @@ int RE_SavePNG(const char* filename, const byte* buf, const size_t width, const 
 
 	/* Initialize rows of PNG. */
 
-	const auto row_pointers = static_cast<png_byte**>(png_malloc(png_ptr, height * sizeof(png_byte*)));
+	row_pointers = static_cast<png_byte**>(png_malloc(png_ptr, height * sizeof(png_byte*)));
 	for (y = 0; y < height; ++y) {
 		auto row = static_cast<png_byte*>(png_malloc(png_ptr, sizeof(uint8_t) * width * byte_depth));
 		row_pointers[height - y - 1] = row;

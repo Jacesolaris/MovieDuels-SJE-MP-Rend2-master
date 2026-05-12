@@ -1647,7 +1647,7 @@ void SP_Holocron(gentity_t* ent)
 qboolean holocrons_loaded = qfalse;
 int number_of_holocronpositions = 0;
 
-static holocrons_t holocrons[MAX_HOLOCRON_POSITIONS];
+holocrons_t holocrons[MAX_HOLOCRON_POSITIONS];
 
 /*
 ================

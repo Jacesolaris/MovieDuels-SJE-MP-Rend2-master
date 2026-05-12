@@ -29,7 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/qcommon.h"
 
 // if you change this enum, you MUST update the #defines below
-using MusicState_e = enum
+using MusicState_e = enum MusicState_e_
 {
 	//( eBGRNDTRACK_DATABEGIN )			// begin-label for FOR loops
 	//

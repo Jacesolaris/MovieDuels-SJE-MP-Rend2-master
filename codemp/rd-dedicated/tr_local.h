@@ -222,7 +222,7 @@ using alphaGen_t = enum
 	AGEN_ONE_MINUS_DOT
 };
 
-using colorGen_t = enum
+enum colorGen_t
 {
 	CGEN_BAD,
 	CGEN_IDENTITY_LIGHTING,
@@ -250,7 +250,7 @@ using colorGen_t = enum
 	CGEN_LIGHTMAPSTYLE,
 };
 
-using texCoordGen_t = enum
+enum texCoordGen_t
 {
 	TCGEN_BAD,
 	TCGEN_IDENTITY,

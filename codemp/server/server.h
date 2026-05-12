@@ -49,7 +49,7 @@ using svEntity_t = struct svEntity_s
 	int snapshotCounter; // used to prevent double adding from portal views
 };
 
-using serverState_t = enum
+using serverState_t = enum serverState_e
 {
 	SS_DEAD,
 	// no map loaded
@@ -116,7 +116,7 @@ using clientSnapshot_t = struct clientSnapshot_s
 	int messageSize; // used to rate drop packets
 };
 
-using clientState_t = enum
+using clientState_t = enum clientState_e
 {
 	CS_FREE,
 	// can be reused for a new connection
@@ -131,7 +131,7 @@ using clientState_t = enum
 };
 
 // struct to hold demo data for a single demo
-using demoInfo_t = struct
+using demoInfo_t = struct demoInfo_s
 {
 	char demoName[MAX_OSPATH];
 	qboolean demorecording;

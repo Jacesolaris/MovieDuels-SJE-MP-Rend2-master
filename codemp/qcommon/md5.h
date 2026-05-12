@@ -37,7 +37,7 @@ void MD5Final(MD5Context* ctx, unsigned char* digest);
 constexpr size_t MD5_BLOCK_SIZE = 64;
 constexpr size_t MD5_DIGEST_SIZE = 16;
 
-using hmacMD5Context_t = struct
+using hmacMD5Context_t = struct hmacMD5Context_s
 {
 	MD5Context md5Context;
 	unsigned char iKeyPad[MD5_BLOCK_SIZE];

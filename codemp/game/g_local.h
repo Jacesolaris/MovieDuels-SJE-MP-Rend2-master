@@ -152,8 +152,8 @@ typedef union sharedBuffer_u
 extern sharedBuffer_t gSharedBuffer;
 
 //Airspace entities
-gentity_t* airspace[32];
-int numAirspaces;
+extern gentity_t* airspace[32];
+extern int numAirspaces;
 
 // movers are things like doors, plats, buttons, etc
 typedef enum
