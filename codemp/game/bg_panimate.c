@@ -63,6 +63,10 @@ extern qboolean PM_SaberInBounce(int move);
 extern qboolean PM_SaberInBrokenParry(int move);
 extern saberInfo_t* BG_MySaber(int clientNum, int saber_num);
 extern qboolean PM_InBackFlip(int anim);
+qboolean PM_SaberInParry(const int move);
+qboolean PM_SaberInKnockaway(const int move);
+qboolean PM_SaberInReflect(const int move);
+qboolean PM_SaberInStart(const int move);
 /*
 ==============================================================================
 BEGIN: Animation utility functions (sequence checking)

@@ -107,7 +107,7 @@ extern int PM_InGrappleMove(int anim);
 extern qboolean PM_SaberInMassiveBounce(int anim);
 extern qboolean PM_InRollIgnoreTimer(const playerState_t* ps);
 
-pmove_t* pm;
+extern pmove_t* pm;
 pml_t pml;
 
 bgEntity_t* pm_entSelf = NULL;

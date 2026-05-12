@@ -149,7 +149,7 @@ typedef int bot_route_t[MAX_WPARRAY_SIZE];
 //data area for objective depandancy
 //we assume that the dependancy stuff is only for the attacking team since the defenders
 //never seem to have attackable objectives.
-int ObjectiveDependancy[MAX_OBJECTIVES][MAX_OBJECTIVEDEPENDANCY];
+extern int ObjectiveDependancy[MAX_OBJECTIVES][MAX_OBJECTIVEDEPENDANCY];
 
 //Defines the top list of weapons that we care about getting or having ammo for
 //while not immediately caring about it.
@@ -160,7 +160,7 @@ int ObjectiveDependancy[MAX_OBJECTIVES][MAX_OBJECTIVEDEPENDANCY];
 //The debounce time for most of the higher level thinking (like the desire to get weapons/ammo).
 #define HIGHTHINKDEBOUNCE	5000
 
-int next_point[MAX_CLIENTS];
+extern int next_point[MAX_CLIENTS];
 
 typedef struct nodeWaypoint_s
 {
@@ -172,9 +172,9 @@ typedef struct nodeWaypoint_s
 } nodeWaypoint_t;
 
 //Don't use the 0 slot of this array.  It's a binary heap and it's based on 1 being the first slot.
-nodeWaypoint_t OpenList[MAX_WPARRAY_SIZE + 1];
+extern nodeWaypoint_t OpenList[MAX_WPARRAY_SIZE + 1];
 
-nodeWaypoint_t CloseList[MAX_WPARRAY_SIZE];
+extern nodeWaypoint_t CloseList[MAX_WPARRAY_SIZE];
 
 typedef enum
 {

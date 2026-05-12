@@ -239,7 +239,7 @@ using alphaGen_t = enum {
 	AGEN_ONE_MINUS_DOT
 };
 
-using colorGen_t = enum {
+enum colorGen_t {
 	CGEN_BAD,
 	CGEN_IDENTITY_LIGHTING,	// tr.identityLight
 	CGEN_IDENTITY,			// always (1,1,1,1)
@@ -259,7 +259,7 @@ using colorGen_t = enum {
 	CGEN_LIGHTING_DIFFUSE_ENTITY_NEW,
 };
 
-using texCoordGen_t = enum {
+enum texCoordGen_t {
 	TCGEN_BAD,
 	TCGEN_IDENTITY,			// clear to 0,0
 	TCGEN_LIGHTMAP,

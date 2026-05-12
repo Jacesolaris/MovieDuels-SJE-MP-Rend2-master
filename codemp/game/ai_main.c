@@ -8664,8 +8664,9 @@ static qboolean Bot_SameGroundLevel(bot_state_t* bs, const vec3_t enemyPos)
 // ---------------------------------------------------------
 // CLOSE‑RANGE MELEE COMBAT HANDLING
 // ---------------------------------------------------------
-void JediDirectionalDashDodge(bot_state_t* bs, const vec3_t enemyPos);
-void BotStartBackOff(bot_state_t* bs);
+static void JediDirectionalDashDodge(bot_state_t* bs, const vec3_t enemyPos);
+static void BotStartBackOff(bot_state_t* bs);
+static qboolean BotEnemyInKata(const playerState_t* ps);
 static void melee_combat_handling(bot_state_t* bs)
 {
 	if (!bs || !bs->currentEnemy)
@@ -17419,6 +17420,11 @@ int bot_weapon_detpack(bot_state_t* bs, const gentity_t* target)
 
 	return qtrue;
 }
+
+nodeWaypoint_t OpenList[MAX_WPARRAY_SIZE + 1];
+nodeWaypoint_t CloseList[MAX_WPARRAY_SIZE];
+int ObjectiveDependancy[MAX_OBJECTIVES][MAX_OBJECTIVEDEPENDANCY];
+int next_point[MAX_CLIENTS];
 
 int gUpdateVars = 0;
 

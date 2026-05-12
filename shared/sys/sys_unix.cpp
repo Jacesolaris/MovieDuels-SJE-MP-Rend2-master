@@ -174,9 +174,11 @@ const char *Sys_Basename( char *path )
 Sys_Dirname
 ==================
 */
-const char *Sys_Dirname( char *path )
+const char *Sys_Dirname( const char *path )
 {
-	return dirname( path );
+	static char buf[MAX_OSPATH];
+	Q_strncpyz(buf, path, sizeof(buf));
+	return dirname(buf);
 }
 
 /*

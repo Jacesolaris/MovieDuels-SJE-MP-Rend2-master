@@ -284,21 +284,21 @@ typedef struct mdxmVertex_s {
 // these are convenience functions that I can invoked in code. Do NOT change them (because this is a shared file),
 //	but if you want to copy the logic out and use your own versions then fine...
 //
-static int G2_GetVertWeights(const mdxmVertex_t* pVert)
+static __attribute__((unused)) int G2_GetVertWeights(const mdxmVertex_t* pVert)
 {
 	const int iNumWeights = (pVert->uiNmWeightsAndBoneIndexes >> 30) + 1;	// 1..4 count
 
 	return iNumWeights;
 }
 
-static int G2_GetVertBoneIndex(const mdxmVertex_t* pVert, const int iWeightNum)
+static __attribute__((unused)) int G2_GetVertBoneIndex(const mdxmVertex_t* pVert, const int iWeightNum)
 {
 	const int iBoneIndex = (pVert->uiNmWeightsAndBoneIndexes >> (iG2_BITS_PER_BONEREF * iWeightNum)) & ((1 << iG2_BITS_PER_BONEREF) - 1);
 
 	return iBoneIndex;
 }
 
-static float G2_GetVertBoneWeight(const mdxmVertex_t* pVert, const int iWeightNum, float& fTotalWeight, int iNumWeights)
+static __attribute__((unused)) float G2_GetVertBoneWeight(const mdxmVertex_t* pVert, const int iWeightNum, float& fTotalWeight, int iNumWeights)
 {
 	float fBoneWeight;
 

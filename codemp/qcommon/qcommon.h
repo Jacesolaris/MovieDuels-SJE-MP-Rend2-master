@@ -126,7 +126,7 @@ NET
 
 #define	MAX_RELIABLE_COMMANDS	256			// max string commands buffered for restransmit
 
-using netsrc_t = enum
+using netsrc_t = enum netsrc_t_
 {
 	NS_CLIENT,
 	NS_SERVER
@@ -310,7 +310,7 @@ public:
 
 extern const char* vmStrs[MAX_VM];
 
-using sharedTraps_t = enum
+using sharedTraps_t = enum sharedTraps_e
 {
 	TRAP_MEMSET = 100,
 	TRAP_MEMCPY,

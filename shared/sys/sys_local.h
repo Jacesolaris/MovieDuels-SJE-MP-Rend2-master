@@ -28,6 +28,7 @@ void IN_Frame(void);
 void IN_Shutdown(void);
 void IN_Restart(void);
 
+void Sys_AnsiColorPrint( const char *msg );
 void Sys_PlatformInit();
 void Sys_PlatformExit();
 char* Sys_ConsoleInput();
