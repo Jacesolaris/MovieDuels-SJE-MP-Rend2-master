@@ -990,6 +990,7 @@ static void CG_RegisterSounds(void)
 	trap->S_RegisterSound("sound/weapons/force/pushlow.mp3");
 	trap->S_RegisterSound("sound/weapons/force/pushed.mp3");
 	trap->S_RegisterSound("sound/weapons/force/pushhard.mp3");
+	trap->S_RegisterSound("sound/weapons/force/push_md.mp3");
 	trap->S_RegisterSound("sound/weapons/force/pushyoda.mp3");
 	trap->S_RegisterSound("sound/weapons/force/destruction.mp3");
 	trap->S_RegisterSound("sound/weapons/force/repulsepush.wav");

@@ -3281,7 +3281,6 @@ static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t 
 					}
 				}
 
-
 				if (traceEnt->client)
 				{
 					if (!Q_irand(0, 2))
@@ -5342,7 +5341,6 @@ static void PushDamage(gentity_t* self, gentity_t* enemy, vec3_t location, const
 	);
 }
 
-
 void ForceThrow(gentity_t* self, qboolean pull)
 {
 	//shove things in front of you away
@@ -5453,19 +5451,20 @@ void ForceThrow(gentity_t* self, qboolean pull)
 		i_grip = qtrue;
 	}
 
-	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE && self->client->ps.fd.forcePowerLevel[FP_PUSH] >
-		FORCE_LEVEL_2
+	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE &&
+		self->client->ps.fd.forcePowerLevel[FP_PUSH] > FORCE_LEVEL_2
 		&& (self->s.weapon == WP_MELEE ||
 			self->s.weapon == WP_NONE ||
 			self->s.weapon == WP_SABER && self->client->ps.saberHolstered))
 	{
 		damage_level = FORCE_LEVEL_3;
 	}
-	else if (self->client->ps.groundEntityNum == ENTITYNUM_NONE && self->client->ps.fd.forcePowerLevel[FP_PUSH] <
-		FORCE_LEVEL_3
-		&& (self->s.weapon == WP_MELEE ||
+	else if (self->client->ps.groundEntityNum == ENTITYNUM_NONE &&
+		self->client->ps.fd.forcePowerLevel[FP_PUSH] < FORCE_LEVEL_3 &&
+		(self->s.weapon == WP_MELEE ||
 			self->s.weapon == WP_NONE ||
-			self->s.weapon == WP_SABER && self->client->ps.saberHolstered))
+			self->s.weapon == WP_SABER &&
+			self->client->ps.saberHolstered))
 	{
 		damage_level = FORCE_LEVEL_2;
 	}
@@ -5476,9 +5475,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 
 	if (!pull && self->client->ps.saberLockTime > level.time && self->client->ps.saberLockFrame)
 	{
-		if (saber1 && saber1
-			->
-			type == SABER_UNSTABLE //saber kylo
+		if (saber1 && saber1->type == SABER_UNSTABLE //saber kylo
 			|| saber1 && saber1->type == SABER_STAFF_UNSTABLE
 			|| saber1 && saber1->type == SABER_STAFF_MAUL
 			|| saber1 && saber1->type == SABER_BACKHAND
@@ -5486,8 +5483,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 			|| saber1 && saber1->type == SABER_ANAKIN
 			|| saber1 && saber1->type == SABER_PALP
 			|| saber1 && saber1->type == SABER_DOOKU
-			|| saber1 && saber1->type == SABER_YODA
-			) //saber yoda
+			|| saber1 && saber1->type == SABER_YODA) //saber yoda
 		{
 			G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/push.mp3"));
 		}
@@ -5495,11 +5491,11 @@ void ForceThrow(gentity_t* self, qboolean pull)
 		{
 			if (self->client->ps.fd.forcePower < 50)
 			{
-				G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/pushyoda.mp3"));
+				G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/pushlow.mp3"));
 			}
 			else
 			{
-				G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/pushlow.mp3"));
+				G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/push_md.mp3"));
 			}
 		}
 		self->client->ps.powerups[PW_DISINT_4] = level.time + 1500;
@@ -5550,20 +5546,22 @@ void ForceThrow(gentity_t* self, qboolean pull)
 			}
 			else
 			{
-				G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/pushhard.mp3"));
+				if (self->client->ps.fd.forcePower > 90)
+				{
+					G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/push_md.mp3"));
+				}
+				else
+				{
+					G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/pushhard.mp3"));
+				}
 			}
 		}
-		else if (saber1 && saber1
-			->
-			type == SABER_YODA
-			) //saber yoda
+		else if (saber1 && saber1->type == SABER_YODA) //saber yoda
 		{
-			G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/pushyoda.mp3"));
+			G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/pushlow.mp3"));
 		}
 		else
-			if (saber1 && saber1
-				->
-				type == SABER_UNSTABLE //saber kylo
+			if (saber1 && saber1->type == SABER_UNSTABLE //saber kylo
 				|| saber1 && saber1->type == SABER_STAFF_UNSTABLE
 				|| saber1 && saber1->type == SABER_STAFF_MAUL
 				|| saber1 && saber1->type == SABER_BACKHAND
@@ -5578,11 +5576,11 @@ void ForceThrow(gentity_t* self, qboolean pull)
 			else
 				if (self->client->ps.fd.forcePower < 30 || PM_InKnockDown(&self->client->ps))
 				{
-					G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/pushyoda.mp3"));
+					G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/pushlow.mp3"));
 				}
 				else
 				{
-					G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/pushlow.mp3"));
+					G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/push_md.mp3"));
 				}
 		if (self->client->ps.forceHandExtend == HANDEXTEND_NONE)
 		{
@@ -5813,9 +5811,11 @@ void ForceThrow(gentity_t* self, qboolean pull)
 	}
 
 	//REPULSE ########################################################################## IN THE AIR PUSH
-	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE
-		&& (self->s.weapon == WP_MELEE || self->s.weapon == WP_NONE || self->s.weapon == WP_SABER && BG_SabersOff(
-			&self->client->ps)))
+	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE &&
+		(self->s.weapon == WP_MELEE ||
+			self->s.weapon == WP_NONE ||
+			self->s.weapon == WP_SABER &&
+			BG_SabersOff(&self->client->ps)))
 	{
 		if (pull)
 		{
@@ -6419,14 +6419,22 @@ void ForceThrow(gentity_t* self, qboolean pull)
 							}
 							else
 							{
-								G_Sound(push_target[x], CHAN_BODY, G_SoundIndex("sound/weapons/force/pushhard.mp3"));
+								if (self->client->ps.fd.forcePower > 90)
+								{
+									G_Sound(push_target[x], CHAN_BODY, G_SoundIndex("sound/weapons/force/push_md.mp3"));
+								}
+								else
+								{
+									G_Sound(push_target[x], CHAN_BODY, G_SoundIndex("sound/weapons/force/pushhard.mp3"));
+								}
 							}
 						}
 						else if (saber1 && saber1->type == SABER_YODA) //saber yoda
 						{
-							G_Sound(push_target[x], CHAN_BODY, G_SoundIndex("sound/weapons/force/pushyoda.mp3"));
+							G_Sound(push_target[x], CHAN_BODY, G_SoundIndex("sound/weapons/force/pushlow.mp3"));
 						}
 						else
+						{
 							if (saber1 && saber1->type == SABER_UNSTABLE //saber kylo
 								|| saber1 && saber1->type == SABER_STAFF_UNSTABLE
 								|| saber1 && saber1->type == SABER_STAFF_MAUL
@@ -6442,13 +6450,14 @@ void ForceThrow(gentity_t* self, qboolean pull)
 							{
 								if (self->client->ps.fd.forcePower < 30 || PM_InKnockDown(&self->client->ps))
 								{
-									G_Sound(push_target[x], CHAN_BODY, G_SoundIndex("sound/weapons/force/pushyoda.mp3"));
+									G_Sound(push_target[x], CHAN_BODY, G_SoundIndex("sound/weapons/force/pushlow.mp3"));
 								}
 								else
 								{
-									G_Sound(push_target[x], CHAN_BODY, G_SoundIndex("sound/weapons/force/pushlow.mp3"));
+									G_Sound(push_target[x], CHAN_BODY, G_SoundIndex("sound/weapons/force/push_md.mp3"));
 								}
 							}
+						}
 						push_target[x]->client->ps.forceHandExtendTime = level.time + 650;
 					}
 					push_target[x]->client->ps.powerups[PW_DISINT_4] = push_target[x]->client->ps.forceHandExtendTime + 200;
@@ -6474,8 +6483,8 @@ void ForceThrow(gentity_t* self, qboolean pull)
 
 					if (push_target[x]->client && VectorLength(push_dir) <= 256)
 					{
-						if (!OnSameTeam(self, push_target[x]) && push_target[x]->client->ps.saberFatigueChainCount <
-							MISHAPLEVEL_HEAVY)
+						if (!OnSameTeam(self, push_target[x]) &&
+							push_target[x]->client->ps.saberFatigueChainCount < MISHAPLEVEL_HEAVY)
 						{
 							can_pull_weapon = qfalse;
 						}
@@ -6557,10 +6566,12 @@ void ForceThrow(gentity_t* self, qboolean pull)
 							G_Knockdown(push_target[x], self, push_dir, 300, qtrue);
 							G_Sound(push_target[x], CHAN_BODY, G_SoundIndex("sound/weapons/force/pushed.mp3"));
 
-							if (self->client->ps.weapon == WP_MELEE || self->client->ps.weapon == WP_NONE && self->
-								client->ps.groundEntityNum == ENTITYNUM_NONE
-								|| self->client->ps.weapon == WP_SABER && self->client->ps.saberHolstered && self->
-								client->ps.groundEntityNum == ENTITYNUM_NONE)
+							if (self->client->ps.weapon == WP_MELEE ||
+								self->client->ps.weapon == WP_NONE &&
+								self->client->ps.groundEntityNum == ENTITYNUM_NONE ||
+								self->client->ps.weapon == WP_SABER &&
+								self->client->ps.saberHolstered &&
+								self->client->ps.groundEntityNum == ENTITYNUM_NONE)
 							{
 								RepulseDamage(self, push_target[x], tr.endpos, damage_level);
 							}

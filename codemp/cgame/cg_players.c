@@ -12116,31 +12116,21 @@ static void CG_DoCWSaber(vec3_t origin, vec3_t dir, float length, float length_m
 	if (do_light)
 	{
 		CG_RGBForSaberColor(color, rgb, cnum, bnum);
-		VectorScale(rgb, 0.66f, rgb);
+		VectorScale(rgb, 0.66f, rgb); 
 		trap->R_AddLightToScene(mid, length * 2.0f + Q_flrand(0.0f, 1.0f) * 10.0f, rgb[0], rgb[1], rgb[2]);
 	}
 
 	memset(&saber, 0, sizeof(refEntity_t));
 
-	// Saber glow is it's own ref type because it uses a ton of sprites, otherwise it would eat up too many
-	//	refEnts to do each glow blob individually
 	saber.saberLength = length;
 
-	// Jeff, I did this because I foolishly wished to have a bright halo as the saber is unleashed.
-	// It's not quite what I'd hoped tho.  If you have any ideas, go for it!  --Pat
 	if (length < length_max)
 	{
-		radiusmult = 1.0 + 2.0 / length; // Note this creates a curve, and length cannot be < 0.5.
+		radiusmult = 0.5 + length / length_max / 2;
 	}
 	else
 	{
 		radiusmult = 1.0;
-	}
-
-	if (cg_saberTrail.integer == 2 && cg_shadows.integer != 2 && cgs.glconfig.stencilBits >= 4)
-	{
-		//draw the blade as a post-render so it doesn't get in the cap...
-		rfx |= RF_FORCEPOST;
 	}
 
 	// Distance scale
@@ -12170,10 +12160,10 @@ static void CG_DoCWSaber(vec3_t origin, vec3_t dir, float length, float length_m
 	ignite_len = length_max * 0.30f;
 	ignite_radius = effectradius * effectradius * 1.5f;
 	ignite_radius -= length;
-	ignite_radius *= 2.2f;
+	ignite_radius *= 2.2f; 
 
-	effectradius *= 0.4f;
-	coreradius *= 0.85f;
+	effectradius *= 0.4f; 
+	coreradius *= 0.85f; 
 
 	if (ignite_radius < 0.0f)
 	{
@@ -12384,25 +12374,15 @@ static void CG_DoMaulSaber(vec3_t origin, vec3_t dir, float length, float length
 
 	memset(&saber, 0, sizeof(refEntity_t));
 
-	// Saber glow is it's own ref type because it uses a ton of sprites, otherwise it would eat up too many
-	//	refEnts to do each glow blob individually
 	saber.saberLength = length;
 
-	// Jeff, I did this because I foolishly wished to have a bright halo as the saber is unleashed.
-	// It's not quite what I'd hoped tho.  If you have any ideas, go for it!  --Pat
 	if (length < length_max)
 	{
-		radiusmult = 1.0 + 2.0 / length; // Note this creates a curve, and length cannot be < 0.5.
+		radiusmult = 0.5 + length / length_max / 2;
 	}
 	else
 	{
 		radiusmult = 1.0;
-	}
-
-	if (cg_saberTrail.integer == 2 && cg_shadows.integer != 2 && cgs.glconfig.stencilBits >= 4)
-	{
-		//draw the blade as a post-render so it doesn't get in the cap...
-		rfx |= RF_FORCEPOST;
 	}
 
 	// Distance scale
@@ -12434,7 +12414,7 @@ static void CG_DoMaulSaber(vec3_t origin, vec3_t dir, float length, float length
 	ignite_radius -= length;
 	ignite_radius *= 2.2f;
 
-	effectradius *= 0.6f;
+	effectradius *= 0.4f;
 	coreradius *= 0.85f;
 
 	if (ignite_radius < 0.0f)
