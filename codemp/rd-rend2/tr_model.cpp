@@ -541,6 +541,7 @@ static qboolean R_IsHumanoidPath(const char* animName)
 R_LoadMDXM_Server - load a Ghoul 2 Mesh file
 =================
 */
+extern int OldToNewRemapTable[72];
 static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
 	int                 i, l, j;
@@ -708,6 +709,25 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 
 			// change to surface identifier
 			surf->ident = SF_MDX;
+
+			// register the shaders
+
+			if (isAnOldModelFile)
+			{
+				int* boneRef = (int*)((byte*)surf + surf->ofsBoneReferences);
+				for (j = 0; j < surf->numBoneReferences; j++)
+				{
+					assert(boneRef[j] >= 0 && boneRef[j] < 72);
+					if (boneRef[j] >= 0 && boneRef[j] < 72)
+					{
+						boneRef[j] = OldToNewRemapTable[boneRef[j]];
+					}
+					else
+					{
+						boneRef[j] = 0;
+					}
+				}
+			}
 
 			// find the next surface
 			surf = (mdxmSurface_t*)((byte*)surf + surf->ofsEnd);
