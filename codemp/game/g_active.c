@@ -1503,61 +1503,92 @@ void G_CheapWeaponFire(const int entNum, const int ev)
 	switch (ev)
 	{
 	case EV_FIRE_WEAPON:
-		if (PM_ReloadAnim(ent->client->ps.torsoAnim))
+	{
+#ifndef FINAL_BUILD
+		if (fired)
 		{
-			return;
+			gi.Printf("DOUBLE EV_FIRE_WEAPON AND-OR EV_ALT_FIRE!!\n");
 		}
-		if (PM_PainAnim(ent->client->ps.torsoAnim))
+		fired = qtrue;
+#endif
+
+		gentity_t* shooter = ent; // ent is the shooter in MP ClientEvents
+
+		// Shooter cannot fire while in reload anim
+		if (PM_ReloadAnim(shooter->client->ps.torsoAnim))
 		{
 			return;
 		}
 
-		if (ent && ent->client && ent->client->frozenTime > level.time)
+		// Shooter cannot fire while in pain anim
+		if (PM_PainAnim(shooter->client->ps.torsoAnim))
 		{
-			return; //this entity is mind-tricking the current client, so don't render it
+			return;
 		}
 
-		if (ent->m_pVehicle && ent->m_pVehicle->m_pVehicleInfo->type == VH_SPEEDER &&
-			ent->client && ent->client->ps.m_iVehicleNum)
+		// Frozen shooter cannot fire
+		if (shooter->client->frozenTime > level.time)
 		{
-			//a speeder with a pilot
-			const gentity_t* rider = &g_entities[ent->client->ps.m_iVehicleNum - 1];
+			return;
+		}
+
+		// Speeder rider safety logic
+		if (shooter->m_pVehicle &&
+			shooter->m_pVehicle->m_pVehicleInfo->type == VH_SPEEDER &&
+			shooter->client &&
+			shooter->client->ps.m_iVehicleNum)
+		{
+			const gentity_t* rider = &g_entities[shooter->client->ps.m_iVehicleNum - 1];
 			if (rider->inuse && rider->client)
 			{
-				//pilot is valid...
 				if (rider->client->ps.weapon != WP_MELEE &&
 					(rider->client->ps.weapon != WP_SABER || !BG_SabersOff(&rider->client->ps)))
 				{
-					//can only attack on speeder when using melee or when saber is holstered
 					break;
 				}
 			}
 		}
 
-		FireWeapon(ent, qfalse);
-		ent->client->dangerTime = level.time;
-		ent->client->ps.eFlags &= ~EF_INVULNERABLE;
-		ent->client->invulnerableTimer = 0;
-		break;
+		FireWeapon(shooter, qfalse);
+
+		shooter->client->dangerTime = level.time;
+		shooter->client->ps.eFlags &= ~EF_INVULNERABLE;
+		shooter->client->invulnerableTimer = 0;
+	}
+	break;
+
 	case EV_ALTFIRE:
-		if (PM_ReloadAnim(ent->client->ps.torsoAnim))
-		{
-			return;
-		}
-		if (PM_PainAnim(ent->client->ps.torsoAnim))
+	{
+		gentity_t* shooter = ent; // ent is the shooter in MP ClientEvents
+
+		// Shooter cannot fire while in reload anim
+		if (PM_ReloadAnim(shooter->client->ps.torsoAnim))
 		{
 			return;
 		}
 
-		if (ent && ent->client && ent->client->frozenTime > level.time)
+		// Shooter cannot fire while in pain anim
+		if (PM_PainAnim(shooter->client->ps.torsoAnim))
 		{
-			return; //this entity is mind-tricking the current client, so don't render it
+			return;
 		}
-		FireWeapon(ent, qtrue);
-		ent->client->dangerTime = level.time;
-		ent->client->ps.eFlags &= ~EF_INVULNERABLE;
-		ent->client->invulnerableTimer = 0;
-		break;
+
+		// Shooter frozen (mind trick / freeze logic)
+		if (shooter->client->frozenTime > level.time)
+		{
+			return;
+		}
+
+		// Fire alt‑mode
+		FireWeapon(shooter, qtrue);
+
+		// Standard post‑fire bookkeeping
+		shooter->client->dangerTime = level.time;
+		shooter->client->ps.eFlags &= ~EF_INVULNERABLE;
+		shooter->client->invulnerableTimer = 0;
+	}
+	break;
+
 	default:;
 	}
 }
@@ -1724,46 +1755,68 @@ static void ClientEvents(gentity_t* ent, int old_event_sequence)
 		break;
 
 		case EV_FIRE_WEAPON:
-			if (PM_ReloadAnim(Client->ps.torsoAnim))
-			{
-				return;
-			}
-			if (PM_PainAnim(ent->client->ps.torsoAnim))
+		{
+			gentity_t* shooter = ent; // ent is the shooter in MP ClientEvents
+
+			// Shooter cannot fire while in reload anim
+			if (PM_ReloadAnim(shooter->client->ps.torsoAnim))
 			{
 				return;
 			}
 
-			if (ent->client->frozenTime > level.time)
+			// Shooter cannot fire while in pain anim
+			if (PM_PainAnim(shooter->client->ps.torsoAnim))
 			{
 				return;
 			}
 
-			FireWeapon(ent, qfalse);
-			ent->client->dangerTime = level.time;
-			ent->client->ps.eFlags &= ~EF_INVULNERABLE;
-			ent->client->invulnerableTimer = 0;
-			break;
+			// Shooter frozen (mind trick / freeze logic)
+			if (shooter->client->frozenTime > level.time)
+			{
+				return;
+			}
+
+			// Fire primary
+			FireWeapon(shooter, qfalse);
+
+			// Standard post‑fire bookkeeping
+			shooter->client->dangerTime = level.time;
+			shooter->client->ps.eFlags &= ~EF_INVULNERABLE;
+			shooter->client->invulnerableTimer = 0;
+		}
+		break;
 
 		case EV_ALTFIRE:
-			if (PM_ReloadAnim(Client->ps.torsoAnim))
-			{
-				return;
-			}
-			if (PM_PainAnim(ent->client->ps.torsoAnim))
+		{
+			gentity_t* shooter = ent; // ent is the shooter in MP ClientEvents
+
+			// Shooter cannot fire while in reload anim
+			if (PM_ReloadAnim(shooter->client->ps.torsoAnim))
 			{
 				return;
 			}
 
-			if (ent->client->frozenTime > level.time)
+			// Shooter cannot fire while in pain anim
+			if (PM_PainAnim(shooter->client->ps.torsoAnim))
 			{
 				return;
 			}
 
-			FireWeapon(ent, qtrue);
-			ent->client->dangerTime = level.time;
-			ent->client->ps.eFlags &= ~EF_INVULNERABLE;
-			ent->client->invulnerableTimer = 0;
-			break;
+			// Shooter frozen (mind trick / freeze logic)
+			if (shooter->client->frozenTime > level.time)
+			{
+				return;
+			}
+
+			// Fire alt‑mode
+			FireWeapon(shooter, qtrue);
+
+			// Standard post‑fire bookkeeping
+			shooter->client->dangerTime = level.time;
+			shooter->client->ps.eFlags &= ~EF_INVULNERABLE;
+			shooter->client->invulnerableTimer = 0;
+		}
+		break;
 
 		case EV_SABER_ATTACK:
 			ent->client->dangerTime = level.time;
@@ -2898,7 +2951,7 @@ void G_SetTauntAnim(gentity_t* ent, int taunt)
 					{
 					case SS_FAST:
 					case SS_TAVION:
-						if (ent->client->ps.saberHolstered == 1	&& ent->client->saber[1].model[0])
+						if (ent->client->ps.saberHolstered == 1 && ent->client->saber[1].model[0])
 						{
 							//turn off second saber
 							G_Sound(ent, CHAN_WEAPON, ent->client->saber[1].soundOff);
