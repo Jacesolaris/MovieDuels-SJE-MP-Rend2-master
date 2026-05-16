@@ -3672,10 +3672,15 @@ int wp_player_must_dodge(const gentity_t* self, const gentity_t* shooter)
 	return qtrue;
 }
 
-int wp_saber_must_bolt_block(gentity_t* self, const gentity_t* atk, const qboolean check_b_box_block, vec3_t point, const int rSaberNum, const int rBladeNum)
+int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, const qboolean check_b_box_block, vec3_t point, const int rSaberNum, const int rBladeNum)
 {
 	if (!self || !self->client || !atk)
 	{
+		return 0;
+	}
+
+	if (PM_SaberInMassiveBounce(self->client->ps.torsoAnim))
+	{ // you can't block while in a massive bounce.
 		return 0;
 	}
 

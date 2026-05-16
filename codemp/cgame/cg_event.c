@@ -46,6 +46,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // simple de-duplication for obituary/kill prints to avoid repeated/multi-line spam
 static char cg_lastObit[1024] = "";
 static int cg_lastObitTime = 0;
+extern qboolean PM_PainAnim(int anim);
+extern qboolean PM_ReloadAnim(int anim);
 
 static void CG_SanitizeStringForPrint(const char* in, char* out, int outLen)
 {

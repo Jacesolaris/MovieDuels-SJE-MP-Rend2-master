@@ -4179,6 +4179,12 @@ void CancelReload(gentity_t* ent)
 	ent->reloadTime = 0;
 	ent->reloadCooldown = level.time + 500;
 }
+
+void cancel_firing(gentity_t* ent)
+{
+	ent->reloadTime = 0;
+	ent->weaponfiredelaytime = level.time + 500;
+}
 ////////////////////// reload
 
 static qboolean IsGunner(const gentity_t* ent)

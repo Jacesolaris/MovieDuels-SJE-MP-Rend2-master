@@ -541,6 +541,7 @@ struct gentity_s
 	int reloadCooldown;
 	int TimeOfWeaponDrop;
 	qboolean exPhysWarned;
+	int weaponfiredelaytime;
 };
 
 #define DAMAGEREDIRECT_HEAD		1
@@ -1087,6 +1088,7 @@ struct gclient_s
 	int			overloadToggleTime;
 	int respawnPending;  // time when the client should retry spawning
 	int botLastStyleSwitch;
+	int painCooldownTime;
 };
 
 //animations

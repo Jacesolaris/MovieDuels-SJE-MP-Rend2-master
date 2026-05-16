@@ -61,7 +61,7 @@ extern float VectorDistance(vec3_t v1, vec3_t v2);
 qboolean PM_SaberInStart(int move);
 extern qboolean PM_SaberInReturn(int move);
 extern qboolean wp_saber_block_non_random_missile(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
-extern int wp_saber_must_bolt_block(gentity_t* self, const gentity_t* atk, qboolean check_b_box_block, vec3_t point,int rSaberNum,int rBladeNum);
+extern int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, qboolean check_b_box_block, vec3_t point,int rSaberNum,int rBladeNum);
 void wp_flechette_alt_blow(gentity_t* ent);
 void wp_stasis_missile_blow(gentity_t* ent);
 extern qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int hit_loc, int* dmg, const int mod);
@@ -80,7 +80,7 @@ extern qboolean G_ControlledByPlayer(const gentity_t* self);
 extern float manual_npc_saberblocking(const gentity_t* defender);
 extern qboolean WP_BrokenBoltBlockKnockBack(gentity_t* victim);
 extern qboolean WP_SaberBlockBolt(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
-void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec3_t fwd);
+void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec3_t fwd);
 extern int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit_locs);
 extern void WP_BlockPointsDrain(const gentity_t* self, int fatigue);
 extern void G_KnockOver(gentity_t* self, const gentity_t* attacker, const vec3_t push_dir, float strength,
@@ -94,6 +94,7 @@ extern qboolean PM_InKnockDown(const playerState_t* ps);
 extern qboolean PM_InKataAnim(int anim);
 extern int G_PickPainAnim(const gentity_t* self, vec3_t point, int hit_loc);
 extern qboolean PM_InCartwheel(int anim);
+extern qboolean PM_SaberInMassiveBounce(int anim);
 
 static float vector_bolt_distance(vec3_t v1, vec3_t v2)
 {
@@ -1421,7 +1422,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 	//
 	// Saber bolt block (primary entry point)
 	//
-	if (wp_saber_must_bolt_block(other,
+	if (WP_SaberMustBoltBlock(other,
 		ent,
 		qfalse,
 		trace->endpos,
@@ -1440,7 +1441,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 			other->client->ps.weaponTime = 0;
 		}
 
-		wp_handle_bolt_block(ent, other, trace, fwd);
+		WP_HandleBoltBlock(ent, other, trace, fwd);
 
 		if (other->owner && other->owner->client)
 		{
@@ -1479,7 +1480,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 				saber_owner->client->ps.weaponTime = 0;
 			}
 
-			wp_handle_bolt_block(ent, saber_owner, trace, fwd);
+			WP_HandleBoltBlock(ent, saber_owner, trace, fwd);
 
 			if (saber_owner->client)
 			{
@@ -1657,8 +1658,15 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 				!PM_InKataAnim(other->client->ps.legsAnim) &&
 				!PM_InKataAnim(other->client->ps.torsoAnim) &&
 				!PM_InKnockDown(&other->client->ps) &&
+				!PM_SaberInMassiveBounce(other->client->ps.torsoAnim) &&
 				!WP_DoingForcedAnimationForForcePowers(other))
 			{
+				//COOLDOWN CHECK
+				if (other->client->painCooldownTime > level.time)
+				{
+					// Still cooling down → skip pain anim
+					return qfalse;// (missile still dies, but no pain anim or knockdown)
+				}
 				int pain_anim = -1;
 
 				// 75% chance to play pain animation
@@ -1699,6 +1707,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 						G_SetAnim(other, NULL, parts, pain_anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
 						other->client->ps.torsoTimer = 400;
 					}
+					other->client->painCooldownTime = level.time + 2000;// 2 second cooldown on pain anims
 				}
 			}
 		}
@@ -2265,7 +2274,7 @@ static int ReflectionLevel(const gentity_t* player)
 	return FORCE_LEVEL_1;
 }
 
-void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec3_t fwd)
+void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec3_t fwd)
 {
 	// Safety: validate pointers (bug fix – previously could crash on NULL)
 	if (!bolt || !blocker || !blocker->client || !trace)
@@ -2331,10 +2340,10 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 				Com_Printf(S_COLOR_YELLOW "GOES TO ENEMY\n");
 			}
 
-			if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_THIRTY)
+			if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_TWENTYFIVE)
 			{
 				// Low points = bad blocks
-				if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_FATIGUE)
+				if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_FIFTEEN)
 				{
 					// Very low points = broken block
 					WP_BrokenBoltBlockKnockBack(blocker);
@@ -2383,9 +2392,9 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 				Com_Printf(S_COLOR_YELLOW "GOES TO ENEMY\n");
 			}
 
-			if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_THIRTY)
+			if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_TWENTYFIVE)
 			{
-				if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_FATIGUE)
+				if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_FIFTEEN)
 				{
 					WP_BrokenBoltBlockKnockBack(blocker);
 					blocker->client->ps.saberBlocked = BLOCKED_NONE;
@@ -2458,9 +2467,9 @@ void wp_handle_bolt_block(gentity_t* bolt, gentity_t* blocker, trace_t* trace, v
 				AngleVectors(angs, fwd, NULL, NULL);
 			}
 
-			if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_THIRTY)
+			if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_TWENTYFIVE)
 			{
-				if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_FATIGUE)
+				if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_FIFTEEN)
 				{
 					WP_BrokenBoltBlockKnockBack(blocker);
 					blocker->client->ps.saberBlocked = BLOCKED_NONE;

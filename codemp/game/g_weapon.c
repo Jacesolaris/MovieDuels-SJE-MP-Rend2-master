@@ -56,7 +56,7 @@ extern qboolean PM_CrouchAnim(const int anim);
 const int FROZEN_TIME = 5000;
 
 extern qboolean WP_DoingForcedAnimationForForcePowers(const gentity_t* self);
-extern int wp_saber_must_bolt_block(gentity_t* self, const gentity_t* atk, qboolean check_b_box_block, vec3_t point,
+extern int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, qboolean check_b_box_block, vec3_t point,
 	int rSaberNum, int rBladeNum);
 extern int wp_player_must_dodge(const gentity_t* self, const gentity_t* shooter);
 extern qboolean WP_SaberBlockBolt(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
@@ -1684,7 +1684,7 @@ static void WP_DisruptorMainFire(gentity_t* ent)
 
 		if (traceEnt)
 		{
-			if (wp_saber_must_bolt_block(traceEnt, ent, qfalse, tr.endpos, -1, -1) && !
+			if (WP_SaberMustBoltBlock(traceEnt, ent, qfalse, tr.endpos, -1, -1) && !
 				WP_DoingForcedAnimationForForcePowers(traceEnt))
 			{
 				//players can block or dodge disruptor shots.
@@ -1940,7 +1940,7 @@ static void WP_DisruptorAltFire(gentity_t* ent)
 
 		if (traceEnt)
 		{
-			if (wp_saber_must_bolt_block(traceEnt, ent, qfalse, tr.endpos, -1, -1) && !
+			if (WP_SaberMustBoltBlock(traceEnt, ent, qfalse, tr.endpos, -1, -1) && !
 				WP_DoingForcedAnimationForForcePowers(traceEnt))
 			{
 				//players can block or dodge disruptor shots.
