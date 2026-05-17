@@ -6779,8 +6779,8 @@ static void CG_DoRotJSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip,
 	ignite_radius -= blade_len;
 	ignite_radius *= 2.2f;
 
-	effectradius *= 0.75;
-	coreradius *= 0.75;
+	effectradius *= 0.75f;
+	coreradius *= 0.7f;
 
 	if (cg_saberTrail.integer == 2 && cg_shadows.integer != 2 && cgs.glconfig.stencilBits >= 4)
 	{
@@ -7425,6 +7425,8 @@ static void CG_DoSaber(vec3_t origin, vec3_t dir, float length, float length_max
 	effectradius = (radius * 1.6f * v1 + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersGlowSize.value;
 
 	coreradius = (radius * 0.4f * v2 + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersCoreSize.value;
+
+	effectradius *= 0.75f;
 
 	ignite_len = length_max * 0.30f;
 	ignite_radius = effectradius * effectradius * 1.5f;
@@ -8642,6 +8644,8 @@ static void CG_DoUnstableSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_
 	ignite_radius -= blade_len;
 	ignite_radius *= 2.2f;
 
+	effectradius *= 0.75f;
+
 	if (cg_saberTrail.integer == 2 && cg_shadows.integer != 2 && cgs.glconfig.stencilBits >= 4)
 	{
 		rfx |= RF_FORCEPOST;
@@ -9150,8 +9154,8 @@ static void CG_DoRebelsSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_ti
 	ignite_radius -= blade_len;
 	ignite_radius *= 2.2f;
 
-	effectradius *= 0.75;
-	coreradius *= 1.5;
+	effectradius *= 0.5f;
+	coreradius *= 0.9f;
 
 	if (cg_saberTrail.integer == 2 && cg_shadows.integer != 2 && cgs.glconfig.stencilBits >= 4)
 	{
@@ -9459,10 +9463,8 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 	float blade_len, end_len, trail_len, base_len, dis_tip, dis_muz, dis_dif;
 	float v1, v2;
 	vec3_t rgb = { 1, 1, 1 };
-	int i;
-	qhandle_t ignite = 0;
-	qhandle_t blade = 0, glow = 0;
-	refEntity_t saber, sbak = { 0 };
+	qhandle_t glow = 0, blade = 0, ignite = 0;
+	refEntity_t saber;
 	float ignite_len, ignite_radius;
 
 	VectorSubtract(blade_tip, blade_muz, blade_dir);
@@ -9579,6 +9581,7 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 		float len;
 		float glowscale = 0.5;
 		VectorSubtract(mid, cg.refdef.vieworg, dif);
+
 		len = VectorLength(dif);
 		if (len > 4000)
 		{
@@ -9662,14 +9665,11 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 	ignite_radius -= blade_len;
 	ignite_radius *= 2.2f;
 
-	effectradius *= 0.75;
-	coreradius *= 1.5;
+	effectradius *= 0.75f;
+	coreradius *= 1.4f;
 
-	if (cg_saberTrail.integer == 2 && cg_shadows.integer != 2 && cgs.glconfig.stencilBits >= 4)
-	{
-		rfx |= RF_FORCEPOST;
-	}
-
+	//Main Blade
+	//--------------------
 	{
 		saber.renderfx = rfx;
 		if (blade_len - effectradius * angle_scale / 2 > 0)
@@ -9709,6 +9709,8 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 		trap->R_AddRefEntityToScene(&saber);
 	}
 
+	//Trail Edge
+	//--------------------
 	{
 		saber.renderfx = rfx;
 		if (trail_len - effectradius * angle_scale / 2 > 0)
@@ -9730,7 +9732,6 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 				saber.shaderRGBA[1] = (color >> 8 & 0xff) * effectalpha;
 				saber.shaderRGBA[2] = (color >> 16 & 0xff) * effectalpha;
 			}
-
 			trap->R_AddRefEntityToScene(&saber);
 		}
 
@@ -9745,12 +9746,15 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
+
 		trap->R_AddRefEntityToScene(&saber);
 	}
 
 	VectorMA(blade_muz, blade_len - 0.5, blade_dir, blade_tip);
 	VectorMA(trail_muz, trail_len - 0.5, trail_dir, trail_tip);
 
+	//Fan Base
+	//--------------------
 	if (base_len > 2)
 	{
 		saber.renderfx = rfx;
@@ -9788,9 +9792,12 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
+
 		trap->R_AddRefEntityToScene(&saber);
 	}
 
+	//Fan Top
+	//--------------------
 	if (end_len > 1)
 	{
 		{
@@ -9815,7 +9822,7 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 			if (dis_dif > end_len * 0.9)
 			{
-				effectalpha *= 0.3;
+				effectalpha *= 0.3f;
 			}
 			else if (dis_dif > end_len * 0.8)
 			{
@@ -9823,7 +9830,7 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 			}
 			else if (dis_dif > end_len * 0.7)
 			{
-				effectalpha *= 0.7;
+				effectalpha *= 0.7f;
 			}
 		}
 
@@ -9852,7 +9859,7 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 		// Do the hot core
 		VectorMA(blade_tip, end_len, end_dir, saber.origin);
-		VectorMA(blade_tip, -0.1, end_dir, saber.oldorigin);
+		VectorMA(blade_tip, -0.1f, end_dir, saber.oldorigin);
 
 		saber.customShader = cgs.media.sfxSaberEndShader;
 		saber.reType = RT_LINE;
@@ -9874,7 +9881,7 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 			angle_scale -= dis_dif / end_len * (dis_dif / end_len) * angle_scale;
 
 			if (angle_scale < 0.8)
-				angle_scale = 0.8;
+				angle_scale = 0.8f;
 		}
 
 		saber.radius = coreradius * angle_scale;
@@ -9882,11 +9889,17 @@ static void CG_DoEp1Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
+
 		trap->R_AddRefEntityToScene(&saber);
 	}
 
+	//Ignition Flare
+	//--------------------
+	//GR - Do the flares
+
 	if (blade_len <= ignite_len)
 	{
+		int i;
 		saber.renderfx = rfx;
 		saber.radius = ignite_radius;
 		VectorCopy(blade_muz, saber.origin);
@@ -9967,11 +9980,9 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 	float blade_len, end_len, trail_len, base_len, dis_tip, dis_muz, dis_dif;
 	float v1, v2;
 	vec3_t rgb = { 1, 1, 1 };
-	int i;
-	qhandle_t ignite = 0;
-	qhandle_t blade = 0, glow = 0;
-	refEntity_t saber, sbak = { 0 };
+	qhandle_t glow = 0, blade = 0, ignite = 0;
 	float ignite_len, ignite_radius;
+	refEntity_t saber;
 
 	VectorSubtract(blade_tip, blade_muz, blade_dir);
 	VectorSubtract(trail_tip, trail_muz, trail_dir);
@@ -10170,17 +10181,11 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 	ignite_radius -= blade_len;
 	ignite_radius *= 2.2f;
 
-	effectradius *= 0.75;
-	coreradius *= 1.5;
+	effectradius *= 0.75f;
+	coreradius *= 1.3f;
 
-	if (cg_saberTrail.integer == 2 && cg_shadows.integer != 2 && cgs.glconfig.stencilBits >= 4)
-	{
-		rfx |= RF_FORCEPOST;
-	}
-
-	for (i = 0; i < 3; i++)
-		rgb[i] *= 255;
-
+	//Main Blade
+	//--------------------
 	{
 		saber.renderfx = rfx;
 		if (blade_len - effectradius * angle_scale / 2 > 0)
@@ -10202,7 +10207,6 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 				saber.shaderRGBA[1] = (color >> 8 & 0xff) * effectalpha;
 				saber.shaderRGBA[2] = (color >> 16 & 0xff) * effectalpha;
 			}
-
 			trap->R_AddRefEntityToScene(&saber);
 		}
 
@@ -10217,9 +10221,12 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
+
 		trap->R_AddRefEntityToScene(&saber);
 	}
 
+	//Trail Edge
+	//--------------------
 	{
 		saber.renderfx = rfx;
 		if (trail_len - effectradius * angle_scale / 2 > 0)
@@ -10241,7 +10248,6 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 				saber.shaderRGBA[1] = (color >> 8 & 0xff) * effectalpha;
 				saber.shaderRGBA[2] = (color >> 16 & 0xff) * effectalpha;
 			}
-
 			trap->R_AddRefEntityToScene(&saber);
 		}
 
@@ -10256,12 +10262,15 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
+
 		trap->R_AddRefEntityToScene(&saber);
 	}
 
 	VectorMA(blade_muz, blade_len - 0.5, blade_dir, blade_tip);
 	VectorMA(trail_muz, trail_len - 0.5, trail_dir, trail_tip);
 
+	//Fan Base
+	//--------------------
 	if (base_len > 2)
 	{
 		saber.renderfx = rfx;
@@ -10289,7 +10298,7 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 		// Do the hot core
 		VectorMA(blade_muz, base_len, base_dir, saber.origin);
-		VectorMA(blade_muz, -0.1, base_dir, saber.oldorigin);
+		VectorMA(blade_muz, -0.1f, base_dir, saber.oldorigin);
 
 		saber.customShader = blade;
 		saber.reType = RT_LINE;
@@ -10299,9 +10308,12 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
+
 		trap->R_AddRefEntityToScene(&saber);
 	}
 
+	//Fan Top
+	//--------------------
 	if (end_len > 1)
 	{
 		{
@@ -10326,7 +10338,7 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 			if (dis_dif > end_len * 0.9)
 			{
-				effectalpha *= 0.3;
+				effectalpha *= 0.3f;
 			}
 			else if (dis_dif > end_len * 0.8)
 			{
@@ -10334,7 +10346,7 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 			}
 			else if (dis_dif > end_len * 0.7)
 			{
-				effectalpha *= 0.7;
+				effectalpha *= 0.7f;
 			}
 		}
 
@@ -10363,7 +10375,7 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 		// Do the hot core
 		VectorMA(blade_tip, end_len, end_dir, saber.origin);
-		VectorMA(blade_tip, -0.1, end_dir, saber.oldorigin);
+		VectorMA(blade_tip, -0.1f, end_dir, saber.oldorigin);
 
 		saber.customShader = cgs.media.sfxSaberEndShader;
 		saber.reType = RT_LINE;
@@ -10385,7 +10397,7 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 			angle_scale -= dis_dif / end_len * (dis_dif / end_len) * angle_scale;
 
 			if (angle_scale < 0.8)
-				angle_scale = 0.8;
+				angle_scale = 0.8f;
 		}
 
 		saber.radius = coreradius * angle_scale;
@@ -10393,11 +10405,17 @@ static void CG_DoEp2Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
+
 		trap->R_AddRefEntityToScene(&saber);
 	}
 
+	//Ignition Flare
+	//--------------------
+	//GR - Do the flares
+
 	if (blade_len <= ignite_len)
 	{
+		int i;
 		saber.renderfx = rfx;
 		saber.radius = ignite_radius;
 		VectorCopy(blade_muz, saber.origin);
@@ -10681,7 +10699,8 @@ static void CG_DoEp3Saber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 	ignite_radius -= blade_len;
 	ignite_radius *= 2.2f;
 
-	effectradius *= 0.75;
+	effectradius *= 0.75f;
+	coreradius *= 0.85f;
 
 	if (cg_saberTrail.integer == 2 && cg_shadows.integer != 2 && cgs.glconfig.stencilBits >= 4)
 	{
@@ -11234,7 +11253,6 @@ static void CG_DoOTSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, v
 		for (i = 0; i < count; i++)
 		{
 			VectorMA(saber.origin, dist, blade_dir, saber.origin);
-			effectradius = (radius * 1.6f * v1 + Q_flrand(0.3f, 1.8f) * 0.1f) * radiusmult * cg_SFXSabersGlowSize.value;
 			saber.radius = effectradius * angle_scale;
 			trap->R_AddRefEntityToScene(&saber);
 		}
@@ -11283,9 +11301,8 @@ static void CG_DoOTSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, v
 		for (i = 0; i < count; i++)
 		{
 			VectorMA(saber.origin, dist, trail_dir, saber.origin);
-			effectradius = (radius * 1.6f * v1 + Q_flrand(0.3f, 1.8f) * 0.1f) * radiusmult * cg_SFXSabersGlowSize.value;
 			saber.radius = effectradius * angle_scale;
-			trap->R_AddRefEntityToScene(&sbak);
+			trap->R_AddRefEntityToScene(&saber);
 		}
 
 		// Do the hot core
@@ -11334,7 +11351,6 @@ static void CG_DoOTSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, v
 		for (i = 0; i < count; i++)
 		{
 			VectorMA(saber.origin, dist, base_dir, saber.origin);
-			effectradius = (radius * 1.6f * v1 + flrand(0.3f, 1.8f)) * radiusmult;
 			saber.radius = effectradius * angle_scale;
 			trap->R_AddRefEntityToScene(&saber);
 		}
@@ -11732,8 +11748,8 @@ static void CG_DoSFXSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_tip, 
 	ignite_radius -= blade_len;
 	ignite_radius *= 2.2f;
 
-	effectradius *= 0.75;
-	coreradius *= 1.25;
+	effectradius *= 0.75f;
+	coreradius *= 1.15f;
 
 	if (cg_saberTrail.integer == 2 && cg_shadows.integer != 2 && cgs.glconfig.stencilBits >= 4)
 	{
@@ -12116,7 +12132,7 @@ static void CG_DoCWSaber(vec3_t origin, vec3_t dir, float length, float length_m
 	if (do_light)
 	{
 		CG_RGBForSaberColor(color, rgb, cnum, bnum);
-		VectorScale(rgb, 0.66f, rgb); 
+		VectorScale(rgb, 0.66f, rgb);
 		trap->R_AddLightToScene(mid, length * 2.0f + Q_flrand(0.0f, 1.0f) * 10.0f, rgb[0], rgb[1], rgb[2]);
 	}
 
@@ -12160,10 +12176,10 @@ static void CG_DoCWSaber(vec3_t origin, vec3_t dir, float length, float length_m
 	ignite_len = length_max * 0.30f;
 	ignite_radius = effectradius * effectradius * 1.5f;
 	ignite_radius -= length;
-	ignite_radius *= 2.2f; 
+	ignite_radius *= 2.2f;
 
-	effectradius *= 0.4f; 
-	coreradius *= 0.85f; 
+	effectradius *= 0.42f;
+	coreradius *= 0.85f;
 
 	if (ignite_radius < 0.0f)
 	{
@@ -12414,7 +12430,7 @@ static void CG_DoMaulSaber(vec3_t origin, vec3_t dir, float length, float length
 	ignite_radius -= length;
 	ignite_radius *= 2.2f;
 
-	effectradius *= 0.4f;
+	effectradius *= 0.42f;
 	coreradius *= 0.85f;
 
 	if (ignite_radius < 0.0f)
@@ -13438,7 +13454,7 @@ CheckTrail:
 			{// Super Break and Kata animations get a longer trail.
 				trail_dur = 150.0f;
 			}
-			else if(G_DrawSaberTrailForAnimation(cent->currentState.torsoAnim))
+			else if (G_DrawSaberTrailForAnimation(cent->currentState.torsoAnim))
 			{// Certain saber animations get a longer trail.
 				trail_dur = 200.0f;
 			}

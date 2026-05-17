@@ -82,6 +82,7 @@ void WP_SaberRemoveG2Model(gentity_t* saberent);
 extern qboolean PM_SaberInNonIdleDamageMove(const playerState_t* ps, int anim_index);
 qboolean WalkCheck(const gentity_t* self);
 qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity);
+qboolean WP_saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity);
 extern qboolean PM_SuperBreakWinAnim(int anim);
 extern stringID_table_t saber_moveTable[];
 extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
@@ -4690,7 +4691,15 @@ qboolean WP_BrokenBoltBlockKnockBack(gentity_t* victim)
 		if (saberEntNum > 0 && saberEntNum < ENTITYNUM_WORLD)
 		{
 			vec3_t throw_dir = { 0, 0, 350 };
-			WP_SaberDisarmed(&g_entities[saberEntNum], victim, throw_dir);
+
+			if (Q_irand(0, 3))
+			{// 75% chance
+				WP_saberKnockOutOfHand(&g_entities[saberEntNum], victim, throw_dir);
+			}
+			else
+			{
+				WP_SaberDisarmed(&g_entities[saberEntNum], victim, throw_dir);
+			}
 		}
 
 		// Pain event
@@ -8021,7 +8030,7 @@ static void MakeDeadSaber(const gentity_t* ent)
 	trap->LinkEntity((sharedEntity_t*)saberent);
 }
 
-#define MAX_LEAVE_TIME 2000
+#define MAX_LEAVE_TIME 2500
 #define MAX_BOT_LEAVE_TIME 1750
 #define MAX_PLAYER_LEAVE_TIME 1500
 #define MIN_LEAVE_TIME 1250
@@ -8554,7 +8563,7 @@ qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t ve
 	// ------------------------------------------------------------
 	// DIFFICULTY‑BASED DISARM PROTECTION TIMER (MATCH SP EXACTLY)
 	// ------------------------------------------------------------
-	int protect_ms = 6000; // Hard default (SP Hard = 6000)
+	int protect_ms = 3000; // Hard default (SP Hard = 3000)
 
 	if (saber_owner->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] == FORCE_LEVEL_1)
 	{
@@ -8640,6 +8649,13 @@ qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t ve
 
 	// Knock saber out of hand (MP equivalent of SP knockdown)
 	WP_saberKnockDown(saberent, saber_owner, saber_owner);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << PERFECTBLOCKING);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << MBF_BLOCKWALKING);
+	saber_owner->client->ps.userInt3 &= ~(1 << FLAG_BLOCKING);
+	saber_owner->client->ps.ManualBlockingTime = 0; //Blocking time 1 on
+	saber_owner->client->ps.ManualMBlockingTime = 0;
 
 #if _DEBUG
 	//Com_Printf(S_COLOR_CYAN "[SABER DISARM] Saber knocked out of hand\n");
@@ -8648,8 +8664,97 @@ qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t ve
 	// Override the velocity on the knocked‑away saber
 	VectorCopy(velocity, saberent->s.pos.trDelta);
 
-	// Prevent immediate re‑attack
-	saber_owner->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+	//don't pull it back on the next frame
+	if (saber_owner->client && level.time - saber_owner->client->saberKnockedTime <= MAX_LEAVE_TIME)
+	{
+		saber_owner->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+	}
+
+	WP_BlockPointsRegenerate(saber_owner, BLOCKPOINTS_FATIGUE); //BP Reward blocker
+
+	return qtrue;
+}
+
+qboolean WP_saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity)
+{
+	if (!saberent || !saber_owner ||
+		!saberent->inuse || !saber_owner->inuse ||
+		!saber_owner->client)
+	{
+		return qfalse;
+	}
+
+	if (!saber_owner->client->ps.saberEntityNum)
+	{
+		//already gone
+		return qfalse;
+	}
+
+	if (level.time - saber_owner->client->lastSaberStorageTime > 50)
+	{
+		//must have a reasonably updated saber base pos
+		return qfalse;
+	}
+
+	if (saber_owner->client->ps.saberLockTime > level.time - 100)
+	{
+		return qfalse;
+	}
+	if (saber_owner->client->saber[0].saberFlags & SFL_NOT_DISARMABLE)
+	{
+		return qfalse;
+	}
+
+	saber_owner->client->ps.saberInFlight = qtrue;
+	saber_owner->client->ps.saberEntityState = 1;
+
+	saberent->s.saberInFlight = qfalse; //qtrue;
+
+	saberent->s.pos.trType = TR_LINEAR;
+	saberent->s.eType = ET_GENERAL;
+	saberent->s.eFlags = 0;
+
+	WP_SaberAddG2Model(saberent, saber_owner->client->saber[0].model, saber_owner->client->saber[0].skin);
+
+	saberent->s.modelGhoul2 = 127;
+
+	saberent->parent = saber_owner;
+
+	saberent->damage = SABER_THROWN_HIT_DAMAGE;
+	saberent->methodOfDeath = MOD_SABER;
+	saberent->splashMethodOfDeath = MOD_SABER;
+	saberent->s.solid = 2;
+	saberent->r.contents = CONTENTS_LIGHTSABER;
+
+	saberent->genericValue5 = 0;
+
+	VectorSet(saberent->r.mins, -24.0f, -24.0f, -8.0f);
+	VectorSet(saberent->r.maxs, 24.0f, 24.0f, 8.0f);
+
+	saberent->s.genericenemyindex = saber_owner->s.number + 1024;
+	saberent->s.weapon = WP_SABER;
+
+	saberent->genericValue5 = 0;
+
+	G_SetOrigin(saberent, saber_owner->client->lastSaberBase_Always); //use this as opposed to the right hand bolt,
+	//because I don't want to risk reconstructing the skel again to get it here. And it isn't worth storing.
+	WP_saberKnockDown(saberent, saber_owner, saber_owner);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << PERFECTBLOCKING);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << MBF_BLOCKWALKING);
+	saber_owner->client->ps.userInt3 &= ~(1 << FLAG_BLOCKING);
+	saber_owner->client->ps.ManualBlockingTime = 0; //Blocking time 1 on
+	saber_owner->client->ps.ManualMBlockingTime = 0;
+	VectorCopy(velocity, saberent->s.pos.trDelta); //override the velocity on the knocked away saber.
+
+	//don't pull it back on the next frame
+	if (saber_owner->client && level.time - saber_owner->client->saberKnockedTime <= MAX_LEAVE_TIME)
+	{
+		saber_owner->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+	}
+
+	WP_BlockPointsRegenerate(saber_owner, BLOCKPOINTS_FATIGUE); //BP Reward blocker
 
 	return qtrue;
 }
@@ -8729,7 +8834,7 @@ qboolean WP_ButterFingers(gentity_t* saberent, gentity_t* saber_owner, const gen
 	if (level.time - saber_owner->client->saberKnockedTime <= MAX_LEAVE_TIME)
 		saber_owner->client->buttons &= ~BUTTON_ATTACK;
 
-	return WP_SaberDisarmed(saberent, saber_owner, dir);
+	return WP_saberKnockOutOfHand(saberent, saber_owner, dir);
 }
 
 extern qboolean BG_InExtraDefenseSaberMove(int move);

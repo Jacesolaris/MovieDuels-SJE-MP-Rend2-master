@@ -61,7 +61,7 @@ extern float VectorDistance(vec3_t v1, vec3_t v2);
 qboolean PM_SaberInStart(int move);
 extern qboolean PM_SaberInReturn(int move);
 extern qboolean wp_saber_block_non_random_missile(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
-extern int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, qboolean check_b_box_block, vec3_t point,int rSaberNum,int rBladeNum);
+extern int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, qboolean check_b_box_block, vec3_t point, int rSaberNum, int rBladeNum);
 void wp_flechette_alt_blow(gentity_t* ent);
 void wp_stasis_missile_blow(gentity_t* ent);
 extern qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int hit_loc, int* dmg, const int mod);
@@ -668,7 +668,6 @@ void G_StasisMissile(gentity_t* ent, gentity_t* missile, vec3_t forward)
 			missile->nextthink = level.time;
 		}
 	}
-
 }
 
 void g_reflect_missile_bot(const gentity_t* ent, gentity_t* missile, vec3_t forward)

@@ -891,8 +891,8 @@ static void UI_DoRebelsSaber(vec3_t origin, vec3_t dir, float length, float leng
 	float effectradius = (radius * 1.6 + crandoms() * 0.1f) * radiusmult * cg_SFXSabersGlowSizeRebels.value;
 	float coreradius = (radius * 0.4 + crandoms() * 0.1f) * radiusmult * cg_SFXSabersCoreSizeRebels.value;
 
-	effectradius *= 0.75;
-	coreradius *= 1.5;
+	effectradius *= 0.5f;
+	coreradius *= 0.9f;
 
 	{
 		float angle_scale = 1.0f;
@@ -1074,18 +1074,17 @@ static void UI_DoSFXSaber(vec3_t origin, vec3_t dir, float length, float lengthM
 
 static void UI_DoEp1Saber(vec3_t origin, vec3_t dir, float length, float lengthMax, float radius, saber_colors_t color, int snum)
 {
-	vec3_t	    mid, rgb = { 1,1,1 };
-	qhandle_t	glow = 0, blade = 0;
+	vec3_t mid, rgb = { 1, 1, 1 };
+	float radiusmult;
+
+	qhandle_t glow;
+	qhandle_t blade;
 	refEntity_t saber;
-	float	    radiusmult;
 
 	if (length < 0.5f)
 	{
 		return;
 	}
-
-	// Find the midpoint of the saber for lighting purposes
-	VectorMA(origin, length * 0.5f, dir, mid);
 
 	switch (color)
 	{
@@ -1144,15 +1143,13 @@ static void UI_DoEp1Saber(vec3_t origin, vec3_t dir, float length, float lengthM
 		break;
 	}
 
-	memset(&saber, 0, sizeof(refEntity_t));
+	VectorMA(origin, length * 0.5f, dir, mid);
 
-	// Saber glow is it's own ref type because it uses a ton of sprites, otherwise it would eat up too many
-	//	refEnts to do each glow blob individually
-	saber.saberLength = length;
+	memset(&saber, 0, sizeof(refEntity_t));
 
 	if (length < lengthMax)
 	{
-		radiusmult = 1.0 + 2.0 / length;		// Note this creates a curve, and length cannot be < 0.5.
+		radiusmult = 0.5 + length / lengthMax / 2;
 	}
 	else
 	{
@@ -1162,8 +1159,8 @@ static void UI_DoEp1Saber(vec3_t origin, vec3_t dir, float length, float lengthM
 	float effectradius = (radius * 1.6 + crandoms() * 0.1f) * radiusmult * cg_SFXSabersGlowSizeEP1.value;
 	float coreradius = (radius * 0.4 + crandoms() * 0.1f) * radiusmult * cg_SFXSabersCoreSizeEP1.value;
 
-	effectradius *= 0.75;
-	coreradius *= 1.5;
+	effectradius *= 0.75f;
+	coreradius *= 1.4f;
 
 	{
 		float angle_scale = 1.0f;
@@ -1304,8 +1301,8 @@ static void UI_DoEp2Saber(vec3_t origin, vec3_t dir, float length, float lengthM
 	float effectradius = (radius * 1.6 + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersGlowSizeEP2.value;
 	float coreradius = (radius * 0.4 + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersCoreSizeEP2.value;
 
-	effectradius *= 0.75;
-	coreradius *= 1.5;
+	effectradius *= 0.75f;
+	coreradius *= 1.3f;
 
 	{
 		float angle_scale = 1.0f;
@@ -1345,9 +1342,13 @@ static void UI_DoEp2Saber(vec3_t origin, vec3_t dir, float length, float lengthM
 		// Do the hot core
 		VectorMA(origin, length, dir, saber.origin);
 		VectorMA(origin, -1, dir, saber.oldorigin);
+
 		saber.customShader = blade;
+
 		saber.reType = RT_LINE;
+
 		saber.radius = coreradius;
+
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
 
@@ -1440,9 +1441,10 @@ static void UI_DoEp3Saber(vec3_t origin, vec3_t dir, float length, float lengthM
 	}
 
 	float effectradius = (radius * 1.6 + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersGlowSizeEP3.value;
-	const float coreradius = (radius * 0.4 + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersCoreSizeEP3.value;
+	float coreradius = (radius * 0.4 + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersCoreSizeEP3.value;
 
-	effectradius *= 0.75;
+	effectradius *= 0.75f;
+	coreradius *= 0.85f;
 
 	{
 		float angle_scale = 1.0f;
@@ -1482,9 +1484,13 @@ static void UI_DoEp3Saber(vec3_t origin, vec3_t dir, float length, float lengthM
 		// Do the hot core
 		VectorMA(origin, length, dir, saber.origin);
 		VectorMA(origin, -1, dir, saber.oldorigin);
+
 		saber.customShader = blade;
+
 		saber.reType = RT_LINE;
+
 		saber.radius = coreradius;
+
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
 
@@ -1705,8 +1711,8 @@ static void UI_DoRotJSaber(vec3_t origin, vec3_t dir, float length, float length
 	float effectradius = (radius * 1.6 + crandoms() * 0.1f) * radiusmult * cg_SFXSabersGlowSizeROTJ.value;
 	float coreradius = (radius * 0.4 + crandoms() * 0.1f) * radiusmult * cg_SFXSabersCoreSizeROTJ.value;
 
-	effectradius *= 0.75;
-	coreradius *= 0.75;
+	effectradius *= 0.75f;
+	coreradius *= 0.7f;
 
 	{
 		float angle_scale = 1.0f;
@@ -1746,9 +1752,13 @@ static void UI_DoRotJSaber(vec3_t origin, vec3_t dir, float length, float length
 		// Do the hot core
 		VectorMA(origin, length, dir, saber.origin);
 		VectorMA(origin, -1, dir, saber.oldorigin);
+
 		saber.customShader = blade;
+
 		saber.reType = RT_LINE;
+
 		saber.radius = coreradius;
+
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
 
@@ -1911,7 +1921,7 @@ static void UI_DoTFASaber(vec3_t origin, vec3_t dir, float length, float lengthM
 	float effectradius = (radius * 1.6 + crandoms() * 0.1f) * radiusmult * cg_SFXSabersGlowSizeTFA.value;
 	const float coreradius = (radius * 0.4 + crandoms() * 0.1f) * radiusmult * cg_SFXSabersCoreSizeTFA.value;
 
-	effectradius *= 0.75;
+	effectradius *= 0.8f;
 
 	{
 		float angle_scale = 1.0f;
@@ -1951,9 +1961,13 @@ static void UI_DoTFASaber(vec3_t origin, vec3_t dir, float length, float lengthM
 		// Do the hot core
 		VectorMA(origin, length, dir, saber.origin);
 		VectorMA(origin, -1, dir, saber.oldorigin);
+
 		saber.customShader = blade;
+
 		saber.reType = RT_LINE;
+
 		saber.radius = coreradius;
+
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
 
@@ -2097,11 +2111,13 @@ static void UI_DoUnstableSaber(vec3_t origin, vec3_t dir, float length, float le
 		radiusmult = 1.0;
 	}
 
-	const float effectradius = (radius * 1.6f + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersGlowSizeUSB.value;
-	const float coreradius = (radius * 0.4f + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersCoreSizeUSB.value;
-
 	{
 		float angle_scale = 1.0f;
+		float effectradius = (radius * 1.6f + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersGlowSizeUSB.value;
+		float coreradius = (radius * 0.4f + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersCoreSizeUSB.value;
+
+		effectradius *= 0.75f;
+
 		if (length - effectradius * angle_scale / 2 > 0)
 		{
 			float effectalpha = 0.8f;
@@ -2138,9 +2154,13 @@ static void UI_DoUnstableSaber(vec3_t origin, vec3_t dir, float length, float le
 		// Do the hot core
 		VectorMA(origin, length, dir, saber.origin);
 		VectorMA(origin, -1, dir, saber.oldorigin);
+
 		saber.customShader = blade;
+
 		saber.reType = RT_LINE;
+
 		saber.radius = coreradius;
+
 		saber.shaderTexCoord[0] = saber.shaderTexCoord[1] = 1.0f;
 		saber.shaderRGBA[0] = saber.shaderRGBA[1] = saber.shaderRGBA[2] = saber.shaderRGBA[3] = 0xff;
 
@@ -2424,7 +2444,7 @@ static void UI_DoCWSaber(vec3_t origin, vec3_t dir, float length, float lengthMa
 
 	float coreradius = (radius * 0.4f + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersCoreSizeCW.value;
 
-	effectradius *= 0.4f;
+	effectradius *= 0.42f;
 	coreradius *= 0.85f;
 
 	// Main glow
@@ -2585,7 +2605,7 @@ static void UI_DoMaulSaber(vec3_t origin, vec3_t dir, float length, float length
 
 	float coreradius = (radius * 0.4f + Q_flrand(-1.0f, 1.0f) * 0.1f) * radiusmult * cg_SFXSabersCoreSizeMaul.value;
 
-	effectradius *= 0.4f;
+	effectradius *= 0.42f;
 	coreradius *= 0.85f;
 
 	// Main glow
