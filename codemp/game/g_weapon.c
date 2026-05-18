@@ -6293,6 +6293,11 @@ void FireWeapon(gentity_t* ent, const qboolean alt_fire)
 		return;
 	}
 
+	if (ent->weaponfiredelaytime > level.time)
+	{
+		return;
+	}
+
 	// track shots taken for accuracy tracking. melee weapons are not tracked.
 	if (ent->s.weapon != WP_SABER && ent->s.weapon != WP_STUN_BATON && ent->s.weapon != WP_MELEE)
 	{

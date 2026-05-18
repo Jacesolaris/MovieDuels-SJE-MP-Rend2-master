@@ -1175,7 +1175,9 @@ netField_t entityStateFields[] =
 	{NETF(grappletimeplayer), 32},
 	{NETF(grapplestartTime), 32},
 	{NETF(grapplelaststartTime), 32},
-	{NETF(modelindex), 32 }
+	{NETF(modelindex), 32 },
+	{NETF(weaponfiredelaytime), 32 },
+	{NETF(reloadTime), 32 }
 };
 
 // if (int)f == f and (int)f + ( 1<<(FLOAT_INT_BITS-1) ) < ( 1 << FLOAT_INT_BITS )
@@ -2533,7 +2535,6 @@ void MSG_CheckNETFPSFOverrides(const qboolean psfOverrides)
 		i++;
 	}
 }
-
 
 //MAKE SURE THIS MATCHES THE ENUM IN BG_PUBLIC.H!!!
 //This is in caps, because it is important.

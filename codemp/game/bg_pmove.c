@@ -106,6 +106,7 @@ extern qboolean PM_MeleeblockHoldAnim(int anim);
 extern int PM_InGrappleMove(int anim);
 extern qboolean PM_SaberInMassiveBounce(int anim);
 extern qboolean PM_InRollIgnoreTimer(const playerState_t* ps);
+extern qboolean PM_SaberInBashedAnim(int anim);
 
 extern pmove_t* pm;
 pml_t pml;
@@ -12148,11 +12149,9 @@ void PM_FinishWeaponChange(void)
 				}
 				else
 				{
-					if (saber1 && (saber1->type == SABER_BACKHAND
-						|| saber1->type == SABER_ASBACKHAND)) //saber backhand
+					if (saber1 && (saber1->type == SABER_BACKHAND || saber1->type == SABER_ASBACKHAND)) //saber backhand
 					{
-						PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION,
-							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else if (saber1 && saber1->type == SABER_YODA) //saber yoda
 					{
@@ -12164,15 +12163,13 @@ void PM_FinishWeaponChange(void)
 					}
 					else if (saber1 && saber1->type == SABER_UNSTABLE) //saber kylo
 					{
-						PM_SetAnim(SETANIM_TORSO, BOTH_SABERSTANCE_STANCE_ALT,
-							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						PM_SetAnim(SETANIM_TORSO, BOTH_SABERSTANCE_STANCE_ALT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
 					else if (saber1 && saber1->type == SABER_OBIWAN) //saber kylo
 					{
 						PM_SetAnim(SETANIM_TORSO, BOTH_SHOWOFF_OBI, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
-					else if (saber1 && saber1->type == SABER_SFX || saber1 && saber1->type == SABER_REY)
-						//saber backhand
+					else if (saber1 && saber1->type == SABER_SFX || saber1 && saber1->type == SABER_REY)//saber backhand
 					{
 						PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
@@ -15334,17 +15331,21 @@ static qboolean G_OkayToLean(const playerState_t* ps, const usercmd_t* uscmd, co
 
 static qboolean G_OkayToDoStandingBlock(const playerState_t* ps, const usercmd_t* uscmd, const qboolean interruptOkay)
 {
-	if (ps->clientNum < MAX_CLIENTS //player
-		&& ps->groundEntityNum != ENTITYNUM_NONE //on ground
-		&& (interruptOkay //okay to interrupt a lean
-			&& PM_DodgeAnim(ps->torsoAnim)
-			|| PM_BlockAnim(ps->torsoAnim) || PM_BlockDualAnim(ps->torsoAnim) || PM_BlockStaffAnim(ps->torsoAnim)
-			|| PM_MeleeblockAnim(ps->torsoAnim) //already leaning
-			|| !ps->weaponTime //not attacking or being prevented from attacking
-			&& !ps->legsTimer //not in any held legs anim
-			&& !ps->torsoTimer) //not in any held torso anim
-		&& !(uscmd->buttons & (BUTTON_ATTACK | BUTTON_ALT_ATTACK | BUTTON_FORCE_LIGHTNING | BUTTON_FORCEPOWER |
-			BUTTON_DASH | BUTTON_FORCE_DRAIN | BUTTON_FORCEGRIP)) //not trying to attack
+	if ((ps->clientNum < MAX_CLIENTS) // player
+		&& ps->groundEntityNum != ENTITYNUM_NONE // on ground
+		&& ((interruptOkay
+			&& !in_camera
+			&& !PM_SaberInMassiveBounce(ps->torsoAnim)
+			&& !PM_SaberInBashedAnim(ps->torsoAnim)
+			&& !PM_InKataAnim(ps->torsoAnim)
+			&& (PM_BlockAnim(ps->torsoAnim)
+				|| PM_BlockDualAnim(ps->torsoAnim)
+				|| PM_BlockStaffAnim(ps->torsoAnim)
+				|| PM_MeleeblockAnim(ps->torsoAnim)))
+			|| (!ps->weaponTime
+				&& !ps->legsTimer
+				&& !ps->torsoTimer))
+		&& !(uscmd->buttons & (BUTTON_ALT_ATTACK | BUTTON_FORCE_LIGHTNING | BUTTON_FORCE_DRAIN | BUTTON_DASH | BUTTON_FORCEGRIP))
 		&& VectorCompare(ps->velocity, vec3_origin))
 	{
 		return qtrue;

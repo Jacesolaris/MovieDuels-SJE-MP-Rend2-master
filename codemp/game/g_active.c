@@ -92,6 +92,7 @@ extern qboolean BG_SaberSprintAnim(int anim);
 extern qboolean BG_WeaponSprintAnim(int anim);
 extern void Sphereshield_On(gentity_t* self);
 extern void Sphereshield_Off(gentity_t* self);
+extern qboolean IsSurrendering(const gentity_t* self);
 
 static void P_SetTwitchInfo(gclient_t* client)
 {
@@ -3897,18 +3898,24 @@ extern qboolean inGameCinematic;
 
 void G_SetsaberdownorAnim(gentity_t* ent)
 {
+	const qboolean is_holding_block_button = ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;
+	const qboolean active_blocking = ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK ? qtrue : qfalse;
+
 	if (ent->client->ps.saberLockTime >= level.time)
 	{
 		return;
 	}
+
 	if (ent->client->ps.weapon == WP_SABER)
 	{
 		if (ent->client && ent->client->ps.weaponTime < 1 && ent->watertype != CONTENTS_WATER)
 		{
+			// SABER ON
 			if (ent->client->ps.saberHolstered == 2)
 			{
 				ent->client->ps.saberHolstered = 0;
 
+				// play saber-on sounds
 				if (ent->client->saber[0].soundOn)
 				{
 					G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
@@ -3917,29 +3924,87 @@ void G_SetsaberdownorAnim(gentity_t* ent)
 				{
 					G_Sound(ent, CHAN_AUTO, ent->client->saber[1].soundOn);
 				}
+
+				if (!g_noIgniteTwirl.integer &&
+					!active_blocking &&
+					!is_holding_block_button &&
+					!IsSurrendering(ent)) //twirl on
+				{
+					switch (ent->client->ps.fd.saberAnimLevel)
+					{
+					case SS_DUAL:
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GRIEVOUS_SABERON, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					case SS_STAFF:
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					case SS_NONE:
+					case SS_FAST:
+					case SS_MEDIUM:
+					case SS_STRONG:
+					case SS_TAVION:
+					case SS_DESANN:
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					default:
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					}
+				}
 			}
+			// SABER OFF
 			else
 			{
 				ent->client->ps.saberHolstered = 2;
+
+				// play saber-off sounds
 				if (ent->client->saber[0].soundOff)
 				{
 					G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOff);
 				}
-				if (ent->client->saber[1].soundOff &&
-					ent->client->saber[1].model[0])
+				if (ent->client->saber[1].soundOff && ent->client->saber[1].model[0])
 				{
 					G_Sound(ent, CHAN_AUTO, ent->client->saber[1].soundOff);
 				}
+
 				ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
 				ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
-				//prevent anything from being done for 400ms after holster
+
+				if (!g_noIgniteTwirl.integer &&
+					!active_blocking &&
+					!is_holding_block_button &&
+					!IsSurrendering(ent)) //twirl on
+				{
+					switch (ent->client->ps.fd.saberAnimLevel)
+					{
+					case SS_DUAL:
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GRIEVOUS_SABERON, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					case SS_STAFF:
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					case SS_NONE:
+					case SS_FAST:
+					case SS_MEDIUM:
+					case SS_STRONG:
+					case SS_TAVION:
+					case SS_DESANN:
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND2TO1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					default:
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND2TO1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					}
+				}
+				// prevent actions for 400ms after holster
 				ent->client->ps.weaponTime = 400;
 			}
 		}
 	}
 	else
 	{
-		if (IsHoldingReloadableGun(ent)) //mp
+		// NON-SABER WEAPONS
+		if (IsHoldingReloadableGun(ent))
 		{
 			if (ent->reloadTime > 0)
 			{

@@ -3135,6 +3135,11 @@ void CG_FireWeapon(centity_t* cent, const qboolean alt_fire)
 		return;
 	}
 
+	if (ent->weaponfiredelaytime > cg.time)
+	{
+		return;
+	}
+
 	if (PM_ReloadAnim(cent->currentState.torsoAnim))
 	{
 		return;
@@ -3144,7 +3149,6 @@ void CG_FireWeapon(centity_t* cent, const qboolean alt_fire)
 	{
 		return;
 	}
-
 
 	if (PM_PainAnim(cent->currentState.torsoAnim))
 	{
