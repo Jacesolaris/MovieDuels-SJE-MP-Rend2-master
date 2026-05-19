@@ -2031,7 +2031,8 @@ static void CG_General(centity_t* cent)
 				|| cent->currentState.botclass == BCLASS_JEDITRAINER
 				|| cent->currentState.botclass == BCLASS_JEDIMASTER
 				|| cent->currentState.botclass == BCLASS_LUKE
-				|| cent->currentState.botclass == BCLASS_KYLE)
+				|| cent->currentState.botclass == BCLASS_KYLE
+				|| cent->currentState.botclass == BCLASS_RAY)
 			{
 				ent.shaderRGBA[0] = 0;
 				ent.shaderRGBA[1] = 120;
@@ -2109,7 +2110,8 @@ static void CG_General(centity_t* cent)
 					|| cent->currentState.botclass == BCLASS_JEDITRAINER
 					|| cent->currentState.botclass == BCLASS_JEDIMASTER
 					|| cent->currentState.botclass == BCLASS_LUKE
-					|| cent->currentState.botclass == BCLASS_KYLE)
+					|| cent->currentState.botclass == BCLASS_KYLE
+					|| cent->currentState.botclass == BCLASS_RAY)
 				{
 					ent.shaderRGBA[0] = 0;
 					ent.shaderRGBA[1] = 120;

@@ -1706,6 +1706,7 @@ static qboolean bot_try_meditate(bot_state_t* bs, bot_input_t* bi)
 	const int botClass = self->client->pers.botclass;
 
 	if (botClass == BCLASS_SITHLORD ||
+		botClass == BCLASS_DOOKU ||
 		botClass == BCLASS_DESANN ||
 		botClass == BCLASS_VADER ||
 		botClass == BCLASS_LUKE)

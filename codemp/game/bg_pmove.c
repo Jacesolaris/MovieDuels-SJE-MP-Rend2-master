@@ -851,7 +851,15 @@ int PM_IdlePoseForsaber_anim_level(void)
 			case SS_FAST:
 				if (is_holding_block_button)
 				{
-					if (saber1 && saber1->type == SABER_YODA) //yoda
+					if (pm_entSelf->s.botclass == BCLASS_YODA)
+					{
+						anim = BOTH_SABERYODA_STANCE;
+					}
+					else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+					{
+						anim = BOTH_SABERSTANCE_STANCE_ALT;
+					}
+					else if (saber1 && saber1->type == SABER_YODA) //yoda
 					{
 						anim = BOTH_SABERYODA_STANCE;
 					}
@@ -902,7 +910,15 @@ int PM_IdlePoseForsaber_anim_level(void)
 			case SS_MEDIUM:
 				if (is_holding_block_button)
 				{
-					if (saber1 && saber1->type == SABER_YODA) //yoda
+					if (pm_entSelf->s.botclass == BCLASS_YODA)
+					{
+						anim = BOTH_SABERYODA_STANCE;
+					}
+					else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+					{
+						anim = BOTH_SABERSTANCE_STANCE_ALT;
+					}
+					else if (saber1 && saber1->type == SABER_YODA) //yoda
 					{
 						anim = BOTH_SABERYODA_STANCE;
 					}
@@ -953,7 +969,15 @@ int PM_IdlePoseForsaber_anim_level(void)
 			case SS_STRONG:
 				if (is_holding_block_button)
 				{
-					if (saber1 && saber1->type == SABER_YODA) //yoda
+					if (pm_entSelf->s.botclass == BCLASS_YODA)
+					{
+						anim = BOTH_SABERYODA_STANCE;
+					}
+					else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+					{
+						anim = BOTH_SABERSTANCE_STANCE_ALT;
+					}
+					else if (saber1 && saber1->type == SABER_YODA) //yoda
 					{
 						anim = BOTH_SABERYODA_STANCE;
 					}
@@ -1004,7 +1028,15 @@ int PM_IdlePoseForsaber_anim_level(void)
 			case SS_TAVION:
 				if (is_holding_block_button)
 				{
-					if (saber1 && saber1->type == SABER_YODA) //yoda
+					if (pm_entSelf->s.botclass == BCLASS_YODA)
+					{
+						anim = BOTH_SABERYODA_STANCE;
+					}
+					else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+					{
+						anim = BOTH_SABERSTANCE_STANCE_ALT;
+					}
+					else if (saber1 && saber1->type == SABER_YODA) //yoda
 					{
 						anim = BOTH_SABERYODA_STANCE;
 					}
@@ -1055,7 +1087,15 @@ int PM_IdlePoseForsaber_anim_level(void)
 			case SS_DESANN:
 				if (is_holding_block_button)
 				{
-					if (saber1 && saber1->type == SABER_YODA) //yoda
+					if (pm_entSelf->s.botclass == BCLASS_YODA)
+					{
+						anim = BOTH_SABERYODA_STANCE;
+					}
+					else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+					{
+						anim = BOTH_SABERSTANCE_STANCE_ALT;
+					}
+					else if (saber1 && saber1->type == SABER_YODA) //yoda
 					{
 						anim = BOTH_SABERYODA_STANCE;
 					}
@@ -1107,7 +1147,15 @@ int PM_IdlePoseForsaber_anim_level(void)
 			default:
 				if (is_holding_block_button)
 				{
-					if (saber1 && saber1->type == SABER_YODA) //yoda
+					if (pm_entSelf->s.botclass == BCLASS_YODA)
+					{
+						anim = BOTH_SABERYODA_STANCE;
+					}
+					else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+					{
+						anim = BOTH_SABERSTANCE_STANCE_ALT;
+					}
+					else if (saber1 && saber1->type == SABER_YODA) //yoda
 					{
 						anim = BOTH_SABERYODA_STANCE;
 					}
@@ -1210,7 +1258,15 @@ int PM_ReadyPoseForsaber_anim_levelBOT(void)
 	switch (pm->ps->fd.saberAnimLevel)
 	{
 	case SS_DUAL:
-		if (saber1 && saber1->type == SABER_YODA)
+		if (pm_entSelf->s.botclass == BCLASS_YODA)
+		{
+			anim = BOTH_SABERYODA_STANCE;
+		}
+		else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+		{
+			anim = BOTH_SABERSTANCE_STANCE_ALT;
+		}
+		else if (saber1 && saber1->type == SABER_YODA)
 		{
 			anim = BOTH_SABERYODA_STANCE;
 		}
@@ -1256,7 +1312,15 @@ int PM_ReadyPoseForsaber_anim_levelBOT(void)
 		}
 		break;
 	case SS_STAFF:
-		if (saber1 && saber1->type == SABER_YODA)
+		if (pm_entSelf->s.botclass == BCLASS_YODA)
+		{
+			anim = BOTH_SABERYODA_STANCE;
+		}
+		else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+		{
+			anim = BOTH_SABERSTANCE_STANCE_ALT;
+		}
+		else if (saber1 && saber1->type == SABER_YODA)
 		{
 			anim = BOTH_SABERYODA_STANCE;
 		}
@@ -1294,7 +1358,15 @@ int PM_ReadyPoseForsaber_anim_levelBOT(void)
 		}
 		break;
 	case SS_FAST:
-		if (saber1 && saber1->type == SABER_YODA)
+		if (pm_entSelf->s.botclass == BCLASS_YODA)
+		{
+			anim = BOTH_SABERYODA_STANCE;
+		}
+		else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+		{
+			anim = BOTH_SABERSTANCE_STANCE_ALT;
+		}
+		else if (saber1 && saber1->type == SABER_YODA)
 		{
 			anim = BOTH_SABERYODA_STANCE;
 		}
@@ -1325,7 +1397,15 @@ int PM_ReadyPoseForsaber_anim_levelBOT(void)
 		}
 		break;
 	case SS_TAVION:
-		if (saber1 && saber1->type == SABER_YODA)
+		if (pm_entSelf->s.botclass == BCLASS_YODA)
+		{
+			anim = BOTH_SABERYODA_STANCE;
+		}
+		else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+		{
+			anim = BOTH_SABERSTANCE_STANCE_ALT;
+		}
+		else if (saber1 && saber1->type == SABER_YODA)
 		{
 			anim = BOTH_SABERYODA_STANCE;
 		}
@@ -1356,7 +1436,15 @@ int PM_ReadyPoseForsaber_anim_levelBOT(void)
 		}
 		break;
 	case SS_STRONG:
-		if (saber1 && saber1->type == SABER_YODA)
+		if (pm_entSelf->s.botclass == BCLASS_YODA)
+		{
+			anim = BOTH_SABERYODA_STANCE;
+		}
+		else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+		{
+			anim = BOTH_SABERSTANCE_STANCE_ALT;
+		}
+		else if (saber1 && saber1->type == SABER_YODA)
 		{
 			anim = BOTH_SABERYODA_STANCE;
 		}
@@ -1387,7 +1475,15 @@ int PM_ReadyPoseForsaber_anim_levelBOT(void)
 		}
 		break;
 	case SS_DESANN:
-		if (saber1 && saber1->type == SABER_YODA)
+		if (pm_entSelf->s.botclass == BCLASS_YODA)
+		{
+			anim = BOTH_SABERYODA_STANCE;
+		}
+		else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+		{
+			anim = BOTH_SABERSTANCE_STANCE_ALT;
+		}
+		else if (saber1 && saber1->type == SABER_YODA)
 		{
 			anim = BOTH_SABERYODA_STANCE;
 		}
@@ -1418,7 +1514,15 @@ int PM_ReadyPoseForsaber_anim_levelBOT(void)
 		}
 		break;
 	case SS_MEDIUM:
-		if (saber1 && saber1->type == SABER_YODA)
+		if (pm_entSelf->s.botclass == BCLASS_YODA)
+		{
+			anim = BOTH_SABERYODA_STANCE;
+		}
+		else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+		{
+			anim = BOTH_SABERSTANCE_STANCE_ALT;
+		}
+		else if (saber1 && saber1->type == SABER_YODA)
 		{
 			anim = BOTH_SABERYODA_STANCE;
 		}
@@ -1450,7 +1554,15 @@ int PM_ReadyPoseForsaber_anim_levelBOT(void)
 		break;
 	case SS_NONE:
 	default:
-		if (saber1 && (saber1->type == SABER_BACKHAND
+		if (pm_entSelf->s.botclass == BCLASS_YODA)
+		{
+			anim = BOTH_SABERYODA_STANCE;
+		}
+		else if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+		{
+			anim = BOTH_SABERSTANCE_STANCE_ALT;
+		}
+		else if (saber1 && (saber1->type == SABER_BACKHAND
 			|| saber1->type == SABER_ASBACKHAND)) //saber backhand
 		{
 			anim = BOTH_SABERBACKHAND_STANCE;
@@ -11282,7 +11394,11 @@ static void PM_Footsteps(void)
 								{
 									if (is_holding_block_button && pm->ps->sprintFuel > 15) // single sprint here
 									{
-										if (saber1 && (saber1->type == SABER_BACKHAND
+										if (pm_entSelf->s.botclass == BCLASS_YODA)
+										{
+											PM_SetAnim(SETANIM_BOTH, BOTH_RUN10, setAnimFlags);
+										}
+										else if (saber1 && (saber1->type == SABER_BACKHAND
 											|| saber1->type == SABER_ASBACKHAND)) //saber backhand
 										{
 											PM_SetAnim(SETANIM_BOTH, BOTH_RUN_STAFF, setAnimFlags);
@@ -12073,6 +12189,8 @@ PM_FinishWeaponChange
 void PM_FinishWeaponChange(void)
 {
 	const saberInfo_t* saber1 = BG_MySaber(pm->ps->clientNum, 0);
+	const qboolean is_holding_block_button = pm->ps->ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;
+	const qboolean active_blocking = pm->ps->ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK ? qtrue : qfalse;
 
 	int weapon = pm->cmd.weapon;
 	if (weapon < WP_NONE || weapon >= WP_NUM_WEAPONS)
@@ -12139,48 +12257,117 @@ void PM_FinishWeaponChange(void)
 			else
 #endif
 			{
-				if (PM_RunningAnim(pm->ps->legsAnim) || pm->ps->groundEntityNum == ENTITYNUM_NONE || in_camera)
+				if (!g_noIgniteTwirl.integer)
 				{
-					PM_SetSaberMove(LS_DRAW);
-				}
-				else if (PM_WalkingAnim(pm->ps->legsAnim))
-				{
-					PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-				}
-				else
-				{
-					if (saber1 && (saber1->type == SABER_BACKHAND || saber1->type == SABER_ASBACKHAND)) //saber backhand
+					if (PM_RunningAnim(pm->ps->legsAnim)
+						|| pm->ps->groundEntityNum == ENTITYNUM_NONE
+						|| in_camera)
 					{
-						PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						switch (pm->ps->fd.saberAnimLevel)
+						{
+						case SS_DUAL:
+							PM_SetAnim(SETANIM_TORSO, BOTH_S1_S6, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						case SS_STAFF:
+							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						case SS_NONE:
+						case SS_FAST:
+						case SS_MEDIUM:
+						case SS_STRONG:
+						case SS_TAVION:
+						case SS_DESANN:
+							PM_SetAnim(SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						default:
+							PM_SetAnim(SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						}
 					}
-					else if (saber1 && saber1->type == SABER_YODA) //saber yoda
+					else if (PM_WalkingAnim(pm->ps->legsAnim))
 					{
-						PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else if (saber1 && saber1->type == SABER_DOOKU) //saber dooku
-					{
-						PM_SetAnim(SETANIM_TORSO, BOTH_DOOKU_SMALLDRAW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else if (saber1 && saber1->type == SABER_UNSTABLE) //saber kylo
-					{
-						PM_SetAnim(SETANIM_TORSO, BOTH_SABERSTANCE_STANCE_ALT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else if (saber1 && saber1->type == SABER_OBIWAN) //saber kylo
-					{
-						PM_SetAnim(SETANIM_TORSO, BOTH_SHOWOFF_OBI, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else if (saber1 && saber1->type == SABER_SFX || saber1 && saber1->type == SABER_REY)//saber backhand
-					{
-						PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-					}
-					else if (saber1 && saber1->type == SABER_GRIE || saber1 && saber1->type == SABER_GRIE4)
-						//saber GRIEVOUS
-					{
-						PM_SetSaberMove(LS_DRAW3);
+						switch (pm->ps->fd.saberAnimLevel)
+						{
+						case SS_DUAL:
+							PM_SetAnim(SETANIM_TORSO, BOTH_GRIEVOUS_SABERON, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						case SS_STAFF:
+							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						case SS_NONE:
+						case SS_FAST:
+						case SS_MEDIUM:
+						case SS_STRONG:
+						case SS_TAVION:
+						case SS_DESANN:
+							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						default:
+							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						}
 					}
 					else
 					{
-						PM_SetSaberMove(LS_DRAW2);
+						switch (pm->ps->fd.saberAnimLevel)
+						{
+						case SS_DUAL:
+							PM_SetAnim(SETANIM_TORSO, BOTH_S1_S6, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						case SS_STAFF:
+							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						case SS_NONE:
+						case SS_FAST:
+						case SS_MEDIUM:
+						case SS_STRONG:
+						case SS_TAVION:
+						case SS_DESANN:
+							if (pm_entSelf->s.botclass == BCLASS_DOOKU)
+							{
+								PM_SetAnim(SETANIM_TORSO, BOTH_DOOKU_SMALLDRAW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (pm_entSelf->s.botclass == BCLASS_YODA)
+							{
+								PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (pm_entSelf->s.botclass == BCLASS_OBIWAN)
+							{
+								PM_SetAnim(SETANIM_TORSO, BOTH_SHOWOFF_OBI, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (saber1 && (saber1->type == SABER_BACKHAND || saber1->type == SABER_ASBACKHAND))
+							{
+								PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (saber1 && saber1->type == SABER_YODA)
+							{
+								PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (saber1 && saber1->type == SABER_DOOKU)
+							{
+								PM_SetAnim(SETANIM_TORSO, BOTH_DOOKU_SMALLDRAW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (saber1 && saber1->type == SABER_UNSTABLE)
+							{
+								PM_SetAnim(SETANIM_TORSO, BOTH_SABERSTANCE_STANCE_ALT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (saber1 && saber1->type == SABER_OBIWAN)
+							{
+								PM_SetAnim(SETANIM_TORSO, BOTH_SHOWOFF_OBI, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (saber1 && (saber1->type == SABER_SFX || saber1->type == SABER_REY))
+							{
+								PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (saber1 && (saber1->type == SABER_GRIE || saber1->type == SABER_GRIE4))
+							{
+								PM_SetSaberMove(LS_DRAW3);
+							}
+							break;
+						default:
+							PM_SetAnim(SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						}
 					}
 				}
 			}

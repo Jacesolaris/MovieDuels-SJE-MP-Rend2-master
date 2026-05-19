@@ -3898,8 +3898,7 @@ extern qboolean inGameCinematic;
 
 void G_SetsaberdownorAnim(gentity_t* ent)
 {
-	const qboolean is_holding_block_button = ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;
-	const qboolean active_blocking = ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK ? qtrue : qfalse;
+	const saberInfo_t* saber1 = BG_MySaber(ent->clientNum, 0);
 
 	if (ent->client->ps.saberLockTime >= level.time)
 	{
@@ -3915,40 +3914,110 @@ void G_SetsaberdownorAnim(gentity_t* ent)
 			{
 				ent->client->ps.saberHolstered = 0;
 
-				// play saber-on sounds
-				if (ent->client->saber[0].soundOn)
-				{
-					G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
-				}
-				if (ent->client->saber[1].soundOn)
-				{
-					G_Sound(ent, CHAN_AUTO, ent->client->saber[1].soundOn);
-				}
-
 				if (!g_noIgniteTwirl.integer &&
-					!active_blocking &&
-					!is_holding_block_button &&
 					!IsSurrendering(ent)) //twirl on
 				{
-					switch (ent->client->ps.fd.saberAnimLevel)
+					if (PM_RunningAnim(ent->client->ps.legsAnim)
+						|| ent->client->ps.groundEntityNum == ENTITYNUM_NONE
+						|| in_camera)
 					{
-					case SS_DUAL:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GRIEVOUS_SABERON, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						break;
-					case SS_STAFF:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						break;
-					case SS_NONE:
-					case SS_FAST:
-					case SS_MEDIUM:
-					case SS_STRONG:
-					case SS_TAVION:
-					case SS_DESANN:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						break;
-					default:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-						break;
+						switch (ent->client->ps.fd.saberAnimLevel)
+						{
+						case SS_DUAL:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_S1_S6, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						case SS_STAFF:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						case SS_NONE:
+						case SS_FAST:
+						case SS_MEDIUM:
+						case SS_STRONG:
+						case SS_TAVION:
+						case SS_DESANN:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						default:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						}
+					}
+					else if (PM_WalkingAnim(ent->client->ps.legsAnim))
+					{
+						switch (ent->client->ps.fd.saberAnimLevel)
+						{
+						case SS_DUAL:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GRIEVOUS_SABERON, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						case SS_STAFF:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						case SS_NONE:
+						case SS_FAST:
+						case SS_MEDIUM:
+						case SS_STRONG:
+						case SS_TAVION:
+						case SS_DESANN:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						default:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						}
+					}
+					else
+					{
+						switch (ent->client->ps.fd.saberAnimLevel)
+						{
+						case SS_DUAL:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_S1_S6, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						case SS_STAFF:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						case SS_NONE:
+						case SS_FAST:
+						case SS_MEDIUM:
+						case SS_STRONG:
+						case SS_TAVION:
+						case SS_DESANN:
+							if (ent->client->pers.botclass == BCLASS_DOOKU)
+							{
+								NPC_SetAnim(ent, SETANIM_TORSO, BOTH_DOOKU_SMALLDRAW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (ent->client->pers.botclass == BCLASS_YODA)
+							{
+								NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (ent->client->pers.botclass == BCLASS_OBIWAN)
+							{
+								NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SHOWOFF_OBI, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else if (saber1 && (saber1->type == SABER_BACKHAND || saber1->type == SABER_ASBACKHAND))
+							{
+								NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							else
+							{
+								NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							}
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						default:
+							NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+							break;
+						}
 					}
 				}
 			}
@@ -3957,31 +4026,18 @@ void G_SetsaberdownorAnim(gentity_t* ent)
 			{
 				ent->client->ps.saberHolstered = 2;
 
-				// play saber-off sounds
-				if (ent->client->saber[0].soundOff)
-				{
-					G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOff);
-				}
-				if (ent->client->saber[1].soundOff && ent->client->saber[1].model[0])
-				{
-					G_Sound(ent, CHAN_AUTO, ent->client->saber[1].soundOff);
-				}
-
-				ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
-				ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
-
 				if (!g_noIgniteTwirl.integer &&
-					!active_blocking &&
-					!is_holding_block_button &&
 					!IsSurrendering(ent)) //twirl on
 				{
 					switch (ent->client->ps.fd.saberAnimLevel)
 					{
 					case SS_DUAL:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_GRIEVOUS_SABERON, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_S6_S1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOff);
 						break;
 					case SS_STAFF:
-						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_S7_S1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOff);
 						break;
 					case SS_NONE:
 					case SS_FAST:
@@ -3990,9 +4046,11 @@ void G_SetsaberdownorAnim(gentity_t* ent)
 					case SS_TAVION:
 					case SS_DESANN:
 						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND2TO1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOff);
 						break;
 					default:
 						NPC_SetAnim(ent, SETANIM_TORSO, BOTH_STAND2TO1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOff);
 						break;
 					}
 				}
@@ -4301,6 +4359,7 @@ qboolean Bot_Is_Saber_Class(gentity_t* ent)
 	case BCLASS_JEDIMASTER:
 	case BCLASS_JEDITRAINER:
 	case BCLASS_KYLE:
+	case BCLASS_RAY:
 	case BCLASS_LUKE:
 	case BCLASS_MORGANKATARN:
 	case BCLASS_REBORN:
@@ -4313,6 +4372,7 @@ qboolean Bot_Is_Saber_Class(gentity_t* ent)
 	case BCLASS_YODA:
 	case BCLASS_PADAWAN:
 	case BCLASS_SITHLORD:
+	case BCLASS_DOOKU:
 	case BCLASS_VADER:
 	case BCLASS_SITH:
 	case BCLASS_APPRENTICE:
@@ -4349,6 +4409,7 @@ qboolean Bot_Is_Allowed_to_use_force(gentity_t* ent)
 	case BCLASS_CULTIST:
 	case BCLASS_JEDI:
 	case BCLASS_KYLE:
+	case BCLASS_RAY:
 	case BCLASS_JEDIMASTER:
 	case BCLASS_JEDITRAINER:
 	case BCLASS_DUELS:
@@ -4367,6 +4428,7 @@ qboolean Bot_Is_Allowed_to_use_force(gentity_t* ent)
 	case BCLASS_PADAWAN:
 	case BCLASS_GRIEVOUS:
 	case BCLASS_SITHLORD:
+	case BCLASS_DOOKU:
 	case BCLASS_VADER:
 	case BCLASS_SITH:
 	case BCLASS_APPRENTICE:

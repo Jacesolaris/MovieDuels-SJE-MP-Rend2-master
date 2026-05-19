@@ -4491,7 +4491,14 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 			|| Class_Model(model, "shaak_ti")
 			|| Class_Model(model, "shaak_ti/main")
 			|| Class_Model(model, "shaakti_tfu")
-			|| Class_Model(model, "rey/head_a1|torso_a1|lower_a1")
+			|| Class_Model(model, "brianna"))
+		{
+			client->pers.nextbotclass = BCLASS_KYLE;
+			client->pers.botmodelscale = BOTZIZE_SMALL;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
+		else if (Class_Model(model, "rey/head_a1|torso_a1|lower_a1")
 			|| Class_Model(model, "rey")
 			|| Class_Model(model, "rey_mp")
 			|| Class_Model(model, "rey_mp/resistance")
@@ -4501,14 +4508,13 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 			|| Class_Model(model, "rey/jedi")
 			|| Class_Model(model, "rey_skywalker")
 			|| Class_Model(model, "rey_skywalker/hood")
-			|| Class_Model(model, "rey_mp/jedi")
-			|| Class_Model(model, "brianna"))
-		{
-			client->pers.nextbotclass = BCLASS_KYLE;
-			client->pers.botmodelscale = BOTZIZE_SMALL;
-			// Consolidated behavior:
-			client_userinfo_Message(clientNum);
-		}
+			|| Class_Model(model, "rey_mp/jedi"))
+			{
+				client->pers.nextbotclass = BCLASS_RAY;
+				client->pers.botmodelscale = BOTZIZE_SMALL;
+				// Consolidated behavior:
+				client_userinfo_Message(clientNum);
+				}
 		else if (Class_Model(model, "bao_dur")
 			|| Class_Model(model, "lando")
 			|| Class_Model(model, "landoT")
@@ -5475,23 +5481,11 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 			|| Class_Model(model, "t_palpatine")
 			|| Class_Model(model, "md_palpatine")
 			|| Class_Model(model, "palpatine")
-			|| Class_Model(model, "aggl_dooku/")
-			|| Class_Model(model, "aggl_dooku/main")
 			|| Class_Model(model, "sithinquisitor1/default")
 			|| Class_Model(model, "sithinquisitor3/default")
 			|| Class_Model(model, "sithworrior2/default")
 			|| Class_Model(model, "md_ani_bw")
 			|| Class_Model(model, "md_ani_sith")
-			|| Class_Model(model, "dooku_mp")
-			|| Class_Model(model, "dooku_tcw_mp")
-			|| Class_Model(model, "md_dooku")
-			|| Class_Model(model, "dooku_tcw_mp/unrobed")
-			|| Class_Model(model, "dooku_totj_mp")
-			|| Class_Model(model, "dooku")
-			|| Class_Model(model, "dooku_tcw")
-			|| Class_Model(model, "dooku_tcw/unrobed")
-			|| Class_Model(model, "dooku_totj")
-			|| Class_Model(model, "hs_dooku")
 			|| Class_Model(model, "sithinquisitor2/default")
 			|| Class_Model(model, "sithworrior1/default")
 			|| Class_Model(model, "darkjedi")
@@ -5502,6 +5496,24 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 			|| Class_Model(model, "darthsion"))
 		{
 			client->pers.nextbotclass = BCLASS_SITHLORD;
+			client->pers.botmodelscale = BOTZIZE_NORMAL;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
+		else if (Class_Model(model, "aggl_dooku")
+			|| Class_Model(model, "aggl_dooku/main")
+			|| Class_Model(model, "dooku_mp")
+			|| Class_Model(model, "dooku_tcw_mp")
+			|| Class_Model(model, "md_dooku")
+			|| Class_Model(model, "dooku_tcw_mp/unrobed")
+			|| Class_Model(model, "dooku_totj_mp")
+			|| Class_Model(model, "dooku")
+			|| Class_Model(model, "dooku_tcw")
+			|| Class_Model(model, "dooku_tcw/unrobed")
+			|| Class_Model(model, "dooku_totj")
+			|| Class_Model(model, "hs_dooku"))
+		{
+			client->pers.nextbotclass = BCLASS_DOOKU;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
@@ -7753,6 +7765,7 @@ spawn_done:
 				case BCLASS_ALORA:
 				case BCLASS_DESANN:
 				case BCLASS_KYLE:
+				case BCLASS_RAY:
 				case BCLASS_LUKE:
 				case BCLASS_JEDIMASTER:
 				case BCLASS_DUELS:
@@ -7770,6 +7783,7 @@ spawn_done:
 				case BCLASS_PADAWAN:
 				case BCLASS_GRIEVOUS:
 				case BCLASS_SITHLORD:
+				case BCLASS_DOOKU:
 				case BCLASS_VADER:
 				case BCLASS_SITH:
 				case BCLASS_APPRENTICE:
@@ -8708,6 +8722,11 @@ spawn_done:
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			ClassItemHealthSetup(ent);
 			break;
+		case BCLASS_RAY:
+			client->ps.stats[STAT_ARMOR] = 100;
+			client->ps.stats[STAT_MAX_HEALTH] = 100;
+			ClassItemHealthSetup(ent);
+			break;
 		case BCLASS_LANDO:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_HEALTHDISP;
@@ -8916,6 +8935,11 @@ spawn_done:
 			ClassItemHealthSetup(ent);
 			break;
 		case BCLASS_SITHLORD:
+			client->ps.stats[STAT_ARMOR] = 200;
+			client->ps.stats[STAT_MAX_HEALTH] = 100;
+			ClassItemHealthSetup(ent);
+			break;
+		case BCLASS_DOOKU:
 			client->ps.stats[STAT_ARMOR] = 200;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			ClassItemHealthSetup(ent);
@@ -9194,6 +9218,7 @@ spawn_done:
 		case BCLASS_CULTIST:
 		case BCLASS_JEDI:
 		case BCLASS_KYLE:
+		case BCLASS_RAY:
 		case BCLASS_JEDIMASTER:
 		case BCLASS_JEDITRAINER:
 		case BCLASS_DUELS:
@@ -9212,6 +9237,7 @@ spawn_done:
 		case BCLASS_PADAWAN:
 		case BCLASS_GRIEVOUS:
 		case BCLASS_SITHLORD:
+		case BCLASS_DOOKU:
 		case BCLASS_VADER:
 		case BCLASS_SITH:
 		case BCLASS_APPRENTICE:

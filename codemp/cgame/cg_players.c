@@ -21956,7 +21956,8 @@ stillDoSaber:
 				|| cent->currentState.botclass == BCLASS_JEDITRAINER
 				|| cent->currentState.botclass == BCLASS_JEDIMASTER
 				|| cent->currentState.botclass == BCLASS_LUKE
-				|| cent->currentState.botclass == BCLASS_KYLE)
+				|| cent->currentState.botclass == BCLASS_KYLE
+				|| cent->currentState.botclass == BCLASS_RAY)
 			{
 				legs.shaderRGBA[0] = 0;
 				legs.shaderRGBA[1] = 120;
@@ -22031,7 +22032,8 @@ stillDoSaber:
 					|| cent->currentState.botclass == BCLASS_JEDITRAINER
 					|| cent->currentState.botclass == BCLASS_JEDIMASTER
 					|| cent->currentState.botclass == BCLASS_LUKE
-					|| cent->currentState.botclass == BCLASS_KYLE)
+					|| cent->currentState.botclass == BCLASS_KYLE
+					|| cent->currentState.botclass == BCLASS_RAY)
 				{
 					legs.shaderRGBA[0] = 0;
 					legs.shaderRGBA[1] = 120;

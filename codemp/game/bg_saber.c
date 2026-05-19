@@ -5666,7 +5666,11 @@ weapChecks:
 			switch (pm->ps->fd.saberAnimLevel)
 			{
 			case SS_FAST:
-				if (saber1 && saber1->type == SABER_YODA)
+				if (pm_entSelf->s.botclass == BCLASS_YODA)
+				{
+					PM_SetSaberMove(LS_YODA_SPECIAL);
+				}
+				else if (saber1 && saber1->type == SABER_YODA)
 				{
 					PM_SetSaberMove(LS_YODA_SPECIAL);
 				}
@@ -5699,7 +5703,11 @@ weapChecks:
 				}
 				break;
 			case SS_TAVION:
-				if (saber1 && saber1->type == SABER_YODA)
+				if (pm_entSelf->s.botclass == BCLASS_YODA)
+				{
+					PM_SetSaberMove(LS_YODA_SPECIAL);
+				}
+				else if (saber1 && saber1->type == SABER_YODA)
 				{
 					PM_SetSaberMove(LS_YODA_SPECIAL);
 				}

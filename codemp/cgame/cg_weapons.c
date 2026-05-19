@@ -2100,6 +2100,7 @@ static qboolean cg_Bot_Is_Saber_Class(const int botClass)
 	case BCLASS_JEDIMASTER:
 	case BCLASS_JEDITRAINER:
 	case BCLASS_KYLE:
+	case BCLASS_RAY:
 	case BCLASS_LUKE:
 	case BCLASS_MORGANKATARN:
 	case BCLASS_REBORN:
@@ -2112,6 +2113,7 @@ static qboolean cg_Bot_Is_Saber_Class(const int botClass)
 	case BCLASS_YODA:
 	case BCLASS_PADAWAN:
 	case BCLASS_SITHLORD:
+	case BCLASS_DOOKU:
 	case BCLASS_VADER:
 	case BCLASS_SITH:
 	case BCLASS_APPRENTICE:
