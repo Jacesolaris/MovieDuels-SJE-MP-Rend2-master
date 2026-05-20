@@ -12259,115 +12259,25 @@ void PM_FinishWeaponChange(void)
 			{
 				if (!g_noIgniteTwirl.integer)
 				{
-					if (PM_RunningAnim(pm->ps->legsAnim)
-						|| pm->ps->groundEntityNum == ENTITYNUM_NONE
-						|| in_camera)
+					switch (pm->ps->fd.saberAnimLevel)
 					{
-						switch (pm->ps->fd.saberAnimLevel)
-						{
-						case SS_DUAL:
-							PM_SetAnim(SETANIM_TORSO, BOTH_S1_S6, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						case SS_STAFF:
-							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						case SS_NONE:
-						case SS_FAST:
-						case SS_MEDIUM:
-						case SS_STRONG:
-						case SS_TAVION:
-						case SS_DESANN:
-							PM_SetAnim(SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						default:
-							PM_SetAnim(SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						}
-					}
-					else if (PM_WalkingAnim(pm->ps->legsAnim))
-					{
-						switch (pm->ps->fd.saberAnimLevel)
-						{
-						case SS_DUAL:
-							PM_SetAnim(SETANIM_TORSO, BOTH_GRIEVOUS_SABERON, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						case SS_STAFF:
-							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						case SS_NONE:
-						case SS_FAST:
-						case SS_MEDIUM:
-						case SS_STRONG:
-						case SS_TAVION:
-						case SS_DESANN:
-							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						default:
-							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						}
-					}
-					else
-					{
-						switch (pm->ps->fd.saberAnimLevel)
-						{
-						case SS_DUAL:
-							PM_SetAnim(SETANIM_TORSO, BOTH_S1_S6, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						case SS_STAFF:
-							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						case SS_NONE:
-						case SS_FAST:
-						case SS_MEDIUM:
-						case SS_STRONG:
-						case SS_TAVION:
-						case SS_DESANN:
-							if (pm_entSelf->s.botclass == BCLASS_DOOKU)
-							{
-								PM_SetAnim(SETANIM_TORSO, BOTH_DOOKU_SMALLDRAW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							}
-							else if (pm_entSelf->s.botclass == BCLASS_YODA)
-							{
-								PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							}
-							else if (pm_entSelf->s.botclass == BCLASS_OBIWAN)
-							{
-								PM_SetAnim(SETANIM_TORSO, BOTH_SHOWOFF_OBI, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							}
-							else if (saber1 && (saber1->type == SABER_BACKHAND || saber1->type == SABER_ASBACKHAND))
-							{
-								PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							}
-							else if (saber1 && saber1->type == SABER_YODA)
-							{
-								PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							}
-							else if (saber1 && saber1->type == SABER_DOOKU)
-							{
-								PM_SetAnim(SETANIM_TORSO, BOTH_DOOKU_SMALLDRAW, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							}
-							else if (saber1 && saber1->type == SABER_UNSTABLE)
-							{
-								PM_SetAnim(SETANIM_TORSO, BOTH_SABERSTANCE_STANCE_ALT, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							}
-							else if (saber1 && saber1->type == SABER_OBIWAN)
-							{
-								PM_SetAnim(SETANIM_TORSO, BOTH_SHOWOFF_OBI, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							}
-							else if (saber1 && (saber1->type == SABER_SFX || saber1->type == SABER_REY))
-							{
-								PM_SetAnim(SETANIM_TORSO, BOTH_SABER_IGNITION_JFA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							}
-							else if (saber1 && (saber1->type == SABER_GRIE || saber1->type == SABER_GRIE4))
-							{
-								PM_SetSaberMove(LS_DRAW3);
-							}
-							break;
-						default:
-							PM_SetAnim(SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-							break;
-						}
+					case SS_DUAL:
+						PM_SetAnim(SETANIM_TORSO, BOTH_S1_S6, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					case SS_STAFF:
+						PM_SetAnim(SETANIM_TORSO, BOTH_S1_S7, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					case SS_NONE:
+					case SS_FAST:
+					case SS_MEDIUM:
+					case SS_STRONG:
+					case SS_TAVION:
+					case SS_DESANN:
+						PM_SetAnim(SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
+					default:
+						PM_SetAnim(SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+						break;
 					}
 				}
 			}
