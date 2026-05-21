@@ -637,6 +637,7 @@ qboolean PM_SaberDrawPutawayAnim(const int anim)
 	case BOTH_STAND1TO2:
 	case BOTH_STAND2TO1:
 	case BOTH_S1_S7:
+	case BOTH_S1_S7_AMD:
 	case BOTH_S7_S1:
 	case BOTH_S1_S6:
 	case BOTH_S6_S1:
@@ -1074,89 +1075,17 @@ qboolean PM_InKataAnim(const int anim)
 qboolean G_DrawSaberTrailForAnimation(const int anim)
 {
 	// These animations will do saber trail (for JKA, CW and Maul cg_sfxsabers)
+	if (PM_SaberInMassiveBounce(anim) ||
+		PM_SaberInBashedAnim(anim) ||
+		PM_BoltBlockingAnim(anim) ||
+		PM_SaberDrawPutawayAnim(anim) )
+	{
+		return qtrue;
+	}
+
+	// Taunts
 	switch (anim)
 	{
-		// One Hand Backsaber Style / staff replacement for starkiller
-	case BOTH_BOLT_BLOCK_BACKHAND_BOTTOM_LEFT:
-	case BOTH_BOLT_BLOCK_BACKHAND_BOTTOM_RIGHT:
-	case BOTH_BOLT_BLOCK_BACKHAND_MIDDLE_LEFT:
-	case BOTH_BOLT_BLOCK_BACKHAND_MIDDLE_RIGHT:
-	case BOTH_BOLT_BLOCK_BACKHAND_TOP_LEFT:
-	case BOTH_BOLT_BLOCK_BACKHAND_TOP_MIDDLE:
-	case BOTH_BOLT_BLOCK_BACKHAND_TOP_RIGHT:
-
-		// Dual Lightsaber Style
-	case BOTH_BOLT_BLOCK_DUAL_BOTTOM_LEFT:
-	case BOTH_BOLT_BLOCK_DUAL_BOTTOM_RIGHT:
-	case BOTH_BOLT_BLOCK_DUAL_MIDDLE_LEFT:
-	case BOTH_BOLT_BLOCK_DUAL_MIDDLE_RIGHT:
-	case BOTH_BOLT_BLOCK_DUAL_TOP_LEFT:
-	case BOTH_BOLT_BLOCK_DUAL_TOP_MIDDLE:
-	case BOTH_BOLT_BLOCK_DUAL_TOP_RIGHT:
-
-		// Staff Saber Style
-	case BOTH_BOLT_BLOCK_STAFF_BOTTOM_LEFT:
-	case BOTH_BOLT_BLOCK_STAFF_BOTTOM_RIGHT:
-	case BOTH_BOLT_BLOCK_STAFF_MIDDLE_LEFT:
-	case BOTH_BOLT_BLOCK_STAFF_MIDDLE_RIGHT:
-	case BOTH_BOLT_BLOCK_STAFF_TOP_LEFT:
-	case BOTH_BOLT_BLOCK_STAFF_TOP_MIDDLE:
-	case BOTH_BOLT_BLOCK_STAFF_TOP_RIGHT:
-
-		// One Saber and one Hand Style
-	case BOTH_BOLT_BLOCK_SINGLE_HAND_BOTTOM_LEFT:
-	case BOTH_BOLT_BLOCK_SINGLE_HAND_BOTTOM_RIGHT:
-	case BOTH_BOLT_BLOCK_SINGLE_HAND_MIDDLE_LEFT:
-	case BOTH_BOLT_BLOCK_SINGLE_HAND_MIDDLE_RIGHT:
-	case BOTH_BOLT_BLOCK_SINGLE_HAND_TOP_LEFT:
-	case BOTH_BOLT_BLOCK_SINGLE_HAND_TOP_MIDDLE:
-	case BOTH_BOLT_BLOCK_SINGLE_HAND_TOP_RIGHT:
-
-		// One Saber and two Hands Style
-	case BOTH_BOLT_BLOCK_TWO_HAND_BOTTOM_LEFT:
-	case BOTH_BOLT_BLOCK_TWO_HAND_BOTTOM_RIGHT:
-	case BOTH_BOLT_BLOCK_TWO_HAND_MIDDLE_LEFT:
-	case BOTH_BOLT_BLOCK_TWO_HAND_MIDDLE_RIGHT:
-	case BOTH_BOLT_BLOCK_TWO_HAND_TOP_LEFT:
-	case BOTH_BOLT_BLOCK_TWO_HAND_TOP_MIDDLE:
-	case BOTH_BOLT_BLOCK_TWO_HAND_TOP_RIGHT:
-
-		//Saber parry broken
-	case BOTH_H1_S1_T_:
-	case BOTH_H1_S1_TR:
-	case BOTH_H1_S1_TL:
-	case BOTH_H1_S1_BL:
-	case BOTH_H1_S1_B_:
-	case BOTH_H1_S1_BR:
-		//Dual Saber parry broken
-	case BOTH_H6_S6_T_:
-	case BOTH_H6_S6_TR:
-	case BOTH_H6_S6_TL:
-	case BOTH_H6_S6_BL:
-	case BOTH_H6_S6_B_:
-	case BOTH_H6_S6_BR:
-		//SaberStaff parry broken
-	case BOTH_H7_S7_T_:
-	case BOTH_H7_S7_TR:
-	case BOTH_H7_S7_TL:
-	case BOTH_H7_S7_BL:
-	case BOTH_H7_S7_B_:
-	case BOTH_H7_S7_BR:
-		//Saber  perfect block
-	case BOTH_K1_S1_TR_ALT:
-	case BOTH_K1_S1_TL_ALT:
-		//Saberstaff  perfect block
-	case BOTH_B7_TR___:
-	case BOTH_B7_TL___:
-		//SaberDual  perfect block
-	case BOTH_B6_TR___:
-	case BOTH_B6_TL___:
-		//Saber/Dual/staff back block
-	case BOTH_P1_S1_B1_:
-	case BOTH_P6_S1_B1_:
-	case BOTH_P7_S1_B1_:
-
-		// Taunts
 	case BOTH_ENGAGETAUNT:
 	case BOTH_DUAL_TAUNT:
 	case BOTH_STAFF_TAUNT:
