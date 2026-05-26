@@ -1451,6 +1451,7 @@ typedef struct playerState_s {
 	int     holocronExpireTime;      // when the holocron should pop out
 	int     holocronGlobalCooldown;  // when the player can pick up another holocron
 	int     saberDisarmProtectTime;
+	int         npcKickBlockStartTime;
 } playerState_t;
 
 typedef struct siegePers_s
@@ -1642,6 +1643,7 @@ typedef struct siegePers_s
 #define MISHAP_MAXINACCURACY	7  //maximum possible offset angle for weapon accuracy.
 
 #define SABER_KATA_ATTACK_POWER		75
+#define SABER_KATA_ATTACK_POWER_COST 40
 #define SABER_ALT_ATTACK_POWER		50
 #define SABER_ALT_ATTACK_POWER_LR	FATIGUE_CARTWHEEL
 #define SABER_ALT_ATTACK_POWER_FB	25

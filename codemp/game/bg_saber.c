@@ -5280,7 +5280,7 @@ void PM_WeaponLightsaber(void)
 							PM_AddEvent(EV_SABER_UNHOLSTER);
 						}
 						PM_SetSaberMove(LS_ROLL_STAB);
-						WP_ForcePowerDrain(pm->ps, FP_SABER_OFFENSE, SABER_KATA_ATTACK_POWER);
+						WP_ForcePowerDrain(pm->ps, FP_SABER_OFFENSE, SABER_KATA_ATTACK_POWER_COST);
 					}
 				}
 			}

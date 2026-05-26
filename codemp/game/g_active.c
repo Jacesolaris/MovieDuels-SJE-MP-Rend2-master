@@ -80,7 +80,7 @@ extern qboolean PM_SaberInTransitionAny(int move);
 extern qboolean PM_SaberInMassiveBounce(int anim);
 extern qboolean PM_Saberinstab(int move);
 extern float manual_npc_saberblocking(const gentity_t* defender);
-extern float manual_npc_kick_absorbing(const gentity_t* defender);
+extern float Manual_NPCKickAbsorbing(const gentity_t* defender);
 extern qboolean PM_WalkingAnim(int anim);
 extern qboolean PM_RunningAnim(int anim);
 extern qboolean BG_IsAlreadyinTauntAnim(int anim);
@@ -5736,6 +5736,9 @@ static void ClientThink_real(gentity_t* ent)
 		client->ps.ManualBlockingFlags &= ~(1 << MBF_MELEEDODGE);
 	}
 
+	// 5 second minimum active time
+	const int kickBlockMinTime = 5000;
+
 	if (ent->r.svFlags & SVF_BOT &&
 		client->ps.weapon == WP_SABER &&
 		!BG_SabersOff(&client->ps) &&
@@ -5754,16 +5757,26 @@ static void ClientThink_real(gentity_t* ent)
 		{
 			client->ps.ManualBlockingFlags &= ~(1 << MBF_NPCBLOCKING);
 		}
-		if (manual_npc_kick_absorbing(ent))
+
+		if (Manual_NPCKickAbsorbing(ent) == qtrue)
 		{
-			if (!(client->ps.ManualBlockingFlags & 1 << MBF_NPCKICKBLOCK))
+			// Activate kick block if not already active
+			if ((client->ps.ManualBlockingFlags & (1 << MBF_NPCKICKBLOCK)) == 0)
 			{
-				client->ps.ManualBlockingFlags |= 1 << MBF_NPCKICKBLOCK;
+				client->ps.ManualBlockingFlags |= (1 << MBF_NPCKICKBLOCK);
+				client->ps.npcKickBlockStartTime = level.time;
 			}
 		}
 		else
 		{
-			client->ps.ManualBlockingFlags &= ~(1 << MBF_NPCKICKBLOCK);
+			// Only allow deactivation if 5 seconds have passed
+			if ((client->ps.ManualBlockingFlags & (1 << MBF_NPCKICKBLOCK)) != 0)
+			{
+				if (level.time - client->ps.npcKickBlockStartTime >= kickBlockMinTime)
+				{
+					client->ps.ManualBlockingFlags &= ~(1 << MBF_NPCKICKBLOCK);
+				}
+			}
 		}
 	}
 

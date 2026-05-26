@@ -13058,6 +13058,8 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 {
 	vec3_t p_l_angles, p_l_fwd;
 
+	const qboolean npc_blocking = defender->client->ps.ManualBlockingFlags & 1 << MBF_NPCKICKBLOCK ? qtrue : qfalse;	//NPC Blocking
+
 	if (!defender || !defender->client)
 	{
 		//non-humanoids can't absorb kicks.
@@ -13089,9 +13091,7 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 		// No force saber deference (Gunners cant do it at all)
 		|| defender->client->ps.eFlags2 & EF2_FLYING // Bobafett flying cant do it
 		|| defender->client->ps.groundEntityNum == ENTITYNUM_NONE // Your in the air (jumping).
-		|| defender->client->ps.fd.blockPoints < FATIGUE_DODGEING // Less than 35 Block points
-		|| defender->client->ps.fd.forcePower < FATIGUE_DODGEING // Less than 35 Force points
-		|| defender->client->ps.saberFatigueChainCount >= MISHAPLEVEL_TEN) // Your saber fatigued
+		&& !npc_blocking)
 	{
 		return qfalse;
 	}
@@ -13099,7 +13099,7 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 	VectorSet(p_l_angles, 0, defender->client->ps.viewangles[YAW], 0);
 	AngleVectors(p_l_angles, p_l_fwd, NULL, NULL);
 
-	if (DotProduct(p_l_fwd, push_dir) > 0.2f)
+	if (DotProduct(p_l_fwd, push_dir) > -0.2f)
 	{
 		//not hit in the front, can't absorb kick.
 		return qfalse;
@@ -13108,15 +13108,15 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 	return qtrue; // If all that stuff above is clear then you can convert a knockdown in to a stagger
 }
 
-float manual_npc_kick_absorbing(const gentity_t* defender)
+qboolean Manual_NPCKickAbsorbing(const gentity_t* defender)
 {
 	if (!(defender->r.svFlags & SVF_BOT))
 	{
 		return qfalse;
 	}
 
-	if (defender->client->ps.saberFatigueChainCount > MISHAPLEVEL_TEN && (defender->client->ps.fd.forcePower <=
-		BLOCKPOINTS_HALF || defender->client->ps.fd.blockPoints <= BLOCKPOINTS_HALF))
+	if (defender->client->ps.saberFatigueChainCount > MISHAPLEVEL_TEN &&
+		(defender->client->ps.fd.forcePower <= BLOCKPOINTS_HALF || defender->client->ps.fd.blockPoints <= BLOCKPOINTS_HALF))
 	{
 		return qfalse;
 	}
@@ -13135,8 +13135,6 @@ float manual_npc_kick_absorbing(const gentity_t* defender)
 		|| PM_SaberInMassiveBounce(defender->client->ps.saberMove)
 		|| PM_SaberInBashedAnim(defender->client->ps.saberMove)
 		|| defender->client->ps.groundEntityNum == ENTITYNUM_NONE
-		|| defender->client->ps.fd.blockPoints < BLOCKPOINTS_THIRTY
-		|| defender->client->ps.fd.forcePower < BLOCKPOINTS_THIRTY
 		|| defender->client->ps.userInt3 & 1 << FLAG_FATIGUED)
 	{
 		return qfalse;
@@ -13167,11 +13165,6 @@ float manual_npc_kick_absorbing(const gentity_t* defender)
 	{
 		//can't block while running.
 		return qfalse;
-	}
-
-	if (defender->r.svFlags & SVF_BOT)
-	{
-		return qtrue;
 	}
 
 	return qtrue;
