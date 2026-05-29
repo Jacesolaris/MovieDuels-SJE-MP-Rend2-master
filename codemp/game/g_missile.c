@@ -1664,49 +1664,51 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 				if (other->client->painCooldownTime > level.time)
 				{
 					// Still cooling down → skip pain anim
-					return qfalse;// (missile still dies, but no pain anim or knockdown)
 				}
-				int pain_anim = -1;
-
-				// 75% chance to play pain animation
-				if (Q_irand(0, 3))
+				else
 				{
-					// Crouch = knockdown instead of pain anim
-					if (PM_CrouchAnim(other->client->ps.legsAnim))
-					{
-						vec3_t dir;
-						VectorSubtract(ent->r.currentOrigin, other->r.currentOrigin, dir);
-						VectorNormalize(dir);
+					int pain_anim = -1;
 
-						G_Knockdown(other, ent, dir, 50, qtrue);
-					}
-					else
+					// 75% chance to play pain animation
+					if (Q_irand(0, 3))
 					{
-						vec3_t impact_point;
-
-						if (trace != NULL)
+						// Crouch = knockdown instead of pain anim
+						if (PM_CrouchAnim(other->client->ps.legsAnim))
 						{
-							VectorCopy(trace->endpos, impact_point);
+							vec3_t dir;
+							VectorSubtract(ent->r.currentOrigin, other->r.currentOrigin, dir);
+							VectorNormalize(dir);
+
+							G_Knockdown(other, ent, dir, 50, qtrue);
 						}
 						else
 						{
-							VectorCopy(ent->r.currentOrigin, impact_point);
+							vec3_t impact_point;
+
+							if (trace != NULL)
+							{
+								VectorCopy(trace->endpos, impact_point);
+							}
+							else
+							{
+								VectorCopy(ent->r.currentOrigin, impact_point);
+							}
+
+							int hit_loc = G_ComputeHitLocation(other, impact_point);
+
+							pain_anim = G_PickPainAnim(other, impact_point, hit_loc);
+
+							int parts = SETANIM_BOTH;
+							if (PM_CrouchAnim(other->client->ps.legsAnim) ||
+								PM_InCartwheel(other->client->ps.legsAnim))
+							{
+								parts = SETANIM_LEGS;
+							}
+							G_SetAnim(other, NULL, parts, pain_anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+							other->client->ps.torsoTimer = 400;
 						}
-
-						int hit_loc = G_ComputeHitLocation(other, impact_point);
-
-						pain_anim = G_PickPainAnim(other, impact_point, hit_loc);
-
-						int parts = SETANIM_BOTH;
-						if (PM_CrouchAnim(other->client->ps.legsAnim) ||
-							PM_InCartwheel(other->client->ps.legsAnim))
-						{
-							parts = SETANIM_LEGS;
-						}
-						G_SetAnim(other, NULL, parts, pain_anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
-						other->client->ps.torsoTimer = 400;
+						other->client->painCooldownTime = level.time + 2000;// 2 second cooldown on pain anims
 					}
-					other->client->painCooldownTime = level.time + 2000;// 2 second cooldown on pain anims
 				}
 			}
 		}
