@@ -789,14 +789,23 @@ static void CG_RegisterSounds(void)
 	cgs.media.purpleEp7GlowShader = trap->R_RegisterShader("gfx/effects/sabers_tfa/purple_glow");
 
 	//rebels Sabers
-	cgs.media.RebelsSaberCoreShader = trap->R_RegisterShader("SFX_Sabers/saber_blade");
-	cgs.media.RebelsblackSaberCoreShader = trap->R_RegisterShader("SFX_Sabers/saber_blade_black");
-	cgs.media.RebelsredGlowShader = trap->R_RegisterShader("gfx/effects/sabers/red_glow");
-	cgs.media.RebelsorangeGlowShader = trap->R_RegisterShader("gfx/effects/sabers/orange_glow");
-	cgs.media.RebelsyellowGlowShader = trap->R_RegisterShader("gfx/effects/sabers/yellow_glow");
-	cgs.media.RebelsgreenGlowShader = trap->R_RegisterShader("gfx/effects/sabers/green_glow");
-	cgs.media.RebelsblueGlowShader = trap->R_RegisterShader("gfx/effects/sabers/blue_glow");
-	cgs.media.RebelspurpleGlowShader = trap->R_RegisterShader("gfx/effects/sabers/purple_glow");
+	cgs.media.rebelsSaberBlurShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/saberBlur");
+	cgs.media.rebelsSwordTrailShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/swordTrail");
+	cgs.media.rebelsSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/rgb_line");
+	cgs.media.rebelsredSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/red_line");
+	cgs.media.rebelsorangeSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/orange_line");
+	cgs.media.rebelsyellowSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/yellow_line");
+	cgs.media.rebelsgreenSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/green_line");
+	cgs.media.rebelsblueSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/blue_line");
+	cgs.media.rebelspurpleSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/purple_line");
+	cgs.media.rebelsblackSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/black_line");
+	cgs.media.rgbRebelsGlowShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/rgb_glow");
+	cgs.media.redRebelsGlowShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/red_glow");
+	cgs.media.orangeRebelsGlowShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/orange_glow");
+	cgs.media.yellowRebelsGlowShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/yellow_glow");
+	cgs.media.greenRebelsGlowShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/green_glow");
+	cgs.media.blueRebelsGlowShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/blue_glow");
+	cgs.media.purpleRebelsGlowShader = trap->R_RegisterShader("gfx/effects/sabers_rebels/purple_glow");
 	//Clone Wars Sabers
 	cgs.media.cwSaberBlurShader = trap->R_RegisterShader("gfx/effects/sabers_tcw/saberBlur");
 	cgs.media.cwSwordTrailShader = trap->R_RegisterShader("gfx/effects/sabers_tcw/swordTrail");

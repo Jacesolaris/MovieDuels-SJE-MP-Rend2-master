@@ -844,6 +844,43 @@ static void CG_OffsetThirdPersonView(void)
 	}
 	vectoangles(diff, cg.refdef.viewangles);
 
+	//// Horizontal offset
+	//float horz = 0.0f;
+	//if (cg.overrides.active & CG_OVERRIDE_3RD_PERSON_HOF)
+	//{
+	//	horz = cg.overrides.thirdPersonHorzOffset;
+	//}
+	//else
+	//{
+	//	horz = cg_thirdPersonHorzOffset.value;
+	//}
+
+	//if (fabs(horz) > 0.0001f)
+	//{
+	//	// build view axis from final view angles
+	//	AnglesToAxis(cg.refdefViewAngles, cg.refdef.viewaxis);
+
+	//	// desired camera location after applying horizontal offset
+	//	vec3_t desiredCamLoc;
+	//	VectorMA(cameraCurLoc, horz, cg.refdef.viewaxis[1], desiredCamLoc);
+
+	//	// trace from the camera target to the desired location so we don't end inside walls
+	//	trace_t trace;
+	//	CG_Trace(&trace, cameraCurTarget, cameramins, cameramaxs, desiredCamLoc,
+	//		cg.predictedPlayerState.clientNum, MASK_CAMERACLIP);
+
+	//	if (trace.fraction < 1.0f)
+	//	{
+	//		// hit something — clamp camera to safe position
+	//		VectorCopy(trace.endpos, cameraCurLoc);
+	//	}
+	//	else
+	//	{
+	//		// clear path — use desired location
+	//		VectorCopy(desiredCamLoc, cameraCurLoc);
+	//	}
+	//}
+
 	// Temp: just move the camera to the side a bit
 
 	if (cg.predictedPlayerState.communicatingflags & (1 << OVERSIZEDGUNNER))
