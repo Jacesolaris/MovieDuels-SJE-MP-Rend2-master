@@ -1243,9 +1243,20 @@ static void bot_change_view_angles(bot_state_t* bs, float thinktime)
 
 	// Combat vs idle turn speed
 	if (bs->currentEnemy && bs->frame_Enemy_Vis)
-		factor = bs->skills.turnspeed_combat * (0.4f + 0.2f * bs->settings.skill);
+	{
+		if (bs->settings.skill <= 2)
+		{
+			factor = (bs->skills.turnspeed_combat * 0.6f) * bs->settings.skill;
+		}
+		else
+		{
+			factor = bs->skills.turnspeed_combat * (0.4f + 0.2f * bs->settings.skill);
+		}
+	}
 	else
+	{
 		factor = bs->skills.turnspeed;
+	}
 
 	// Clamp factor
 	if (factor < 0.001f) factor = 0.001f;
@@ -8716,10 +8727,22 @@ static void melee_combat_handling(bot_state_t* bs)
 			enemyInKata == qtrue &&
 			PM_InKnockDown(ps) == qfalse)
 		{
-			if (bs->cur_ps.fd.forcePower >= 30)
+			if (bs->DashOutTime <= level.time)  // cooldown expired → reset
 			{
-				bs->cur_ps.fd.forcePower -= 5;
+				bs->Dash_BOT_Count = 0;
+			}
+			if (bs->Dash_BOT_Count < 2 && bs->cur_ps.fd.forcePower >= 50)
+			{
+				bs->cur_ps.fd.forcePower -= 35;
 				JediDirectionalDashDodge(bs, enemyPos);
+
+				bs->Dash_BOT_Count++;
+
+				// If we just used the 2nd dash → start cooldown
+				if (bs->Dash_BOT_Count >= 2)
+				{
+					bs->DashOutTime = level.time + Q_irand(3000, 5000);
+				}
 				return;
 			}
 			else
@@ -9395,8 +9418,66 @@ static void JediDirectionalDashDodge(bot_state_t* bs, const vec3_t enemyPos)
 // RETREAT MODE ENDS HERE
 // ---------------------------------------------------------
 
+static void JediDirectionalDashAttack(bot_state_t* bs, const vec3_t enemyPos)
+{
+	if (bs == NULL)
+	{
+		return;
+	}
+
+	gentity_t* self = &g_entities[bs->client];
+
+	if (self == NULL || self->client == NULL)
+	{
+		return;
+	}
+
+	// -------------------------------------------------
+	// DETERMINE ATTACK DIRECTION (TOWARD ENEMY)
+	// -------------------------------------------------
+	vec3_t toEnemy;
+	VectorSubtract(enemyPos, bs->origin, toEnemy);
+	VectorNormalize(toEnemy);
+
+	vec3_t fwd, right;
+	AngleVectors(bs->viewangles, fwd, right, NULL);
+
+	// Forward dash only (attack intent)
+	bs->lastucmd.forwardmove = 127;
+	bs->lastucmd.rightmove = 0;
+
+	// -------------------------------------------------
+	// START DASH
+	// -------------------------------------------------
+	if (self->client->ps.groundEntityNum != ENTITYNUM_NONE)
+	{
+		// Store dash velocity for multi-frame sustain
+		VectorScale(toEnemy, 600.0f, bs->dashVel);
+
+		self->client->ps.velocity[0] = bs->dashVel[0];
+		self->client->ps.velocity[1] = bs->dashVel[1];
+
+		// -------------------------------------------------
+		// DASH ANIMATION + SOUND
+		// -------------------------------------------------
+		self->client->pers.cmd.forwardmove = bs->lastucmd.forwardmove;
+		self->client->pers.cmd.rightmove = bs->lastucmd.rightmove;
+
+		ForceDashAnimDash(self);
+
+		if (bs->kataDashSoundTime < level.time)
+		{
+			G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/dash.mp3"));
+			bs->kataDashSoundTime = level.time + 300;
+		}
+
+		self->client->ps.saberMove = LS_READY;
+	}
+}
+
 static void saber_combat_handling(bot_state_t* bs)
 {
+	qboolean lowSkill = (bs->settings.skill <= 4 ? qtrue : qfalse);
 	// -------------------------------------------------
 	// EARLY OUT: No enemy
 	// -------------------------------------------------
@@ -9445,10 +9526,22 @@ static void saber_combat_handling(bot_state_t* bs)
 			PM_SaberInBashedAnim(ps->torsoAnim) == qfalse &&
 			PM_InKnockDown(ps) == qfalse)
 		{
-			if (bs->cur_ps.fd.forcePower >= 50)
+			if (bs->DashOutTime <= level.time)  // cooldown expired → reset
+			{
+				bs->Dash_BOT_Count = 0;
+			}
+			if (bs->Dash_BOT_Count < 2 && bs->cur_ps.fd.forcePower >= 50)
 			{
 				bs->cur_ps.fd.forcePower -= 35;
 				JediDirectionalDashDodge(bs, enemyPos);
+
+				bs->Dash_BOT_Count++;
+
+				// If we just used the 2nd dash → start cooldown
+				if (bs->Dash_BOT_Count >= 2)
+				{
+					bs->DashOutTime = level.time + Q_irand(3000, 5000);
+				}
 				return;
 			}
 			else
@@ -9491,8 +9584,72 @@ static void saber_combat_handling(bot_state_t* bs)
 	}
 	else if (bs->frame_Enemy_Len <= 64.0f)
 	{
-		bot_behave_attack(bs);
+		if (lowSkill == qtrue)
+		{
+			trap->EA_Attack(bs->client);
+#ifdef _DEBUG
+			//Com_Printf("basic_attack");
+#endif
+		}
+		else
+		{
+			bot_behave_attack(bs);
+#ifdef _DEBUG
+			//Com_Printf("standard_attack");
+#endif
+		}
 		bs->saberDefending = 0;
+	}
+
+	// -------------------------------------------------
+	// IDEAL SPACING FOR DUELS
+	// -------------------------------------------------
+	const float idealMin = 85.0f;
+	const float idealMax = 130.0f;
+	const float MaxDashDist = 256.0f;
+
+	if (bs->frame_Enemy_Len < idealMin)
+	{
+		vec3_t back;
+		VectorSubtract(bs->origin, enemyPos, back);
+
+		if (VectorNormalize(back) > 0.001f)
+		{
+			VectorMA(bs->origin, 64.0f, back, bs->goalPosition);
+#ifdef _DEBUG
+			//Com_Printf("Standard_close\n");
+#endif
+		}
+
+		bs->beStill = level.time + 100;
+	}
+	else if (bs->frame_Enemy_Len > idealMax)
+	{
+		// Dash cooldown using bot-local timer
+		if (lowSkill == qfalse &&
+			bs->DashInTime <= level.time &&
+			bs->frame_Enemy_Len < MaxDashDist &&
+			bs->cur_ps.groundEntityNum != ENTITYNUM_NONE)
+		{
+			JediDirectionalDashAttack(bs, enemyPos);
+			bs->DashInTime = level.time + Q_irand(3000, 5000);
+#ifdef _DEBUG
+			//Com_Printf("Standard_dash_to_attack\n");
+#endif
+		}
+		else
+		{
+			vec3_t fwd_to_enemy;
+			VectorSubtract(enemyPos, bs->origin, fwd_to_enemy);
+
+			if (VectorNormalize(fwd_to_enemy) > 0.001f)
+			{
+				VectorMA(bs->origin, 64.0f, fwd_to_enemy, bs->goalPosition);
+#ifdef _DEBUG
+				//Com_Printf("Standard_far\n");
+#endif
+			}
+		}
 	}
 
 	// -------------------------------------------------
@@ -9541,9 +9698,9 @@ static void saber_combat_handling(bot_state_t* bs)
 static void Enhanced_saber_combat_handling(bot_state_t* bs)
 {
 	// -------------------------------------------------
-	// EARLY OUT: No enemy
+	// EARLY OUT: No enemy / invalid state
 	// -------------------------------------------------
-	if (!bs || !bs->currentEnemy)
+	if (bs == NULL || bs->currentEnemy == NULL)
 	{
 		return;
 	}
@@ -9553,7 +9710,7 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 	// -------------------------------------------------
 	vec3_t enemyPos = { 0.0f, 0.0f, 0.0f };
 
-	if (bs->currentEnemy->client)
+	if (bs->currentEnemy->client != NULL)
 	{
 		VectorCopy(bs->currentEnemy->client->ps.origin, enemyPos);
 	}
@@ -9588,10 +9745,22 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 			PM_SaberInBashedAnim(ps->torsoAnim) == qfalse &&
 			PM_InKnockDown(ps) == qfalse)
 		{
-			if (bs->cur_ps.fd.forcePower >= 50)
+			if (bs->DashOutTime <= level.time)  // cooldown expired → reset
+			{
+				bs->Dash_BOT_Count = 0;
+			}
+			if (bs->Dash_BOT_Count < 2 && bs->cur_ps.fd.forcePower >= 50)
 			{
 				bs->cur_ps.fd.forcePower -= 35;
 				JediDirectionalDashDodge(bs, enemyPos);
+
+				bs->Dash_BOT_Count++;
+
+				// If we just used the 2nd dash → start cooldown
+				if (bs->Dash_BOT_Count >= 2)
+				{
+					bs->DashOutTime = level.time + Q_irand(3000, 5000);
+				}
 				return;
 			}
 			else
@@ -9607,6 +9776,7 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 	// -------------------------------------------------
 	const float idealMin = 85.0f;
 	const float idealMax = 130.0f;
+	const float MaxDashDist = 256.0f;
 
 	if (bs->frame_Enemy_Len < idealMin)
 	{
@@ -9616,23 +9786,43 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 		if (VectorNormalize(back) > 0.001f)
 		{
 			VectorMA(bs->origin, 64.0f, back, bs->goalPosition);
+#ifdef _DEBUG
+			//Com_Printf("Enhanced_close\n");
+#endif
 		}
 
 		bs->beStill = level.time + 100;
 	}
 	else if (bs->frame_Enemy_Len > idealMax)
 	{
-		vec3_t fwd_to_enemy;
-		VectorSubtract(enemyPos, bs->origin, fwd_to_enemy);
-
-		if (VectorNormalize(fwd_to_enemy) > 0.001f)
+		// Dash cooldown using bot-local timer
+		if (bs->DashInTime <= level.time &&
+			bs->frame_Enemy_Len < MaxDashDist &&
+			bs->cur_ps.groundEntityNum != ENTITYNUM_NONE)
 		{
-			VectorMA(bs->origin, 64.0f, fwd_to_enemy, bs->goalPosition);
+			JediDirectionalDashAttack(bs, enemyPos);
+			bs->DashInTime = level.time + Q_irand(3000, 5000);
+#ifdef _DEBUG
+			//Com_Printf("Enhanced_dash_to_attack\n");
+#endif
+		}
+		else
+		{
+			vec3_t fwd_to_enemy;
+			VectorSubtract(enemyPos, bs->origin, fwd_to_enemy);
+
+			if (VectorNormalize(fwd_to_enemy) > 0.001f)
+			{
+				VectorMA(bs->origin, 64.0f, fwd_to_enemy, bs->goalPosition);
+#ifdef _DEBUG
+				//Com_Printf("Enhanced_far\n");
+#endif
+			}
 		}
 	}
 
 	// -------------------------------------------------
-	// SAME GROUND CHECK (UNIFIED HELPER)
+	// SAME GROUND CHECK
 	// -------------------------------------------------
 	const qboolean sameGround = Bot_SameGroundLevel(bs, enemyPos);
 
@@ -9700,11 +9890,11 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 				in_field_of_vision(bs->viewangles, 100, ang)))
 		? qtrue : qfalse;
 
-	if (bs->frame_Enemy_Vis &&
+	if (bs->frame_Enemy_Vis == qtrue &&
 		bs->cur_ps.weapon == bs->virtualWeapon &&
 		enemyInFOV == qtrue)
 	{
-		trap->EA_Attack(bs->client);
+		bot_behave_attack(bs);
 	}
 }
 
@@ -10067,13 +10257,8 @@ static int combat_bot_ai(bot_state_t* bs)
 
 	if (weaponRange == BWEAPONRANGE_SABER)
 	{
-		// Primary saber attack
-		if (bs->frame_Enemy_Len <= SABER_ATTACK_RANGE)
-		{
-			bs->doAttack = 1;
-		}
 		// Kick when slightly further (or as you tune it)
-		else if (bs->frame_Enemy_Len <= SABER_KICK_RANGE)
+		if (bs->frame_Enemy_Len <= SABER_KICK_RANGE)
 		{
 			bs->doBotKick = 1;
 		}
@@ -13482,6 +13667,9 @@ void standard_bot_ai(bot_state_t* bs)
 				}
 
 				saber_combat_handling(bs);
+#ifdef _DEBUG
+				//Com_Printf("Basic_saber_combat_handling");
+#endif
 
 				if (bs->frame_Enemy_Len < 80)
 				{
@@ -15620,19 +15808,24 @@ void Enhanced_bot_ai(bot_state_t* bs)
 				}
 
 				// -----------------------------------------
-				// ALWAYS RUN ENHANCED SABER HANDLING HERE
+				// RUN ENHANCED SABER HANDLING HERE
 				// -----------------------------------------
-				if ((bs->currentEnemy &&
-					bs->currentEnemy->client &&
-					bs->currentEnemy->s.number < MAX_CLIENTS &&
-					bs->currentEnemy->client->ps.saberFatigueChainCount >= MISHAPLEVEL_LIGHT) ||
-					bs->cur_ps.stats[STAT_HEALTH] < 50)
-				{
+				if ((bs->currentEnemy && //  ensure currentEnemy is valid before accessing
+					bs->currentEnemy->client && //  ensure currentEnemy has a client before accessing ps
+					bs->currentEnemy->s.number < MAX_CLIENTS && bs->settings.skill >= 5) || //  ensure currentEnemy is a client
+					bs->cur_ps.stats[STAT_HEALTH] < 50) //  also trigger on low health for desperation moves
+				{// bots will only use Enhanced Saber AI if they are fighting a player or are low on health, to save CPU
 					Enhanced_saber_combat_handling(bs);
+#ifdef _DEBUG
+					//Com_Printf("Enhanced_saber_combat_handling");
+#endif
 				}
 				else
 				{
 					saber_combat_handling(bs);
+#ifdef _DEBUG
+					//Com_Printf("saber_combat_handling");
+#endif
 				}
 
 				if (bs->frame_Enemy_Len < 80.0f)

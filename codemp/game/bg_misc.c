@@ -3846,6 +3846,7 @@ void BG_PlayerStateToEntityState(playerState_t* ps, entityState_t* s, const qboo
 	s->dashstartTime = ps->dashstartTime;
 	s->dashlaststartTime = ps->dashlaststartTime;
 	s->Dash_Count = ps->Dash_Count;
+	s->Dash_BOT_Count = ps->Dash_BOT_Count;
 
 	s->kickstartTime = ps->kickstartTime;
 	s->kicklaststartTime = ps->kicklaststartTime;
@@ -4061,6 +4062,7 @@ void BG_PlayerStateToEntityStateExtraPolate(playerState_t* ps, entityState_t* s,
 	s->dashstartTime = ps->dashstartTime;
 	s->dashlaststartTime = ps->dashlaststartTime;
 	s->Dash_Count = ps->Dash_Count;
+	s->Dash_BOT_Count = ps->Dash_BOT_Count;
 
 	s->grappletimeplayer = ps->grappletimeplayer;
 	s->grapplestartTime = ps->grapplestartTime;

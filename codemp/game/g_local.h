@@ -1081,6 +1081,7 @@ struct gclient_s
 	int cloneFired;
 	int BoltsFired;
 	int Dash_Count;
+	int Dash_BOT_Count;
 
 	int VaderBreathTime;
 
