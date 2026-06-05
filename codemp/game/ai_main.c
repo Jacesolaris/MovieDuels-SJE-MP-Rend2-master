@@ -8739,9 +8739,9 @@ static void melee_combat_handling(bot_state_t* bs)
 				bs->Dash_BOT_Count++;
 
 				// If we just used the 2nd dash → start cooldown
-				if (bs->Dash_BOT_Count >= 2)
+				if (bs->Dash_BOT_Count >= 1)
 				{
-					bs->DashOutTime = level.time + Q_irand(3000, 5000);
+					bs->DashOutTime = level.time + Q_irand(10000, 15000);
 				}
 				return;
 			}
@@ -9540,7 +9540,7 @@ static void saber_combat_handling(bot_state_t* bs)
 				// If we just used the 2nd dash → start cooldown
 				if (bs->Dash_BOT_Count >= 2)
 				{
-					bs->DashOutTime = level.time + Q_irand(3000, 5000);
+					bs->DashOutTime = level.time + Q_irand(10000, 15000);
 				}
 				return;
 			}
@@ -9632,7 +9632,7 @@ static void saber_combat_handling(bot_state_t* bs)
 			bs->cur_ps.groundEntityNum != ENTITYNUM_NONE)
 		{
 			JediDirectionalDashAttack(bs, enemyPos);
-			bs->DashInTime = level.time + Q_irand(3000, 5000);
+			bs->DashInTime = level.time + Q_irand(20000, 30000);
 #ifdef _DEBUG
 			//Com_Printf("Standard_dash_to_attack\n");
 #endif
@@ -9759,7 +9759,7 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 				// If we just used the 2nd dash → start cooldown
 				if (bs->Dash_BOT_Count >= 2)
 				{
-					bs->DashOutTime = level.time + Q_irand(3000, 5000);
+					bs->DashOutTime = level.time + Q_irand(10000, 15000);
 				}
 				return;
 			}

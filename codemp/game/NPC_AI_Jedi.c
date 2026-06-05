@@ -1172,7 +1172,7 @@ void Boba_FireFlameThrower(gentity_t* self)
 	}
 }
 
-void Boba_StartFlameThrower(gentity_t* self)
+static void Boba_StartFlameThrower(gentity_t* self)
 {
 	const int flameTime = 4000; //Q_irand( 1000, 3000 );
 	mdxaBone_t boltMatrix;
@@ -1197,7 +1197,7 @@ void Boba_StartFlameThrower(gentity_t* self)
 	G_PlayEffectID(G_EffectIndex("flamethrower/flamethrower_mp"), org, dir);
 }
 
-void Boba_DoFlameThrower(gentity_t* self)
+static void Boba_DoFlameThrower(gentity_t* self)
 {
 	if (self->client->ps.jetpackFuel < 10)
 	{
@@ -1211,7 +1211,7 @@ void Boba_DoFlameThrower(gentity_t* self)
 	Boba_FireFlameThrower(self);
 }
 
-void Boba_DoSniper(const gentity_t* self)
+static void Boba_DoSniper(const gentity_t* self)
 {
 	if (TIMER_Done(self, "PickNewSniperPoint"))
 	{
