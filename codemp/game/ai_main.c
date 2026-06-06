@@ -9625,11 +9625,13 @@ static void saber_combat_handling(bot_state_t* bs)
 	}
 	else if (bs->frame_Enemy_Len > idealMax)
 	{
+		playerState_t* ps = &bs->currentEnemy->client->ps;
 		// Dash cooldown using bot-local timer
 		if (lowSkill == qfalse &&
 			bs->DashInTime <= level.time &&
 			bs->frame_Enemy_Len < MaxDashDist &&
-			bs->cur_ps.groundEntityNum != ENTITYNUM_NONE)
+			bs->cur_ps.groundEntityNum != ENTITYNUM_NONE &&
+			PM_InKnockDown(ps) == qfalse)
 		{
 			JediDirectionalDashAttack(bs, enemyPos);
 			bs->DashInTime = level.time + Q_irand(20000, 30000);
@@ -9795,10 +9797,12 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 	}
 	else if (bs->frame_Enemy_Len > idealMax)
 	{
+		playerState_t* ps = &bs->currentEnemy->client->ps;
 		// Dash cooldown using bot-local timer
 		if (bs->DashInTime <= level.time &&
 			bs->frame_Enemy_Len < MaxDashDist &&
-			bs->cur_ps.groundEntityNum != ENTITYNUM_NONE)
+			bs->cur_ps.groundEntityNum != ENTITYNUM_NONE &&
+			PM_InKnockDown(ps) == qfalse)
 		{
 			JediDirectionalDashAttack(bs, enemyPos);
 			bs->DashInTime = level.time + Q_irand(3000, 5000);
