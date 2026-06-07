@@ -11325,14 +11325,34 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 	float x, y;
 	qboolean corona = qfalse;
 	vec4_t ecolor = { 0, 0, 0, 0 };
-	const centity_t* crossEnt = NULL;
+	const centity_t* crossEnt = NULL;;
+
+	const qboolean holding_block = (cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse;
+	const qboolean holding_block_and_attack = (cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
+	const qboolean holding_sprint = (cg.predictedPlayerState.PlayerEffectFlags & (1 << PEF_SPRINTING)) ? qtrue : qfalse;
+
+	if (!cg_drawCrosshair.integer)
+	{
+		return;
+	}
+
+	if (cg_adaptiveCrosshair.integer == 1 &&
+		cg.snap->ps.weapon == WP_SABER)
+	{
+		if ((holding_block == qfalse &&
+			holding_block_and_attack == qfalse) ||
+			holding_sprint == qtrue)
+		{
+			return;
+		}
+	}
 
 	if (in_camera)
 	{
 		return;
 	}
 
-	if (cg.snap->ps.weapon == WP_NONE)
+	if (cg.snap->ps.weapon == WP_MELEE || cg.snap->ps.weapon == WP_NONE)
 	{
 		return;
 	}
@@ -11345,11 +11365,6 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 	if (world_point)
 	{
 		VectorCopy(world_point, cg_crosshairPos);
-	}
-
-	if (!cg_drawCrosshair.integer)
-	{
-		return;
 	}
 
 	if (cg.snap->ps.fallingToDeath)
