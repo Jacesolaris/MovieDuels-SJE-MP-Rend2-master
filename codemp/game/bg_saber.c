@@ -7666,12 +7666,16 @@ void PM_SaberFakeFlagUpdate(const int new_move)
 
 void PM_SaberPerfectBlockUpdate(const int new_move)
 {
-	const qboolean is_holding_block_button = pm->ps->ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;
+	// This is the manual blocking state.
+	const qboolean is_manual_blocking = (pm->ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse;
 
-	//checks to see if the flag needs to be removed.
-	if ((!(is_holding_block_button)) || PM_SaberInBounce(new_move) || PM_SaberInMassiveBounce(pm->ps->torsoAnim) || PM_SaberInAttack(new_move))
+	// Conditions that cancel perfect block
+	if (is_manual_blocking == qfalse ||
+		PM_SaberInBounce(new_move) == qtrue ||
+		PM_SaberInMassiveBounce(pm->ps->torsoAnim) == qtrue ||
+		PM_SaberInAttack(new_move) == qtrue)
 	{
-		pm->ps->userInt3 &= ~(1 << FLAG_PERFECTBLOCK);
+		pm->ps->userInt3 &= ~(1 << FLAG_PERFECTBLOCK); // Clear perfect block flag
 	}
 }
 

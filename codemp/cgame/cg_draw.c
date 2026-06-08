@@ -11330,6 +11330,7 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 	const qboolean holding_block = (cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse;
 	const qboolean holding_block_and_attack = (cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
 	const qboolean holding_sprint = (cg.predictedPlayerState.PlayerEffectFlags & (1 << PEF_SPRINTING)) ? qtrue : qfalse;
+	const qboolean holding_block_button = (cg.predictedPlayerState.pm_flags & PMF_BLOCK_HELD) ? qtrue : qfalse;
 
 	if (!cg_drawCrosshair.integer)
 	{
@@ -11337,22 +11338,29 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 	}
 
 	if (cg_adaptiveCrosshair.integer == 1 &&
-		cg.snap->ps.weapon == WP_SABER)
+		(cg.snap->ps.weapon == WP_SABER))
 	{
 		if ((holding_block == qfalse &&
 			holding_block_and_attack == qfalse) ||
 			holding_sprint == qtrue)
 		{
+			// Don't show crosshair when using a saber (unless blocking) and we're not blocking or holding block and attack if adaptive crosshair is on
+			return;
+		}
+	}
+
+	if (cg_adaptiveCrosshair.integer == 1 &&
+		(cg.snap->ps.weapon == WP_MELEE || cg.snap->ps.weapon == WP_NONE))
+	{
+		if ((holding_block_button == qfalse) ||
+			holding_sprint == qtrue)
+		{
+			// Don't show crosshair when using a MELEE and we're not HOLDING THE BLOCK BUTTON
 			return;
 		}
 	}
 
 	if (in_camera)
-	{
-		return;
-	}
-
-	if (cg.snap->ps.weapon == WP_MELEE || cg.snap->ps.weapon == WP_NONE)
 	{
 		return;
 	}
@@ -11726,7 +11734,7 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 		if (cg_weaponcrosshairs.integer)
 		{
 			if (cg.snap->ps.weapon == WP_SABER ||
-				cg.snap->ps.weapon == WP_MELEE)
+				cg.snap->ps.weapon == WP_MELEE || cg.snap->ps.weapon == WP_NONE)
 			{
 				hShader = cgs.media.crosshairShader[1];
 			}

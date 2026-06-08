@@ -126,6 +126,41 @@ G_ReflectMissile
 ================
 */
 
+
+// Returns qtrue only if entity and its client are valid
+static qboolean G_HasClient(const gentity_t* ent)
+{
+	return (ent && ent->client) ? qtrue : qfalse;
+}
+
+// Safe access to defense level (fallback = FORCE_LEVEL_1)
+static int G_GetDefenseLevel(const gentity_t* ent)
+{
+	if (!G_HasClient(ent))
+	{
+		return FORCE_LEVEL_1;
+	}
+	return ent->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE];
+}
+
+// Safe access to blockPoints (fallback = 0)
+static int G_GetBlockPoints(const gentity_t* ent)
+{
+	if (!G_HasClient(ent))
+	{
+		return 0;
+	}
+	return ent->client->ps.fd.blockPoints;
+}
+
+// Adds wildness to a direction vector
+static void G_AddWildness(vec3_t dir, float amount)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		dir[i] += Q_flrand(-amount, amount);
+	}
+}
 //////////////////// Boltblock new ////////////////////////////////
 
 static void g_manual_block_missile(const gentity_t* ent, gentity_t* missile, vec3_t forward)
@@ -375,30 +410,11 @@ static void g_reflect_missile_to_attacker(const gentity_t* ent, gentity_t* missi
 	//
 	// Add slop based on saber state
 	//
-	if (!PM_SaberInIdle(ent->client->ps.saberMove))
+	if (!PM_SaberInIdle(ent->client->ps.saberMove)|| (G_GetBlockPoints(ent) < BLOCKPOINTS_KNOCKAWAY))
 	{
-		float min_slop, max_slop;
+		float amt = (G_GetBlockPoints(ent) < BLOCKPOINTS_TWENTYFIVE) ? 0.3f : 0.1f;
 
-		if (PM_SaberInAttack(ent->client->ps.saberMove) ||
-			PM_SaberInTransitionAny(ent->client->ps.saberMove) ||
-			PM_SaberInSpecialAttack(ent->client->ps.torsoAnim) ||
-			ent->client->ps.fd.blockPoints < BLOCKPOINTS_KNOCKAWAY)
-		{
-			// Moderately wild
-			min_slop = -0.3f;
-			max_slop = 0.3f;
-		}
-		else
-		{
-			// Mildly wild
-			min_slop = -0.1f;
-			max_slop = 0.1f;
-		}
-
-		for (int i = 0; i < 3; i++)
-		{
-			bounce_dir[i] += Q_flrand(min_slop, max_slop);
-		}
+		G_AddWildness(bounce_dir, amt);
 	}
 
 	//
@@ -2275,41 +2291,6 @@ static int ReflectionLevel(const gentity_t* player)
 	return FORCE_LEVEL_1;
 }
 
-// Returns qtrue only if entity and its client are valid
-static qboolean G_HasClient(const gentity_t* ent)
-{
-	return (ent && ent->client) ? qtrue : qfalse;
-}
-
-// Safe access to defense level (fallback = FORCE_LEVEL_1)
-static int G_GetDefenseLevel(const gentity_t* ent)
-{
-	if (!G_HasClient(ent))
-	{
-		return FORCE_LEVEL_1;
-	}
-	return ent->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE];
-}
-
-// Safe access to blockPoints (fallback = 0)
-static int G_GetBlockPoints(const gentity_t* ent)
-{
-	if (!G_HasClient(ent))
-	{
-		return 0;
-	}
-	return ent->client->ps.fd.blockPoints;
-}
-
-// Adds wildness to a direction vector
-static void G_AddWildness(vec3_t dir, float amount)
-{
-	for (int i = 0; i < 3; i++)
-	{
-		dir[i] += Q_flrand(-amount, amount);
-	}
-}
-
 void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec3_t fwd)
 {
 	// Safety: validate pointers (bug fix – previously could crash on NULL)
@@ -2505,7 +2486,7 @@ void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec
 				vectoangles(fwd, angs);
 				AngleVectors(angs, fwd, NULL, NULL);
 			}
-			else if (blocker->client->pers.cmd.forwardmove >= 0)
+			else if (blocker->client->pers.cmd.forwardmove >= 0|| (G_GetBlockPoints(blocker) < BLOCKPOINTS_TWENTYFIVE))
 			{
 				// Bad if moving forward: more slop
 				slop_factor += Q_irand(2, 5);
