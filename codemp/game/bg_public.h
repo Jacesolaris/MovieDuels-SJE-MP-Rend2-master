@@ -64,7 +64,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-08,Month-06,Year-26,BuildNum-05" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-12,Month-06,Year-26,BuildNum-06" // build date
 
 #define	STEPSIZE		18
 
@@ -548,6 +548,7 @@ extern int bgForcePowerCost[NUM_FORCE_POWERS][NUM_FORCE_POWER_LEVELS];
 #define	PMF_BLOCK_HELD		16777216
 #define	PMF_KICK_HELD		33554432
 #define	PMF_ACCURATE_MISSILE_BLOCK_HELD		67108864
+#define	PMF_WALKING_HELD		134217728
 
 #define	PMF_ALL_TIMES	(PMF_TIME_WATERJUMP|PMF_TIME_LAND|PMF_TIME_KNOCKBACK)
 

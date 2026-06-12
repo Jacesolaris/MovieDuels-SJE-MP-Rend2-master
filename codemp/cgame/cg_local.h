@@ -2134,7 +2134,7 @@ void CG_TestModelNextSkin_f(void);
 void CG_TestModelPrevSkin_f(void);
 void CG_AddBufferedSound(sfxHandle_t sfx);
 
-void CG_DrawActiveFrame(int serverTime, stereoFrame_t stereoView, qboolean demoPlayback);
+void CG_DrawActiveFrame(const int serverTime, const stereoFrame_t stereoView, const qboolean demoPlayback);
 
 //
 // cg_drawtools.c
