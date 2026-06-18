@@ -274,7 +274,7 @@ XCVAR_DEF(g_SerenityJediEngineHudMode, "2", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_drawSelectionScrollBar, "1", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(sv_cheats, "1", NULL, CVAR_NONE)
 XCVAR_DEF(g_noIgniteTwirl, "0", NULL, CVAR_ARCHIVE)
-XCVAR_DEF(in_joystick, "1", NULL, CVAR_ARCHIVE)
-XCVAR_DEF(cg_scaleJoystickSensitivity, "1", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(in_joystick, "0", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(cg_scaleJoystickSensitivity, "0", NULL, CVAR_ARCHIVE)
 
 #undef XCVAR_DEF
