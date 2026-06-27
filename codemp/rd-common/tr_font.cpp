@@ -1748,9 +1748,9 @@ void R_ReloadFonts_f()
 #else
 			RE_RegisterFont(vstr_fonts[iFont].c_str());
 #endif
-		}
-		Com_Printf("Done.\n");
 	}
+		Com_Printf("Done.\n");
+}
 	else
 	{
 		Com_Printf("Problem encountered finding current fonts, ignoring.\n");	// poo. Oh well, forget it.

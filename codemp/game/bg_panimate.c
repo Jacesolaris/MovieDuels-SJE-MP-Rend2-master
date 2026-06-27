@@ -1078,7 +1078,7 @@ qboolean G_DrawSaberTrailForAnimation(const int anim)
 	if (PM_SaberInMassiveBounce(anim) ||
 		PM_SaberInBashedAnim(anim) ||
 		PM_BoltBlockingAnim(anim) ||
-		PM_SaberDrawPutawayAnim(anim) )
+		PM_SaberDrawPutawayAnim(anim))
 	{
 		return qtrue;
 	}

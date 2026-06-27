@@ -4509,12 +4509,12 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 			|| Class_Model(model, "rey_skywalker")
 			|| Class_Model(model, "rey_skywalker/hood")
 			|| Class_Model(model, "rey_mp/jedi"))
-			{
-				client->pers.nextbotclass = BCLASS_RAY;
-				client->pers.botmodelscale = BOTZIZE_SMALL;
-				// Consolidated behavior:
-				client_userinfo_Message(clientNum);
-				}
+		{
+			client->pers.nextbotclass = BCLASS_RAY;
+			client->pers.botmodelscale = BOTZIZE_SMALL;
+			// Consolidated behavior:
+			client_userinfo_Message(clientNum);
+		}
 		else if (Class_Model(model, "bao_dur")
 			|| Class_Model(model, "lando")
 			|| Class_Model(model, "landoT")

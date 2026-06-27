@@ -1807,7 +1807,6 @@ static mdvTag_t* R_GetTag(mdvModel_t* mod, int frame, const char* _tagName)
 	return NULL;
 }
 
-
 static void R_GetAnimTag(mdrHeader_t* mod, int framenum, const char* tagName, mdvTag_t* dest)
 {
 	int				i, j, k;

@@ -5233,7 +5233,7 @@ void WP_ResistForcePush(gentity_t* self, const gentity_t* pusher, const qboolean
 	}
 	else if (self->client->saber[0].type == SABER_YODA)
 	{
-		G_SetAnim(self, &self->client->pers.cmd, parts, BOTH_YODA_RESISTFORCE,SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+		G_SetAnim(self, &self->client->pers.cmd, parts, BOTH_YODA_RESISTFORCE, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
 	}
 	else
 	{

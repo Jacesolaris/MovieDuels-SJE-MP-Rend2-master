@@ -126,7 +126,6 @@ G_ReflectMissile
 ================
 */
 
-
 // Returns qtrue only if entity and its client are valid
 static qboolean G_HasClient(const gentity_t* ent)
 {
@@ -410,7 +409,7 @@ static void g_reflect_missile_to_attacker(const gentity_t* ent, gentity_t* missi
 	//
 	// Add slop based on saber state
 	//
-	if (!PM_SaberInIdle(ent->client->ps.saberMove)|| (G_GetBlockPoints(ent) < BLOCKPOINTS_KNOCKAWAY))
+	if (!PM_SaberInIdle(ent->client->ps.saberMove) || (G_GetBlockPoints(ent) < BLOCKPOINTS_KNOCKAWAY))
 	{
 		float amt = (G_GetBlockPoints(ent) < BLOCKPOINTS_TWENTYFIVE) ? 0.3f : 0.1f;
 
@@ -2306,7 +2305,7 @@ void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec
 
 	// Handles all the behavior needed to saber block a blaster bolt.
 	const int   other_def_level = ReflectionLevel(blocker);
-	float slop_factor =	(float)(MISHAP_MAXINACCURACY - 6) *	(float)(FORCE_LEVEL_3 - blocker->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE]) /	(float)FORCE_LEVEL_3;
+	float slop_factor = (float)(MISHAP_MAXINACCURACY - 6) * (float)(FORCE_LEVEL_3 - blocker->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE]) / (float)FORCE_LEVEL_3;
 
 	gentity_t* prev_owner = G_GetEntitySafe(bolt->r.ownerNum);
 	const float distance = prev_owner ? vector_bolt_distance(blocker->r.currentOrigin, prev_owner->r.currentOrigin) : 99999.0f;
@@ -2486,7 +2485,7 @@ void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec
 				vectoangles(fwd, angs);
 				AngleVectors(angs, fwd, NULL, NULL);
 			}
-			else if (blocker->client->pers.cmd.forwardmove >= 0|| (G_GetBlockPoints(blocker) < BLOCKPOINTS_TWENTYFIVE))
+			else if (blocker->client->pers.cmd.forwardmove >= 0 || (G_GetBlockPoints(blocker) < BLOCKPOINTS_TWENTYFIVE))
 			{
 				// Bad if moving forward: more slop
 				slop_factor += Q_irand(2, 5);

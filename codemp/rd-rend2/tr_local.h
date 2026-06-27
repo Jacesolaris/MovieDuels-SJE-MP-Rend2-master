@@ -1159,6 +1159,15 @@ enum
 
 enum
 {
+	TEXCOLORDEF_USE_VERTICES = 0x0000,
+	TEXCOLORDEF_SCREEN_TRIANGLE = 0x0001,
+
+	TEXCOLORDEF_ALL = 0x0001,
+	TEXCOLORDEF_COUNT = TEXCOLORDEF_ALL + 1,
+};
+
+enum
+{
 	GENERICDEF_USE_DEFORM_VERTEXES = 0x0001,
 	GENERICDEF_USE_TCGEN_AND_TCMOD = 0x0002,
 	GENERICDEF_USE_FOG = 0x0004,
@@ -1190,6 +1199,23 @@ enum
 #endif // REND2_SP
 
 	FOGDEF_COUNT = FOGDEF_ALL + 1,
+};
+
+enum
+{
+	VELOCITYDEF_USE_DEFORM_VERTEXES = 0x0001,
+	VELOCITYDEF_USE_SKELETAL_ANIMATION = 0x0002,
+	VELOCITYDEF_USE_TCGEN_AND_TCMOD = 0x0004,
+	VELOCITYDEF_USE_RGBAGEN = 0x0008,
+	VELOCITYDEF_USE_PARALLAXMAP = 0x0010,
+	//VELOCITYDEF_USE_ALPHA_TEST		= 0x0004,
+#ifdef REND2_SP_MD3
+	VELOCITYDEF_USE_VERTEX_ANIMATION = 0x0004,
+	VELOCITYDEF_ALL = 0x0007,
+#else
+	VELOCITYDEF_ALL = 0x001F,
+#endif // REND2_SP
+	VELOCITYDEF_COUNT = VELOCITYDEF_ALL + 1,
 };
 
 enum
@@ -3001,6 +3027,7 @@ struct shaderCommands_s
 	float		shaderTime;
 	int			fogNum;
 	int         cubemapIndex;
+	bool		entityMergable;
 #ifdef REND2_SP_MAYBE
 	bool		scale;		// uses texCoords[input->firstIndex] for storage
 	bool		fade;		// uses svars.colors[input->firstIndex] for storage
@@ -3405,6 +3432,7 @@ void R_AddGhoulSurfaces(trRefEntity_t* ent, int entityNum);
 void RB_SurfaceGhoul(CRenderableSurface* surf);
 void RB_TransformBones(const trRefEntity_t* ent, const trRefdef_t* refdef, int currentFrameNum, gpuFrame_t* frame);
 int RB_GetBoneUboOffset(CRenderableSurface* surf);
+int RB_GetPreviousBoneUboOffset(CRenderableSurface* surf);
 void RB_SetBoneUboOffset(CRenderableSurface* surf, int offset, int currentFrameNum);
 void RB_FillBoneBlock(CRenderableSurface* surf, mat3x4_t* outMatrices);
 /*

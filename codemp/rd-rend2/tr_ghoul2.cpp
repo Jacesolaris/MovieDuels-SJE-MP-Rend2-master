@@ -411,6 +411,7 @@ public:
 	mat3x4_t boneMatrices[MAX_G2_BONES];
 	int      uboOffset;
 	int	     uboGPUFrame;
+	int      uboPreviousOffset;
 
 	CBoneCache(const model_t* amod, const mdxaHeader_t* aheader)
 		: header(aheader)
@@ -3682,6 +3683,14 @@ int RB_GetBoneUboOffset(CRenderableSurface* surf)
 {
 	if (surf->boneCache)
 		return surf->boneCache->uboOffset;
+	else
+		return -1;
+}
+
+int RB_GetPreviousBoneUboOffset(CRenderableSurface* surf)
+{
+	if (surf->boneCache)
+		return surf->boneCache->uboPreviousOffset;
 	else
 		return -1;
 }

@@ -9396,7 +9396,6 @@ static float CG_DrawFPS(const float y)
 		colorTable[CT_LTGOLD1]
 	);
 
-
 	return y + BIGCHAR_HEIGHT + 4;
 }
 

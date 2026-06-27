@@ -1186,7 +1186,6 @@ void CG_LaunchGib(vec3_t origin, vec3_t velocity, const qhandle_t h_model)
 	le->leMarkType = LEMT_BLOOD;
 }
 
-
 /*
 ===================
 CG_GibPlayer

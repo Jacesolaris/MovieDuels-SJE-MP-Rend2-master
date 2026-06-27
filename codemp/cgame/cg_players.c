@@ -8942,8 +8942,6 @@ static void CG_DoUnstableSaber(vec3_t blade_muz, vec3_t blade_tip, vec3_t trail_
 	}
 }
 
-
-
 static void CG_DoRebelsSaber(vec3_t origin, vec3_t dir, float length, float length_max, float radius, saber_colors_t color, int rfx,
 	qboolean do_light, int cnum, int bnum)
 {

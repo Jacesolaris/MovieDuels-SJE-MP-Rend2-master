@@ -1790,7 +1790,6 @@ static md3Tag_t* R_GetTag(md3Header_t* mod, int frame, const char* tagName)
 	return NULL;
 }
 
-
 /*
 ================
 R_LerpTag
