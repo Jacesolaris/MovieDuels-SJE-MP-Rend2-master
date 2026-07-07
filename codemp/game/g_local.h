@@ -1090,6 +1090,7 @@ struct gclient_s
 	int respawnPending;  // time when the client should retry spawning
 	int botLastStyleSwitch;
 	int painCooldownTime;
+	qboolean IsAiming;
 };
 
 //animations

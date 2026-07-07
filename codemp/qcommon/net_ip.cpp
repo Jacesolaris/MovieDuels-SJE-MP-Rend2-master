@@ -492,11 +492,11 @@ static SOCKET NET_IPSocket(char* net_interface, const int port, int* err)
 	Com_Printf("--------------------- Client Initialization ---------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("---- Genuine MovieDuels SerenityJediEngine (Solaris Edition) ----\n");
-	Com_Printf("----------------------- MovieDuels-SJE-SP -----------------------\n");
+	Com_Printf("----------------------- MovieDuels-SJE-MP -----------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
-	Com_Printf("-------------------------- Update 7.0 ---------------------------\n");
-	Com_Printf("--------------------- Build Date 27/06/2026 ---------------------\n");// build date
-	Com_Printf("---------------------------Build 10------------------------------\n");
+	Com_Printf("-------------------------- Update 8.0 ---------------------------\n");
+	Com_Printf("--------------------- Build Date 07/07/2026 ---------------------\n");// build date
+	Com_Printf("--------------------------- Build 05 ----------------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Lightsaber ---------------------------\n");
 	Com_Printf("---------- An elegant weapon for a more civilized age -----------\n");

@@ -3510,15 +3510,15 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 			|| Class_Model(model, "jangoJA_fett/default")
 			|| Class_Model(model, "md_jango")
 			|| Class_Model(model, "md_jango_geo")
-			|| Class_Model(model, "md_jango_dual_player"))
+			|| Class_Model(model, "md_jango_dual_player")
+			|| Class_Model(model, "jangofett"))
 		{
 			client->pers.nextbotclass = BCLASS_MANDOLORIAN2;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			// Consolidated behavior:
 			client_userinfo_Message(clientNum);
 		}
-		else if (Class_Model(model, "jangofett_mp")
-			|| Class_Model(model, "jangofett"))
+		else if (Class_Model(model, "jangofett_mp"))
 		{
 			client->pers.nextbotclass = BCLASS_JANGO_NOJP;
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
@@ -8186,7 +8186,7 @@ spawn_done:
 				case BCLASS_MANDOLORIAN2:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->skillLevel[SK_ACROBATICS] = FORCE_LEVEL_3;
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_REY;
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_JANGO;
 					client->skillLevel[SK_PISTOL] = FORCE_LEVEL_3;
 					client->ps.eFlags |= EF3_DUAL_WEAPONS;
 					ClassAmmoSetup(ent);

@@ -1593,9 +1593,11 @@ static qboolean Load_Menu(int handle)
 	}
 }
 
-void UI_LoadMenus(const char* menuFile, qboolean reset)
+void UI_LoadMenus(const char* menuFile, const qboolean reset)
 {
 	pc_token_t token;
+
+	const int start = trap->Milliseconds();
 
 	trap->PC_LoadGlobalDefines("ui/MD_MP/menudef.h");
 
@@ -1639,7 +1641,7 @@ void UI_LoadMenus(const char* menuFile, qboolean reset)
 		}
 	}
 
-	//	Com_Printf("UI menu load time = %d milli seconds\n", trap->Milliseconds() - start);
+	Com_Printf("UI menu load time = %d milli seconds\n", trap->Milliseconds() - start);
 
 	trap->PC_FreeSource(handle);
 
