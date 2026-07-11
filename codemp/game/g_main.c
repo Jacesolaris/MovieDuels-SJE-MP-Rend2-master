@@ -642,7 +642,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 	trap->SetConfigstring(CS_CLIENT_DUELHEALTHS, va("-1|-1|!"));
 	trap->SetConfigstring(CS_CLIENT_DUELWINNER, va("-1"));
 
-	save_registered_items();
+	SaveRegisteredItems();
 
 	//trap->Print ("-----------------------------------\n");
 
@@ -3706,8 +3706,8 @@ static void CheckTournament(void)
 				gentity_t* te = G_TempEntity(vec3_origin, EV_GLOBAL_DUEL);
 				te->r.svFlags |= SVF_BROADCAST;
 				//this is really pretty nasty, but..
-				te->s.otherentity_num = level.sortedClients[0];
-				te->s.otherentity_num2 = level.sortedClients[1];
+				te->s.otherentityNum = level.sortedClients[0];
+				te->s.otherentityNum2 = level.sortedClients[1];
 				te->s.groundEntityNum = level.sortedClients[2];
 
 				trap->SetConfigstring(CS_CLIENT_DUELISTS, va("%i|%i|%i", level.sortedClients[0], level.sortedClients[1],
@@ -3747,8 +3747,8 @@ static void CheckTournament(void)
 					gentity_t* te = G_TempEntity(vec3_origin, EV_GLOBAL_DUEL);
 					te->r.svFlags |= SVF_BROADCAST;
 					//this is really pretty nasty, but..
-					te->s.otherentity_num = level.sortedClients[0];
-					te->s.otherentity_num2 = level.sortedClients[1];
+					te->s.otherentityNum = level.sortedClients[0];
+					te->s.otherentityNum2 = level.sortedClients[1];
 					te->s.groundEntityNum = level.sortedClients[2];
 
 					trap->SetConfigstring(CS_CLIENT_DUELISTS, va("%i|%i|%i", level.sortedClients[0],

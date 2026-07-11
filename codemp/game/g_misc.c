@@ -2194,7 +2194,7 @@ static void InitShooter(gentity_t* ent, const int weapon)
 	ent->use = Use_Shooter;
 	ent->s.weapon = weapon;
 
-	register_item(BG_FindItemForWeapon(weapon));
+	RegisterItem(BG_FindItemForWeapon(weapon));
 
 	G_SetMovedir(ent->s.angles, ent->movedir);
 
@@ -4608,7 +4608,7 @@ void SP_misc_weapon_shooter(gentity_t* self)
 		}
 	}
 
-	register_item(BG_FindItemForWeapon(self->s.weapon));
+	RegisterItem(BG_FindItemForWeapon(self->s.weapon));
 
 	//set where our muzzle is
 	VectorCopy(self->s.origin, self->client->renderInfo.muzzlePoint);
@@ -4671,7 +4671,7 @@ void SP_misc_trip_mine(gentity_t* ent)
 	vec3_t fwd;
 
 	//pre load the tripmine effects.
-	register_item(BG_FindItemForWeapon(WP_TRIP_MINE));
+	RegisterItem(BG_FindItemForWeapon(WP_TRIP_MINE));
 
 	CreateLaserTrap(laserTrap, ent->s.origin, &g_entities[ENTITYNUM_WORLD]);
 	laserTrap->count = 1;
@@ -4957,7 +4957,7 @@ static void spawn_rack_goods(gentity_t* ent)
 	if (ent->spawnflags & RACK_HEALTH)
 	{
 		health = BG_FindItem("item_medpak_instant");
-		register_item(health);
+		RegisterItem(health);
 	}
 
 	//---------Ammo types
@@ -5085,37 +5085,37 @@ void SP_misc_model_ammo_rack(gentity_t* ent)
 	{
 		if (ent->spawnflags & RACK_WEAPONS)
 		{
-			register_item(BG_FindItemForWeapon(WP_BLASTER));
+			RegisterItem(BG_FindItemForWeapon(WP_BLASTER));
 		}
-		register_item(BG_FindItemForAmmo(AMMO_BLASTER));
+		RegisterItem(BG_FindItemForAmmo(AMMO_BLASTER));
 	}
 
 	if (ent->spawnflags & RACK_METAL_BOLTS)
 	{
 		if (ent->spawnflags & RACK_WEAPONS)
 		{
-			register_item(BG_FindItemForWeapon(WP_REPEATER));
+			RegisterItem(BG_FindItemForWeapon(WP_REPEATER));
 		}
-		register_item(BG_FindItemForAmmo(AMMO_METAL_BOLTS));
+		RegisterItem(BG_FindItemForAmmo(AMMO_METAL_BOLTS));
 	}
 
 	if (ent->spawnflags & RACK_ROCKETS)
 	{
 		if (ent->spawnflags & RACK_WEAPONS)
 		{
-			register_item(BG_FindItemForWeapon(WP_ROCKET_LAUNCHER));
+			RegisterItem(BG_FindItemForWeapon(WP_ROCKET_LAUNCHER));
 		}
-		register_item(BG_FindItemForAmmo(AMMO_ROCKETS));
+		RegisterItem(BG_FindItemForAmmo(AMMO_ROCKETS));
 	}
 
 	if (ent->spawnflags & RACK_PWR_CELL)
 	{
-		register_item(BG_FindItemForAmmo(AMMO_POWERCELL));
+		RegisterItem(BG_FindItemForAmmo(AMMO_POWERCELL));
 	}
 
 	if (ent->spawnflags & RACK_HEALTH)
 	{
-		register_item(BG_FindItem("item_medpak_instant"));
+		RegisterItem(BG_FindItem("item_medpak_instant"));
 	}
 
 	ent->think = spawn_rack_goods;
@@ -5815,7 +5815,7 @@ void SP_misc_model_cargo_small(gentity_t* ent)
 	if (ent->spawnflags & DROP_MEDPACK)
 	{
 		const gitem_t* health = BG_FindItem("item_medpak_instant");
-		register_item(health);
+		RegisterItem(health);
 	}
 
 	if (ent->spawnflags & DROP_SHIELDS)

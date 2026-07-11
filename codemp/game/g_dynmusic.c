@@ -8,31 +8,36 @@ void LoadDynamicMusicGroup(char* mapname, char* buffer);
 
 void LoadDynamicMusic(void)
 {
-	//Tries to load dynamic music data for this map.
+	// Tries to load dynamic music data for this map.
 	fileHandle_t f;
-	char buffer[DMS_INFO_SIZE];
+
+	// FIX: move huge buffer off the stack
+	static char buffer[DMS_INFO_SIZE];
+
 	vmCvar_t mapname;
 
-	//Open up the dynamic music file
+	// Open up the dynamic music file
 	const int len = trap->FS_Open("ext_data/dms.dat", &f, FS_READ);
 
 	if (!f)
 	{
-		//file open error
+		// file open error
 		Com_Printf("LoadDynamicMusic() Error: Couldn't open ext_data/dms.dat\n");
 		return;
 	}
 
 	if (len >= DMS_INFO_SIZE)
 	{
-		//file too large for buffer
+		// file too large for buffer
 		Com_Printf("LoadDynamicMusic() Error: dms.dat too big.\n");
+		trap->FS_Close(f);
 		return;
 	}
 
-	trap->FS_Read(buffer, len, f); //read data in buffer
+	// read data into static buffer
+	trap->FS_Read(buffer, len, f);
 
-	trap->FS_Close(f); //close file
+	trap->FS_Close(f);
 
 	trap->Cvar_Register(&mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM);
 
@@ -45,73 +50,72 @@ extern int BG_SiegeGetValueGroup(const char* buf, char* group, char* outbuf);
 
 static void LoadDMSSongData(const char* buffer, char* song, DynamicMusicSet_t* songData, char* mapname)
 {
-	char SongGroup[DMS_INFO_SIZE];
+	// FIX: move huge buffers off the stack
+	static char SongGroup[DMS_INFO_SIZE];
+	static char transitionGroup[DMS_INFO_SIZE];
+
 	int numTransitions = 0;
 	int numExits = 0;
 
 	BG_SiegeGetValueGroup(buffer, "musicfiles", SongGroup);
 
-	//find our specific song
+	// find our specific song
 	if (!BG_SiegeGetValueGroup(SongGroup, song, SongGroup))
 	{
-		Com_Printf("LoadDMSSongData Error: Couldn't find song data for DMS song %s.\n",
-			song);
+		Com_Printf("LoadDMSSongData Error: Couldn't find song data for DMS song %s.\n", song);
 		return;
 	}
 
-	//convert/store the name of the music file
+	// convert/store the name of the music file
 	strcpy(songData->fileName, va("music/%s/%s.mp3", mapname, song));
 
-	songData->numTransitions = 0; //init the struct's number of transitions.
+	songData->numTransitions = 0; // init the struct's number of transitions.
 
-	//start loading in transition data
+	// start loading in transition data
 	char* transition = strstr(SongGroup, "exit");
 	while (transition)
 	{
 		char Value[MAX_QPATH];
-		char transitionGroup[DMS_INFO_SIZE];
-		//still have a transition file to add
+
 		if (numTransitions >= MAX_DMS_TRANSITIONS)
 		{
-			//too many transitions!
-			Com_Printf("LoadDMSSongData Error:  Too many transitions found.\n");
+			Com_Printf("LoadDMSSongData Error: Too many transitions found.\n");
 			return;
 		}
 
-		//setting up the new transition data slot
+		// setting up the new transition data slot
 		songData->Transitions[numTransitions].numExitPoints = 0;
 
-		//grab this transition group
+		// grab this transition group
 		BG_SiegeGetValueGroup(transition, "exit", transitionGroup);
 
-		//find transition file name
+		// find transition file name
 		BG_SiegeGetPairedValue(transitionGroup, "nextfile", Value);
-		strcpy(songData->Transitions[numTransitions].fileName, va("music/%s/%s.mp3", mapname, Value));
+		strcpy(songData->Transitions[numTransitions].fileName,
+			va("music/%s/%s.mp3", mapname, Value));
 
-		//load in exit points for this transition file
+		// load in exit points for this transition file
 		while (BG_SiegeGetPairedValue(transitionGroup, va("time%i", numExits), Value))
 		{
 			if (numExits >= MAX_DMS_EXITPOINTS)
 			{
-				//too many transitions!
-				Com_Printf("LoadDMSSongData Error:  Too many transitions found.\n");
+				Com_Printf("LoadDMSSongData Error: Too many transitions found.\n");
 				return;
 			}
 
-			songData->Transitions[numTransitions].exitPoints[numExits]
-				= atoi(Value) * 1000;
+			songData->Transitions[numTransitions].exitPoints[numExits] = atoi(Value) * 1000;
 
 			numExits++;
 			songData->Transitions[numTransitions].numExitPoints++;
 		}
 
-		//increase the number of transitions in the songData
+		// increase the number of transitions in the songData
 		songData->numTransitions++;
 
 		numTransitions++;
 		numExits = 0;
 
-		//advance the transition pointer pass the current exit data group
+		// advance the transition pointer past the current exit data group
 		transition += 4;
 		transition = strstr(transition, "exit");
 	}
@@ -162,56 +166,55 @@ static void LoadLengthforSong(const char* buffer, DynamicMusicSet_t* song)
 //loads in the song lengths for the DMS music files
 static void LoadDMSSongLengths(void)
 {
-	char buffer[DMS_INFO_SIZE];
+	// FIX: move huge buffer off the stack
+	static char buffer[DMS_INFO_SIZE];
+
 	fileHandle_t f;
 
 	if (!DMSData.valid)
 	{
-		//oh boy, no DMSData.  Probably means that this map doesn't use DMS.
+		// no DMSData means this map doesn't use DMS
 		return;
 	}
 
-	//Open up the dynamic music file
+	// Open up the dynamic music file
 	const int len = trap->FS_Open(DMS_MUSICLENGTH_FILENAME, &f, FS_READ);
 
 	if (!f)
 	{
-		//file open error
 		Com_Printf("LoadDynamicMusic() Error: Couldn't open ext_data/dms.dat\n");
 		return;
 	}
 
 	if (len >= DMS_INFO_SIZE)
 	{
-		//file too large for buffer
 		Com_Printf("LoadDynamicMusic() Error: dms.dat too big.\n");
+		trap->FS_Close(f);
 		return;
 	}
 
-	trap->FS_Read(buffer, len, f); //read data in buffer
+	// read data into static buffer
+	trap->FS_Read(buffer, len, f);
 
-	trap->FS_Close(f); //close file
+	trap->FS_Close(f);
 
 	if (!BG_SiegeGetValueGroup(buffer, "musiclengths", buffer))
 	{
-		Com_Printf("LoadDMSSongLengths Error:  Couldn't find musiclengths define group in musiclength.dat.\n");
+		Com_Printf("LoadDMSSongLengths Error: Couldn't find musiclengths define group in musiclength.dat.\n");
 	}
 
 	if (DMSData.actionMusic.valid)
 	{
-		//load the action music lengths
 		LoadLengthforSong(buffer, &DMSData.actionMusic);
 	}
 
 	if (DMSData.exploreMusic.valid)
 	{
-		//load the explore music lengths
 		LoadLengthforSong(buffer, &DMSData.exploreMusic);
 	}
 
 	if (DMSData.bossMusic.valid)
 	{
-		//load the boss music lengths
 		LoadLengthforSong(buffer, &DMSData.bossMusic);
 	}
 }
@@ -220,9 +223,11 @@ static void LoadDMSSongLengths(void)
 void LoadDynamicMusicGroup(char* mapname, char* buffer)
 {
 	char text[MAX_QPATH];
-	char MapMusicGroup[DMS_INFO_SIZE];
 
-	//initialize DMSData
+	// FIX: move huge buffer off the stack
+	static char MapMusicGroup[DMS_INFO_SIZE];
+
+	// initialize DMSData
 	DMSData.valid = qfalse;
 	DMSData.actionMusic.valid = qfalse;
 	DMSData.exploreMusic.valid = qfalse;
@@ -232,19 +237,18 @@ void LoadDynamicMusicGroup(char* mapname, char* buffer)
 
 	if (!BG_SiegeGetValueGroup(MapMusicGroup, mapname, MapMusicGroup))
 	{
-		Com_Printf("LoadDynamicMusicGroup Error:  Couldn't find DMS entry for this map.\n");
+		Com_Printf("LoadDynamicMusicGroup Error: Couldn't find DMS entry for this map.\n");
 		return;
 	}
 
 	if (BG_SiegeGetPairedValue(MapMusicGroup, "uses", text))
 	{
-		//this map uses the dynamic music set of another map.  Look for that set
+		// this map uses the dynamic music set of another map
 		LoadDynamicMusicGroup(text, buffer);
 		return;
 	}
 
-	//at this point, we have the dynamic music group for this map, init the
-	//DMSData data slot.
+	// we have the dynamic music group for this map
 	DMSData.valid = qtrue;
 	DMSData.dmDebounceTime = -1;
 	DMSData.dmBeatTime = 0;
@@ -253,21 +257,18 @@ void LoadDynamicMusicGroup(char* mapname, char* buffer)
 
 	if (BG_SiegeGetPairedValue(MapMusicGroup, "explore", text))
 	{
-		//have explore music for this map
 		DMSData.exploreMusic.valid = qtrue;
 		LoadDMSSongData(buffer, text, &DMSData.exploreMusic, mapname);
 	}
 
 	if (BG_SiegeGetPairedValue(MapMusicGroup, "action", text))
 	{
-		//have action music for this map
 		DMSData.actionMusic.valid = qtrue;
 		LoadDMSSongData(buffer, text, &DMSData.actionMusic, mapname);
 	}
 
 	if (BG_SiegeGetPairedValue(MapMusicGroup, "boss", text))
 	{
-		//have boss music for this map
 		DMSData.bossMusic.valid = qtrue;
 		LoadDMSSongData(buffer, text, &DMSData.bossMusic, mapname);
 	}
@@ -342,16 +343,16 @@ static void TransitionBetweenState(void)
 	}
 }
 
+
 //ported from SP
 void G_DynamicMusicUpdate(void)
 {
 	int battle = 0;
 	int entTeam;
-	vec3_t mins, maxs;
+	vec3_t mins = { 0, 0, 0 }, maxs = { 0, 0, 0 };
 
 	if (DMSData.dmDebounceTime >= 0 && DMSData.dmDebounceTime < level.time)
 	{
-		//debounce over, reset to default music
 		DMSData.dmDebounceTime = -1;
 		DMSData.dmState = DM_AUTO;
 		DMSData.olddmState = DM_AUTO;
@@ -359,10 +360,8 @@ void G_DynamicMusicUpdate(void)
 
 	if (DMSData.dmState == DM_DEATH)
 	{
-		//Play the death music
 		if (DMSData.olddmState != DM_DEATH)
 		{
-			//haven't set the state yet
 			trap->SetConfigstring(CS_MUSIC, DMS_DEATH_MUSIC);
 			DMSData.olddmState = DM_DEATH;
 			DMSData.dmDebounceTime = level.time + DMS_DEATH_MUSIC_TIME;
@@ -382,7 +381,6 @@ void G_DynamicMusicUpdate(void)
 
 	if (DMSData.dmState == DM_SILENCE)
 	{
-		//turn off the music
 		if (DMSData.olddmState != DM_SILENCE)
 		{
 			trap->SetConfigstring(CS_MUSIC, "");
@@ -393,19 +391,19 @@ void G_DynamicMusicUpdate(void)
 
 	if (DMSData.dmBeatTime > level.time)
 	{
-		//not on a beat
 		return;
 	}
 
-	DMSData.dmBeatTime = level.time + 1000; //1 second beats
+	DMSData.dmBeatTime = level.time + 1000;
 
 	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
-		int entity_list[MAX_GENTITIES];
+		// FIX: move large array off the stack
+		static int entity_list[MAX_GENTITIES];
+
 		vec3_t center;
 		gentity_t* player = &g_entities[i];
 
-		//check to make sure this player is valid
 		if (!player || !player->inuse
 			|| player->client->pers.connected == CON_DISCONNECTED
 			|| player->client->sess.sessionTeam == TEAM_SPECTATOR)
@@ -413,8 +411,8 @@ void G_DynamicMusicUpdate(void)
 			continue;
 		}
 
-		//enemy-based
 		VectorCopy(player->r.currentOrigin, center);
+
 		for (int x = 0; x < 3; x++)
 		{
 			const int radius = 2048;
@@ -423,9 +421,11 @@ void G_DynamicMusicUpdate(void)
 		}
 
 		const int num_listed_entities = trap->EntitiesInBox(mins, maxs, entity_list, MAX_GENTITIES);
+
 		for (int e = 0; e < num_listed_entities; e++)
 		{
 			const gentity_t* ent = &g_entities[entity_list[e]];
+
 			if (!ent || !ent->inuse)
 			{
 				continue;
@@ -433,9 +433,10 @@ void G_DynamicMusicUpdate(void)
 
 			if (!ent->client || !ent->NPC)
 			{
-				if (ent->classname && (!Q_stricmp("PAS", ent->classname) || !Q_stricmp("misc_turret", ent->classname)))
+				if (ent->classname &&
+					(!Q_stricmp("PAS", ent->classname) ||
+						!Q_stricmp("misc_turret", ent->classname)))
 				{
-					//a turret
 					entTeam = ent->teamnodmg;
 				}
 				else
@@ -445,84 +446,81 @@ void G_DynamicMusicUpdate(void)
 			}
 			else
 			{
-				//an NPC
 				entTeam = ent->client->playerTeam;
 			}
 
 			if (entTeam == player->client->playerTeam)
 			{
-				//ally
 				continue;
 			}
 
-			if (entTeam == NPCTEAM_FREE && (!ent->enemy || !ent->enemy->client || ent->enemy->client->playerTeam !=
-				player->client->playerTeam))
+			if (entTeam == NPCTEAM_FREE &&
+				(!ent->enemy || !ent->enemy->client ||
+					ent->enemy->client->playerTeam != player->client->playerTeam))
 			{
-				//a droid that is not mad at me or my allies
 				continue;
 			}
 
 			if (!trap->InPVS(player->r.currentOrigin, ent->r.currentOrigin))
 			{
-				//not potentially visible
 				continue;
 			}
 
 			if (ent->client && ent->s.weapon == WP_NONE)
 			{
-				//they don't have a weapon... FIXME: only do this for droids?
 				continue;
 			}
 
-			if (ent->enemy == player && (!ent->NPC || ent->NPC->confusionTime < level.time) || ent->client && ent->
-				client->ps.weaponTime || !ent->client && ent->attackDebounceTime > level.time)
+			if (ent->enemy == player &&
+				((!ent->NPC || ent->NPC->confusionTime < level.time) ||
+					(ent->client && ent->client->ps.weaponTime) ||
+					(!ent->client && ent->attackDebounceTime > level.time)))
 			{
-				//mad
 				if (ent->health > 0)
 				{
-					//alive
-					//FIXME: do I really need this check?
-					if (ent->s.weapon == WP_SABER && ent->client && ent->client->ps.saberHolstered == 2 && ent->enemy !=
-						player)
+					if (ent->s.weapon == WP_SABER &&
+						ent->client &&
+						ent->client->ps.saberHolstered == 2 &&
+						ent->enemy != player)
 					{
-						//a Jedi who has not yet gotten mad at me
 						continue;
 					}
+
 					if (ent->NPC && ent->NPC->behaviorState == BS_CINEMATIC)
 					{
-						//they're not actually going to do anything about being mad at me...
 						continue;
 					}
-					//okay, they're in my PVS, but how close are they?  Are they actively attacking me?
-					if (!ent->client && ent->s.weapon == WP_TURRET && ent->fly_sound_debounce_time && ent->
-						fly_sound_debounce_time - level.time < 10000)
+
+					if (!ent->client &&
+						ent->s.weapon == WP_TURRET &&
+						ent->fly_sound_debounce_time &&
+						ent->fly_sound_debounce_time - level.time < 10000)
 					{
-						//a turret that shot at me less than ten seconds ago
 					}
 					else if (ent->NPC && level.time < ent->NPC->shotTime)
 					{
-						//npc that fired recently
 					}
 					else
 					{
-						//not actively attacking me lately, see how far away they are
 						const int distSq = DistanceSquared(ent->r.currentOrigin, player->r.currentOrigin);
+
 						if (distSq > 4194304)
 						{
-							//> 2048 away
 							continue;
 						}
+
 						if (distSq > 1048576)
 						{
-							//> 1024 away
-							const qboolean clearLOS = G_ClearLOS3(player, player->client->renderInfo.eyePoint, ent);
+							const qboolean clearLOS =
+								G_ClearLOS3(player, player->client->renderInfo.eyePoint, ent);
+
 							if (clearLOS == qfalse)
 							{
-								//No LOS
 								continue;
 							}
 						}
 					}
+
 					battle++;
 				}
 			}
@@ -530,14 +528,12 @@ void G_DynamicMusicUpdate(void)
 
 		if (!battle)
 		{
-			//no active enemies, but look for missiles, shot impacts, etc...
 			const int alert = G_CheckAlertEvents(player, qtrue, qtrue, 1024, 1024, -1, qfalse, AEL_SUSPICIOUS);
+
 			if (alert != -1)
 			{
-				//FIXME: maybe tripwires and other FIXED things need their own sound, some kind of danger/caution theme
 				if (G_CheckForDanger(player, alert))
 				{
-					//found danger near by
 					battle = 1;
 				}
 			}
@@ -550,13 +546,11 @@ void G_DynamicMusicUpdate(void)
 	}
 	else
 	{
-		//switch to explore
 		SetDMSState(DM_EXPLORE);
 	}
 
 	if (DMSData.dmState != DMSData.olddmState)
 	{
-		//switching between action and explore modes
 		TransitionBetweenState();
 	}
 }

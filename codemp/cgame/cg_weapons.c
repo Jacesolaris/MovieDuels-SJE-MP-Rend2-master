@@ -3347,14 +3347,14 @@ qboolean CG_VehicleWeaponImpact(centity_t* cent)
 {
 	//see if this is a missile entity that's owned by a vehicle and should do a special, overridden impact effect
 	if (cent->currentState.eFlags & EF_JETPACK_ACTIVE //hack so we know we're a vehicle Weapon shot
-		&& cent->currentState.otherentity_num2
-		&& g_vehWeaponInfo[cent->currentState.otherentity_num2].iImpactFX)
+		&& cent->currentState.otherentityNum2
+		&& g_vehWeaponInfo[cent->currentState.otherentityNum2].iImpactFX)
 	{
 		//missile is from a special vehWeapon
 		vec3_t normal;
 		ByteToDir(cent->currentState.eventParm, normal);
 
-		trap->FX_PlayEffectID(g_vehWeaponInfo[cent->currentState.otherentity_num2].iImpactFX, cent->lerpOrigin, normal,
+		trap->FX_PlayEffectID(g_vehWeaponInfo[cent->currentState.otherentityNum2].iImpactFX, cent->lerpOrigin, normal,
 			-1, -1, qfalse);
 		return qtrue;
 	}

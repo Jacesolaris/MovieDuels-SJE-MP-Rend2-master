@@ -171,7 +171,7 @@ void NPC_SaberDroid_PickAttack(void)
 		NPCS.NPC->client->ps.fd.saberAnimLevel = SS_STRONG;
 		break;
 	}
-	NPCS.NPC->client->ps.saberBlocking = saber_moveData[NPCS.NPC->client->ps.saberMove].blocking;
+	NPCS.NPC->client->ps.saberBlocking = saberMoveData[NPCS.NPC->client->ps.saberMove].blocking;
 	NPC_SetAnim(NPCS.NPC, SETANIM_BOTH, attackAnim, SETANIM_FLAG_HOLD | SETANIM_FLAG_OVERRIDE);
 	NPCS.NPC->client->ps.torsoAnim = NPCS.NPC->client->ps.legsAnim;
 	//need to do this because we have no anim split but saber code checks torsoAnim
@@ -339,7 +339,7 @@ void NPC_BSSD_Default(void)
 	{
 		//we're not attacking.
 		NPCS.NPC->client->ps.saberMove = LS_READY;
-		NPCS.NPC->client->ps.saberBlocking = saber_moveData[LS_READY].blocking;
+		NPCS.NPC->client->ps.saberBlocking = saberMoveData[LS_READY].blocking;
 		//RAFIXME - since this is saber trail code, I think this needs to be ported to cgame.
 		NPCS.NPC->client->ps.fd.saberAnimLevel = SS_MEDIUM;
 		NPCS.NPC->client->ps.weaponstate = WEAPON_READY;

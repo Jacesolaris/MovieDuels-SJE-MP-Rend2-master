@@ -44,7 +44,7 @@ extern void G_VehicleTrace(trace_t* results, const vec3_t start, const vec3_t tM
 static void RegisterAssets(Vehicle_t* p_veh)
 {
 	//atst uses turret weapon
-	register_item(BG_FindItemForWeapon(WP_TURRET));
+	RegisterItem(BG_FindItemForWeapon(WP_TURRET));
 
 	//call the standard RegisterAssets now
 	g_vehicleInfo[VEHICLE_BASE].RegisterAssets(p_veh);

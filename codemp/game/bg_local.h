@@ -96,8 +96,8 @@ int PM_BlockingPoseForsaber_anim_levelStaff(void);
 
 float PM_GroundDistance(void);
 
-saber_moveName_t PM_SaberFlipOverAttackMove(void);
-saber_moveName_t PM_SaberJumpForwardAttackMove(void);
+saberMoveName_t PM_SaberFlipOverAttackMove(void);
+saberMoveName_t PM_SaberJumpForwardAttackMove(void);
 
 void PM_ClipVelocity(vec3_t in, vec3_t normal, vec3_t out, float overbounce);
 void PM_AddTouchEnt(int entityNum);
@@ -116,7 +116,7 @@ void PM_FinishWeaponChange(void);
 void PM_SetAnim(int setAnimParts, int anim, int setAnimFlags);
 
 void PM_WeaponLightsaber(void);
-void PM_SetSaberMove(saber_moveName_t new_move);
+void PM_SetSaberMove(saberMoveName_t new_move);
 
 void PM_SetForceJumpZStart(float value);
 

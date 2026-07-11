@@ -319,7 +319,7 @@ void NPC_GM_Pain(gentity_t* self, gentity_t* attacker, const int damage)
 		{
 			if (TIMER_Done(self, "noRapid"))
 			{
-				self->NPC->scriptFlags &= ~SCF_altFire;
+				self->NPC->scriptFlags &= ~SCF_ALT_FIRE;
 				self->alt_fire = qfalse;
 				TIMER_Set(self, "noLob", Q_irand(2000, 6000));
 			}
@@ -333,7 +333,7 @@ void NPC_GM_Pain(gentity_t* self, gentity_t* attacker, const int damage)
 		{
 			if (TIMER_Done(self, "noLob"))
 			{
-				self->NPC->scriptFlags |= SCF_altFire;
+				self->NPC->scriptFlags |= SCF_ALT_FIRE;
 				self->alt_fire = qtrue;
 				TIMER_Set(self, "noRapid", Q_irand(2000, 6000));
 			}
@@ -506,7 +506,7 @@ static void GM_CheckFireState(void)
 				float distThreshold = 16384/*128*128*/; //default
 				if (NPCS.NPC->s.weapon == WP_REPEATER)
 				{
-					if (NPCS.NPCInfo->scriptFlags & SCF_altFire)
+					if (NPCS.NPCInfo->scriptFlags & SCF_ALT_FIRE)
 					{
 						distThreshold = 65536/*256*256*/;
 					}
@@ -526,7 +526,7 @@ static void GM_CheckFireState(void)
 					distThreshold = 65536/*256*256*/; //default
 					if (NPCS.NPC->s.weapon == WP_REPEATER)
 					{
-						if (NPCS.NPCInfo->scriptFlags & SCF_altFire)
+						if (NPCS.NPCInfo->scriptFlags & SCF_ALT_FIRE)
 						{
 							distThreshold = 262144/*512*512*/;
 						}
@@ -880,10 +880,10 @@ static void NPC_BSGM_Attack(void)
 			&& TIMER_Done(NPCS.NPC, "noRapid")) //256
 		{
 			//enemy within 256
-			if (NPCS.NPC->client->ps.weapon == WP_REPEATER && NPCS.NPCInfo->scriptFlags & SCF_altFire)
+			if (NPCS.NPC->client->ps.weapon == WP_REPEATER && NPCS.NPCInfo->scriptFlags & SCF_ALT_FIRE)
 			{
 				//shooting an explosive, but enemy too close, switch to primary fire
-				NPCS.NPCInfo->scriptFlags &= ~SCF_altFire;
+				NPCS.NPCInfo->scriptFlags &= ~SCF_ALT_FIRE;
 				NPCS.NPC->alt_fire = qfalse;
 				//FIXME: use weap raise & lower anims
 				NPC_ChangeWeapon(WP_REPEATER);
@@ -894,10 +894,10 @@ static void NPC_BSGM_Attack(void)
 			&& TIMER_Done(NPCS.NPC, "noLob")) //448
 		{
 			//enemy more than 448 away and we are ready to try lob fire again
-			if (NPCS.NPC->client->ps.weapon == WP_REPEATER && !(NPCS.NPCInfo->scriptFlags & SCF_altFire))
+			if (NPCS.NPC->client->ps.weapon == WP_REPEATER && !(NPCS.NPCInfo->scriptFlags & SCF_ALT_FIRE))
 			{
 				//enemy far enough away to use lobby explosives
-				NPCS.NPCInfo->scriptFlags |= SCF_altFire;
+				NPCS.NPCInfo->scriptFlags |= SCF_ALT_FIRE;
 				NPCS.NPC->alt_fire = qtrue;
 				//FIXME: use weap raise & lower anims
 				NPC_ChangeWeapon(WP_REPEATER);
@@ -919,7 +919,7 @@ static void NPC_BSGM_Attack(void)
 		else
 		{
 			//can we shoot our target?
-			if (NPCS.NPC->client->ps.weapon == WP_REPEATER && NPCS.NPCInfo->scriptFlags & SCF_altFire && enemyDist4 <
+			if (NPCS.NPC->client->ps.weapon == WP_REPEATER && NPCS.NPCInfo->scriptFlags & SCF_ALT_FIRE && enemyDist4 <
 				MIN_LOB_DIST_SQUARED) //256
 			{
 				enemyCS4 = qfalse; //not true, but should stop us from firing
@@ -1047,7 +1047,7 @@ static void NPC_BSGM_Attack(void)
 	//See if we should override shooting decision with any special considerations
 	GM_CheckFireState();
 
-	if (NPCS.NPC->client->ps.weapon == WP_REPEATER && NPCS.NPCInfo->scriptFlags & SCF_altFire && shoot4 && TIMER_Done(
+	if (NPCS.NPC->client->ps.weapon == WP_REPEATER && NPCS.NPCInfo->scriptFlags & SCF_ALT_FIRE && shoot4 && TIMER_Done(
 		NPCS.NPC, "attackDelay"))
 	{
 		vec3_t muzzle;
@@ -1075,7 +1075,7 @@ static void NPC_BSGM_Attack(void)
 			if (enemyLOS4 && enemyCS4 && TIMER_Done(NPCS.NPC, "noRapid"))
 			{
 				//have a clear straight shot, so switch to primary
-				NPCS.NPCInfo->scriptFlags &= ~SCF_altFire;
+				NPCS.NPCInfo->scriptFlags &= ~SCF_ALT_FIRE;
 				NPCS.NPC->alt_fire = qfalse;
 				NPC_ChangeWeapon(WP_REPEATER);
 				//keep this weap for a bit

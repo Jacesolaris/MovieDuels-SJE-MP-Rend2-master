@@ -98,7 +98,7 @@ static void G_SiegeRegisterWeaponsAndHoldables(const int team)
 					if (scl->weapons & 1 << j)
 					{
 						//we use this weapon so register it.
-						register_item(BG_FindItemForWeapon(j));
+						RegisterItem(BG_FindItemForWeapon(j));
 					}
 					j++;
 				}
@@ -108,7 +108,7 @@ static void G_SiegeRegisterWeaponsAndHoldables(const int team)
 					if (scl->invenItems & 1 << j)
 					{
 						//we use this item so register it.
-						register_item(BG_FindItemForHoldable(j));
+						RegisterItem(BG_FindItemForHoldable(j));
 					}
 					j++;
 				}

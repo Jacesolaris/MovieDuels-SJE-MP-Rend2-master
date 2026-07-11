@@ -1338,7 +1338,7 @@ void finish_spawning_turretG2(gentity_t* base)
 	//base->r.svFlags |= SVF_NO_TELEPORT|SVF_NONNPC_ENEMY|SVF_SELF_ANIMATING;
 
 	// Register this so that we can use it for the missile effect
-	register_item(BG_FindItemForWeapon(WP_BLASTER));
+	RegisterItem(BG_FindItemForWeapon(WP_BLASTER));
 
 	// But set us as a turret so that we can be identified as a turret
 	base->s.weapon = WP_TURRET;

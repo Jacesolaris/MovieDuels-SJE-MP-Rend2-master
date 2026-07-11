@@ -54,16 +54,16 @@ extern qboolean WP_SabersCheckLock(gentity_t* ent1, gentity_t* ent2);
 extern void PM_AddFatigue(playerState_t* ps, int fatigue);
 extern void G_AddVoiceEvent(const gentity_t* self, int event, int speak_debounce_time);
 extern qboolean npc_is_dark_jedi(const gentity_t* self);
-extern saber_moveName_t PM_BrokenParryForParry(int move);
-extern saber_moveName_t pm_broken_parry_for_attack(int move);
+extern saberMoveName_t PM_BrokenParryForParry(int move);
+extern saberMoveName_t pm_broken_parry_for_attack(int move);
 extern qboolean PM_InGetUp(const playerState_t* ps);
 extern qboolean PM_InForceGetUp(const playerState_t* ps);
 extern qboolean G_ControlledByPlayer(const gentity_t* self);
 extern void WP_BlockPointsRegenerate(const gentity_t* self, int override_amt);
 extern void PM_AddBlockFatigue(playerState_t* ps, int fatigue);
-extern saber_moveName_t pm_block_the_attack(int move);
+extern saberMoveName_t pm_block_the_attack(int move);
 extern int g_block_the_attack(int move);
-extern saber_moveName_t PM_SaberBounceForAttack(int move);
+extern saberMoveName_t PM_SaberBounceForAttack(int move);
 extern void G_Stagger(gentity_t* hit_ent);
 extern void g_fatigue_bp_knockaway(gentity_t* blocker);
 extern qboolean PM_SuperBreakLoseAnim(int anim);
@@ -517,7 +517,7 @@ static void sab_beh_animate_small_bounce(gentity_t* attacker)
 	if (sm < 0 || sm >= LS_MOVE_MAX)
 		return;
 
-	int quad = saber_moveData[sm].startQuad;
+	int quad = saberMoveData[sm].startQuad;
 	if (quad < Q_TL || quad > Q_BR)
 		quad = Q_BR;
 

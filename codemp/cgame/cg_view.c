@@ -406,14 +406,6 @@ static void CG_CalcIdealThirdPersonViewTarget(void)
 		// Short forward distance so we don't zoom into the back of the head
 		VectorMA(cameraFocusLoc, 48.0f, forward, cameraIdealTarget);
 
-		// Shoulder camera tuning (local variables — MP has no overrides)
-		/*localAngleOffset = 10.0f;
-		localPitchOffset = -2.0f;
-		localHorzOffset = -20.0f;*/
-
-		// Apply vertical offset AFTER aiming forward shift
-		cameraIdealTarget[2] += localVertOffset;
-
 		return; // aiming branch fully handled
 	}
 
@@ -777,9 +769,13 @@ static void CG_OffsetThirdPersonView(void)
 	vec3_t diff;
 
 	float thirdPersonHorzOffset = cg_thirdPersonHorzOffset.value;
+	float thirdPersonAlpha = cg_thirdPersonAlpha.value;
 	float thirdPersonAngle = cg_thirdPersonAngle.value;
 	float thirdPersonPitchOffset = cg_thirdPersonPitchOffset.value;
 	float thirdPersonCameraDamp = cg_thirdPersonCameraDamp.value;
+	float thirdPersonVertOffset = cg_thirdPersonVertOffset.value;
+	float thirdPersonTargetDamp = cg_thirdPersonTargetDamp.value;
+	float thirdPersonRange = cg_thirdPersonRange.value;
 
 	if (cg.snap && cg.snap->ps.m_iVehicleNum)
 	{
@@ -829,9 +825,14 @@ static void CG_OffsetThirdPersonView(void)
 		(cg.predictedPlayerState.communicatingflags & (1 << CF_AIMINGGUN)) &&
 		g_AimingCinematicCamera.integer)
 	{
-		thirdPersonAngle = 0.0f;
-		thirdPersonPitchOffset = 0.0f;
-		thirdPersonHorzOffset = -10.0f;
+		thirdPersonAngle = 0.0f;			// yaw inward
+		thirdPersonAlpha = 1.0f;			// tighter camera
+		thirdPersonPitchOffset = 0.0f;		// slight downward pitch
+		thirdPersonHorzOffset = -10.0f;	// softer shoulder shift
+		thirdPersonVertOffset = 4.0f;		// slight upward shift
+		thirdPersonCameraDamp = 1.0f;		// tighter camera damping
+		thirdPersonTargetDamp = 1.0f;		// tighter target damping
+		thirdPersonRange = 50.0f;			// closer to the player
 
 		cameraFocusAngles[YAW] += thirdPersonAngle;
 		cameraFocusAngles[PITCH] += thirdPersonPitchOffset;
@@ -1387,7 +1388,7 @@ static int CG_CalcFov(void)
 	}
 	else if (cg.renderingThirdPerson && cg.predictedPlayerState.communicatingflags & (1 << CF_AIMINGGUN) && g_AimingCinematicCamera.integer)
 	{
-		cgFov = cg_fov.value;
+		cgFov = 60.0f;
 	}
 	else
 	{

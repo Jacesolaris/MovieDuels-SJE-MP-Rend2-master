@@ -3934,7 +3934,7 @@ void BG_PlayerStateToEntityState(playerState_t* ps, entityState_t* s, const qboo
 		s->bolt1 = 0;
 	}
 
-	s->otherentity_num2 = ps->emplacedIndex;
+	s->otherentityNum2 = ps->emplacedIndex;
 
 	s->saberHolstered = ps->saberHolstered;
 
@@ -4145,7 +4145,7 @@ void BG_PlayerStateToEntityStateExtraPolate(playerState_t* ps, entityState_t* s,
 		s->bolt1 = 0;
 	}
 
-	s->otherentity_num2 = ps->emplacedIndex;
+	s->otherentityNum2 = ps->emplacedIndex;
 
 	s->saberHolstered = ps->saberHolstered;
 

@@ -1427,8 +1427,8 @@ void Add_Ammo(const gentity_t* ent, int weapon, int count);
 void Touch_Item(gentity_t* ent, gentity_t* other, trace_t* trace);
 
 void clear_registered_items(void);
-void register_item(const gitem_t* item);
-void save_registered_items(void);
+void RegisterItem(const gitem_t* item);
+void SaveRegisteredItems(void);
 
 //
 // g_utils.c

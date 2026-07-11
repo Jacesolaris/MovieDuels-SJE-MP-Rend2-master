@@ -8356,7 +8356,7 @@ static qboolean BG_InDFA()
 		return qtrue;
 	}
 
-	if (pm->ps->torsoAnim == saber_moveData[16].animToUse)
+	if (pm->ps->torsoAnim == saberMoveData[16].animToUse)
 	{
 		return qtrue;
 	}
@@ -8385,7 +8385,7 @@ static qboolean G_InDFA(const gentity_t* ent)
 		return qtrue;
 	}
 
-	if (ent->client->ps.torsoAnim == saber_moveData[16].animToUse)
+	if (ent->client->ps.torsoAnim == saberMoveData[16].animToUse)
 	{
 		return qtrue;
 	}
@@ -14048,7 +14048,7 @@ static void PM_Weapon(void)
 				}
 				if (kick_move != -1)
 				{
-					int kickAnim = saber_moveData[kick_move].animToUse;
+					int kickAnim = saberMoveData[kick_move].animToUse;
 
 					if (kickAnim != -1)
 					{
@@ -14775,7 +14775,7 @@ static void PM_Weapon(void)
 
 					if (kick_move != -1)
 					{
-						int kickAnim = saber_moveData[kick_move].animToUse;
+						int kickAnim = saberMoveData[kick_move].animToUse;
 
 						if (kickAnim != -1)
 						{
@@ -14880,7 +14880,7 @@ static void PM_Weapon(void)
 
 					if (kick_move != -1)
 					{
-						int kickAnim = saber_moveData[kick_move].animToUse;
+						int kickAnim = saberMoveData[kick_move].animToUse;
 
 						if (kickAnim != -1)
 						{
@@ -18380,7 +18380,7 @@ static void PM_CheckInVehicleSaberAttackAnim(void)
 
 	PM_CheckClearSaberBlock();
 
-	saber_moveName_t saberMove = LS_INVALID;
+	saberMoveName_t saberMove = LS_INVALID;
 	switch (pm->ps->torsoAnim)
 	{
 	case BOTH_VS_ATR_S:
@@ -18430,7 +18430,7 @@ static void PM_CheckInVehicleSaberAttackAnim(void)
 			pm->ps->weaponTime = pm->ps->torsoTimer;
 		}
 	}
-	pm->ps->saberBlocking = saber_moveData[pm->ps->saberMove].blocking;
+	pm->ps->saberBlocking = saberMoveData[pm->ps->saberMove].blocking;
 }
 
 //do we have a weapon that's ok for using on the vehicle?
@@ -20498,7 +20498,7 @@ static qboolean PM_GoingToAttackDown(const playerState_t* ps)
 		|| ps->saberMove == LS_A_JUMP_PALP_ //death from above
 		|| ps->saberMove == LS_A_T2B //attacking top to bottom
 		|| ps->saberMove == LS_S_T2B //starting at attack downward
-		|| PM_SaberInTransition(ps->saberMove) && saber_moveData[ps->saberMove].endQuad == Q_T)
+		|| PM_SaberInTransition(ps->saberMove) && saberMoveData[ps->saberMove].endQuad == Q_T)
 		//transitioning to a top to bottom attack
 	{
 		return qtrue;

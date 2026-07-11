@@ -1995,7 +1995,7 @@ static void SendPendingPredictableEvents(playerState_t* ps)
 		t->s.number = number;
 		t->s.eType = ET_EVENTS + event;
 		t->s.eFlags |= EF_PLAYER_EVENT;
-		t->s.otherentity_num = ps->clientNum;
+		t->s.otherentityNum = ps->clientNum;
 		// send to everyone except the client who generated the event
 		t->r.svFlags |= SVF_NOTSINGLECLIENT;
 		t->r.singleClient = ps->clientNum;
@@ -5857,6 +5857,20 @@ static void ClientThink_real(gentity_t* ent)
 					client->ps.dashstartTime = level.time;
 					client->ps.dashlaststartTime = level.time;
 					client->ps.Dash_Count++;
+
+					// fire event when Dash_Count becomes 2
+					//if (client->ps.Dash_Count == 2)
+					//{
+					//	gentity_t* te = G_TempEntity(ent->client->ps.origin, EV_LOCALTIMER);
+					//	te->s.time = level.time;
+					//	te->s.time2 = 2500;
+
+					//	// server-side owner pointer
+					//	te->owner = ent;
+
+					//	// networked index for cgame
+					//	te->s.otherentityNum = ent->s.number;
+					//}
 
 					if ((client->ps.communicatingflags & (1 << CF_DASHING)) == 0)
 					{

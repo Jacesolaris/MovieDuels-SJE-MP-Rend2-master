@@ -10000,8 +10000,8 @@ static float cg_draw_radar(float y)
 				{
 					//I'm in a vehicle
 					//if it's targetting me, then play an alarm sound if I'm in a vehicle
-					if (cent->currentState.otherentity_num == cg.predictedPlayerState.clientNum || cent->currentState.
-						otherentity_num == cg.predictedPlayerState.m_iVehicleNum)
+					if (cent->currentState.otherentityNum == cg.predictedPlayerState.clientNum || cent->currentState.
+						otherentityNum == cg.predictedPlayerState.m_iVehicleNum)
 					{
 						if (radarLockSoundDebounceTime < cg.time)
 						{
@@ -13021,8 +13021,8 @@ static void CG_DrawCrosshairItem(void)
 
 		float distSq = VectorLengthSquared(diff);
 
-		// Only show hint if within 512 units
-		if (distSq < (512.0f * 512.0f))
+		// Only show hint if within 256 units
+		if (distSq < (256.0f * 256.0f))
 		{
 			if (g_SerenityJediEngineHudMode.integer == 2)
 			{
@@ -13306,8 +13306,8 @@ static void CG_DrawCrosshairNames(void)
 
 			float distSq = VectorLengthSquared(diff);
 
-			// Only show hint if within 512 units
-			if (distSq < (512.0f * 512.0f))
+			// Only show hint if within 256 units
+			if (distSq < (256.0f * 256.0f))
 			{
 				if (g_SerenityJediEngineHudMode.integer == 2)
 				{
@@ -13327,7 +13327,7 @@ static void CG_DrawCrosshairNames(void)
 		{
 			if (cgs.gametype == GT_FFA)
 			{
-				CG_DrawSmallStringColor(320 - w / 2, 170, name, colorTable[CT_RED]);
+				CG_DrawSmallStringColor(320 - w / 2, 170, name, colorTable[CT_WHITE]);
 			}
 			else
 			{

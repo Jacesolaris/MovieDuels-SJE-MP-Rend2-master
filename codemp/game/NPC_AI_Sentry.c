@@ -72,7 +72,7 @@ void NPC_Sentry_Precache(void)
 	G_EffectIndex("bryar/muzzle_flash");
 	G_EffectIndex("env/med_explode");
 
-	register_item(BG_FindItemForAmmo(AMMO_BLASTER));
+	RegisterItem(BG_FindItemForAmmo(AMMO_BLASTER));
 }
 
 /*

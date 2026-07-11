@@ -2,11 +2,11 @@
 ===========================================================================
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, SerenityJediEngine2026 contributors
 
-This file is part of the MovieDuels source code.
+This file is part of the SerenityJediEngine2026 source code.
 
-MovieDuels is free software; you can redistribute it and/or modify it
+SerenityJediEngine2026 is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
@@ -28,13 +28,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_saga.h"
 #include "bg_vehicles.h"
 #include "g_nav.h"
-#include "b_public.h"
 
 extern void G_DebugPrint(int level, const char* format, ...);
 
 extern qboolean G_CheckInSolid(gentity_t* self, qboolean fix);
 extern qboolean client_userinfo_changed(int clientNum);
-extern qboolean spot_would_telefrag2(const gentity_t* mover, vec3_t dest);
+extern qboolean SpotWouldTelefrag2(const gentity_t* mover, vec3_t dest);
 extern void Jedi_Cloak(gentity_t* self);
 
 extern void Q3_SetParm(int entID, int parmNum, const char* parmValue);
@@ -101,7 +100,7 @@ extern void NPC_Wampa_Pain(gentity_t* self, gentity_t* attacker, int damage);
 extern void NPC_Rancor_Pain(gentity_t* self, gentity_t* attacker, int damage);
 extern void NPC_SandCreature_Pain(gentity_t* self, gentity_t* attacker, int damage);
 
-static int wp_set_saber_model(gclient_t* client, class_t npcClass)
+int WP_SetSaberModel(gclient_t* client, class_t npcClass)
 {
 	//if (client)
 	//{
@@ -361,7 +360,7 @@ static void NPC_SetMiscDefaultData(gentity_t* ent)
 		ent->client->ps.fd.forcePowersKnown |= 1 << FP_LEVITATION;
 		ent->client->ps.fd.forcePowerLevel[FP_LEVITATION] = FORCE_LEVEL_3;
 		ent->client->ps.fd.forcePower = 100;
-		ent->NPC->scriptFlags |= SCF_altFire | SCF_NO_GROUPS;
+		ent->NPC->scriptFlags |= SCF_ALT_FIRE | SCF_NO_GROUPS;
 	}
 	if (ent->s.NPC_class == CLASS_VEHICLE && ent->m_pVehicle)
 	{
@@ -532,7 +531,7 @@ static void NPC_SetMiscDefaultData(gentity_t* ent)
 		ent->client->ps.stats[STAT_ARMOR] = 250; // start with full armor
 		if (ent->s.weapon == WP_BLASTER)
 		{
-			ent->NPC->scriptFlags |= SCF_altFire;
+			ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 		}
 		ent->flags |= FL_NO_KNOCKBACK;
 	}
@@ -636,7 +635,7 @@ static void NPC_SetMiscDefaultData(gentity_t* ent)
 				if (ent->NPC->rank >= RANK_LT || ent->client->ps.weapon == WP_THERMAL)
 				{
 					//officers, grenade-throwers use alt-fire
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				break;
 			}
@@ -732,36 +731,36 @@ static void NPC_SetMiscDefaultData(gentity_t* ent)
 				NPCS.NPCInfo->scriptFlags |= SCF_PILOT;
 				if (!Q_stricmp("Imperial", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				if (!Q_stricmp("StormPilot", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				break;
 			case WP_DISRUPTOR:
 				NPCS.NPCInfo->scriptFlags |= SCF_PILOT;
 				if (!Q_stricmp("saboteursniper", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				break;
 			case WP_BOWCASTER:
 				NPCS.NPCInfo->scriptFlags |= SCF_PILOT;
 				if (!Q_stricmp("human_merc_bow", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				break;
 			case WP_REPEATER:
 				NPCS.NPCInfo->scriptFlags |= SCF_PILOT;
 				if (!Q_stricmp("human_merc_rep", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				if (!Q_stricmp("StormTrooper_red", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				break;
 			case WP_DEMP2:
@@ -772,23 +771,23 @@ static void NPC_SetMiscDefaultData(gentity_t* ent)
 				//shotgunner
 				if (!Q_stricmp("stofficeralt", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				if (!Q_stricmp("STOfficer", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				if (!Q_stricmp("STOfficer2", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				if (!Q_stricmp("human_merc_flc", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				if (!Q_stricmp("StormTrooper_blue", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				break;
 			case WP_ROCKET_LAUNCHER:
@@ -798,7 +797,7 @@ static void NPC_SetMiscDefaultData(gentity_t* ent)
 				NPCS.NPCInfo->scriptFlags |= SCF_PILOT;
 				if (!Q_stricmp("human_merc_cnc", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				break;
 			case WP_THERMAL:
@@ -813,23 +812,23 @@ static void NPC_SetMiscDefaultData(gentity_t* ent)
 				if (ent->NPC->rank >= RANK_COMMANDER)
 				{
 					//commanders use alt-fire
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				if (ent->client->NPC_class == CLASS_IMPERIAL)
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				if (ent->client->NPC_class == CLASS_RODIAN)
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				if (!Q_stricmp("human_merc", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				if (!Q_stricmp("rodian2", ent->NPC_type))
 				{
-					ent->NPC->scriptFlags |= SCF_altFire;
+					ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 				}
 				break;
 			}
@@ -1124,7 +1123,7 @@ static void NPC_SetWeapons(gentity_t* ent)
 		if (weapons & 1 << curWeap)
 		{
 			ent->client->ps.stats[STAT_WEAPONS] |= 1 << curWeap;
-			register_item(BG_FindItemForWeapon(curWeap)); //precache the weapon
+			RegisterItem(BG_FindItemForWeapon(curWeap)); //precache the weapon
 			//rwwFIXMEFIXME: Precache
 			ent->NPC->currentAmmo = ent->client->ps.ammo[weaponData[curWeap].ammoIndex] = 100; //FIXME: max ammo
 
@@ -1186,25 +1185,56 @@ NPC_SpotWouldTelefrag
 
 ================
 */
+// Check whether placing an NPC at its current origin would telefrag another entity.
+// Behaviour preserved; only stack usage and safety improved.
 static qboolean NPC_SpotWouldTelefrag(const gentity_t* npc)
 {
-	int touch[MAX_GENTITIES];
+	// SAFETY FIX: npc must exist
+	if (npc == NULL)
+	{
+		return qfalse;
+	}
+
+	// Allocate large array on heap to avoid C6262 stack warning
+	int* touch = (int*)BG_Alloc(MAX_GENTITIES * sizeof(int));
+	if (touch == NULL)
+	{
+		return qfalse;
+	}
+
 	vec3_t mins, maxs;
 
+	// Compute bounding box for telefrag check
 	VectorAdd(npc->r.currentOrigin, npc->r.mins, mins);
 	VectorAdd(npc->r.currentOrigin, npc->r.maxs, maxs);
+
+	// Query entities inside bounding box
 	const int num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
 
 	for (int i = 0; i < num; i++)
 	{
-		const gentity_t* hit = &g_entities[touch[i]];
-		//if ( hit->client && hit->client->ps.stats[STAT_HEALTH] > 0 ) {
-		if (hit->inuse
-			&& hit->client
-			&& hit->s.number != npc->s.number
-			&& hit->r.contents & MASK_NPCSOLID
-			&& hit->s.number != npc->r.ownerNum
-			&& hit->r.ownerNum != npc->s.number)
+		const int entNum = touch[i];
+
+		// Validate index
+		if (entNum < 0 || entNum >= MAX_GENTITIES)
+		{
+			continue;
+		}
+
+		const gentity_t* hit = &g_entities[entNum];
+
+		// Telefrag conditions:
+		// - entity is in use
+		// - entity has a client
+		// - entity is not the NPC itself
+		// - entity is solid to NPCs
+		// - entity is not owned by NPC and NPC is not owned by entity
+		if (hit->inuse &&
+			hit->client &&
+			hit->s.number != npc->s.number &&
+			(hit->r.contents & MASK_NPCSOLID) &&
+			hit->s.number != npc->r.ownerNum &&
+			hit->r.ownerNum != npc->s.number)
 		{
 			return qtrue;
 		}
@@ -1213,10 +1243,11 @@ static qboolean NPC_SpotWouldTelefrag(const gentity_t* npc)
 	return qfalse;
 }
 
+
 extern qboolean G_ValidSaberStyle(const gentity_t* ent, int saber_style);
 extern qboolean WP_SaberCanTurnOffSomeBlades(const saberInfo_t* saber);
 //--------------------------------------------------------------
-static void NPC_Begin(gentity_t* ent)
+void NPC_Begin(gentity_t* ent)
 {
 	vec3_t spawn_origin, spawn_angles;
 	usercmd_t ucmd;
@@ -1677,7 +1708,7 @@ static void NPC_Begin(gentity_t* ent)
 					{
 						droidEnt->client->ps.m_iVehicleNum =
 							droidEnt->s.m_iVehicleNum =
-							//droidEnt->s.otherentity_num2 =
+							//droidEnt->s.otherentityNum2 =
 							droidEnt->s.owner =
 							droidEnt->r.ownerNum = ent->s.number;
 						ent->m_pVehicle->m_pDroidUnit = (bgEntity_t*)droidEnt;
@@ -2219,7 +2250,7 @@ finish:
 	return newent;
 }
 
-static void NPC_Spawn_Go(gentity_t* ent)
+void NPC_Spawn_Go(gentity_t* ent)
 {
 	NPC_Spawn_Do(ent);
 }
@@ -2234,7 +2265,7 @@ NPC_ShySpawn
 #define SHY_SPAWN_DISTANCE		128
 #define SHY_SPAWN_DISTANCE_SQR	( SHY_SPAWN_DISTANCE * SHY_SPAWN_DISTANCE )
 
-static void NPC_ShySpawn(gentity_t* ent)
+void NPC_ShySpawn(gentity_t* ent)
 {
 	ent->nextthink = level.time + SHY_THINK_TIME;
 	ent->think = NPC_ShySpawn;
@@ -2683,19 +2714,19 @@ static qboolean NPC_VehiclePrecache(const gentity_t* spawner)
 		if (tempG2)
 		{
 			//now, cache the anim config.
-			char gla_name[1024] = { 0 };
+			char GLAName[1024] = { 0 };
 
-			gla_name[0] = 0;
-			trap->G2API_GetGLAName(tempG2, 0, gla_name);
+			GLAName[0] = 0;
+			trap->G2API_GetGLAName(tempG2, 0, GLAName);
 
-			if (gla_name[0])
+			if (GLAName[0])
 			{
-				char* slash = Q_strrchr(gla_name, '/');
+				char* slash = Q_strrchr(GLAName, '/');
 				if (slash)
 				{
 					strcpy(slash, "/animation.cfg");
 
-					bg_parse_animation_file(gla_name, NULL, qfalse);
+					bg_parse_animation_file(GLAName, NULL, qfalse);
 				}
 			}
 			trap->G2API_CleanGhoul2Models(&tempG2);
@@ -2731,7 +2762,7 @@ static qboolean NPC_VehiclePrecache(const gentity_t* spawner)
 	return qtrue;
 }
 
-static void NPC_VehicleSpawnUse(gentity_t* self, gentity_t* other, gentity_t* activator)
+void NPC_VehicleSpawnUse(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	if (self->delay)
 	{
@@ -2837,7 +2868,7 @@ void SP_NPC_Kyle(gentity_t* self)
 		self->NPC_type = "Kyle";
 	}
 
-	wp_set_saber_model(NULL, CLASS_KYLE);
+	WP_SetSaberModel(NULL, CLASS_KYLE);
 
 	SP_NPC_spawner(self);
 }
@@ -2881,7 +2912,7 @@ void SP_NPC_Luke(gentity_t* self)
 {
 	self->NPC_type = "Luke";
 
-	wp_set_saber_model(NULL, CLASS_LUKE);
+	WP_SetSaberModel(NULL, CLASS_LUKE);
 
 	SP_NPC_spawner(self);
 }
@@ -2918,7 +2949,7 @@ void SP_NPC_Tavion(gentity_t* self)
 {
 	self->NPC_type = "Tavion";
 
-	wp_set_saber_model(NULL, CLASS_TAVION);
+	WP_SetSaberModel(NULL, CLASS_TAVION);
 
 	SP_NPC_spawner(self);
 }
@@ -3323,7 +3354,7 @@ void SP_NPC_Desann(gentity_t* self)
 {
 	self->NPC_type = "Desann";
 
-	wp_set_saber_model(NULL, CLASS_DESANN);
+	WP_SetSaberModel(NULL, CLASS_DESANN);
 
 	SP_NPC_spawner(self);
 }
@@ -3632,7 +3663,7 @@ void SP_NPC_Human_Merc(gentity_t* self)
 			}
 		}
 	}
-	register_item(BG_FindItemForWeapon(WP_ROCKET_LAUNCHER));
+	RegisterItem(BG_FindItemForWeapon(WP_ROCKET_LAUNCHER));
 	SP_NPC_spawner(self);
 }
 
@@ -4236,7 +4267,7 @@ void SP_NPC_Reborn(gentity_t* self)
 		}
 	}
 
-	wp_set_saber_model(NULL, CLASS_REBORN);
+	WP_SetSaberModel(NULL, CLASS_REBORN);
 	SP_NPC_spawner(self);
 }
 
@@ -4262,7 +4293,7 @@ void SP_NPC_ShadowTrooper(gentity_t* self)
 	}
 
 	npc_shadow_trooper_precache();
-	wp_set_saber_model(NULL, CLASS_SHADOWTROOPER);
+	WP_SetSaberModel(NULL, CLASS_SHADOWTROOPER);
 
 	SP_NPC_spawner(self);
 }
@@ -4734,121 +4765,159 @@ void SP_NPC_Droid_Protocol(gentity_t* self)
 /*
 NPC_Spawn_f
 */
-typedef void (*npcPrecacheFunc_t)(void);
 
-typedef struct
+gentity_t* NPC_SpawnType(const gentity_t* ent, const char* npc_type, const char* targetname, const qboolean isVehicle)
 {
-	const char* name;
-	npcPrecacheFunc_t func;
-} npcPrecacheEntry_t;
-
-static const npcPrecacheEntry_t npcPrecacheTable[] =
-{
-	{ "gonk",           NPC_Gonk_Precache },
-	{ "mouse",          NPC_Mouse_Precache },
-	{ "r2d2",           NPC_R2D2_Precache },
-	{ "r5d2",           NPC_R5D2_Precache },
-	{ "atst",           NPC_ATST_Precache },
-	{ "mark1",          NPC_Mark1_Precache },
-	{ "mark2",          NPC_Mark2_Precache },
-	{ "interrogator",   (npcPrecacheFunc_t)NPC_Interrogator_Precache },
-	{ "rosh_dark",      npc_rosh_dark_precache },
-	{ "probe",          NPC_Probe_Precache },
-	{ "seeker",         NPC_Seeker_Precache },
-	{ "remote",         NPC_Remote_Precache },
-	{ "shadowtrooper",  npc_shadow_trooper_precache },
-	{ "minemonster",    NPC_MineMonster_Precache },
-	{ "howler",         NPC_Howler_Precache },
-	{ "sentry",         NPC_Sentry_Precache },
-	{ "protocol",       NPC_Protocol_Precache },
-	{ "galak_mech",     NPC_GalakMech_Precache },
-	{ "wampa",          NPC_Wampa_Precache },
-};
-
-static void NPC_PrecacheByName(const char* name)
-{
-	for (int i = 0; i < ARRAY_LEN(npcPrecacheTable); i++)
-	{
-		if (!Q_stricmp(name, npcPrecacheTable[i].name))
-		{
-			npcPrecacheTable[i].func();
-			return;
-		}
-	}
-
-	// fallback to generic precache
-	NPC_PrecacheByClassName(name);
-}
-
-static void NPC_FindSpawnPoint(const gentity_t* ent, vec3_t out)
-{
+	gentity_t* NPCspawner = G_Spawn();
 	vec3_t forward, end;
-	trace_t tr;
+	trace_t trace;
 
-	AngleVectors(ent->client->ps.viewangles, forward, NULL, NULL);
-	VectorNormalize(forward);
-
-	VectorMA(ent->r.currentOrigin, 128, forward, end);
-	trap->Trace(&tr, ent->r.currentOrigin, NULL, NULL, end, 0, MASK_SOLID, qfalse, 0, 0);
-	VectorCopy(tr.endpos, end);
-
-	end[2] -= 24;
-	trap->Trace(&tr, tr.endpos, NULL, NULL, end, 0, MASK_SOLID, qfalse, 0, 0);
-	VectorCopy(tr.endpos, out);
-
-	out[2] += 24;
-}
-
-gentity_t* NPC_SpawnType(const gentity_t* ent, const char* npc_type, const char* targetname, qboolean isVehicle)
-{
-	if (!ent || !ent->client)
-		return NULL;
-
-	if (!npc_type || !npc_type[0])
-	{
-		Com_Printf(S_COLOR_RED"NPC_Spawn Error: Missing NPC type.\n");
-		return NULL;
-	}
-
-	// Allocate spawner
-	gentity_t* spawner = G_Spawn();
-	if (!spawner)
+	if (!NPCspawner)
 	{
 		Com_Printf(S_COLOR_RED"NPC_Spawn Error: Out of entities!\n");
 		return NULL;
 	}
 
-	spawner->think = G_FreeEntity;
-	spawner->nextthink = level.time + FRAMETIME;
+	NPCspawner->think = G_FreeEntity;
+	NPCspawner->nextthink = level.time + FRAMETIME;
 
-	// Position the spawner
-	vec3_t spawnPos;
-	NPC_FindSpawnPoint(ent, spawnPos);
+	if (!npc_type)
+	{
+		return NULL;
+	}
 
-	G_SetOrigin(spawner, spawnPos);
-	VectorCopy(spawner->r.currentOrigin, spawner->s.origin);
+	if (!npc_type[0])
+	{
+		Com_Printf(
+			S_COLOR_RED"Error, expected one of:\n"S_COLOR_WHITE
+			" NPC spawn [NPC type (from ext_data/mpnpcs)]\n NPC spawn vehicle [VEH type (from ext_data/vehicles)]\n");
+		return NULL;
+	}
 
-	// Face same yaw as player
-	spawner->s.angles[1] = ent->client->ps.viewangles[1];
+	if (!ent || !ent->client)
+	{
+		//screw you, go away
+		return NULL;
+	}
 
-	trap->LinkEntity((sharedEntity_t*)spawner);
+	//rwwFIXMEFIXME: Care about who is issuing this command/other clients besides 0?
+	//Spawn it at spot of first player
+	//FIXME: will gib them!
+	AngleVectors(ent->client->ps.viewangles, forward, NULL, NULL);
+	VectorNormalize(forward);
+	VectorMA(ent->r.currentOrigin, 128, forward, end);
+	trap->Trace(&trace, ent->r.currentOrigin, NULL, NULL, end, 0, MASK_SOLID, qfalse, 0, 0);
+	VectorCopy(trace.endpos, end);
+	end[2] -= 24;
+	trap->Trace(&trace, trace.endpos, NULL, NULL, end, 0, MASK_SOLID, qfalse, 0, 0);
+	VectorCopy(trace.endpos, end);
+	end[2] += 24;
+	G_SetOrigin(NPCspawner, end);
+	VectorCopy(NPCspawner->r.currentOrigin, NPCspawner->s.origin);
+	//set the yaw so that they face away from player
+	NPCspawner->s.angles[1] = ent->client->ps.viewangles[1];
 
-	// Assign NPC type + targetname
-	spawner->NPC_type = G_NewString(npc_type);
+	trap->LinkEntity((sharedEntity_t*)NPCspawner);
+
+	NPCspawner->NPC_type = G_NewString(npc_type);
+
 	if (targetname)
-		spawner->NPC_targetname = G_NewString(targetname);
+	{
+		NPCspawner->NPC_targetname = G_NewString(targetname);
+	}
 
-	spawner->count = 1;
-	spawner->delay = 0;
+	NPCspawner->count = 1;
+
+	NPCspawner->delay = 0;
 
 	if (isVehicle)
-		spawner->classname = "NPC_Vehicle";
+	{
+		NPCspawner->classname = "NPC_Vehicle";
+	}
 
-	// Precache
-	NPC_PrecacheByName(npc_type);
+	//call precache funcs for James' builds
+	if (!Q_stricmp("gonk", NPCspawner->NPC_type))
+	{
+		NPC_Gonk_Precache();
+	}
+	else if (!Q_stricmp("mouse", NPCspawner->NPC_type))
+	{
+		NPC_Mouse_Precache();
+	}
+	else if (!Q_strncmp("r2d2", NPCspawner->NPC_type, 4))
+	{
+		NPC_R2D2_Precache();
+	}
+	else if (!Q_stricmp("atst", NPCspawner->NPC_type))
+	{
+		NPC_ATST_Precache();
+	}
+	else if (!Q_strncmp("r5d2", NPCspawner->NPC_type, 4))
+	{
+		NPC_R5D2_Precache();
+	}
+	else if (!Q_stricmp("mark1", NPCspawner->NPC_type))
+	{
+		NPC_Mark1_Precache();
+	}
+	else if (!Q_stricmp("mark2", NPCspawner->NPC_type))
+	{
+		NPC_Mark2_Precache();
+	}
+	else if (!Q_stricmp("interrogator", NPCspawner->NPC_type))
+	{
+		NPC_Interrogator_Precache(NULL);
+	}
+	else if (!Q_stricmp("rosh_dark", NPCspawner->NPC_type))
+	{
+		npc_rosh_dark_precache();
+	}
+	else if (!Q_stricmp("probe", NPCspawner->NPC_type))
+	{
+		NPC_Probe_Precache();
+	}
+	else if (!Q_stricmp("seeker", NPCspawner->NPC_type))
+	{
+		NPC_Seeker_Precache();
+	}
+	else if (!Q_stricmp("remote", NPCspawner->NPC_type))
+	{
+		NPC_Remote_Precache();
+	}
+	else if (!Q_strncmp("shadowtrooper", NPCspawner->NPC_type, 13))
+	{
+		npc_shadow_trooper_precache();
+	}
+	else if (!Q_stricmp("minemonster", NPCspawner->NPC_type))
+	{
+		NPC_MineMonster_Precache();
+	}
+	else if (!Q_stricmp("howler", NPCspawner->NPC_type))
+	{
+		NPC_Howler_Precache();
+	}
+	else if (!Q_stricmp("sentry", NPCspawner->NPC_type))
+	{
+		NPC_Sentry_Precache();
+	}
+	else if (!Q_stricmp("protocol", NPCspawner->NPC_type))
+	{
+		NPC_Protocol_Precache();
+	}
+	else if (!Q_stricmp("galak_mech", NPCspawner->NPC_type))
+	{
+		NPC_GalakMech_Precache();
+	}
+	else if (!Q_stricmp("wampa", NPCspawner->NPC_type))
+	{
+		NPC_Wampa_Precache();
+	}
+	else
+	{
+		NPC_PrecacheByClassName(NPCspawner->NPC_type);
+	}
 
-	// Final spawn
-	return NPC_Spawn_Do(spawner);
+	return NPC_Spawn_Do(NPCspawner);
 }
 
 static void NPC_Spawn_f(gentity_t* ent)

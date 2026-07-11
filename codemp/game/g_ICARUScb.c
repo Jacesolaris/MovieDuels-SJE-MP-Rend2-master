@@ -2578,7 +2578,7 @@ int Q3_GetFloat(const int entID, int type, const char* name, float* value)
 			G_DebugPrint(WL_WARNING, "GetFloat: SET_altFire, %s not an NPC\n", ent->targetname);
 			return 0;
 		}
-		*value = ent->NPC->scriptFlags & SCF_altFire;
+		*value = ent->NPC->scriptFlags & SCF_ALT_FIRE;
 		break;
 	case SET_NO_RESPONSE:
 		//## %t="BOOL_TYPES" # NPCs will do generic responses when this is on (usescripts override generic responses as well)
@@ -4528,7 +4528,7 @@ static void G_SetWeapon(gentity_t* self, const int wp)
 	}
 
 	const gitem_t* item = BG_FindItemForWeapon(wp);
-	register_item(item); //make sure the weapon is cached in case this runs at startup
+	RegisterItem(item); //make sure the weapon is cached in case this runs at startup
 
 	if (self->client->ps.stats[STAT_WEAPONS] & 1 << wp)
 	{
@@ -4648,7 +4648,7 @@ static void Q3_SetItem(int entID, const char* item_name)
 	//inv = GetIDForString(INVTable, item_name);
 
 	//gitem_t *item = BG_FindItemForHoldable(inv);
-	//register_item(item);	//make sure the item is cached in case this runs at startup
+	//RegisterItem(item);	//make sure the item is cached in case this runs at startup
 
 	//self->client->ps.stats[STAT_HOLDABLE_ITEMS] |= (1 << item->giTag);
 }
@@ -6045,11 +6045,11 @@ static void Q3_SetAltFire(const int entID, const qboolean add)
 
 	if (add)
 	{
-		ent->NPC->scriptFlags |= SCF_altFire;
+		ent->NPC->scriptFlags |= SCF_ALT_FIRE;
 	}
 	else
 	{
-		ent->NPC->scriptFlags &= ~SCF_altFire;
+		ent->NPC->scriptFlags &= ~SCF_ALT_FIRE;
 	}
 
 	ChangeWeapon(ent, ent->client->ps.weapon);
@@ -7505,7 +7505,7 @@ static void Q3_SetSaberActive(const int entID, const qboolean active)
 			{
 				// Players: ensure saber item is cached
 				const gitem_t* item = BG_FindItemForWeapon(WP_SABER);
-				register_item(item);
+				RegisterItem(item);
 
 				// Play pickup event
 				G_AddEvent(ent, EV_ITEM_PICKUP, item - bg_itemlist);

@@ -164,7 +164,7 @@ static void turret_fire(gentity_t* ent, vec3_t start, vec3_t dir)
 	gentity_t* bolt = G_Spawn();
 
 	//use a custom shot effect
-	bolt->s.otherentity_num2 = ent->genericValue14;
+	bolt->s.otherentityNum2 = ent->genericValue14;
 	//use a custom impact effect
 	bolt->s.emplacedOwner = ent->genericValue15;
 
@@ -791,7 +791,7 @@ void SP_misc_panel_turret(gentity_t* self)
 
 	self->s.weapon = WP_TURRET;
 
-	register_item(BG_FindItemForWeapon(WP_EMPLACED_GUN));
+	RegisterItem(BG_FindItemForWeapon(WP_EMPLACED_GUN));
 	trap->LinkEntity((sharedEntity_t*)self);
 
 	self->think = G_FreeEntity;
@@ -945,7 +945,7 @@ qboolean turret_base_spawn_top(gentity_t* base)
 	//base->r.svFlags |= SVF_NO_TELEPORT|SVF_NONNPC_ENEMY|SVF_SELF_ANIMATING;
 
 	// Register this so that we can use it for the missile effect
-	register_item(BG_FindItemForWeapon(WP_EMPLACED_GUN));
+	RegisterItem(BG_FindItemForWeapon(WP_EMPLACED_GUN));
 
 	// But set us as a turret so that we can be identified as a turret
 	top->s.weapon = WP_EMPLACED_GUN;

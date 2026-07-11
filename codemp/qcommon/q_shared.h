@@ -1881,8 +1881,8 @@ typedef struct entityState_s {
 
 	int		emplacedOwner;
 
-	int		otherentity_num;	// shotgun sources, etc
-	int		otherentity_num2;
+	int		otherentityNum;	// shotgun sources, etc
+	int		otherentityNum2;
 
 	int		groundEntityNum;	// ENTITYNUM_NONE = in air
 

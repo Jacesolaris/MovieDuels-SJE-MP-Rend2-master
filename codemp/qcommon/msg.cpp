@@ -989,7 +989,7 @@ netField_t entityStateFields[] =
 	{NETF(saberEntityNum), GENTITYNUM_BITS},
 	// could probably just eliminate and assume a big number
 	{NETF(g2radius), 8},
-	{NETF(otherentity_num2), GENTITYNUM_BITS},
+	{NETF(otherentityNum2), GENTITYNUM_BITS},
 	// used all over the place
 	{NETF(owner), GENTITYNUM_BITS},
 	{NETF(model_index2), 8},
@@ -1023,7 +1023,7 @@ netField_t entityStateFields[] =
 	{NETF(shouldtarget), 1},
 	// widely used, does not appear that they have to be 16 bits
 	{NETF(trickedentindex), 16}, //See note in PSF
-	{NETF(otherentity_num), GENTITYNUM_BITS},
+	{NETF(otherentityNum), GENTITYNUM_BITS},
 	{NETF(origin2[1]), 0},
 	{NETF(time2), 32},
 	{NETF(legsFlip), 1},

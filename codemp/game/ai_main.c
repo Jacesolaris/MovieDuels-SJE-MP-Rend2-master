@@ -9261,7 +9261,7 @@ void bot_behave_attack_basic(bot_state_t* bs, const gentity_t* target)
 		{
 			//we can and want to do a saber attack fake.
 			int fake_quad = Q_irand(Q_BR, Q_B);
-			while (fake_quad == saber_moveData[bs->cur_ps.saberMove].endQuad)
+			while (fake_quad == saberMoveData[bs->cur_ps.saberMove].endQuad)
 			{
 				//can't fake in the direction we're already trying to attack in
 				fake_quad = Q_irand(Q_BR, Q_B);

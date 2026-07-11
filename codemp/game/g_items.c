@@ -529,7 +529,7 @@ static qboolean PlaceShield(gentity_t* playerent)
 			shield->parent = playerent;
 
 			// Set team number.
-			shield->s.otherentity_num2 = playerent->client->sess.sessionTeam;
+			shield->s.otherentityNum2 = playerent->client->sess.sessionTeam;
 
 			shield->s.eType = ET_SPECIAL;
 			shield->s.modelIndex = HI_SHIELD; // this'll be used in CG_Useable() for rendering.
@@ -548,7 +548,7 @@ static qboolean PlaceShield(gentity_t* playerent)
 
 			shield->s.eFlags &= ~EF_NODRAW;
 			shield->r.svFlags &= ~SVF_NOCLIENT;
-			shield->s.otherentity_num = playerent->s.number; //mark owner info for duel
+			shield->s.otherentityNum = playerent->s.number; //mark owner info for duel
 
 			trap->LinkEntity((sharedEntity_t*)shield);
 
@@ -1314,7 +1314,7 @@ void ItemUse_Sentry(gentity_t* ent)
 	trap->LinkEntity((sharedEntity_t*)sentry);
 
 	sentry->s.owner = ent->s.number;
-	sentry->s.otherentity_num = ent->s.number; // mark owner info for duel
+	sentry->s.otherentityNum = ent->s.number; // mark owner info for duel
 	sentry->s.weapon = WP_TURRET; //so I can identify the entity as sentry gun client side
 	sentry->s.shouldtarget = qtrue;
 	if (level.gametype >= GT_TEAM)
@@ -1981,7 +1981,7 @@ static void SpecialItemThink(gentity_t* ent)
 
 static void G_SpecialSpawnItem(gentity_t* ent, gitem_t* item)
 {
-	register_item(item);
+	RegisterItem(item);
 	ent->item = item;
 
 	//go away if no one wants me
@@ -2025,13 +2025,13 @@ void G_PrecacheDispensers(void)
 	const gitem_t* item = BG_FindItem(DISP_HEALTH_ITEM);
 	if (item)
 	{
-		register_item(item);
+		RegisterItem(item);
 	}
 
 	item = BG_FindItem(DISP_AMMO_ITEM);
 	if (item)
 	{
-		register_item(item);
+		RegisterItem(item);
 	}
 }
 
@@ -2040,13 +2040,13 @@ void G_LoadDispensers(void)
 	const gitem_t* item = BG_FindItem(DISP_HEALTH_ITEM);
 	if (item)
 	{
-		register_item(item);
+		RegisterItem(item);
 	}
 
 	item = BG_FindItem(DISP_AMMO_ITEM);
 	if (item)
 	{
-		register_item(item);
+		RegisterItem(item);
 	}
 }
 
@@ -2132,7 +2132,7 @@ static void EWebDisattach(const gentity_t* owner, gentity_t* eweb)
 //precache misc e-web assets
 void EWebPrecache(void)
 {
-	register_item(BG_FindItemForWeapon(WP_TURRET));
+	RegisterItem(BG_FindItemForWeapon(WP_TURRET));
 	G_EffectIndex("detpack/explosion.efx");
 	G_EffectIndex("turret/muzzle_flash.efx");
 }
@@ -3130,23 +3130,66 @@ RespawnItem
 */
 void RespawnItem(gentity_t* ent)
 {
-	// randomly select from teamed entities
-	if (ent->team)
+	// Safety: ent must never be NULL
+	if (!ent)
 	{
-		int count;
-
-		if (!ent->teammaster)
-		{
-			trap->Error(ERR_DROP, "RespawnItem: bad teammaster");
-		}
-		gentity_t* master = ent->teammaster;
-		for (count = 0, ent = master; ent; ent = ent->teamchain, count++);
-
-		const int choice = rand() % count;
-
-		for (count = 0, ent = master; count < choice; ent = ent->teamchain, count++);
+#ifdef _DEBUG
+		Com_Printf("RespawnItem WARNING: ent was NULL\n");
+#endif
+		return;
 	}
 
+	// ---------------------------------------------------------
+	// TEAMED ITEM RESPAWN LOGIC
+	// ---------------------------------------------------------
+	if (ent->team)
+	{
+		// A teamed entity MUST have a valid teammaster
+		if (!ent->teammaster)
+		{
+#ifdef _DEBUG
+			Com_Printf("RespawnItem WARNING: entity with team '%s' has NULL teammaster\n", ent->team);
+#endif
+			return; // safest behaviour: do not continue with invalid team
+		}
+
+		gentity_t* master = ent->teammaster;
+
+		// Count team members safely
+		int count = 0;
+		gentity_t* scan = master;
+
+		while (scan)
+		{
+			count++;
+			scan = scan->teamchain;
+		}
+
+		// Prevent divide-by-zero and invalid team setups
+		if (count <= 0)
+		{
+#ifdef _DEBUG
+			Com_Printf("RespawnItem WARNING: team '%s' has zero members\n", ent->team);
+#endif
+			return;
+		}
+
+		// Choose a random teammate
+		const int choice = rand() % count;
+
+		scan = master;
+		for (int i = 0; i < choice; i++)
+		{
+			scan = scan->teamchain;
+		}
+
+		// Use the randomly selected teammate as the respawn target
+		ent = scan;
+	}
+
+	// ---------------------------------------------------------
+	// PUSHABLE ITEMS: RESET POSITION TO ORIGINAL ORIGIN
+	// ---------------------------------------------------------
 	if (g_pushitems.integer)
 	{
 		VectorCopy(ent->origOrigin, ent->s.origin);
@@ -3155,17 +3198,23 @@ void RespawnItem(gentity_t* ent)
 		VectorCopy(ent->origOrigin, ent->r.currentOrigin);
 	}
 
+	// ---------------------------------------------------------
+	// MAKE ITEM VISIBLE + SOLID AGAIN
+	// ---------------------------------------------------------
 	ent->r.contents = CONTENTS_TRIGGER;
 	ent->s.eFlags &= ~(EF_NODRAW | EF_ITEMPLACEHOLDER);
 	ent->r.svFlags &= ~SVF_NOCLIENT;
+
 	trap->LinkEntity((sharedEntity_t*)ent);
 
+	// ---------------------------------------------------------
+	// POWERUP RESPAWN SOUND (GLOBAL OR LOCAL)
+	// ---------------------------------------------------------
 	if (ent->item->giType == IT_POWERUP)
 	{
-		// play powerup spawn sound to all clients
 		gentity_t* te;
 
-		// if the powerup respawn sound should Not be global
+		// If ent->speed is non-zero, sound is local; otherwise global
 		if (ent->speed)
 		{
 			te = G_TempEntity(ent->s.pos.trBase, EV_GENERAL_SOUND);
@@ -3174,13 +3223,19 @@ void RespawnItem(gentity_t* ent)
 		{
 			te = G_TempEntity(ent->s.pos.trBase, EV_GLOBAL_SOUND);
 		}
+
 		te->s.eventParm = G_SoundIndex("sound/items/respawn1");
 		te->r.svFlags |= SVF_BROADCAST;
 	}
 
-	// play the normal respawn sound only to nearby clients
+	// ---------------------------------------------------------
+	// NORMAL RESPAWN SOUND (LOCAL ONLY)
+	// ---------------------------------------------------------
 	G_AddEvent(ent, EV_ITEM_RESPAWN, 0);
 
+	// ---------------------------------------------------------
+	// CLEAR THINK FUNCTION
+	// ---------------------------------------------------------
 	ent->nextthink = 0;
 }
 
@@ -3923,36 +3978,36 @@ void clear_registered_items(void)
 	memset(itemRegistered, 0, sizeof itemRegistered);
 
 	// players always start with the base weapon
-	register_item(BG_FindItemForWeapon(WP_STUN_BATON));
-	register_item(BG_FindItemForWeapon(WP_MELEE));
-	register_item(BG_FindItemForWeapon(WP_SABER));
-	register_item(BG_FindItemForWeapon(WP_BRYAR_PISTOL));
+	RegisterItem(BG_FindItemForWeapon(WP_STUN_BATON));
+	RegisterItem(BG_FindItemForWeapon(WP_MELEE));
+	RegisterItem(BG_FindItemForWeapon(WP_SABER));
+	RegisterItem(BG_FindItemForWeapon(WP_BRYAR_PISTOL));
 	//addition possible starting weapons
-	register_item(BG_FindItemForWeapon(WP_BLASTER));
-	register_item(BG_FindItemForWeapon(WP_DISRUPTOR));
-	register_item(BG_FindItemForWeapon(WP_BOWCASTER));
-	register_item(BG_FindItemForWeapon(WP_REPEATER));
-	register_item(BG_FindItemForWeapon(WP_DEMP2));
-	register_item(BG_FindItemForWeapon(WP_FLECHETTE));
-	register_item(BG_FindItemForWeapon(WP_ROCKET_LAUNCHER));
-	register_item(BG_FindItemForWeapon(WP_THERMAL));
-	register_item(BG_FindItemForWeapon(WP_TRIP_MINE));
-	register_item(BG_FindItemForWeapon(WP_DET_PACK));
-	register_item(BG_FindItemForWeapon(WP_CONCUSSION));
-	register_item(BG_FindItemForWeapon(WP_BRYAR_OLD));
+	RegisterItem(BG_FindItemForWeapon(WP_BLASTER));
+	RegisterItem(BG_FindItemForWeapon(WP_DISRUPTOR));
+	RegisterItem(BG_FindItemForWeapon(WP_BOWCASTER));
+	RegisterItem(BG_FindItemForWeapon(WP_REPEATER));
+	RegisterItem(BG_FindItemForWeapon(WP_DEMP2));
+	RegisterItem(BG_FindItemForWeapon(WP_FLECHETTE));
+	RegisterItem(BG_FindItemForWeapon(WP_ROCKET_LAUNCHER));
+	RegisterItem(BG_FindItemForWeapon(WP_THERMAL));
+	RegisterItem(BG_FindItemForWeapon(WP_TRIP_MINE));
+	RegisterItem(BG_FindItemForWeapon(WP_DET_PACK));
+	RegisterItem(BG_FindItemForWeapon(WP_CONCUSSION));
+	RegisterItem(BG_FindItemForWeapon(WP_BRYAR_OLD));
 
-	register_item(BG_FindItemForWeapon(WP_BATTLEDROID));
-	register_item(BG_FindItemForWeapon(WP_THEFIRSTORDER));
-	register_item(BG_FindItemForWeapon(WP_CLONECARBINE));
-	register_item(BG_FindItemForWeapon(WP_REBELBLASTER));
-	register_item(BG_FindItemForWeapon(WP_CLONERIFLE));
-	register_item(BG_FindItemForWeapon(WP_CLONECOMMANDO));
-	register_item(BG_FindItemForWeapon(WP_Z6_ROTARY_CANNON));
-	register_item(BG_FindItemForWeapon(WP_REBELRIFLE));
-	register_item(BG_FindItemForWeapon(WP_REY));
-	register_item(BG_FindItemForWeapon(WP_JANGO));
-	register_item(BG_FindItemForWeapon(WP_BOBA));
-	register_item(BG_FindItemForWeapon(WP_CLONEPISTOL));
+	RegisterItem(BG_FindItemForWeapon(WP_BATTLEDROID));
+	RegisterItem(BG_FindItemForWeapon(WP_THEFIRSTORDER));
+	RegisterItem(BG_FindItemForWeapon(WP_CLONECARBINE));
+	RegisterItem(BG_FindItemForWeapon(WP_REBELBLASTER));
+	RegisterItem(BG_FindItemForWeapon(WP_CLONERIFLE));
+	RegisterItem(BG_FindItemForWeapon(WP_CLONECOMMANDO));
+	RegisterItem(BG_FindItemForWeapon(WP_Z6_ROTARY_CANNON));
+	RegisterItem(BG_FindItemForWeapon(WP_REBELRIFLE));
+	RegisterItem(BG_FindItemForWeapon(WP_REY));
+	RegisterItem(BG_FindItemForWeapon(WP_JANGO));
+	RegisterItem(BG_FindItemForWeapon(WP_BOBA));
+	RegisterItem(BG_FindItemForWeapon(WP_CLONEPISTOL));
 
 	if (level.gametype == GT_SIEGE)
 	{//kind of cheesy, maybe check if siege class with disp's is gonna be on this map too
@@ -3971,11 +4026,11 @@ RegisterItem
 The item will be added to the precache list
 ===============
 */
-void register_item(const gitem_t* item)
+void RegisterItem(const gitem_t* item)
 {
 	if (!item)
 	{
-		trap->Error(ERR_DROP, "register_item: NULL");
+		trap->Error(ERR_DROP, "RegisterItem: NULL");
 	}
 	itemRegistered[item - bg_itemlist] = qtrue;
 }
@@ -3988,7 +4043,7 @@ Write the needed items to a config string
 so the client will know which ones to precache
 ===============
 */
-void save_registered_items(void)
+void SaveRegisteredItems(void)
 {
 	char string[MAX_ITEMS + 1] = { 0 };
 
@@ -4159,7 +4214,7 @@ void G_SpawnItem(gentity_t* ent, gitem_t* item)
 		}
 	}
 
-	register_item(item);
+	RegisterItem(item);
 	if (G_ItemDisabled(item))
 		return;
 

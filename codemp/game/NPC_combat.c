@@ -326,7 +326,7 @@ static void G_AttackDelay(const gentity_t* self, const gentity_t* enemy)
 		case WP_BRYAR_PISTOL:
 			break;
 		case WP_BLASTER:
-			if (self->NPC->scriptFlags & SCF_altFire)
+			if (self->NPC->scriptFlags & SCF_ALT_FIRE)
 			{
 				//rapid-fire blasters
 				attDelay += Q_irand(0, 500);
@@ -341,7 +341,7 @@ static void G_AttackDelay(const gentity_t* self, const gentity_t* enemy)
 			attDelay += Q_irand(0, 500);
 			break;
 		case WP_REPEATER:
-			if (!(self->NPC->scriptFlags & SCF_altFire))
+			if (!(self->NPC->scriptFlags & SCF_ALT_FIRE))
 			{
 				//rapid-fire blasters
 				attDelay += Q_irand(0, 500);
@@ -781,7 +781,7 @@ void ChangeWeapon(const gentity_t* ent, int new_weapon)
 
 	case WP_DISRUPTOR:
 		ent->NPC->aiFlags &= ~NPCAI_BURST_WEAPON;
-		if (ent->NPC->scriptFlags & SCF_altFire)
+		if (ent->NPC->scriptFlags & SCF_ALT_FIRE)
 		{
 			switch (g_npcspskill.integer)
 			{
@@ -814,7 +814,7 @@ void ChangeWeapon(const gentity_t* ent, int new_weapon)
 		break;
 
 	case WP_REPEATER:
-		if (ent->NPC->scriptFlags & SCF_altFire)
+		if (ent->NPC->scriptFlags & SCF_ALT_FIRE)
 		{
 			ent->NPC->aiFlags &= ~NPCAI_BURST_WEAPON;
 			ent->NPC->burstSpacing = 2000; //attackdebounce
@@ -841,7 +841,7 @@ void ChangeWeapon(const gentity_t* ent, int new_weapon)
 
 	case WP_FLECHETTE:
 		ent->NPC->aiFlags &= ~NPCAI_BURST_WEAPON;
-		if (ent->NPC->scriptFlags & SCF_altFire)
+		if (ent->NPC->scriptFlags & SCF_ALT_FIRE)
 		{
 			ent->NPC->burstSpacing = 2000; //attackdebounce
 		}
@@ -863,7 +863,7 @@ void ChangeWeapon(const gentity_t* ent, int new_weapon)
 		break;
 	case WP_CONCUSSION:
 		ent->NPC->aiFlags &= ~NPCAI_BURST_WEAPON;
-		if (ent->NPC->scriptFlags & SCF_altFire)
+		if (ent->NPC->scriptFlags & SCF_ALT_FIRE)
 		{
 			//beam
 			ent->NPC->burstSpacing = 1200; //attackdebounce
@@ -903,7 +903,7 @@ void ChangeWeapon(const gentity_t* ent, int new_weapon)
 		*/
 
 	case WP_BLASTER:
-		if (ent->NPC->scriptFlags & SCF_altFire)
+		if (ent->NPC->scriptFlags & SCF_ALT_FIRE)
 		{
 			ent->NPC->aiFlags |= NPCAI_BURST_WEAPON;
 			ent->NPC->burstMin = 3;
@@ -1440,7 +1440,7 @@ float NPC_MaxDistSquaredForWeapon(void)
 
 	case WP_DISRUPTOR: //disruptor
 	{
-		if (NPCS.NPCInfo->scriptFlags & SCF_altFire)
+		if (NPCS.NPCInfo->scriptFlags & SCF_ALT_FIRE)
 		{
 			return 4096 * 4096;
 		}
@@ -3259,6 +3259,8 @@ qboolean NPC_SetCombatPoint(const int combatPointID)
 
 	return qtrue;
 }
+
+extern qboolean CheckItemCanBePickedUpByNPC(const gentity_t* item, const gentity_t* pickerupper);
 
 static gentity_t* NPC_SearchForWeapons(void)
 {

@@ -467,7 +467,7 @@ static void NPC_PrecacheWeapons(team_t playerTeam, int spawnflags, char* NPCtype
 	{
 		if (weapons & 1 << curWeap)
 		{
-			register_item(BG_FindItemForWeapon(curWeap));
+			RegisterItem(BG_FindItemForWeapon(curWeap));
 		}
 	}
 
@@ -766,7 +766,7 @@ void NPC_Precache(gentity_t* spawner)
 
 			if (curWeap > WP_NONE && curWeap < WP_NUM_WEAPONS)
 			{
-				register_item(BG_FindItemForWeapon(curWeap));
+				RegisterItem(BG_FindItemForWeapon(curWeap));
 			}
 		}
 	}
@@ -2478,7 +2478,7 @@ qboolean NPC_ParseParms(const char* npc_name, gentity_t* npc)
 					{
 						if (n != 0)
 						{
-							npc->NPC->scriptFlags |= SCF_altFire;
+							npc->NPC->scriptFlags |= SCF_ALT_FIRE;
 						}
 					}
 					continue;
