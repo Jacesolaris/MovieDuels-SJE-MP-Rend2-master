@@ -13049,28 +13049,38 @@ CG_DrawCrosshairNames
 */
 static void CG_DrawCrosshairNames(void)
 {
-	char sanitized[1024];
-	qboolean is_veh = qfalse;
+	char      sanitized[1024];
+	qboolean  is_veh = qfalse;
 
+	// No crosshair names during cameras/cutscenes
 	if (in_camera)
 	{
 		return;
 	}
 
-	if (!cg_drawCrosshairNames.integer)
+	// Feature disabled
+	if (cg_drawCrosshairNames.integer == 0)
 	{
 		return;
 	}
 
+	// Update crosshair target
 	CG_ScanForCrosshairEntity();
 
-	// Vehicle pilot redirect
-	if (cg.crosshairclientNum < ENTITYNUM_WORLD)
+	// Validate base target index (entity index space)
+	if (cg.crosshairclientNum < 0 || cg.crosshairclientNum >= ENTITYNUM_WORLD)
 	{
-		const centity_t* veh = &cg_entities[cg.crosshairclientNum];
+		return;
+	}
+
+	// Vehicle pilot handling: if we're aiming at a vehicle with a player pilot,
+	// show the pilot's name instead and remember the vehicle.
+	{
+		centity_t* veh = &cg_entities[cg.crosshairclientNum];
 
 		if (veh->currentState.eType == ET_NPC &&
 			veh->currentState.NPC_class == CLASS_VEHICLE &&
+			veh->currentState.owner >= 0 &&
 			veh->currentState.owner < MAX_CLIENTS)
 		{
 			cg.crosshairclientNum = veh->currentState.owner;
@@ -13080,280 +13090,280 @@ static void CG_DrawCrosshairNames(void)
 		}
 	}
 
-	// Cloaked check
-	if (cg_entities[cg.crosshairclientNum].currentState.powerups & (1 << PW_CLOAKED))
+	// Re‑validate after possible remap to pilot (still entity index space)
+	if (cg.crosshairclientNum < 0 || cg.crosshairclientNum >= ENTITYNUM_WORLD)
 	{
 		return;
 	}
 
-	// FIX: ensure index is valid before accessing cgs.clientinfo[]
-	if (cg.crosshairclientNum < 0 || cg.crosshairclientNum >= MAX_CLIENTS)
+	// Cloaked targets do not show names
+	if ((cg_entities[cg.crosshairclientNum].currentState.powerups & (1 << PW_CLOAKED)) != 0)
 	{
-		trap->R_SetColor(NULL);
 		return;
 	}
 
+	// Fade colour for crosshair name
 	const float* color = CG_FadeColor(cg.crosshairClientTime, 1000);
-
-	if (!color)
+	if (color == NULL)
 	{
 		trap->R_SetColor(NULL);
 		return;
 	}
 
-	char* name = cgs.clientinfo[cg.crosshairclientNum].cleanname;
+	const char* name = NULL;
+	const centity_t* cent = NULL;
 
-	const float w = CG_DrawStrlen(va("Civilian")) * TINYCHAR_WIDTH;
+	// Local index and safe guards
+	const int idx = cg.crosshairclientNum;
+	const qboolean isClient = (idx >= 0 && idx < MAX_CLIENTS) ? qtrue : qfalse;
+	const qboolean isEntity = (idx >= 0 && idx < ENTITYNUM_WORLD) ? qtrue : qfalse;
+	vec3_t diff;
+	VectorSubtract(cg_entities[idx].lerpOrigin, cg.refdef.vieworg, diff);
 
-	// Duel greying logic unchanged...
-
-	CG_SanitizeString(name, sanitized);
-
-	if (is_veh)
+	float distSq = VectorLengthSquared(diff);
+	// Hard safety: ensure idx is valid for clientinfo[]
+	if (idx < 0 || idx >= MAX_CLIENTS)
 	{
-		vec4_t tcolor;
-		char str[MAX_STRING_CHARS];
-		Com_sprintf(str, MAX_STRING_CHARS, "%s (pilot)", name);
-		CG_DrawProportionalString(320, 170, str, UI_CENTER, tcolor);
+		trap->R_SetColor(NULL);
+		return;
 	}
-	else if (cg_entities[cg.crosshairclientNum].currentState.eType == ET_NPC)
-	{
-		const centity_t* cent = &cg_entities[cg.crosshairclientNum];
 
-		switch (cent->currentState.NPC_class)
+	if (isClient == qtrue)
+	{
+		if (cgs.clientinfo[idx].infoValid != 0)
 		{
-		case CLASS_REBEL:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Rebel"), colorTable[CT_GREEN]);
-			break;
-		case CLASS_WOOKIE:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Wookie"), colorTable[CT_GREEN]);
-			break;
-		case CLASS_JEDI:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Jedi Knight"), colorTable[CT_CYAN]);
-			break;
-		case CLASS_KYLE:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("kyle Katarn"), colorTable[CT_VLTPURPLE1]);
-			break;
-		case CLASS_YODA:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Master Yoda"), colorTable[CT_VLTPURPLE1]);
-			break;
-		case CLASS_LUKE:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Luke Skywalker"), colorTable[CT_VLTPURPLE1]);
-			break;
-		case CLASS_JAN:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Jan Ors"), colorTable[CT_MAGENTA]);
-			break;
-		case CLASS_MONMOTHA:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Monmothma"), colorTable[CT_GREEN]);
-			break;
-		case CLASS_MORGANKATARN:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Morgan Katarn"), colorTable[CT_LTORANGE]);
-			break;
-		case CLASS_GONK:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("gonk"), colorTable[CT_LTORANGE]);
-			break;
-		case CLASS_STORMTROOPER:
-		case CLASS_CLONETROOPER:
-		case CLASS_STORMCOMMANDO:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Trooper"), colorTable[CT_RED]);
-			break;
-		case CLASS_SWAMPTROOPER:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Swamptrooper"), colorTable[CT_RED]);
-			break;
-		case CLASS_IMPWORKER:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("ImpWorker"), colorTable[CT_RED]);
-			break;
-		case CLASS_IMPERIAL:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Imperial"), colorTable[CT_RED]);
-			break;
-		case CLASS_GALAKMECH:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("GalakMech"), colorTable[CT_RED]);
-			break;
-		case CLASS_SHADOWTROOPER:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Shadowtrooper"), colorTable[CT_DKRED1]);
-			break;
-		case CLASS_COMMANDO:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Commando"), colorTable[CT_RED]);
-			break;
-		case CLASS_TAVION:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Tavion"), colorTable[CT_VLTPURPLE1]);
-			break;
-		case CLASS_ALORA:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Alora"), colorTable[CT_VLTPURPLE1]);
-			break;
-		case CLASS_DESANN:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Desann"), colorTable[CT_VLTPURPLE1]);
-			break;
-		case CLASS_REBORN:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Reborn"), colorTable[CT_VLTPURPLE1]);
-			break;
-		case CLASS_BOBAFETT:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Bobafett"), colorTable[CT_LTORANGE]);
-			break;
-		case CLASS_MANDO:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Mandolorian"), colorTable[CT_VLTPURPLE1]);
-			break;
-		case CLASS_ATST:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("ATST"), colorTable[CT_BLUE]);
-			break;
-		case CLASS_HOWLER:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Howler"), colorTable[CT_MDGREY]);
-			break;
-		case CLASS_MINEMONSTER:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("MineMonster"), colorTable[CT_MDGREY]);
-			break;
-		case CLASS_RANCOR:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Rancor"), colorTable[CT_MDGREY]);
-			break;
-		case CLASS_WAMPA:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Wampa"), colorTable[CT_MDGREY]);
-			break;
-		case CLASS_VEHICLE:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Vehicle"), colorTable[CT_BLUE]);
-			break;
-		case CLASS_BESPIN_COP:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Bespin Cop"), colorTable[CT_GREEN]);
-			break;
-		case CLASS_LANDO:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Lando"), colorTable[CT_GREEN]);
-			break;
-		case CLASS_PRISONER:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Prisoner"), colorTable[CT_GREEN]);
-			break;
-		case CLASS_GALAK:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Galak"), colorTable[CT_RED]);
-			break;
-		case CLASS_GRAN:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Gran"), colorTable[CT_RED]);
-			break;
-		case CLASS_REELO:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Reelo"), colorTable[CT_RED]);
-			break;
-		case CLASS_MURJJ:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Murjj"), colorTable[CT_RED]);
-			break;
-		case CLASS_RODIAN:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Rodian"), colorTable[CT_RED]);
-			break;
-		case CLASS_TRANDOSHAN:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Trandoshan"), colorTable[CT_RED]);
-			break;
-		case CLASS_UGNAUGHT:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Ugnaught"), colorTable[CT_GREEN]);
-			break;
-		case CLASS_WEEQUAY:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Weequay"), colorTable[CT_RED]);
-			break;
-		case CLASS_BARTENDER:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Bartender"), colorTable[CT_BLUE]);
-			break;
-		case CLASS_JAWA:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Jawa"), colorTable[CT_MAGENTA]);
-			break;
-		case CLASS_REMOTE:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Remote Droid"), colorTable[CT_YELLOW]);
-			break;
-		case CLASS_SEEKER:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Seeker Droid"), colorTable[CT_YELLOW]);
-			break;
-		case CLASS_PROTOCOL:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Protocol Droid"), colorTable[CT_YELLOW]);
-			break;
-		case CLASS_R2D2:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("R2 Astromech Droid"), colorTable[CT_YELLOW]);
-			break;
-		case CLASS_PROBE:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Probe Droid"), colorTable[CT_YELLOW]);
-			break;
-		case CLASS_R5D2:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("R5 Astromech Droid"), colorTable[CT_YELLOW]);
-			break;
-		case CLASS_DROIDEKA:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Droideka"), colorTable[CT_MAGENTA]);
-			break;
-		case CLASS_BATTLEDROID:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Battle Droid"), colorTable[CT_MAGENTA]);
-			break;
-		case CLASS_SBD:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Super Battle Droid"), colorTable[CT_MAGENTA]);
-			break;
-		case CLASS_ASSASSIN_DROID:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Assassin droid"), colorTable[CT_YELLOW]);
-			break;
-		case CLASS_SABER_DROID:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Saber Droid"), colorTable[CT_MAGENTA]);
-			break;
-		case CLASS_TUSKEN:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Tusken"), colorTable[CT_VLTORANGE]);
-			break;
-		case CLASS_MARK1:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Droid"), colorTable[CT_VLTORANGE]);
-			break;
-		case CLASS_MARK2:
-			CG_DrawSmallStringColor(320 - w / 2, 170, va("Droid"), colorTable[CT_VLTORANGE]);
-			break;
-		default:
-			//CG_DrawSmallStringColor(320 - w / 2, 170, va("Civilian"), colorTable[CT_VDKORANGE]);
-			break;
+			name = cgs.clientinfo[idx].cleanname;
 		}
 	}
-	else
+	else if (isEntity == qtrue)
 	{
-		if (cg_entities[cg.crosshairclientNum].currentState.eType == ET_ITEM)
+		cent = &cg_entities[idx];
+
+		if (cent->npcClient != NULL && cent->npcClient->infoValid != 0)
 		{
-			vec3_t diff;
-			VectorSubtract(cg_entities[cg.crosshairclientNum].lerpOrigin, cg.refdef.vieworg, diff);
-
-			float distSq = VectorLengthSquared(diff);
-
-			// Only show hint if within 256 units
-			if (distSq < (256.0f * 256.0f))
-			{
-				if (g_SerenityJediEngineHudMode.integer == 2)
-				{
-					CG_DrawPic(20, 285, 26, 26, cgs.media.useableHint);
-				}
-				else if (g_SerenityJediEngineHudMode.integer == 3)
-				{
-					CG_DrawPic(157, 429, 26, 26, cgs.media.useableHint);
-				}
-				else
-				{
-					CG_DrawPic(50, 285, 32, 32, cgs.media.useableHint);
-				}
-			}
+			name = cent->npcClient->cleanname;
+		}
+		else if (cent->currentState.eType == ET_NPC)
+		{
+			// Fallback label for NPCs with no clientinfo
+			name = "(NPC)";
 		}
 		else
 		{
-			if (cgs.gametype == GT_FFA)
+			name = NULL;
+		}
+	}
+
+	// Nothing valid to draw
+	if (name == NULL || name[0] == '\0')
+	{
+		trap->R_SetColor(NULL);
+		return;
+	}
+
+	// Sanitize name for drawing
+	CG_SanitizeString(name, sanitized);
+
+	// Width used for centering the label
+	const float w = CG_DrawStrlen(sanitized) * TINYCHAR_WIDTH;
+
+	// Vehicle pilot label
+	if (is_veh == qtrue)
+	{
+		vec4_t tcolor = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		// Use the fade colour as the text colour for the pilot label
+		tcolor[0] = color[0];
+		tcolor[1] = color[1];
+		tcolor[2] = color[2];
+		tcolor[3] = color[3];
+
+		char str[MAX_STRING_CHARS];
+		Com_sprintf(str, sizeof(str), "%s (pilot)", sanitized);
+
+		CG_DrawProportionalString(320, 170, str, UI_CENTER, tcolor);
+	}
+	// NPC class‑based labels
+	else if (isEntity == qtrue && cg_entities[idx].currentState.eType == ET_NPC)
+	{
+		const centity_t* ncent = &cg_entities[idx];
+
+		// Only show if within 256 units
+		if (distSq < (256.0f * 256.0f))
+		{
+			switch (ncent->currentState.NPC_class)
 			{
-				CG_DrawSmallStringColor(320 - w / 2, 170, name, colorTable[CT_WHITE]);
+			case CLASS_REBEL:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Rebel", colorTable[CT_GREEN]);       break;
+			case CLASS_WOOKIE:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Wookie", colorTable[CT_GREEN]);       break;
+			case CLASS_JEDI:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Jedi Knight", colorTable[CT_CYAN]);        break;
+			case CLASS_KYLE:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "kyle Katarn", colorTable[CT_VLTPURPLE1]);  break;
+			case CLASS_YODA:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Master Yoda", colorTable[CT_VLTPURPLE1]);  break;
+			case CLASS_LUKE:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Luke Skywalker", colorTable[CT_VLTPURPLE1]);  break;
+			case CLASS_JAN:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Jan Ors", colorTable[CT_MAGENTA]);     break;
+			case CLASS_MONMOTHA:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Monmothma", colorTable[CT_GREEN]);       break;
+			case CLASS_MORGANKATARN:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Morgan Katarn", colorTable[CT_LTORANGE]);    break;
+			case CLASS_GONK:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "gonk", colorTable[CT_LTORANGE]);    break;
+			case CLASS_STORMTROOPER:
+			case CLASS_CLONETROOPER:
+			case CLASS_STORMCOMMANDO:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Trooper", colorTable[CT_RED]);         break;
+			case CLASS_SWAMPTROOPER:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Swamptrooper", colorTable[CT_RED]);         break;
+			case CLASS_IMPWORKER:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "ImpWorker", colorTable[CT_RED]);         break;
+			case CLASS_IMPERIAL:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Imperial", colorTable[CT_RED]);         break;
+			case CLASS_GALAKMECH:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "GalakMech", colorTable[CT_RED]);         break;
+			case CLASS_SHADOWTROOPER:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Shadowtrooper", colorTable[CT_DKRED1]);      break;
+			case CLASS_COMMANDO:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Commando", colorTable[CT_RED]);         break;
+			case CLASS_TAVION:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Tavion", colorTable[CT_VLTPURPLE1]);  break;
+			case CLASS_ALORA:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Alora", colorTable[CT_VLTPURPLE1]);  break;
+			case CLASS_DESANN:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Desann", colorTable[CT_VLTPURPLE1]);  break;
+			case CLASS_REBORN:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Reborn", colorTable[CT_VLTPURPLE1]);  break;
+			case CLASS_BOBAFETT:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Bobafett", colorTable[CT_LTORANGE]);    break;
+			case CLASS_MANDO:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Mandolorian", colorTable[CT_VLTPURPLE1]);  break;
+			case CLASS_ATST:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "ATST", colorTable[CT_BLUE]);        break;
+			case CLASS_HOWLER:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Howler", colorTable[CT_MDGREY]);      break;
+			case CLASS_MINEMONSTER:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "MineMonster", colorTable[CT_MDGREY]);      break;
+			case CLASS_RANCOR:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Rancor", colorTable[CT_MDGREY]);      break;
+			case CLASS_WAMPA:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Wampa", colorTable[CT_MDGREY]);      break;
+			case CLASS_VEHICLE:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Vehicle", colorTable[CT_BLUE]);        break;
+			case CLASS_BESPIN_COP:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Bespin Cop", colorTable[CT_GREEN]);       break;
+			case CLASS_LANDO:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Lando", colorTable[CT_GREEN]);       break;
+			case CLASS_PRISONER:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Prisoner", colorTable[CT_GREEN]);       break;
+			case CLASS_GALAK:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Galak", colorTable[CT_RED]);         break;
+			case CLASS_GRAN:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Gran", colorTable[CT_RED]);         break;
+			case CLASS_REELO:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Reelo", colorTable[CT_RED]);         break;
+			case CLASS_MURJJ:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Murjj", colorTable[CT_RED]);         break;
+			case CLASS_RODIAN:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Rodian", colorTable[CT_RED]);         break;
+			case CLASS_TRANDOSHAN:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Trandoshan", colorTable[CT_RED]);         break;
+			case CLASS_UGNAUGHT:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Ugnaught", colorTable[CT_GREEN]);       break;
+			case CLASS_WEEQUAY:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Weequay", colorTable[CT_RED]);         break;
+			case CLASS_BARTENDER:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Bartender", colorTable[CT_BLUE]);        break;
+			case CLASS_JAWA:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Jawa", colorTable[CT_MAGENTA]);     break;
+			case CLASS_REMOTE:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Remote Droid", colorTable[CT_YELLOW]);      break;
+			case CLASS_SEEKER:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Seeker Droid", colorTable[CT_YELLOW]);      break;
+			case CLASS_PROTOCOL:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Protocol Droid", colorTable[CT_YELLOW]);      break;
+			case CLASS_R2D2:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "R2 Astromech Droid", colorTable[CT_YELLOW]);      break;
+			case CLASS_PROBE:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Probe Droid", colorTable[CT_YELLOW]);      break;
+			case CLASS_R5D2:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "R5 Astromech Droid", colorTable[CT_YELLOW]);      break;
+			case CLASS_DROIDEKA:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Droideka", colorTable[CT_MAGENTA]);     break;
+			case CLASS_BATTLEDROID:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Battle Droid", colorTable[CT_MAGENTA]);     break;
+			case CLASS_SBD:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Super Battle Droid", colorTable[CT_MAGENTA]);     break;
+			case CLASS_ASSASSIN_DROID:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Assassin droid", colorTable[CT_YELLOW]);      break;
+			case CLASS_SABER_DROID:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Saber Droid", colorTable[CT_MAGENTA]);     break;
+			case CLASS_TUSKEN:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Tusken", colorTable[CT_VLTORANGE]);   break;
+			case CLASS_MARK1:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Droid", colorTable[CT_VLTORANGE]);   break;
+			case CLASS_MARK2:
+				CG_DrawSmallStringColor(320 - w / 2, 170, "Droid", colorTable[CT_VLTORANGE]);   break;
+			default:
+				// Intentionally no default label to preserve original behaviour
+				break;
+			}
+		}
+	}
+	// Non‑NPC targets (players, items, etc.)
+	else
+	{
+		// Only show if within 256 units
+		if (distSq < (256.0f * 256.0f))
+		{
+			// Items: show useable hint icon
+			if (isEntity == qtrue && cg_entities[idx].currentState.eType == ET_ITEM)
+			{
+				CG_DrawPic(50, 285, 32, 32, cgs.media.useableHint);
 			}
 			else
 			{
-				if (cgs.clientinfo[cg.crosshairclientNum].team == TEAM_RED)
+				// Team‑coloured player names (behaviour preserved)
+				if (isClient == qtrue)
 				{
-					CG_DrawSmallStringColor(320 - w / 2, 170, name, colorTable[CT_RED]);
-				}
-				else if (cgs.clientinfo[cg.crosshairclientNum].team == TEAM_BLUE)
-				{
-					CG_DrawSmallStringColor(320 - w / 2, 170, name, colorTable[CT_GREEN]);
-				}
-				else if (cgs.clientinfo[cg.crosshairclientNum].team == TEAM_SPECTATOR)
-				{
-					CG_DrawSmallStringColor(320 - w / 2, 170, name, colorTable[CT_CYAN]);
-				}
-				else if (cgs.clientinfo[cg.crosshairclientNum].npcteam == NPCTEAM_PLAYER)
-				{
-					CG_DrawSmallStringColor(320 - w / 2, 170, name, colorTable[CT_GREEN]);
-				}
-				else if (cgs.clientinfo[cg.crosshairclientNum].npcteam == NPCTEAM_ENEMY)
-				{
-					CG_DrawSmallStringColor(320 - w / 2, 170, name, colorTable[CT_RED]);
+					if (cgs.gametype == GT_FFA)
+					{
+						CG_DrawSmallStringColor(320 - w / 2, 170, sanitized, colorTable[CT_WHITE]);
+					}
+					else
+					{
+						if (cgs.clientinfo[idx].team == TEAM_RED)
+						{
+							CG_DrawSmallStringColor(320 - w / 2, 170, sanitized, colorTable[CT_RED]);
+						}
+						else if (cgs.clientinfo[idx].team == TEAM_BLUE)
+						{
+							CG_DrawSmallStringColor(320 - w / 2, 170, sanitized, colorTable[CT_GREEN]);
+						}
+						else if (cgs.clientinfo[idx].team == TEAM_SPECTATOR)
+						{
+							CG_DrawSmallStringColor(320 - w / 2, 170, sanitized, colorTable[CT_CYAN]);
+						}
+						else if (cgs.clientinfo[idx].npcteam == NPCTEAM_PLAYER)
+						{
+							CG_DrawSmallStringColor(320 - w / 2, 170, sanitized, colorTable[CT_GREEN]);
+						}
+						else if (cgs.clientinfo[idx].npcteam == NPCTEAM_ENEMY)
+						{
+							CG_DrawSmallStringColor(320 - w / 2, 170, sanitized, colorTable[CT_RED]);
+						}
+						else
+						{
+							CG_DrawSmallStringColor(320 - w / 2, 170, sanitized, colorTable[CT_RED]);
+						}
+					}
 				}
 				else
 				{
-					CG_DrawSmallStringColor(320 - w / 2, 170, name, colorTable[CT_RED]);
+					// Not a client and not an NPC with a label — nothing to draw here
 				}
 			}
 		}
