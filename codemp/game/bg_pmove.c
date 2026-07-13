@@ -12052,8 +12052,10 @@ void PM_FinishWeaponChange(void)
 			else
 #endif
 			{
-				if (!g_noIgniteTwirl.integer)
-				{
+				if (!g_noIgniteTwirl.integer && !is_holding_block_button &&
+					!PM_InLedgeMove(pm->ps->legsAnim) &&
+					!PM_InLedgeMove(pm->ps->torsoAnim))
+				{// twirl if we aren't already doing a ledge move
 					switch (pm->ps->fd.saberAnimLevel)
 					{
 					case SS_DUAL:
