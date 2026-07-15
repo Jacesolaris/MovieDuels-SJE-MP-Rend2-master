@@ -2579,13 +2579,6 @@ static qboolean wp_saber_apply_damage(gentity_t* ent, const float base_damage, c
 					}
 				}
 
-				// Single-hit enforcement: skip if already damaged this swing
-				if (victim->s.number < MAX_CLIENTS &&
-					(ent->client->saberHitEntityBitMask & (1 << victim->s.number)))
-				{
-					continue;
-				}
-
 				if (totalDmg[i] > 0)
 				{
 					if (victim->health >= 1)
@@ -3158,10 +3151,6 @@ static qboolean wp_saber_apply_damage(gentity_t* ent, const float base_damage, c
 						else
 						{
 							damage = ceil(totalDmg[i]);
-						}
-						if (victim->s.number < MAX_CLIENTS)
-						{
-							ent->client->saberHitEntityBitMask |= (1 << victim->s.number);
 						}
 						G_Damage(victim, inflictor, ent, dmgDir[i], dmgSpot[i], damage, d_flags, MOD_SABER,
 							hitDismemberLoc[i]);
@@ -8073,13 +8062,6 @@ void WP_SabersDamageTrace(gentity_t* ent, const qboolean no_effects)
 	{
 		return;
 	}
-	// Reset hit tracking when a new swing begins
-	if (ent->client->ps.saberAttackSequence != ent->client->saberLastAttackSequence)
-	{
-		ent->client->saberHitEntityBitMask = 0;
-		ent->client->saberLastAttackSequence = ent->client->ps.saberAttackSequence;
-	}
-
 	// Saber 1.
 	g_saberNoEffects = no_effects;
 	for (int i = 0; i < ent->client->ps.saber[0].numBlades; i++)

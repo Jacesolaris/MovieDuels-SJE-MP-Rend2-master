@@ -1322,7 +1322,7 @@ static void ClientTimerActions(gentity_t* ent, const int msec)
 		// -----------------------------------------------------
 		if (!isBot &&
 			!PM_SaberInAttack(ps->saberMove) &&
-			!(ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)) &&
+			!((ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) &&
 			!client->poisonTime &&
 			!client->stunTime &&
 			!client->AmputateTime &&
@@ -1387,7 +1387,7 @@ static void ClientTimerActions(gentity_t* ent, const int msec)
 		{
 			if (isPlayer)
 			{
-				if (!(ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)))
+				if (!((ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0))
 					if (ps->saberFatigueChainCount > MISHAPLEVEL_HUDFLASH)
 						WP_SaberFatigueRegenerate(2);
 					else
@@ -2841,7 +2841,7 @@ static void BotDelayedTauntReply(gentity_t* bot)
 void G_SetTauntAnim(gentity_t* ent, int taunt)
 {
 	const saberInfo_t* saber1 = BG_MySaber(ent->clientNum, 0);
-	const qboolean is_holding_block_button = ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;//Normal Blocking
+	const qboolean is_holding_block_button = ((ent->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;//Normal Blocking
 
 	// dead clients dont get to spam taunt
 	if (ent->client->ps.stats[STAT_HEALTH] <= 0)
@@ -5469,7 +5469,7 @@ static void ClientThink_real(gentity_t* ent)
 	{
 		if (manual_running_and_saberblocking(ent))
 		{
-			if (!(client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK))
+			if (!((client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0))
 			{
 				client->ps.ManualBlockingFlags |= 1 << HOLDINGBLOCK;
 				client->ps.userInt3 |= 1 << FLAG_BLOCKING;
@@ -5478,7 +5478,7 @@ static void ClientThink_real(gentity_t* ent)
 		}
 		else if (manual_saberblocking(ent))
 		{
-			if (!(client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK))
+			if (!((client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0))
 			{
 				client->ps.ManualBlockingFlags |= 1 << HOLDINGBLOCK;
 				client->ps.userInt3 |= 1 << FLAG_BLOCKING;

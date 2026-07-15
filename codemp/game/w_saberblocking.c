@@ -152,8 +152,8 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 			blocker->client->ps.viewangles,
 			0.3f);
 
-	const qboolean blocking = blocker->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK ? qtrue : qfalse;	//Normal Blocking
-	const qboolean active_blocking = blocker->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK ? qtrue : qfalse;	//Active Blocking
+	const qboolean blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;	//Normal Blocking
+	const qboolean active_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;	//Active Blocking
 
 	// Player must be holding block (NPCs exempt)
 	if (!(blocker->r.svFlags & SVF_BOT))
@@ -874,20 +874,15 @@ qboolean sab_beh_attack_vs_block(
 	const qboolean accurate_parry =
 		g_accurate_blocking(blocker, attacker, hit_loc); // Perfect normal blocking
 
-	const qboolean blocking =
-		(blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse; // Normal blocking
+	const qboolean blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse; // Normal blocking
 
-	const qboolean m_blocking =
-		(blocker->client->ps.ManualBlockingFlags & (1 << PERFECTBLOCKING)) ? qtrue : qfalse; // Perfect blocking
+	const qboolean m_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << PERFECTBLOCKING)) != 0) ? qtrue : qfalse; // Perfect blocking
 
-	const qboolean is_holding_block_button_and_attack =
-		(blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse; // Active blocking
+	const qboolean is_holding_block_button_and_attack = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse; // Active blocking
 
-	const qboolean npc_blocking =
-		(blocker->client->ps.ManualBlockingFlags & (1 << MBF_NPCBLOCKING)) ? qtrue : qfalse; // NPC blocking
+	const qboolean npc_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_NPCBLOCKING)) != 0) ? qtrue : qfalse; // NPC blocking
 
-	const qboolean atkfake =
-		(attacker->client->ps.userInt3 & (1 << FLAG_ATTACKFAKE)) ? qtrue : qfalse;
+	const qboolean atkfake = ((attacker->client->ps.userInt3 & (1 << FLAG_ATTACKFAKE)) != 0) ? qtrue : qfalse;
 
 	// ------------------------------------------------------------
 	// UNBLOCKABLE ATTACKS
@@ -1109,17 +1104,13 @@ qboolean sab_beh_block_vs_attack(
 	const qboolean accurate_parry =
 		g_accurate_blocking(blocker, attacker, hit_loc);
 
-	const qboolean blocking =
-		(blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse;
+	const qboolean blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
 
-	const qboolean m_blocking =
-		(blocker->client->ps.ManualBlockingFlags & (1 << PERFECTBLOCKING)) ? qtrue : qfalse;
+	const qboolean m_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << PERFECTBLOCKING)) != 0) ? qtrue : qfalse;
 
-	const qboolean is_holding_block_button_and_attack =
-		(blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
+	const qboolean is_holding_block_button_and_attack = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
 
-	const qboolean npc_blocking =
-		(blocker->client->ps.ManualBlockingFlags & (1 << MBF_NPCBLOCKING)) ? qtrue : qfalse;
+	const qboolean npc_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_NPCBLOCKING)) != 0) ? qtrue : qfalse;
 
 	// ------------------------------------------------------------
 	// NON‑UNBLOCKABLE ATTACKS

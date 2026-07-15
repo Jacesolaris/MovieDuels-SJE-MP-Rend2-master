@@ -2274,8 +2274,7 @@ static int ReflectionLevel(const gentity_t* player)
 	// Determine reflection level.
 
 	// Manual blocking flag (safe bit test)
-	const qboolean manual_blocking =
-		(player->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse;
+	const qboolean manual_blocking = ((player->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
 
 	// NPCs may block manually depending on AI logic
 	const int npc_is_blocking = manual_npc_saberblocking(player);
@@ -2310,10 +2309,10 @@ void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec
 	gentity_t* prev_owner = G_GetEntitySafe(bolt->r.ownerNum);
 	const float distance = prev_owner ? vector_bolt_distance(blocker->r.currentOrigin, prev_owner->r.currentOrigin) : 99999.0f;
 
-	const qboolean manual_blocking = (blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse;
+	const qboolean manual_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
 
-	const qboolean manual_proj_blocking = (blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
-	const qboolean accurate_missile_block = (blocker->client->ps.ManualBlockingFlags & (1 << MBF_ACCURATEMISSILEBLOCKING)) ? qtrue : qfalse;
+	const qboolean manual_proj_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
+	const qboolean accurate_missile_block = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_ACCURATEMISSILEBLOCKING)) != 0) ? qtrue : qfalse;
 
 	const int manual_run_blocking = manual_running_and_saberblocking(blocker);
 	const int npc_is_blocking = manual_npc_saberblocking(blocker);

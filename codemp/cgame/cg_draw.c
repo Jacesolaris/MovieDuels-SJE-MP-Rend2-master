@@ -1970,7 +1970,7 @@ static void CG_DrawMDHiltVert(const centity_t* cent, const menuDef_t* menu_hud)
 	const itemDef_t* focus_block_icon = Menu_FindItemByName(menu_hud, "md_block_vert");
 	const itemDef_t* focus_mblock_icon = Menu_FindItemByName(menu_hud, "md_mblock_vert");
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << HOLDINGBLOCK)
+	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
 	{
 		CG_DrawPic(
 			focus_block_icon->window.rect.x,
@@ -3819,7 +3819,7 @@ static void CG_DrawMDHiltHoz(const centity_t* cent, const menuDef_t* menu_hud)
 	const itemDef_t* focus_block_icon = Menu_FindItemByName(menu_hud, "md_block_hoz");
 	const itemDef_t* focus_mblock_icon = Menu_FindItemByName(menu_hud, "md_mblock_hoz");
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << HOLDINGBLOCK)
+	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
 	{
 		CG_DrawRotatePic2(
 			focus_block_icon->window.rect.x,
@@ -6462,7 +6462,7 @@ static void CG_DrawJK2blockingMode(const centity_t* cent, const menuDef_t* menu_
 				);
 			}
 		}
-		else if (cg.predictedPlayerState.ManualBlockingFlags & 1 << HOLDINGBLOCK)
+		else if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
 		{
 			blockindex = Menu_FindItemByName(menu_hud, "jk2BlockingMode");
 
@@ -6516,7 +6516,7 @@ static void CG_DrawJK2blockingMode(const centity_t* cent, const menuDef_t* menu_
 				);
 			}
 		}
-		else if (cg.predictedPlayerState.ManualBlockingFlags & 1 << HOLDINGBLOCK)
+		else if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
 		{
 			blockindex = Menu_FindItemByName(menu_hud, "jk2BlockingMode");
 
@@ -11324,13 +11324,13 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 	float x, y;
 	qboolean corona = qfalse;
 	vec4_t ecolor = { 0, 0, 0, 0 };
-	const centity_t* crossEnt = NULL;;
+	const centity_t* crossEnt = NULL;
 
-	const qboolean holding_block = (cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) ? qtrue : qfalse;
-	const qboolean holding_block_and_attack = (cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) ? qtrue : qfalse;
-	const qboolean holding_sprint = (cg.predictedPlayerState.PlayerEffectFlags & (1 << PEF_SPRINTING)) ? qtrue : qfalse;
-	const qboolean holding_block_button = (cg.predictedPlayerState.pm_flags & PMF_BLOCK_HELD) ? qtrue : qfalse;
-	const qboolean holding_walking_button = (cg.predictedPlayerState.pm_flags & PMF_WALKING_HELD) ? qtrue : qfalse;
+	const qboolean holding_block = ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
+	const qboolean holding_block_and_attack = ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
+	const qboolean holding_sprint = ((cg.predictedPlayerState.PlayerEffectFlags & (1 << PEF_SPRINTING)) != 0) ? qtrue : qfalse;
+	const qboolean holding_block_button = ((cg.predictedPlayerState.pm_flags & PMF_BLOCK_HELD) != 0) ? qtrue : qfalse;
+	const qboolean holding_walking_button = ((cg.predictedPlayerState.pm_flags & PMF_WALKING_HELD) != 0) ? qtrue : qfalse;
 
 	if (!cg_drawCrosshair.integer)
 	{

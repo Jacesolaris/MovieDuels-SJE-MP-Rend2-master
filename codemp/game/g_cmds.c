@@ -4138,7 +4138,7 @@ void Cmd_SaberAttackCycle_f(gentity_t* ent)
 
 		if (!ent->client->ps.saberInFlight)
 		{
-			if (!(ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK) && !PM_SaberInAttack(ent->client->ps.saberMove) && ent->client->ps.saberLockTime < level.time) // lets do a movement when changing styles // need better anims for this
+			if (!((ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK) != 0) && !PM_SaberInAttack(ent->client->ps.saberMove) && ent->client->ps.saberLockTime < level.time) // lets do a movement when changing styles // need better anims for this
 			{
 				if (select_level == SS_DUAL)
 				{

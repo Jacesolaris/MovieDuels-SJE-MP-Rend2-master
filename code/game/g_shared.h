@@ -819,10 +819,6 @@ public:
 	vec3_t pushVec;
 	int pushVecTime;
 
-	// Tracks which entities have been hit in the current saber swing
-	int			saberHitEntityBitMask;
-	int			saberLastAttackSequence;
-
 	int noRagTime; //don't do ragdoll stuff if > level.time
 	qboolean isRagging;
 	int overridingBones; //dragging body or doing something else to override one or more ragdoll effector's/pcj's
@@ -972,8 +968,6 @@ public:
 		saved_game.write<int32_t>(slopeRecalcTime);
 		saved_game.write<float>(pushVec);
 		saved_game.write<int32_t>(pushVecTime);
-		saved_game.write<int32_t>(saberHitEntityBitMask);
-		saved_game.write<int32_t>(saberLastAttackSequence);
 		saved_game.write<int32_t>(noRagTime);
 		saved_game.write<int32_t>(isRagging);
 		saved_game.write<int32_t>(overridingBones);
@@ -1078,8 +1072,6 @@ public:
 		saved_game.read<int32_t>(slopeRecalcTime);
 		saved_game.read<float>(pushVec);
 		saved_game.read<int32_t>(pushVecTime);
-		saved_game.read<int32_t>(saberHitEntityBitMask);
-		saved_game.read<int32_t>(saberLastAttackSequence);
 		saved_game.read<int32_t>(noRagTime);
 		saved_game.read<int32_t>(isRagging);
 		saved_game.read<int32_t>(overridingBones);
