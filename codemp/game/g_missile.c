@@ -938,7 +938,7 @@ gentity_t* CreateMissile(vec3_t org, vec3_t dir, const float vel, const int life
 	return missile;
 }
 
-static void g_missile_bounce_effect(gentity_t* ent, vec3_t org, vec3_t dir, const qboolean hit_world)
+static void G_Missile_Bounce_Effect(gentity_t* ent, vec3_t org, vec3_t dir, const qboolean hit_world)
 {
 	switch (ent->s.weapon)
 	{
@@ -985,7 +985,7 @@ static void g_missile_bounce_effect(gentity_t* ent, vec3_t org, vec3_t dir, cons
 	}
 }
 
-void g_missile_reflect_effect(gentity_t* ent, vec3_t dir)
+void G_MissileReflectEffect(gentity_t* ent, vec3_t dir)
 {
 	switch (ent->s.weapon)
 	{
@@ -1314,7 +1314,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 			}
 
 			g_manual_block_missile(other, ent, fwd);
-			g_missile_bounce_effect(ent, ent->r.currentOrigin, fwd, (trace->entityNum == ENTITYNUM_WORLD));
+			G_Missile_Bounce_Effect(ent, ent->r.currentOrigin, fwd, (trace->entityNum == ENTITYNUM_WORLD));
 			return qtrue;
 		}
 	}
@@ -1346,7 +1346,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 		}
 
 		g_manual_block_missile(other, ent, fwd);
-		g_missile_bounce_effect(ent, ent->r.currentOrigin, fwd, (trace->entityNum == ENTITYNUM_WORLD));
+		G_Missile_Bounce_Effect(ent, ent->r.currentOrigin, fwd, (trace->entityNum == ENTITYNUM_WORLD));
 		return qtrue;
 	}
 
@@ -2319,7 +2319,7 @@ void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec
 	const int npc_is_blocking = manual_npc_saberblocking(blocker);
 
 	// Visual effect for the bolt being blocked
-	g_missile_reflect_effect(blocker, trace->plane.normal);
+	G_MissileReflectEffect(blocker, trace->plane.normal);
 
 	// Base forward direction from blocker view
 	AngleVectors(blocker->client->ps.viewangles, fwd, NULL, NULL);

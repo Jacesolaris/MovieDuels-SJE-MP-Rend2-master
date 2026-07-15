@@ -161,32 +161,50 @@ G_FilterPacket
 */
 qboolean G_FilterPacket(char* from)
 {
-	byteAlias_t m;
+	// FIX: ensure union is fully initialized
+	byteAlias_t m = { 0 };
 
 	int i = 0;
 	char* p = from;
+
+	// Parse up to 4 octets of an IPv4 address
 	while (*p && i < 4)
 	{
 		m.b[i] = 0;
+
+		// Accumulate numeric digits
 		while (*p >= '0' && *p <= '9')
 		{
-			m.b[i] = m.b[i] * 10 + (*p - '0');
+			m.b[i] = (byte)(m.b[i] * 10 + (*p - '0'));
 			p++;
 		}
-		if (!*p || *p == ':')
+
+		// End of string or port separator
+		if (*p == '\0' || *p == ':')
+		{
 			break;
-		i++, p++;
+		}
+
+		i++;
+		p++;
 	}
 
 	const uint32_t in = m.ui;
 
+	// Compare against all IP filters
 	for (i = 0; i < numIPFilters; i++)
 	{
-		if ((in & ipFilters[i].mask) == ipFilters[i].compare)
-			return g_filterBan.integer != 0;
+		const qboolean match = ((in & ipFilters[i].mask) == ipFilters[i].compare) ? qtrue : qfalse;
+
+		if (match == qtrue)
+		{
+			// If filterBan is nonzero, ban; otherwise allow
+			return (g_filterBan.integer != 0) ? qtrue : qfalse;
+		}
 	}
 
-	return g_filterBan.integer == 0;
+	// No match: invert logic
+	return (g_filterBan.integer == 0) ? qtrue : qfalse;
 }
 
 /*

@@ -3989,7 +3989,7 @@ static int PainTime(const gentity_t* ent)
 	return 150;
 }
 
-static int fire_deley_time()
+int fire_deley_time()
 {
 	return 500;
 }
@@ -4837,23 +4837,13 @@ static void ClientThink_real(gentity_t* ent)
 		}
 	}
 
-	if (ent && ent->client && (ent->client->ps.eFlags & EF_TALK))
+	if (client->ps.eFlags & EF_TALK)
 	{
-		//#ifdef _GAME
-				//if (g_chat_protection.integer == 1 && !ent->client->ps.duelInProgress && !ent->client->pers.isbeingpunished)
-				//{
 		ent->flags |= FL_GODMODE;
-		//}
-//#endif
 	}
 	else
 	{
-		//#ifdef _GAME
-				//if (g_chat_protection.integer == 1 && !ent->client->ps.duelInProgress && !ent->client->pers.isbeingpunished)
-				//{
 		ent->flags &= ~FL_GODMODE;
-		//}
-//#endif
 	}
 
 	if (ent && ent->s.eType != ET_NPC)
@@ -4864,12 +4854,6 @@ static void ClientThink_real(gentity_t* ent)
 			return;
 		}
 	}
-
-	// clear the rewards if time
-	/*if (level.time > client->rewardTime)
-	{
-		client->ps.eFlags &= ~(EF_AWARD_IMPRESSIVE | EF_AWARD_EXCELLENT | EF_AWARD_GAUNTLET | EF_AWARD_ASSIST | EF_AWARD_DEFEND | EF_AWARD_CAP);
-	}*/
 
 	//Check if we should have a fullbody push effect around the player
 	if (client->pushEffectTime > level.time)
@@ -6298,7 +6282,7 @@ static void ClientThink_real(gentity_t* ent)
 
 	memset(&pmove, 0, sizeof pmove);
 
-	if (client && ent->flags & FL_FORCE_GESTURE)
+	if (ent->flags & FL_FORCE_GESTURE)
 	{
 		ent->flags &= ~FL_FORCE_GESTURE;
 		ent->client->pers.cmd.buttons |= BUTTON_GESTURE;

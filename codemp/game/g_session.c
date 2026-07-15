@@ -101,19 +101,34 @@ Called on a reconnect
 void G_ReadSessionData(gclient_t* client)
 {
 	char s[MAX_CVAR_VALUE_STRING] = { 0 };
-	int i, tempSessionTeam = 0, tempSpectatorState, tempTeamLeader;
+	int i;
+	int tempSessionTeam = 0;
+	int tempSpectatorState = 0;
+	int tempTeamLeader = 0;
 
-	const char* var = va("session%i", client - level.clients);
-	trap->Cvar_VariableStringBuffer(var, s, sizeof s);
+	if (client == NULL)
+	{
+		Com_Printf(S_COLOR_RED "G_ReadSessionData: NULL client passed in\n");
+		return;
+	}
 
-	sscanf(s, "%i %i %i %i %i %i %i %i %i %i %i %i %s %s",
-		&tempSessionTeam, //&client->sess.sessionTeam,
+	// Build session variable name
+	const char* var = va("session%i", (int)(client - level.clients));
+
+	// Read session string
+	trap->Cvar_VariableStringBuffer(var, s, sizeof(s));
+
+	// Parse session data
+	// FIX: check sscanf return value to avoid MSVC warning C6031
+	const int fields = sscanf(
+		s, "%i %i %i %i %i %i %i %i %i %i %i %i %s %s",
+		&tempSessionTeam,
 		&client->sess.spectatorNum,
-		&tempSpectatorState, //&client->sess.spectatorState,
+		&tempSpectatorState,
 		&client->sess.spectatorClient,
 		&client->sess.wins,
 		&client->sess.losses,
-		&tempTeamLeader, //&client->sess.teamLeader,
+		&tempTeamLeader,
 		&client->sess.setForce,
 		&client->sess.saberLevel,
 		&client->sess.selectedFP,
@@ -123,23 +138,37 @@ void G_ReadSessionData(gclient_t* client)
 		client->sess.IP
 	);
 
+	if (fields < 14)
+	{
+		// Not fatal — just warn and continue with whatever was parsed.
+		//Com_Printf(S_COLOR_YELLOW"G_ReadSessionData: sscanf parsed only %i fields for client %i\n",	fields, (int)(client - level.clients));
+	}
+
+	// Restore enumerated types
 	client->sess.sessionTeam = (team_t)tempSessionTeam;
 	client->sess.spectatorState = (spectatorState_t)tempSpectatorState;
-	client->sess.teamLeader = (qboolean)tempTeamLeader;
 
-	// convert back to spaces from unused chars, as session data is written that way.
-	for (i = 0; client->sess.siegeClass[i]; i++)
+	// Explicit qboolean conversion
+	client->sess.teamLeader = (tempTeamLeader != 0) ? qtrue : qfalse;
+
+	// Convert placeholder 1 → space (session data uses 1 as encoded space)
+	for (i = 0; client->sess.siegeClass[i] != '\0'; i++)
 	{
 		if (client->sess.siegeClass[i] == 1)
+		{
 			client->sess.siegeClass[i] = ' ';
+		}
 	}
 
-	for (i = 0; client->sess.IP[i]; i++)
+	for (i = 0; client->sess.IP[i] != '\0'; i++)
 	{
 		if (client->sess.IP[i] == 1)
+		{
 			client->sess.IP[i] = ' ';
+		}
 	}
 
+	// Restore gameplay‑relevant fields
 	client->ps.fd.saberAnimLevel = client->sess.saberLevel;
 	client->ps.fd.saberDrawAnimLevel = client->sess.saberLevel;
 	client->ps.fd.forcePowerSelected = client->sess.selectedFP;

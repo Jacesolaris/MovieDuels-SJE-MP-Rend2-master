@@ -78,5 +78,6 @@ void TeamplayInfoMessage(const gentity_t* ent);
 void CheckTeamStatus(void);
 
 int Pickup_Team(gentity_t* ent, const gentity_t* other);
-qboolean BOT_FindCTFWaypointSpawnPoint(gentity_t* bot, vec3_t outOrigin);
+qboolean BOT_FindCTFWaypointSpawnPoint_red(gentity_t* bot, vec3_t outOrigin);
+qboolean BOT_FindCTFWaypointSpawnPoint_blue(gentity_t* bot, vec3_t outOrigin);
 qboolean BOT_FindFFAWaypointSpawnPoint(gentity_t* bot, vec3_t outOrigin);

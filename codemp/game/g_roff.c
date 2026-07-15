@@ -397,7 +397,10 @@ static qboolean G_InitRoff(char* file, unsigned char* data)
 int G_LoadRoffs(const char* fileName)
 {
 	char file[MAX_QPATH];
-	char data[ROFF_INFO_SIZENEW];
+
+	// FIX: move huge buffer off the stack
+	static char data[ROFF_INFO_SIZENEW];
+
 	fileHandle_t f;
 	roff_hdr2_t* header;
 	int len, roff_id = 0;
@@ -405,7 +408,7 @@ int G_LoadRoffs(const char* fileName)
 	// Before even bothering with all of this, make sure we have a place to store it.
 	if (num_roffs >= MAX_ROFFSNEW)
 	{
-		Com_Printf(S_COLOR_RED"MAX_ROFFS count exceeded.  Skipping load of .ROF '%s'\n", fileName);
+		Com_Printf(S_COLOR_RED "MAX_ROFFS count exceeded.  Skipping load of .ROF '%s'\n", fileName);
 		return roff_id;
 	}
 
@@ -422,28 +425,26 @@ int G_LoadRoffs(const char* fileName)
 		}
 	}
 
-#ifdef _DEBUG
-	//	Com_Printf( S_COLOR_GREEN"Caching ROF: '%s'\n", file );
-#endif
-
 	// Read the file in one fell swoop
 	len = trap->FS_Open(file, &f, FS_READ);
 
 	if (len <= 0)
 	{
-		Com_Printf(S_COLOR_RED"Could not open .ROF file '%s'\n", fileName);
+		Com_Printf(S_COLOR_RED "Could not open .ROF file '%s'\n", fileName);
 		return roff_id;
 	}
 
 	if (len >= ROFF_INFO_SIZENEW)
 	{
-		Com_Printf(S_COLOR_RED".ROF file '%s': Too large for file buffer.\n", fileName);
+		Com_Printf(S_COLOR_RED ".ROF file '%s': Too large for file buffer.\n", fileName);
+		trap->FS_Close(f);
 		return roff_id;
 	}
 
-	trap->FS_Read(data, len, f); //read data in buffer
+	// read data into static buffer
+	trap->FS_Read(data, len, f);
 
-	trap->FS_Close(f); //close file
+	trap->FS_Close(f);
 
 	// Now let's check the header info...
 	header = (roff_hdr2_t*)data;
@@ -451,7 +452,7 @@ int G_LoadRoffs(const char* fileName)
 	// ..and make sure it's reasonably valid
 	if (!G_ValidRoff(header))
 	{
-		Com_Printf(S_COLOR_RED"Invalid roff format '%s'\n", fileName);
+		Com_Printf(S_COLOR_RED "Invalid roff format '%s'\n", fileName);
 	}
 	else
 	{
@@ -472,7 +473,7 @@ int G_LoadRoffs(const char* fileName)
 
 void G_Roffs(gentity_t* ent)
 {
-	//updates roff scripting for this entity.
+	// updates roff scripting for this entity.
 	vec3_t org, ang;
 
 	if (!ent->next_roff_time)
@@ -499,17 +500,22 @@ void G_Roffs(gentity_t* ent)
 
 	if (roff->type == 2)
 	{
-		const move_rotate2_t* data = &roffs[roff_id - 1].data[ent->roff_ctr];
+		const move_rotate2_t* data = &roff->data[ent->roff_ctr];
 		VectorCopy(data->origin_delta, org);
 		VectorCopy(data->rotate_delta, ang);
-		if (data->mStartNote != -1 || data->mNumNotes)
+
+		// Safely access note track index: valid start note, within bounds, and table exists
+		if (data->mStartNote >= 0 &&
+			data->mNumNotes > 0 &&
+			roff->mNoteTrackIndexes &&
+			data->mStartNote < data->mNumNotes)
 		{
-			G_RoffNotetrackCallback(ent, roffs[roff_id - 1].mNoteTrackIndexes[data->mStartNote]);
+			G_RoffNotetrackCallback(ent, roff->mNoteTrackIndexes[data->mStartNote]);
 		}
 	}
 	else
 	{
-		const move_rotate2_t* data = &roffs[roff_id - 1].data[ent->roff_ctr];
+		const move_rotate2_t* data = &roff->data[ent->roff_ctr];
 		VectorCopy(data->origin_delta, org);
 		VectorCopy(data->rotate_delta, ang);
 	}
@@ -527,7 +533,6 @@ void G_Roffs(gentity_t* ent)
 	if (ent->client)
 	{
 		// Set up the angle interpolation
-		//-------------------------------------
 		VectorAdd(ent->s.apos.trBase, ang, ent->s.apos.trBase);
 		ent->s.apos.trTime = level.time;
 		ent->s.apos.trType = TR_INTERPOLATE;
@@ -542,7 +547,6 @@ void G_Roffs(gentity_t* ent)
 		}
 
 		// Set up the origin interpolation
-		//-------------------------------------
 		VectorAdd(ent->s.pos.trBase, org, ent->s.pos.trBase);
 		ent->s.pos.trTime = level.time;
 		ent->s.pos.trType = TR_INTERPOLATE;
@@ -554,7 +558,6 @@ void G_Roffs(gentity_t* ent)
 	else
 	{
 		// Set up the angle interpolation
-		//-------------------------------------
 		VectorScale(ang, roff->mLerp, ent->s.apos.trDelta);
 		VectorCopy(ent->pos2, ent->s.apos.trBase);
 		ent->s.apos.trTime = level.time;
@@ -564,16 +567,15 @@ void G_Roffs(gentity_t* ent)
 		VectorAdd(ent->pos2, ang, ent->pos2);
 
 		// Set up the origin interpolation
-		//-------------------------------------
 		VectorScale(org, roff->mLerp, ent->s.pos.trDelta);
 		VectorCopy(ent->pos1, ent->s.pos.trBase);
 		ent->s.pos.trTime = level.time;
 		ent->s.pos.trType = TR_LINEAR;
 
-		// Store what the next apos->trBase should be
+		// Store what the next pos->trBase should be
 		VectorAdd(ent->pos1, org, ent->pos1);
 
-		//make it true linear... FIXME: sticks around after ROFF is done, but do we really care?
+		// make it true linear... FIXME: sticks around after ROFF is done, but do we really care?
 		ent->alt_fire = qtrue;
 
 		if (!ent->think
@@ -581,7 +583,7 @@ void G_Roffs(gentity_t* ent)
 			&& ent->s.eType != ET_ITEM
 			&& ent->s.eType != ET_MOVER)
 		{
-			//will never set currentAngles & currentOrigin itself ( why do we limit which one's get set?, just set all the time? )
+			// will never set currentAngles & currentOrigin itself
 			BG_EvaluateTrajectory(&ent->s.apos, level.time, ent->r.currentAngles);
 			BG_EvaluateTrajectory(&ent->s.pos, level.time, ent->r.currentOrigin);
 		}
@@ -591,7 +593,6 @@ void G_Roffs(gentity_t* ent)
 	trap->LinkEntity((sharedEntity_t*)ent);
 
 	// See if the ROFF playback is done
-	//-------------------------------------
 	if (++ent->roff_ctr >= roff->frames)
 	{
 		// We are done, so let me think no more, then tell the task that we're done.
