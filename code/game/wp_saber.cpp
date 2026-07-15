@@ -8074,10 +8074,10 @@ void WP_SabersDamageTrace(gentity_t* ent, const qboolean no_effects)
 		return;
 	}
 	// Reset hit tracking when a new swing begins
-	if (ent->client->ps.saber_move != ent->client->saberLastAttackSequence)
+	if (ent->client->ps.saberAttackSequence != ent->client->saberLastAttackSequence)
 	{
 		ent->client->saberHitEntityBitMask = 0;
-		ent->client->saberLastAttackSequence = ent->client->ps.saber_move;
+		ent->client->saberLastAttackSequence = ent->client->ps.saberAttackSequence;
 	}
 
 	// Saber 1.

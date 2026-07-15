@@ -11446,10 +11446,10 @@ void WP_SaberPositionUpdate(gentity_t* self, usercmd_t* ucmd)
 #endif
 
 	// Reset hit tracking when a new swing begins
-	if (self && self->client && self->client->ps.saber_move != self->client->saberLastAttackSequence)
+	if (self && self->client && self->client->ps.saberAttackSequence != self->client->saberLastAttackSequence)
 	{
 		self->client->saberHitEntityBitMask = 0;
-		self->client->saberLastAttackSequence = self->client->ps.saber_move;
+		self->client->saberLastAttackSequence = self->client->ps.saberAttackSequence;
 	}
 
 	if (self && self->inuse && self->client)

@@ -2110,6 +2110,7 @@ public:
 	int saberManualBlockingTime;
 	int saberAnimLevel;
 	int saberAttackChainCount;
+	int saberAttackSequence;
 	int saberFatigueChainCount;
 	int BlasterAttackChainCount;
 	int saberLockTime;
@@ -2377,6 +2378,7 @@ public:
 		saved_game.write<int32_t>(saberManualBlockingTime);
 		saved_game.write<int32_t>(saberAnimLevel);
 		saved_game.write<int32_t>(saberAttackChainCount);
+		saved_game.write<int32_t>(saberAttackSequence);
 		saved_game.write<int32_t>(saberFatigueChainCount);
 		saved_game.write<int32_t>(BlasterAttackChainCount);
 		saved_game.write<int32_t>(saberLockTime);
@@ -2636,6 +2638,7 @@ public:
 		saved_game.read<int32_t>(saberManualBlockingTime);
 		saved_game.read<int32_t>(saberAnimLevel);
 		saved_game.read<int32_t>(saberAttackChainCount);
+		saved_game.read<int32_t>(saberAttackSequence);
 		saved_game.read<int32_t>(saberFatigueChainCount);
 		saved_game.read<int32_t>(BlasterAttackChainCount);
 		saved_game.read<int32_t>(saberLockTime);
