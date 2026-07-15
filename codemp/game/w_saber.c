@@ -6744,6 +6744,13 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		int dflags = 0;
 		gentity_t* victim = hitEnt;
 
+		// Single-hit enforcement: skip if already damaged this swing
+		if (victim->s.number < MAX_CLIENTS &&
+			(self->client->saberHitEntityBitMask & (1 << victim->s.number)))
+		{
+			return qtrue;
+		}
+
 		// Random index for beskar impact sound
 		const int index = Q_irand(1, 3);
 
@@ -6825,6 +6832,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 				CGCam_BlockShakeMP(self->s.origin, self, 0.25f, 100);
 				G_SaberBounce(self, victim);
 			}
+		}
+
+		if (victim->s.number < MAX_CLIENTS)
+		{
+			self->client->saberHitEntityBitMask |= (1 << victim->s.number);
 		}
 
 		// --------------------------------------------------------
@@ -11432,6 +11444,13 @@ void WP_SaberPositionUpdate(gentity_t* self, usercmd_t* ucmd)
 		return;
 	}
 #endif
+
+	// Reset hit tracking when a new swing begins
+	if (self && self->client && self->client->ps.saber_move != self->client->saberLastAttackSequence)
+	{
+		self->client->saberHitEntityBitMask = 0;
+		self->client->saberLastAttackSequence = self->client->ps.saber_move;
+	}
 
 	if (self && self->inuse && self->client)
 	{
