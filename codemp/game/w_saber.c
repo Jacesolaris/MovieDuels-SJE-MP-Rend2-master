@@ -5162,7 +5162,7 @@ qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int h
 			blow_back_power = 1000;
 		}
 		blow_back_power *= 2;
-		g_throw(self, blow_back_dir, blow_back_power);
+		G_Throw(self, blow_back_dir, blow_back_power);
 		G_Knockdown(self, shooter, blow_back_dir, 600, qtrue);
 		return qtrue;
 	}
@@ -5729,7 +5729,7 @@ static qboolean G_DoSaberDodge(gentity_t* dodger, gentity_t* attacker, vec3_t dm
 			blow_back_power = 1000;
 		}
 		blow_back_power *= 2;
-		g_throw(dodger, blow_back_dir, blow_back_power);
+		G_Throw(dodger, blow_back_dir, blow_back_power);
 		G_Knockdown(dodger, attacker, blow_back_dir, 600, qtrue);
 		return qtrue;
 	}
@@ -6108,7 +6108,7 @@ void wp_saber_clear_damage_for_ent_num(gentity_t* attacker, const int entityNum,
 					VectorScale(center, 0.5, center);
 					VectorSubtract(victim->r.currentOrigin, saberHitLocation, dir_to_center);
 					VectorNormalize(dir_to_center);
-					g_throw(victim, dir_to_center, knockback);
+					G_Throw(victim, dir_to_center, knockback);
 					if (victim->client->ps.groundEntityNum != ENTITYNUM_NONE
 						&& dir_to_center[2] <= 0)
 					{
@@ -12954,6 +12954,8 @@ float manual_running_and_saberblocking(const gentity_t* defender)
 
 qboolean manual_meleeblocking(const gentity_t* defender) //Is this guy blocking or not?
 {
+	const qboolean is_sprinting = ((defender->client->ps.PlayerEffectFlags & 1 << PEF_SPRINTING) != 0) ? qtrue : qfalse;
+
 	if (defender->client->ps.weapon == WP_MELEE
 		&& defender->client->buttons & BUTTON_WALKING
 		&& defender->client->buttons & BUTTON_BLOCK
@@ -12962,6 +12964,7 @@ qboolean manual_meleeblocking(const gentity_t* defender) //Is this guy blocking 
 		&& !PM_KickingAnim(defender->client->ps.legsAnim)
 		&& !PM_InRoll(&defender->client->ps)
 		&& !PM_InKnockDown(&defender->client->ps)
+		&& !is_sprinting
 		&& !(defender->client->ps.pm_flags & PMF_DUCKED))
 	{
 		return qtrue;

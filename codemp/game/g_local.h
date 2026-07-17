@@ -1453,7 +1453,7 @@ gentity_t* G_Find(gentity_t* from, int fieldofs, const char* match);
 int G_RadiusList(vec3_t origin, float radius, const gentity_t* ignore, qboolean take_damage,
 	gentity_t* ent_list[MAX_GENTITIES]);
 
-void g_throw(gentity_t* targ, const vec3_t new_dir, float push);
+void G_Throw(gentity_t* targ, const vec3_t new_dir, float push);
 
 void G_FreeFakeClient(gclient_t** cl);
 void G_CreateFakeClient(int entNum, gclient_t** cl);

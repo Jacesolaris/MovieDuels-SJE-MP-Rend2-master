@@ -257,7 +257,7 @@ void Wampa_Slash(const int boltIndex, const qboolean backhand)
 					&& radius_ent->client->NPC_class != CLASS_RANCOR
 					&& radius_ent->client->NPC_class != CLASS_ATST)
 				{
-					g_throw(radius_ent, push_dir, 65);
+					G_Throw(radius_ent, push_dir, 65);
 					if (BG_KnockDownable(&radius_ent->client->ps) &&
 						radius_ent->health > 0 && Q_irand(0, 1))
 					{

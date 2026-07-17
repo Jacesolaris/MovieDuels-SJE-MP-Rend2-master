@@ -3238,7 +3238,7 @@ static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t 
 						else if (traceEnt->client->ps.groundEntityNum == ENTITYNUM_NONE &&
 							traceEnt->client->ps.stats[STAT_HEALTH] > 1)
 						{
-							g_throw(traceEnt, dir, 2);
+							G_Throw(traceEnt, dir, 2);
 							G_SetAnim(traceEnt, &traceEnt->client->pers.cmd, SETANIM_BOTH,
 								Q_irand(BOTH_SLAPDOWNRIGHT, BOTH_SLAPDOWNLEFT),
 								SETANIM_AFLAG_PACE, 0);

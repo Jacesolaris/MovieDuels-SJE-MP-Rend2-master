@@ -344,7 +344,7 @@ static void ShieldTouch(gentity_t* self, gentity_t* other, trace_t* trace)
 	}
 
 	stunDir[2] = 0.5; //bump the kickback up into the air a bit.
-	g_throw(other, stunDir, 75);
+	G_Throw(other, stunDir, 75);
 	G_Knockdown(other, self, stunDir, 300, qtrue);
 }
 
@@ -1771,7 +1771,7 @@ void Flamethrower_Fire(gentity_t* self)
 			if (traceEnt->health > 0)
 			{
 				// Small push from the flame
-				g_throw(traceEnt, dir, 30);
+				G_Throw(traceEnt, dir, 30);
 
 				if (traceEnt->client != NULL)
 				{

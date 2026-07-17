@@ -1857,7 +1857,7 @@ static int G_CheckLedgeDive(gentity_t* self, const float check_dist, const vec3_
 	if (fall_dist >= 128)
 	{
 		VectorClear(self->client->ps.velocity);
-		g_throw(self, fall_forward_dir, 85);
+		G_Throw(self, fall_forward_dir, 85);
 		self->client->ps.velocity[2] = 100;
 		self->client->ps.groundEntityNum = ENTITYNUM_NONE;
 	}
@@ -1868,7 +1868,7 @@ static int G_CheckLedgeDive(gentity_t* self, const float check_dist, const vec3_
 		if (fall_dist >= 128)
 		{
 			VectorClear(self->client->ps.velocity);
-			g_throw(self, fall_forward_dir, 85);
+			G_Throw(self, fall_forward_dir, 85);
 			self->client->ps.velocity[2] = 100;
 			self->client->ps.groundEntityNum = ENTITYNUM_NONE;
 		}
@@ -1881,7 +1881,7 @@ static int G_CheckLedgeDive(gentity_t* self, const float check_dist, const vec3_
 		if (fall_dist >= 128)
 		{
 			VectorClear(self->client->ps.velocity);
-			g_throw(self, fall_right_dir, 85);
+			G_Throw(self, fall_right_dir, 85);
 			self->client->ps.velocity[2] = 100;
 		}
 		else
@@ -1891,7 +1891,7 @@ static int G_CheckLedgeDive(gentity_t* self, const float check_dist, const vec3_
 			if (fall_dist >= 128)
 			{
 				VectorClear(self->client->ps.velocity);
-				g_throw(self, fall_right_dir, 85);
+				G_Throw(self, fall_right_dir, 85);
 				self->client->ps.velocity[2] = 100;
 			}
 		}

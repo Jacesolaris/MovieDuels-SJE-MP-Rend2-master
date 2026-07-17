@@ -107,6 +107,7 @@ extern int PM_InGrappleMove(int anim);
 extern qboolean PM_SaberInMassiveBounce(int anim);
 extern qboolean PM_InRollIgnoreTimer(const playerState_t* ps);
 extern qboolean PM_SaberInBashedAnim(int anim);
+extern qboolean BG_SaberSprintAnim(int anim);
 
 extern pmove_t* pm;
 pml_t pml;
@@ -8553,7 +8554,7 @@ static void PM_GroundTrace(void)
 				VectorSubtract(g_entities[pm->ps->clientNum].client->ps.origin, trEnt->client->ps.origin, pushdir);
 				G_Knockdown(trEnt, &g_entities[pm->ps->clientNum], pushdir, 0, qfalse);
 				G_Knockdown(&g_entities[pm->ps->clientNum], trEnt, pushdir, 5, qfalse);
-				g_throw(&g_entities[pm->ps->clientNum], pushdir, 5);
+				G_Throw(&g_entities[pm->ps->clientNum], pushdir, 5);
 				g_entities[pm->ps->clientNum].client->ps.velocity[2] = 10;
 			}
 		}
@@ -11216,7 +11217,7 @@ static void PM_Footsteps(void)
 						{
 							if (pm->cmd.buttons & BUTTON_BLOCK && pm->ps->sprintFuel > 15)
 							{
-								PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT_SABER_MP, SETANIM_FLAG_NORMAL);
+								PM_SetAnim(SETANIM_BOTH, BOTH_SPRINT_SABER_MP, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 
 								if (!(pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING))
 								{
@@ -11901,27 +11902,31 @@ PM_BeginWeaponChange
 */
 void PM_BeginWeaponChange(const int weapon)
 {
+	// Manual blocking state
 	const qboolean is_holding_block_button = ((pm->ps->ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
-	//Holding Block Button
 	const qboolean is_holding_block_button_and_attack = ((pm->ps->ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
-	//Active Blocking
+	const qboolean is_sprinting = ((pm->ps->PlayerEffectFlags & 1 << PEF_SPRINTING) != 0) ? qtrue : qfalse;
 
+	// Invalid weapon index
 	if (weapon <= WP_NONE || weapon >= WP_NUM_WEAPONS)
 	{
 		return;
 	}
 
-	if (!(pm->ps->stats[STAT_WEAPONS] & 1 << weapon))
+	// Player does not have this weapon
+	if ((pm->ps->stats[STAT_WEAPONS] & (1 << weapon)) == 0)
 	{
 		return;
 	}
 
+	// Already dropping a weapon
 	if (pm->ps->weaponstate == WEAPON_DROPPING)
 	{
 		return;
 	}
 
-	if (pm->ps->weapon == WP_SABER && (is_holding_block_button || is_holding_block_button_and_attack))
+	// Cannot change from saber while holding block
+	if (pm->ps->weapon == WP_SABER && (is_holding_block_button == qtrue || is_holding_block_button_and_attack == qtrue || is_sprinting == qtrue))
 	{
 		return;
 	}
@@ -11943,6 +11948,49 @@ void PM_BeginWeaponChange(const int weapon)
 	{
 		pm->ps->zoomMode = 0;
 		pm->ps->zoomTime = pm->ps->commandTime;
+	}
+
+	// Handle dual pistol logic when holding Bryar pistol
+	if (pm->ps->weapon == WP_BRYAR_PISTOL ||
+		pm->ps->weapon == WP_REY ||
+		pm->ps->weapon == WP_JANGO ||
+		pm->ps->weapon == WP_CLONEPISTOL)
+	{
+		qboolean allowDual = qfalse;
+
+		// Boba/Mando classes always have duals (ensure pm_entSelf is valid)
+		if (pm_entSelf &&
+			(pm_entSelf->s.botclass == BCLASS_BOBAFETT ||
+				pm_entSelf->s.botclass == BCLASS_MANDOLORIAN ||
+				pm_entSelf->s.botclass == BCLASS_MANDOLORIAN1 ||
+				pm_entSelf->s.botclass == BCLASS_MANDOLORIAN2))
+		{
+			allowDual = qtrue;
+		}
+#ifdef _GAME
+		// Skill-based dual pistols (only if clientNum is valid)
+		else if (pm->ps->clientNum >= 0 && pm->ps->clientNum < MAX_CLIENTS)
+		{
+			if (g_entities[pm->ps->clientNum].client->skillLevel[SK_PISTOL] >= FORCE_LEVEL_3)
+			{
+				allowDual = qtrue;
+			}
+		}
+#endif
+
+		if (allowDual == qtrue)
+		{
+			pm->ps->eFlags |= EF3_DUAL_WEAPONS;
+		}
+		else
+		{
+			pm->ps->eFlags &= ~EF3_DUAL_WEAPONS;
+		}
+	}
+	else
+	{
+		// Not holding pistol → no dual pistols
+		pm->ps->eFlags &= ~EF3_DUAL_WEAPONS;
 	}
 
 	PM_AddEventWithParm(EV_CHANGE_WEAPON, weapon);
@@ -12029,7 +12077,35 @@ void PM_FinishWeaponChange(void)
 			else
 #endif
 			{
-				if (!g_noIgniteTwirl.integer && !is_holding_block_button &&
+				if (!g_noIgniteTwirl.integer &&
+					BG_SaberSprintAnim(pm->ps->legsAnim))
+				{// twirl if we are sprinting
+					if (pm->ps->groundEntityNum == ENTITYNUM_NONE
+						|| in_camera)
+					{
+						switch (pm->ps->fd.saberAnimLevel)
+						{
+						case SS_DUAL:
+							PM_SetAnim(SETANIM_TORSO, BOTH_GRIEVOUS_SABERON, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						case SS_STAFF:
+							PM_SetAnim(SETANIM_TORSO, BOTH_SABER_BACKHAND_IGNITION, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						case SS_NONE:
+						case SS_FAST:
+						case SS_MEDIUM:
+						case SS_STRONG:
+						case SS_TAVION:
+						case SS_DESANN:
+							PM_SetAnim(SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						default:
+							PM_SetAnim(SETANIM_TORSO, BOTH_STAND1TO2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+							break;
+						}
+					}
+				}
+				else if (!g_noIgniteTwirl.integer && !is_holding_block_button &&
 					!PM_InLedgeMove(pm->ps->legsAnim) &&
 					!PM_InLedgeMove(pm->ps->torsoAnim))
 				{// twirl if we aren't already doing a ledge move
@@ -14339,10 +14415,10 @@ static void PM_Weapon(void)
 					}
 				}
 			}
-			}
+		}
 
 		return;
-		}
+	}
 
 	if (PM_CanSetWeaponAnims() &&
 		!PM_IsRocketTrooper() &&
@@ -15027,7 +15103,7 @@ static void PM_Weapon(void)
 	}
 	pm->ps->weaponTime += addTime;
 	pm->ps->lastShotTime = 3000; //so we know when the last time we fired our gun is
-	}
+}
 
 /*
 ================

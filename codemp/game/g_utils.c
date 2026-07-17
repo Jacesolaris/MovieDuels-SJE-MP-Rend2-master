@@ -398,7 +398,7 @@ int G_RadiusList(vec3_t origin, float radius, const gentity_t* ignore,
 	return ent_count;
 }
 
-void g_throw(gentity_t* targ, const vec3_t new_dir, const float push)
+void G_Throw(gentity_t* targ, const vec3_t new_dir, const float push)
 {
 	if (!targ)
 	{

@@ -195,7 +195,7 @@ public:
 
 	char mName[FX_MAX_PRIM_NAME];
 
-	EPrimType mType;
+	EPrimType mType = None;
 
 	CFxRange mSpawnDelay;
 	CFxRange mSpawnCount;

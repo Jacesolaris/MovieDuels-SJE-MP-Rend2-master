@@ -597,7 +597,7 @@ void DoImpact(gentity_t* self, gentity_t* other, const qboolean damageSelf)
 					else
 					{
 						//Hmm, maybe knockdown?
-						g_throw(other, dir2, force);
+						G_Throw(other, dir2, force);
 					}
 					if (other->health > 0)
 					{
@@ -3897,21 +3897,23 @@ void G_SetTauntAnim(gentity_t* ent, int taunt)
 
 void G_SetsaberdownorAnim(gentity_t* ent)
 {
+
 	if (ent->client->ps.saberLockTime >= level.time)
 	{
 		return;
 	}
 
 	if (PM_InKataAnim(ent->client->ps.legsAnim) ||
-		PM_InKataAnim(ent->client->ps.torsoAnim))
+		PM_InKataAnim(ent->client->ps.torsoAnim) ||
+		PM_InLedgeMove(ent->client->ps.legsAnim) ||
+		PM_InLedgeMove(ent->client->ps.torsoAnim) ||
+		IsSurrendering(ent))
 	{
 		return;
 	}
 	if (ent->client->ps.weapon == WP_SABER)
 	{
-		if (ent->client && ent->client->ps.weaponTime < 1 && ent->watertype != CONTENTS_WATER)
-		{
-			if (ent->client->ps.saberHolstered == 2)
+		if (ent->client->ps.saberHolstered == 2)
 			{
 				ent->client->ps.saberHolstered = 0;
 
@@ -3939,7 +3941,6 @@ void G_SetsaberdownorAnim(gentity_t* ent)
 				//prevent anything from being done for 400ms after holster
 				ent->client->ps.weaponTime = 400;
 			}
-		}
 	}
 	else
 	{

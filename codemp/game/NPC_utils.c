@@ -1295,64 +1295,84 @@ NPC_FacePosition
 -------------------------
 */
 
+// Face a world-space position, optionally including pitch.
+// Behaviour preserved; only safety and structure improved.
 qboolean NPC_FacePosition(vec3_t position, const qboolean do_pitch)
 {
 	vec3_t muzzle;
 	vec3_t angles;
 	qboolean facing = qtrue;
 
-	//Get the positions
-	if (NPCS.NPC->client && (NPCS.NPC->client->NPC_class == CLASS_RANCOR || NPCS.NPC->client->NPC_class == CLASS_WAMPA))
-		// || NPC->client->NPC_class == CLASS_SAND_CREATURE) )
+	// SAFETY FIX: NPC, NPC->client, NPCS.client must exist
+	if (NPCS.NPC == NULL || NPCS.NPC->client == NULL || NPCS.client == NULL)
+	{
+		return qfalse;
+	}
+
+	// Get the muzzle/head position depending on NPC class
+	if (NPCS.NPC->client->NPC_class == CLASS_RANCOR ||
+		NPCS.NPC->client->NPC_class == CLASS_WAMPA)
 	{
 		CalcEntitySpot(NPCS.NPC, SPOT_ORIGIN, muzzle);
 		muzzle[2] += NPCS.NPC->r.maxs[2] * 0.75f;
 	}
-	else if (NPCS.NPC->client && NPCS.NPC->client->NPC_class == CLASS_GALAKMECH)
+	else if (NPCS.NPC->client->NPC_class == CLASS_GALAKMECH)
 	{
 		CalcEntitySpot(NPCS.NPC, SPOT_WEAPON, muzzle);
 	}
 	else
 	{
-		CalcEntitySpot(NPCS.NPC, SPOT_HEAD_LEAN, muzzle); //SPOT_HEAD
+		CalcEntitySpot(NPCS.NPC, SPOT_HEAD_LEAN, muzzle);
+
 		if (NPCS.NPC->client->NPC_class == CLASS_ROCKETTROOPER)
 		{
-			//*sigh*, look down more
-			position[2] -= 32;
+			// Look down more
+			position[2] -= 32.0f;
 		}
 	}
 
-	//Find the desired angles
+	// Compute desired facing angles
 	GetAnglesForDirection(muzzle, position, angles);
 
 	NPCS.NPCInfo->desiredYaw = AngleNormalize360(angles[YAW]);
 	NPCS.NPCInfo->desiredPitch = AngleNormalize360(angles[PITCH]);
 
-	if (NPCS.NPC->enemy && NPCS.NPC->enemy->client && NPCS.NPC->enemy->client->NPC_class == CLASS_ATST)
+	// AT-ST enemy wobble behaviour
+	if (NPCS.NPC->enemy &&
+		NPCS.NPC->enemy->client &&
+		NPCS.NPC->enemy->client->NPC_class == CLASS_ATST)
 	{
-		NPCS.NPCInfo->desiredYaw += flrand(-5, 5) + sin(level.time * 0.004f) * 7;
-		NPCS.NPCInfo->desiredPitch += flrand(-2, 2);
+		NPCS.NPCInfo->desiredYaw += flrand(-5.0f, 5.0f) + sin(level.time * 0.004f) * 7.0f;
+		NPCS.NPCInfo->desiredPitch += flrand(-2.0f, 2.0f);
 	}
-	//Face that yaw
+
+	// Apply desired angles
 	NPC_UpdateAngles(qtrue, qtrue);
 
-	//Find the delta between our goal and our current facing
-	const float yawDelta = AngleNormalize360(
-		NPCS.NPCInfo->desiredYaw - SHORT2ANGLE(NPCS.ucmd.angles[YAW] + NPCS.client->ps.delta_angles[YAW]));
+	// Compute yaw delta between desired and current
+	const float currentYaw =
+		SHORT2ANGLE(NPCS.ucmd.angles[YAW] + NPCS.client->ps.delta_angles[YAW]);
 
-	//See if we are facing properly
+	const float yawDelta =
+		AngleNormalize360(NPCS.NPCInfo->desiredYaw - currentYaw);
+
 	if (fabs(yawDelta) > VALID_ATTACK_CONE)
-		facing = qfalse;
-
-	if (do_pitch)
 	{
-		//Find the delta between our goal and our current facing
-		const float currentAngles = SHORT2ANGLE(NPCS.ucmd.angles[PITCH] + NPCS.client->ps.delta_angles[PITCH]);
-		const float pitchDelta = NPCS.NPCInfo->desiredPitch - currentAngles;
+		facing = qfalse;
+	}
 
-		//See if we are facing properly
+	// Pitch check if requested
+	if (do_pitch == qtrue)
+	{
+		const float currentPitch =
+			SHORT2ANGLE(NPCS.ucmd.angles[PITCH] + NPCS.client->ps.delta_angles[PITCH]);
+
+		const float pitchDelta = NPCS.NPCInfo->desiredPitch - currentPitch;
+
 		if (fabs(pitchDelta) > VALID_ATTACK_CONE)
+		{
 			facing = qfalse;
+		}
 	}
 
 	return facing;

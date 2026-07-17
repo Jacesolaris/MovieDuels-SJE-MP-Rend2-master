@@ -406,6 +406,9 @@ static void CG_CalcIdealThirdPersonViewTarget(void)
 		// Short forward distance so we don't zoom into the back of the head
 		VectorMA(cameraFocusLoc, 48.0f, forward, cameraIdealTarget);
 
+		// Apply vertical offset AFTER aiming forward shift
+		cameraIdealTarget[2] += localVertOffset;
+
 		return; // aiming branch fully handled
 	}
 
@@ -825,14 +828,9 @@ static void CG_OffsetThirdPersonView(void)
 		(cg.predictedPlayerState.communicatingflags & (1 << CF_AIMINGGUN)) &&
 		g_AimingCinematicCamera.integer)
 	{
-		thirdPersonAngle = 0.0f;			// yaw inward
-		thirdPersonAlpha = 1.0f;			// tighter camera
-		thirdPersonPitchOffset = 0.0f;		// slight downward pitch
-		thirdPersonHorzOffset = -10.0f;	// softer shoulder shift
-		thirdPersonVertOffset = 4.0f;		// slight upward shift
-		thirdPersonCameraDamp = 1.0f;		// tighter camera damping
-		thirdPersonTargetDamp = 1.0f;		// tighter target damping
-		thirdPersonRange = 50.0f;			// closer to the player
+		thirdPersonAngle = 0.0f;
+		thirdPersonPitchOffset = -10.0f;
+		thirdPersonHorzOffset = -10.0f;
 
 		cameraFocusAngles[YAW] += thirdPersonAngle;
 		cameraFocusAngles[PITCH] += thirdPersonPitchOffset;
@@ -1388,7 +1386,7 @@ static int CG_CalcFov(void)
 	}
 	else if (cg.renderingThirdPerson && cg.predictedPlayerState.communicatingflags & (1 << CF_AIMINGGUN) && g_AimingCinematicCamera.integer)
 	{
-		cgFov = 60.0f;
+		cgFov = cg_fov.value;
 	}
 	else
 	{
@@ -2713,6 +2711,20 @@ static qboolean Holding_Gun_And_Walking(void)
 		case WP_TRIP_MINE:
 		case WP_DET_PACK:
 		case WP_CONCUSSION:
+
+		case WP_BATTLEDROID:
+		case WP_THEFIRSTORDER:
+		case WP_CLONECARBINE:
+		case WP_REBELBLASTER:
+		case WP_CLONERIFLE:
+		case WP_CLONECOMMANDO:
+		case WP_Z6_ROTARY_CANNON:
+		case WP_REBELRIFLE:
+		case WP_REY:
+		case WP_JANGO:
+		case WP_BOBA:
+		case WP_CLONEPISTOL:
+
 		case WP_BRYAR_OLD:
 		case WP_EMPLACED_GUN:
 		case WP_TURRET:
@@ -2751,6 +2763,19 @@ static qboolean Holding_Gun_And_Walking_And_Blocking(void)
 		case WP_TRIP_MINE:
 		case WP_DET_PACK:
 		case WP_CONCUSSION:
+
+		case WP_BATTLEDROID:
+		case WP_THEFIRSTORDER:
+		case WP_CLONECARBINE:
+		case WP_REBELBLASTER:
+		case WP_CLONERIFLE:
+		case WP_CLONECOMMANDO:
+		case WP_Z6_ROTARY_CANNON:
+		case WP_REBELRIFLE:
+		case WP_REY:
+		case WP_JANGO:
+		case WP_BOBA:
+		case WP_CLONEPISTOL:
 		case WP_BRYAR_OLD:
 		case WP_EMPLACED_GUN:
 		case WP_TURRET:
@@ -2981,8 +3006,8 @@ void CG_DrawActiveFrame(const int serverTime, const stereoFrame_t stereoView, co
 				}
 				if (Holding_Gun_And_Walking_And_Blocking())
 				{
-					mPitchOverride = 0.025f; //slow down the pitch for aiming guns
-					mYawOverride = 0.025f; //slow down the yaw  for aiming guns
+					mPitchOverride = 0.022f; //slow down the pitch for aiming guns
+					mYawOverride = 0.022f; //slow down the yaw  for aiming guns
 				}
 				if (Holding_Saber_And_Its_Turned_On())
 				{
@@ -2991,8 +3016,8 @@ void CG_DrawActiveFrame(const int serverTime, const stereoFrame_t stereoView, co
 				}
 				if (Holding_Saber_And_Its_Turned_Off())
 				{
-					mPitchOverride = 0.06f; //slow down the pitch
-					mYawOverride = 0.06f; //slow down the yaw
+					mPitchOverride = 0.07f; //slow down the pitch
+					mYawOverride = 0.07f; //slow down the yaw
 				}
 			}
 

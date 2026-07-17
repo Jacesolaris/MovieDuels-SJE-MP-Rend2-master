@@ -716,14 +716,14 @@ static void NPC_BSGM_Attack(void)
 					//throw them
 					smack_dir[2] = 1;
 					VectorNormalize(smack_dir);
-					g_throw(NPCS.NPC->enemy, smack_dir, 50);
+					G_Throw(NPCS.NPC->enemy, smack_dir, 50);
 					NPC_SetAnim(NPCS.NPC->enemy, SETANIM_BOTH, knockAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 				}
 				else
 				{
 					//uppercut
 					//throw them
-					g_throw(NPCS.NPC->enemy, smack_dir, 100);
+					G_Throw(NPCS.NPC->enemy, smack_dir, 100);
 					//make them backflip
 					NPC_SetAnim(NPCS.NPC->enemy, SETANIM_BOTH, BOTH_KNOCKDOWN5,
 						SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
@@ -1232,7 +1232,7 @@ static void NPC_BSGM_Attack(void)
 			G_Damage(NPCS.NPC->enemy, NPCS.NPC, NPCS.NPC, smack_dir, NPCS.NPC->r.currentOrigin,
 				(g_npcspskill.integer + 1) * Q_irand(5, 10), DAMAGE_NO_KNOCKBACK, MOD_UNKNOWN);
 			//throw them
-			g_throw(NPCS.NPC->enemy, smack_dir, 100);
+			G_Throw(NPCS.NPC->enemy, smack_dir, 100);
 			if (NPCS.NPC->enemy->client)
 			{
 				NPCS.NPC->enemy->client->ps.electrifyTime = level.time + 1000;
