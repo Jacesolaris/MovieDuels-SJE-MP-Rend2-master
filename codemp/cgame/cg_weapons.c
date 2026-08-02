@@ -3127,6 +3127,7 @@ void CG_FireWeapon(centity_t* cent, const qboolean alt_fire)
 	int c;
 
 	const entityState_t* ent = &cent->currentState;
+
 	if (ent->weapon == WP_NONE)
 	{
 		return;
