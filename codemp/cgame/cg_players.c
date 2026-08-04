@@ -21098,7 +21098,7 @@ stillDoSaber:
 		//goto endOfCall;
 	}
 
-	if (cg.snap->ps.fd.forcePowersActive & 1 << FP_SEE && (cg.snap->ps.clientNum != cent->currentState.number))
+	if (cg.snap && cg.snap->ps.fd.forcePowersActive & 1 << FP_SEE && cg.snap->ps.clientNum != cent->currentState.number)
 	{
 		legs.shaderRGBA[0] = 255;
 		legs.shaderRGBA[1] = 255;

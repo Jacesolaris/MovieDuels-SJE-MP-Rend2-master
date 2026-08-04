@@ -506,7 +506,7 @@ SV_ClipToEntity
 void SV_ClipToEntity(trace_t* trace, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end,
 	const int entityNum, const int contentmask, const int capsule)
 {
-	const sharedEntity_t* touch = SV_Gentity_num(entityNum);
+	const sharedEntity_t* touch = SV_GentityNum(entityNum);
 
 	Com_Memset(trace, 0, sizeof(trace_t));
 
@@ -566,7 +566,7 @@ static void SV_ClipMoveToEntities(moveclip_t* clip)
 
 	if (clip->pass_entity_num != ENTITYNUM_NONE)
 	{
-		passOwnerNum = SV_Gentity_num(clip->pass_entity_num)->r.ownerNum;
+		passOwnerNum = SV_GentityNum(clip->pass_entity_num)->r.ownerNum;
 		if (passOwnerNum == ENTITYNUM_NONE)
 		{
 			passOwnerNum = -1;
@@ -577,7 +577,7 @@ static void SV_ClipMoveToEntities(moveclip_t* clip)
 		passOwnerNum = -1;
 	}
 
-	if (SV_Gentity_num(clip->pass_entity_num)->r.svFlags & SVF_OWNERNOTSHARED)
+	if (SV_GentityNum(clip->pass_entity_num)->r.svFlags & SVF_OWNERNOTSHARED)
 	{
 		thisOwnerShared = 0;
 	}
@@ -588,7 +588,7 @@ static void SV_ClipMoveToEntities(moveclip_t* clip)
 		{
 			return;
 		}
-		sharedEntity_t* touch = SV_Gentity_num(touchlist[i]);
+		sharedEntity_t* touch = SV_GentityNum(touchlist[i]);
 
 		// see if we should ignore this entity
 		if (clip->pass_entity_num != ENTITYNUM_NONE)
@@ -952,7 +952,7 @@ int SV_PointContents(const vec3_t p, const int pass_entity_num)
 		{
 			continue;
 		}
-		const sharedEntity_t* hit = SV_Gentity_num(touch[i]);
+		const sharedEntity_t* hit = SV_GentityNum(touch[i]);
 		// might intersect, so do an exact clip
 		const clipHandle_t clip_handle = SV_clip_handleForEntity(hit);
 

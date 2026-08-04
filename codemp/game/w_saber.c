@@ -3271,7 +3271,7 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 		return 0;
 	}
 
-	if (PM_SaberInKata(self->client->ps.saberMove))
+	if (!PM_SaberInKata(self->client->ps.saberMove))
 	{
 		return 0;
 	}
@@ -6343,7 +6343,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 					}
 					else if (saber_in_kill_move)
 					{
-						dmg = SABER_MAXHITDAMAGE;
+						dmg = SABER_KILLDAMAGE;
 					}
 					else if (self->client->ps.saberMove == LS_PULL_ATTACK_STAB)
 					{
@@ -6771,16 +6771,18 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		// --------------------------------------------------------
 		// SINGLE-HIT ENFORCEMENT
 		// --------------------------------------------------------
-		if ((victim->s.number < MAX_CLIENTS || victim->r.svFlags & SVF_BOT || victim->NPC) &&
-			(self->client->saberHitEntityBitMask & (1 << victim->s.number)))
+		if (self->client->saberHitEntityBitMask & (1 << victim->s.number))
 		{
-			// Already hit this player with this saber swing → skip
-			if (g_HitTracking.integer && (victim->r.svFlags & SVF_BOT || victim->NPC))
+			if (!PM_SaberInKata(self->client->ps.saberMove) && !PM_SaberInKillMove(self->client->ps.saberMove))
 			{
-				Com_Printf(S_COLOR_RED "Single-hit enforcement: skip if already damaged this swing\n");
+				// Already hit this player with this saber swing → skip
+				if (g_HitTracking.integer && (victim->r.svFlags & SVF_BOT || victim->NPC))
+				{
+					Com_Printf(S_COLOR_RED "Single-hit enforcement: skip if already damaged this swing\n");
+				}
+				DebounceSaberImpact(self, blocker, rSaberNum, rBladeNum, sabimpactentity_num);
+				return qtrue;
 			}
-			DebounceSaberImpact(self, blocker, rSaberNum, rBladeNum, sabimpactentity_num);
-			return qtrue;
 		}
 
 		// --------------------------------------------------------
@@ -6842,7 +6844,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		// Tracking damage to player
 		// --------------------------------------------------------
 
-		if (victim->s.number < MAX_CLIENTS || victim->r.svFlags & SVF_BOT || victim->NPC)
+		if (!PM_SaberInKata(self->client->ps.saberMove) && !PM_SaberInKillMove(self->client->ps.saberMove))
 		{
 			if (g_HitTracking.integer && (victim->r.svFlags & SVF_BOT || victim->NPC))
 			{
@@ -12274,7 +12276,7 @@ nextStep:
 		}
 
 		// Reset hit tracking when a new swing begins
-		if (self->s.number < MAX_CLIENTS || self->r.svFlags & SVF_BOT || self->NPC)
+		if (!PM_SaberInKata(self->client->ps.saberMove) && !PM_SaberInKillMove(self->client->ps.saberMove))
 		{
 			if (self->client->ps.saberAttackSequence != self->client->saberLastAttackSequence)
 			{
