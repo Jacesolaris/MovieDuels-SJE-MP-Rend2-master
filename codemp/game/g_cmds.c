@@ -28,7 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///													SERENITY JEDI ENGINE														///
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
-///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
+///						      System designed by Serenity and modded by JaceSolaris. (c) 2026 SJE   		                    ///
 ///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
@@ -60,7 +60,7 @@ extern qboolean in_camera;
 int AcceptBotCommand(const char* cmd, const gentity_t* pl);
 //end rww
 
-void WP_SetSaber(int entNum, saberInfo_t* sabers, int saber_num, const char* saber_name);
+void WP_SetSaber(int entNum, saberInfo_t* sabers, int saberNum, const char* saber_name);
 void Cmd_NPC_f(gentity_t* ent);
 void Cmd_AdminNPC_f(gentity_t* ent);
 void SetTeamQuick(const gentity_t* ent, const int team, const qboolean doBegin);
@@ -1936,7 +1936,7 @@ extern qboolean WP_SaberStyleValidForSaber(const saberInfo_t* saber1, const sabe
 extern qboolean WP_UseFirstValidSaberStyle(const saberInfo_t* saber1, const saberInfo_t* saber2, int saberHolstered, int* saberAnimLevel);
 
 qboolean G_ValidSaberStyle(const gentity_t* ent, int saber_style);
-qboolean G_SetSaber(const gentity_t* ent, const int saber_num, const char* saber_name, const qboolean siege_override)
+qboolean G_SetSaber(const gentity_t* ent, const int saberNum, const char* saber_name, const qboolean siege_override)
 {
 	char truncSaberName[MAX_QPATH] = { 0 };
 
@@ -1948,14 +1948,14 @@ qboolean G_SetSaber(const gentity_t* ent, const int saber_num, const char* saber
 
 	Q_strncpyz(truncSaberName, saber_name, sizeof(truncSaberName));
 
-	if (saber_num == 0 && (!Q_stricmp("none", truncSaberName) || !Q_stricmp("remove", truncSaberName)))
+	if (saberNum == 0 && (!Q_stricmp("none", truncSaberName) || !Q_stricmp("remove", truncSaberName)))
 	{ //can't remove saber 0 like this
 		Q_strncpyz(truncSaberName, DEFAULT_SABER, sizeof(truncSaberName));
 	}
 
 	//Set the saber with the arg given. If the arg is
 	//not a valid sabername defaults will be used.
-	WP_SetSaber(ent->s.number, ent->client->saber, saber_num, truncSaberName);
+	WP_SetSaber(ent->s.number, ent->client->saber, saberNum, truncSaberName);
 
 	if (!ent->client->saber[0].model[0])
 	{
@@ -3829,8 +3829,8 @@ void Cmd_ToggleSaber_f(gentity_t* ent)
 			{
 				G_Sound(ent, CHAN_AUTO, ent->client->saber[1].soundOff);
 			}
-			ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
-			ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
+			ent->client->ps.ManualBlockingFlags &= ~(1 << MBF_HOLDINGBLOCK);
+			ent->client->ps.ManualBlockingFlags &= ~(1 << MBF_HOLDINGBLOCKANDATTACK);
 
 			// Clear any lingering saber‑combat state
 			ent->client->ps.duelInProgress = qfalse;
@@ -4138,7 +4138,7 @@ void Cmd_SaberAttackCycle_f(gentity_t* ent)
 
 		if (!ent->client->ps.saberInFlight)
 		{
-			if (!((ent->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK) != 0) && !PM_SaberInAttack(ent->client->ps.saberMove) && ent->client->ps.saberLockTime < level.time) // lets do a movement when changing styles // need better anims for this
+			if (!((ent->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0) && !PM_SaberInAttack(ent->client->ps.saberMove) && ent->client->ps.saberLockTime < level.time) // lets do a movement when changing styles // need better anims for this
 			{
 				if (select_level == SS_DUAL)
 				{
@@ -4282,8 +4282,8 @@ void Cmd_EngageDuel_f(gentity_t* ent)
 				{
 					G_Sound(ent, CHAN_AUTO, ent->client->saber[1].soundOff);
 				}
-				ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
-				ent->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
+				ent->client->ps.ManualBlockingFlags &= ~(1 << MBF_HOLDINGBLOCK);
+				ent->client->ps.ManualBlockingFlags &= ~(1 << MBF_HOLDINGBLOCKANDATTACK);
 				ent->client->ps.weaponTime = 400;
 				ent->client->ps.saberHolstered = 2;
 			}

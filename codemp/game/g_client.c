@@ -28,7 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///													SERENITY JEDI ENGINE														///
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
-///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
+///						      System designed by Serenity and modded by JaceSolaris. (c) 2026 SJE   		                    ///
 ///								    https://www.moddb.com/mods/movie-duels											            ///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
@@ -2803,7 +2803,7 @@ if desired.
 ============
 */
 
-qboolean G_SetSaber(const gentity_t* ent, const int saber_num, const char* saber_name, const qboolean siege_override);
+qboolean G_SetSaber(const gentity_t* ent, const int saberNum, const char* saber_name, const qboolean siege_override);
 void G_ValidateSiegeClassForTeam(const gentity_t* ent, int team);
 
 typedef struct userinfoValidate_s
@@ -6280,7 +6280,7 @@ char* ClientConnect(int clientNum, const qboolean firstTime, const qboolean isBo
 }
 
 void G_WriteClientSessionData(const gclient_t* client);
-void WP_SetSaber(int entNum, saberInfo_t* sabers, int saber_num, const char* saber_name);
+void WP_SetSaber(int entNum, saberInfo_t* sabers, int saberNum, const char* saber_name);
 
 /*
 ===========

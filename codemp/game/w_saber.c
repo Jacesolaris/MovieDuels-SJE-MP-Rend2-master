@@ -2,7 +2,7 @@
 ===========================================================================
 Copyright (C) 2000 - 2013, Raven Software, Inc.
 Copyright (C) 2001 - 2013, Activision, Inc.
-Copyright (C) 2013 - 2015,MovieDuels contributors
+Copyright (C) 2013 - 2015, MovieDuels contributors
 
 This file is part of the MovieDuels source code.
 
@@ -26,8 +26,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///													SERENITY JEDI ENGINE														///
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
-///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
-///								    https://www.moddb.com/mods/movie-duels											///
+///						      System designed by Serenity and modded by JaceSolaris. (c) 2026 SJE   		                    ///
+///								    https://www.moddb.com/mods/serenityjediengine-20											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
 
@@ -36,22 +36,22 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "w_saber.h"
 #include "ai_main.h"
 #include <string.h>
-#include <qcommon/q_platform.h>
-#include <qcommon/q_shared.h>
-
-qboolean manual_saberblocking(const gentity_t* defender);
-#include <qcommon/q_math.h>
+#include <qcommon\q_platform.h>
+#include <qcommon\q_shared.h>
+#include <qcommon\q_math.h>
 #include "bg_public.h"
 #include "anims.h"
 #include <assert.h>
 #include "g_public.h"
 #include "bg_weapons.h"
-#include <qcommon/q_string.h>
+#include <qcommon\q_string.h>
 #include "b_public.h"
-#include "teams.h"
-#include <qcommon/q_color.h>
-#include "bg_saga.h"
+#include <qcommon\q_color.h>
 #include "bg_vehicles.h"
+#include <math.h>
+#include "bg_saga.h"
+#include "surfaceflags.h"
+#include "teams.h"
 
 extern bot_state_t* botstates[MAX_CLIENTS];
 extern qboolean InFront(vec3_t spot, vec3_t from, vec3_t from_angles, float thresh_hold);
@@ -64,25 +64,24 @@ extern qboolean G_GetHitLocFromSurfName(gentity_t* ent, const char* surfName, in
 extern int G_GetHitLocation(const gentity_t* target, vec3_t ppoint);
 int saberSpinSound = 0;
 extern saberMoveName_t PM_SaberBounceForAttack(int move);
-extern qboolean PM_SaberInTransition(int move);
+qboolean PM_SaberInTransition(int move);
 qboolean PM_SaberInDeflect(int move);
 qboolean PM_SaberInBrokenParry(int move);
 qboolean PM_SaberInBounce(int move);
 qboolean BG_SaberInReturn(int move);
-qboolean BG_InKnockDownOnGround(const playerState_t* ps);
 extern qboolean BG_InKnockDown(int anim);
 qboolean BG_StabDownAnim(int anim);
 qboolean BG_SabersOff(const playerState_t* ps);
 qboolean PM_SaberInTransitionAny(int move);
 extern qboolean PM_SaberInAttackPure(int move);
-qboolean WP_SaberBladeUseSecondBladeStyle(const saberInfo_t* saber, int blade_num);
-qboolean WP_SaberBladeDoTransitionDamage(const saberInfo_t* saber, int blade_num);
+qboolean WP_SaberBladeUseSecondBladeStyle(const saberInfo_t* saber, int bladeNum);
+qboolean WP_SaberBladeDoTransitionDamage(const saberInfo_t* saber, int bladeNum);
 void WP_SaberAddG2Model(gentity_t* saberent, const char* saber_model, qhandle_t saber_skin);
 void WP_SaberRemoveG2Model(gentity_t* saberent);
 extern qboolean PM_SaberInNonIdleDamageMove(const playerState_t* ps, int anim_index);
 qboolean WalkCheck(const gentity_t* self);
-qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity);
 qboolean WP_saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity);
+qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity);
 extern qboolean PM_SuperBreakWinAnim(int anim);
 extern stringID_table_t saber_moveTable[];
 extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
@@ -103,7 +102,7 @@ extern qboolean in_camera;
 extern qboolean PM_InGetUp(const playerState_t* ps);
 extern qboolean PM_InRoll(const playerState_t* ps);
 extern qboolean jedi_dodge_evasion(gentity_t* self, const gentity_t* shooter, trace_t* tr, int hit_loc);
-extern qboolean PM_CrouchAnim(const int anim);
+extern qboolean PM_CrouchAnim(int anim);
 extern void G_AddVoiceEvent(const gentity_t* self, int event, int speak_debounce_time);
 extern void AddFatigueMeleeBonus(const gentity_t* attacker, const gentity_t* victim);
 extern qboolean npc_is_dark_jedi(const gentity_t* self);
@@ -120,7 +119,7 @@ extern int Jedi_ReCalcParryTime(const gentity_t* self, evasionType_t evasion_typ
 extern qboolean pm_saber_innonblockable_attack(int anim);
 extern qboolean NPC_IsAlive(const gentity_t* self, const gentity_t* npc);
 //////////////////////////////////////////////////
-extern qboolean sab_beh_attack_vs_block(gentity_t* attacker, gentity_t* blocker, int saber_num, int blade_num, vec3_t hit_loc);
+extern qboolean sab_beh_attack_vs_block(gentity_t* attacker, gentity_t* blocker, int saberNum, int bladeNum, vec3_t hit_loc);
 //////////////////////////////////////////////////
 extern saberMoveName_t PM_AnimateOldKnockBack(int move);
 extern int G_AnimateOldKnockBack(int move);
@@ -152,15 +151,16 @@ extern int PM_InGrappleMove(int anim);
 extern qboolean PM_SaberInKillMove(int move);
 extern qboolean PM_WalkingOrRunningAnim(int anim);
 extern qboolean PM_RestAnim(int anim);
-extern qboolean sab_beh_block_vs_attack(gentity_t* blocker, gentity_t* attacker, int saber_num, int blade_num, vec3_t hit_loc);
+extern qboolean sab_beh_block_vs_attack(gentity_t* blocker, gentity_t* attacker, int saberNum, int bladeNum, vec3_t hit_loc);
 extern qboolean BG_HopAnim(int anim);
 extern void WP_ForcePowerRegenerate(const gentity_t* self, int override_amt);
 extern qboolean PM_SaberInOverHeadSlash(saberMoveName_t saberMove);
 extern qboolean PM_SaberInBackAttack(saberMoveName_t saberMove);
-qboolean WP_DoingForcedAnimationForForcePowers(const gentity_t* self);
 void WP_thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* trace);
 qboolean WP_SaberCanBlockThrownSaber(gentity_t* self, vec3_t point, qboolean projectile);
 void G_Beskar_Attack_Bounce(const gentity_t* self, gentity_t* other);
+extern qboolean BG_SaberSprintAnim(int anim);
+
 qboolean WP_saberCheckKnockdown_Thrown(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other);
 qboolean WP_saberCheckKnockdown_Smashed(gentity_t* saberent, gentity_t* saberOwner, const gentity_t* other, int damage);
 
@@ -551,80 +551,102 @@ qboolean G_CanBeEnemy(const gentity_t* self, const gentity_t* enemy)
 //This function gets the attack power which is used to decide broken parries,
 //knockaways, and numerous other things. It is not directly related to the
 //actual amount of damage done, however. -rww
-static QINLINE int g_saber_attack_power(gentity_t* ent, qboolean attacking)
+static QINLINE int g_saber_attack_power(gentity_t* ent, const qboolean attacking)
 {
 	assert(ent && ent->client);
 
-	playerState_t* ps = &ent->client->ps;
-	int base_level = ps->fd.saberAnimLevel;
+	int base_level = ent->client->ps.fd.saberAnimLevel;
 
-	// Dual and staff count as medium strength
-	if (base_level == SS_DUAL || base_level == SS_STAFF)
-		base_level = SS_MEDIUM;
+	//Give "medium" strength for the two special stances.
+	if (base_level == SS_DUAL)
+	{
+		base_level = 2;
+	}
+	else if (base_level == SS_STAFF)
+	{
+		base_level = 2;
+	}
 
-	// Attacking bonus
 	if (attacking)
 	{
-		base_level = base_level * 2 + 1;
+		//the attacker gets a boost to help penetrate defense.
+		//General boost up so the individual levels make a bigger difference.
+		base_level *= 2;
 
-		// Swing speed bonus
+		base_level++;
+
+		//Get the "speed" of the swing, roughly, and add more power
+		//to the attack based on it.
 		if (ent->client->lastSaberStorageTime >= level.time - 50 &&
 			ent->client->olderIsValid)
 		{
-			int tolerance = 16; // default
+			vec3_t v_sub;
+			int tolerance_amt;
 
-			switch (ps->fd.saberAnimLevel)
+			//We want different "tolerance" levels for adding in the distance of the last swing
+			//to the base power level depending on which stance we are using. Otherwise fast
+			//would have more advantage than it should since the animations are all much faster.
+			switch (ent->client->ps.fd.saberAnimLevel)
 			{
-			case SS_STRONG: tolerance = 8;  break;
-			case SS_MEDIUM: tolerance = 16; break;
-			case SS_FAST:   tolerance = 24; break;
-			default:        tolerance = 16; break;
+			case SS_STRONG:
+				tolerance_amt = 8;
+				break;
+			case SS_MEDIUM:
+				tolerance_amt = 16;
+				break;
+			case SS_FAST:
+				tolerance_amt = 24;
+				break;
+			default: //dual, staff, etc.
+				tolerance_amt = 16;
+				break;
 			}
 
-			vec3_t delta;
-			VectorSubtract(ent->client->lastSaberBase_Always,
-				ent->client->olderSaberBase,
-				delta);
-
-			int swing_dist = (int)VectorLength(delta);
+			VectorSubtract(ent->client->lastSaberBase_Always, ent->client->olderSaberBase, v_sub);
+			int swing_dist = (int)VectorLength(v_sub);
 
 			while (swing_dist > 0)
 			{
+				//I would like to do something more clever. But I suppose this works, at least for now.
 				base_level++;
-				swing_dist -= tolerance;
+				swing_dist -= tolerance_amt;
 			}
 		}
 
 #ifndef FINAL_BUILD
 		if (g_saberDebugPrint.integer > 1)
 		{
-			Com_Printf("Client %i: ATT STR: %i\n", ent->s.number, base_level);
+			Com_Printf("Client %i: ATT STR: %i\n", ent->s.number, baseLevel);
 		}
 #endif
 	}
 
-	// Broken arm penalty
-	if ((ps->brokenLimbs & (1 << BROKENLIMB_RARM)) ||
-		(ps->brokenLimbs & (1 << BROKENLIMB_LARM)))
+	if (ent->client->ps.brokenLimbs & 1 << BROKENLIMB_RARM || ent->client->ps.brokenLimbs & 1 <<
+		BROKENLIMB_LARM)
 	{
-		base_level = (int)(base_level * 0.3f);
+		//We're very weak when one of our arms is broken
+		base_level *= 0.3;
 	}
 
-	// Clamp
+	//Cap at reasonable values now.
 	if (base_level < 1)
+	{
 		base_level = 1;
+	}
 	else if (base_level > 16)
+	{
 		base_level = 16;
+	}
 
-	// Gametype modifiers
 	if (level.gametype == GT_POWERDUEL &&
 		ent->client->sess.duelTeam == DUELTEAM_LONE)
 	{
+		//get more power then
 		return base_level * 2;
 	}
-
 	if (attacking && level.gametype == GT_SIEGE)
 	{
+		//in siege, saber battles should be quicker and more biased toward the attacker
 		return base_level * 3;
 	}
 
@@ -633,9 +655,9 @@ static QINLINE int g_saber_attack_power(gentity_t* ent, qboolean attacking)
 
 void WP_DeactivateSaber(gentity_t* self)
 {
-	const qboolean blocking = ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
+	const qboolean blocking = ((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0) ? qtrue : qfalse;
 	//Normal Blocking
-	const qboolean is_holding_block_button_and_attack = ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
+	const qboolean is_holding_block_button_and_attack = ((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCKANDATTACK) != 0) ? qtrue : qfalse;
 	//Active Blocking
 
 	if (!self || !self->client)
@@ -647,9 +669,9 @@ void WP_DeactivateSaber(gentity_t* self)
 	{
 		return;
 	}
-	self->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
-	self->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
-	self->client->ps.ManualBlockingFlags &= ~(1 << PERFECTBLOCKING);
+	self->client->ps.ManualBlockingFlags &= ~(1 << MBF_HOLDINGBLOCK);
+	self->client->ps.ManualBlockingFlags &= ~(1 << MBF_HOLDINGBLOCKANDATTACK);
+	self->client->ps.ManualBlockingFlags &= ~(1 << MBF_PERFECTBLOCKING);
 	self->client->ps.ManualBlockingFlags &= ~(1 << MBF_NPCBLOCKING);
 	//keep my saber off!
 	if (!self->client->ps.saberHolstered)
@@ -707,6 +729,7 @@ void WP_ActivateSaber(gentity_t* self)
 }
 
 #define PROPER_THROWN_VALUE 999 //Ah, well..
+
 void WP_SaberUpdateSelf(gentity_t* ent)
 {
 	//  ent must exist
@@ -1027,29 +1050,13 @@ void wp_saber_init_blade_data(const gentity_t* ent)
 	//should we happen to be removed (we belong to an NPC and he is removed) then
 	//we want to attempt to remove our g2 instance on the client in case we had one.
 
-	saberent->touch = WP_SaberGotHit;saberent->think = WP_SaberUpdateSelf;
+	saberent->touch = WP_SaberGotHit;
+
+	saberent->think = WP_SaberUpdateSelf;
 	saberent->genericValue5 = 0;
 	saberent->nextthink = level.time + 50;
 
-	if (ent->client->saber[0].type == SABER_SITH_SWORD)
-	{
-		saberSpinSound = G_SoundIndex("sound/weapons/saber/saberspinoff.wav");
-	}
-	else
-	{
-		switch (ent->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
-		{//set the saber spin sound based on saber throw level
-		case FORCE_LEVEL_1:
-			saberSpinSound = G_SoundIndex("sound/weapons/saber/saberspin3.wav");
-			break;
-		case FORCE_LEVEL_2:
-			saberSpinSound = G_SoundIndex("sound/weapons/saber/saberspin2.wav");
-			break;
-		case FORCE_LEVEL_3:
-			saberSpinSound = G_SoundIndex("sound/weapons/saber/saberspin1.wav");
-			break;
-		}
-	}
+	saberSpinSound = G_SoundIndex("sound/weapons/saber/saberspin.wav");
 }
 
 #define LOOK_DEFAULT_SPEED	0.15f
@@ -1138,120 +1145,160 @@ void NPC_SetBoneAngles(gentity_t* ent, const char* bone, vec3_t angles);
 
 static QINLINE void G_G2NPCAngles(gentity_t* ent, matrix3_t legs, vec3_t angles)
 {
-	if (!ent || !ent->client)
+	//===========================
+	// Safety: validate pointers
+	//===========================
+	if (!ent)
 	{
-		return;
+		return; // cannot operate on NULL entity
 	}
-	if (ent->client)
+
+	if (!ent->client)
 	{
-		if (ent->client->NPC_class == CLASS_PROBE
-			|| ent->client->NPC_class == CLASS_R2D2
-			|| ent->client->NPC_class == CLASS_R5D2
-			|| ent->client->NPC_class == CLASS_ATST)
+		return; // no client data → nothing to animate
+	}
+
+	//===========================
+	// Only certain NPC classes use this logic
+	//===========================
+	const int npcClass = ent->client->NPC_class;
+
+	if (npcClass != CLASS_PROBE &&
+		npcClass != CLASS_R2D2 &&
+		npcClass != CLASS_R5D2 &&
+		npcClass != CLASS_ATST)
+	{
+		return; // other classes do not use this bone‑angle logic
+	}
+
+	//===========================
+	// Local working variables
+	//===========================
+	vec3_t trailing_legs_angles = { 0.0f, 0.0f, 0.0f };
+	vec3_t look_angles;
+	vec3_t view_angles;
+
+	const char* cranium_bone = "cranium";
+
+	//===========================
+	// Determine base angles
+	//===========================
+	if (ent->s.eType == ET_NPC &&
+		ent->s.m_iVehicleNum != 0 &&
+		ent->s.NPC_class != CLASS_VEHICLE)
+	{
+		// NPC bolted to a vehicle uses full body angles
+		VectorCopy(ent->r.currentAngles, angles);
+	}
+	else
+	{
+		// Otherwise use view yaw only
+		VectorCopy(ent->client->ps.viewangles, angles);
+		angles[PITCH] = 0.0f;
+	}
+
+	//===========================
+	// Prepare view → look angles
+	//===========================
+	VectorCopy(ent->client->ps.viewangles, view_angles);
+	view_angles[PITCH] *= 0.5f; // droids pitch slower
+	VectorCopy(view_angles, look_angles);
+
+	// Droids cannot roll or pitch their head
+	look_angles[PITCH] = 0.0f;
+	look_angles[ROLL] = 0.0f;
+
+	//===========================
+	// AT‑ST special torso pitch
+	//===========================
+	if (npcClass == CLASS_ATST)
+	{
+		const char* thoracic_bone = "thoracic";
+		NPC_SetBoneAngles(ent, thoracic_bone, look_angles);
+	}
+
+	//===========================
+	// AT‑ST trailing legs logic
+	//===========================
+	if (npcClass == CLASS_ATST)
+	{
+		AnglesToAxis(trailing_legs_angles, legs);
+	}
+	else
+	{
+		// FIXME: original comment preserved
+		// needs proper legs.yawing handling
+	}
+
+	//===========================
+	// Look‑target smoothing
+	//===========================
+	{
+		float looking_speed = 0.3f;
+		const qboolean looking = (G_CheckLookTarget(ent, look_angles, &looking_speed)) ? qtrue : qfalse;
+
+		// Droids cannot pitch or roll
+		look_angles[PITCH] = 0.0f;
+		look_angles[ROLL] = 0.0f;
+
+		if (looking == qtrue)
 		{
-			vec3_t trailing_legs_angles = { 0 };
-			vec3_t look_angles;
-			vec3_t view_angles;
-			const char* cranium_bone = "cranium";
-			if (ent->s.eType == ET_NPC &&
-				ent->s.m_iVehicleNum &&
-				ent->s.NPC_class != CLASS_VEHICLE)
-			{
-				//an NPC bolted to a vehicle should use the full angles
-				VectorCopy(ent->r.currentAngles, angles);
-			}
-			else
-			{
-				VectorCopy(ent->client->ps.viewangles, angles);
-				angles[PITCH] = 0;
-			}
-
-			VectorCopy(ent->client->ps.viewangles, view_angles);
-			//			viewAngles[YAW] = viewAngles[ROLL] = 0;
-			view_angles[PITCH] *= 0.5;
-			VectorCopy(view_angles, look_angles);
-
-			look_angles[1] = 0;
-
-			if (ent->client->NPC_class == CLASS_ATST)
-			{
-				const char* thoracic_bone = "thoracic";
-				//body pitch
-				NPC_SetBoneAngles(ent, thoracic_bone, look_angles);
-			}
-
-			VectorCopy(view_angles, look_angles);
-
-			if (ent && ent->client && ent->client->NPC_class == CLASS_ATST)
-			{
-				AnglesToAxis(trailing_legs_angles, legs);
-			}
-			else
-			{
-				//FIXME: this needs to properly set the legs.yawing field so we don't erroneously play the turning anim, but we do play it when turning in place
-			}
-			{
-				float looking_speed = 0.3f;
-				const qboolean looking = G_CheckLookTarget(ent, look_angles, &looking_speed);
-				look_angles[PITCH] = look_angles[ROLL] = 0; //droids can't pitch or roll their heads
-				if (looking)
-				{
-					//want to keep doing this lerp behavior for a full second after stopped looking (so don't snap)
-					ent->client->renderInfo.lookingDebounceTime = level.time + 1000;
-				}
-			}
-
-			if (ent && ent->client)
-			{
-				if (ent->client->renderInfo.lookingDebounceTime > level.time)
-				{
-					//adjust for current body orientation
-					vec3_t old_look_angles;
-
-					look_angles[YAW] -= 0;
-					look_angles[YAW] = AngleNormalize180(look_angles[YAW]);
-
-					//slowly lerp to this new value
-					//Remember last headAngles
-					VectorCopy(ent->client->renderInfo.lastHeadAngles, old_look_angles);
-					if (VectorCompare(old_look_angles, look_angles) == qfalse)
-					{
-						look_angles[YAW] = old_look_angles[YAW] + (look_angles[YAW] - old_look_angles[YAW]) * 0.4f;
-					}
-					//Remember current lookAngles next time
-					VectorCopy(look_angles, ent->client->renderInfo.lastHeadAngles);
-				}
-				else
-				{
-					//Remember current lookAngles next time
-					VectorCopy(look_angles, ent->client->renderInfo.lastHeadAngles);
-				}
-			}
-			if (ent && ent->client && ent->client->NPC_class == CLASS_ATST)
-			{
-				VectorCopy(ent->client->ps.viewangles, look_angles);
-				look_angles[0] = look_angles[2] = 0;
-				look_angles[YAW] -= trailing_legs_angles[YAW];
-			}
-			else if (ent && ent->client)
-			{
-				look_angles[PITCH] = look_angles[ROLL] = 0;
-				look_angles[YAW] -= ent->client->ps.viewangles[YAW];
-			}
-			else
-			{
-				// absolute safety fallback
-				look_angles[PITCH] = look_angles[ROLL] = 0;
-				// leave YAW unchanged
-			}
-
-			NPC_SetBoneAngles(ent, cranium_bone, look_angles);
-		}
-		else
-		{
-			//return;
+			// Keep smoothing active for 1 second after losing target
+			ent->client->renderInfo.lookingDebounceTime = level.time + 1000;
 		}
 	}
+
+	//===========================
+	// Smooth head turning
+	//===========================
+	if (ent->client->renderInfo.lookingDebounceTime > level.time)
+	{
+		vec3_t old_look_angles;
+		VectorCopy(ent->client->renderInfo.lastHeadAngles, old_look_angles);
+
+		// Normalize yaw
+		look_angles[YAW] = AngleNormalize180(look_angles[YAW]);
+
+		// Lerp toward new yaw
+		if (VectorCompare(old_look_angles, look_angles) == qfalse)
+		{
+			look_angles[YAW] =
+				old_look_angles[YAW] +
+				(look_angles[YAW] - old_look_angles[YAW]) * 0.4f;
+		}
+
+		// Store for next frame
+		VectorCopy(look_angles, ent->client->renderInfo.lastHeadAngles);
+	}
+	else
+	{
+		// No smoothing needed
+		VectorCopy(look_angles, ent->client->renderInfo.lastHeadAngles);
+	}
+
+	//===========================
+	// Final yaw adjustments
+	//===========================
+	if (npcClass == CLASS_ATST)
+	{
+		// AT‑ST head yaw relative to leg yaw
+		VectorCopy(ent->client->ps.viewangles, look_angles);
+		look_angles[PITCH] = 0.0f;
+		look_angles[ROLL] = 0.0f;
+		look_angles[YAW] -= trailing_legs_angles[YAW];
+	}
+	else
+	{
+		// Other droids: yaw relative to body yaw
+		look_angles[PITCH] = 0.0f;
+		look_angles[ROLL] = 0.0f;
+		look_angles[YAW] -= ent->client->ps.viewangles[YAW];
+	}
+
+	//===========================
+	// Apply final head angles
+	//===========================
+	NPC_SetBoneAngles(ent, cranium_bone, look_angles);
 }
 
 static QINLINE void G_G2PlayerAngles(gentity_t* ent, matrix3_t legs, vec3_t legs_angles)
@@ -1429,7 +1476,7 @@ static QINLINE void G_G2PlayerAngles(gentity_t* ent, matrix3_t legs, vec3_t legs
 	}
 }
 
-static qboolean SaberAttacking(const gentity_t* self)
+static qboolean WP_SaberAttacking(const gentity_t* self)
 {
 	if (PM_SaberInParry(self->client->ps.saberMove))
 	{
@@ -1485,7 +1532,7 @@ typedef enum
 	LOCK_KYLE_GRAB2,
 	LOCK_KYLE_GRAB3,
 	LOCK_FORCE_DRAIN
-} saberslock_mode_t;
+} sabersLockMode_t;
 
 #define LOCK_IDEAL_DIST_TOP 32.0f
 #define LOCK_IDEAL_DIST_CIRCLE 48.0f
@@ -1620,14 +1667,16 @@ static int G_SaberLockAnim(const int attacker_saber_style, const int defender_sa
 extern qboolean BG_CheckIncrementLockAnim(int anim, int win_or_lose); //bg_saber.c
 #define LOCK_IDEAL_DIST_JKA 46.0f//all of the new saberlocks are 46.08 from each other because Richard Lico is da MAN
 
-static QINLINE qboolean WP_SabersCheckLock2(gentity_t* attacker, gentity_t* defender, saberslock_mode_t lockMode)
+static QINLINE qboolean WP_SabersCheckLock2(gentity_t* attacker, gentity_t* defender, sabersLockMode_t lockMode)
 {
 	int attAnim, defAnim = 0;
 	float attStart = 0.5f, defStart = 0.5f;
 	float ideal_dist = 48.0f;
-	vec3_t att_angles, def_angles = { 0 }, def_dir;
-	vec3_t new_org;
-	vec3_t att_dir;
+	vec3_t att_angles = { 0, 0, 0 };
+	vec3_t def_dir = { 0, 0, 0 };
+	vec3_t def_angles = { 0, 0, 0 };
+	vec3_t new_org = { 0, 0, 0 };
+	vec3_t att_dir = { 0, 0, 0 };
 	float diff = 0;
 	trace_t trace;
 
@@ -1675,7 +1724,7 @@ static QINLINE qboolean WP_SabersCheckLock2(gentity_t* attacker, gentity_t* defe
 
 		if (lockMode == LOCK_RANDOM)
 		{
-			lockMode = (saberslock_mode_t)Q_irand(LOCK_FIRST, LOCK_RANDOM - 1);
+			lockMode = (sabersLockMode_t)Q_irand(LOCK_FIRST, LOCK_RANDOM - 1);
 		}
 		if (attacker->client->ps.fd.saberAnimLevel >= SS_FAST
 			&& attacker->client->ps.fd.saberAnimLevel <= SS_TAVION
@@ -2143,7 +2192,7 @@ static void G_SaberBounce(const gentity_t* attacker, gentity_t* victim)
 		return;
 	}
 
-	if (attacker->s.number >= MAX_CLIENTS && !G_ControlledByPlayer(attacker))
+	if (attacker->r.svFlags & SVF_BOT)
 	{
 		return;
 	}
@@ -2152,7 +2201,7 @@ static void G_SaberBounce(const gentity_t* attacker, gentity_t* victim)
 	{
 		if (!PM_SaberInSpecialAttack(attacker->client->ps.torsoAnim))
 		{
-			if (SaberAttacking(attacker))
+			if (WP_SaberAttacking(attacker))
 			{
 				// Saber is in attack, use bounce for this attack.
 				attacker->client->ps.saberMove = PM_SaberBounceForAttack(attacker->client->ps.saberMove);
@@ -2170,31 +2219,6 @@ static void G_SaberBounce(const gentity_t* attacker, gentity_t* victim)
 extern int pm_saber_deflection_for_quad(int quad);
 
 extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
-
-static int G_KnockawayForParry(const int move)
-{
-	switch (move)
-	{
-	case LS_REFLECT_ATTACK_FRONT:
-	case LS_PARRY_FRONT:
-	case LS_PARRY_WALK:
-	case LS_PARRY_WALK_DUAL:
-	case LS_PARRY_WALK_STAFF:
-	case LS_PARRY_UP:
-		return LS_K1_T_; //push up
-	case LS_REFLECT_ATTACK_RIGHT:
-	case LS_PARRY_UR:
-	default:
-		return LS_K1_TR; //push up, slightly to right
-	case LS_REFLECT_ATTACK_LEFT:
-	case LS_PARRY_UL:
-		return LS_K1_TL; //push up and to left
-	case LS_PARRY_LR:
-		return LS_K1_BR; //push down and to left
-	case LS_PARRY_LL:
-		return LS_K1_BL; //push down and to right
-	}
-}
 
 #define SABER_NO_DAMAGE 0
 #define SABER_BLOCKING_DAMAGE 0.5
@@ -2651,8 +2675,8 @@ static void trace_clear(trace_t* tr, const vec3_t end)
 }
 
 // check for collision of 2 blades -rww
-qboolean WP_SaberIsOff(const gentity_t* self, int saber_num);
-qboolean WP_BladeIsOff(const gentity_t* self, int saber_num, int blade_num);
+qboolean WP_SaberIsOff(const gentity_t* self, int saberNum);
+qboolean WP_BladeIsOff(const gentity_t* self, int saberNum, int bladeNum);
 
 static qboolean g_saber_collide(
 	gentity_t* atk,
@@ -2810,22 +2834,6 @@ int BasicWeaponBlockCosts[MOD_MAX] =
 	20, //MOD_TRIP_MINE_SPLASH,
 	20, //MOD_TIMED_MINE_SPLASH,
 	20, //MOD_DET_PACK_SPLASH,
-
-	20, //MOD_BATTLEDROID,
-	20, //MOD_THEFIRSTORDER,
-	20, //MOD_CLONECARBINE,
-	20, //MOD_REBELBLASTER,
-	20, //MOD_CLONERIFLE,
-	20, //MOD_CLONECOMMANDO,
-	20, //MOD_Z6_ROTARY_CANNON,
-	20, //MOD_REBELRIFLE,
-	20, //MOD_REY,
-	10, //MOD_REY_ALT,
-	20, //MOD_JANGO,
-	20, //MOD_BOBA,
-	20, //MOD_CLONEPISTOL,
-	10, //MOD_CLONEPISTOL_ALT,
-
 	-1, //MOD_VEHICLE,
 	20, //MOD_CONC,
 	20, //MOD_CONC_ALT,
@@ -2921,11 +2929,7 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 			const int actWpn = attacker->activator->s.weapon;
 
 			if (actWpn == WP_BRYAR_PISTOL ||
-				actWpn == WP_BRYAR_OLD ||
-				actWpn == WP_REY ||
-				actWpn == WP_JANGO ||
-				actWpn == WP_BOBA ||
-				actWpn == WP_CLONEPISTOL)
+				actWpn == WP_BRYAR_OLD)
 			{
 				saber_block_cost = 4.0f;
 			}
@@ -3009,16 +3013,18 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 				saber_block_cost = DODGE_TUSKENBLOCK * 3.0f;
 			}
 			// Repeater
-			else if (actWpn == WP_REPEATER || actWpn == WP_Z6_ROTARY_CANNON)
+			else if (actWpn == WP_REPEATER)
 			{
 				saber_block_cost = DODGE_REPEATERBLOCK;
 			}
 			// General projectile logic
-			else if (actWpn == WP_BRYAR_PISTOL ||
+			else if (
+				actWpn == WP_BRYAR_PISTOL ||
 				actWpn == WP_BRYAR_OLD ||
 				actWpn == WP_EMPLACED_GUN)
 			{
-				const float distance = VectorBlockDistance(attacker->activator->r.currentOrigin, defender->r.currentOrigin);
+				const float distance = VectorBlockDistance(attacker->activator->r.currentOrigin,
+					defender->r.currentOrigin);
 
 				if (distance <= 125.0f)
 				{
@@ -3034,10 +3040,7 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 				}
 			}
 			// Blaster rifle
-			else if (actWpn == WP_BLASTER ||
-				actWpn == WP_BATTLEDROID ||
-				actWpn == WP_REBELBLASTER ||
-				actWpn == WP_REBELRIFLE)
+			else if (actWpn == WP_BLASTER)
 			{
 				saber_block_cost = 2.5f;
 			}
@@ -3094,8 +3097,7 @@ int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit
 	//===========================================================
 	else
 	{
-		const qboolean fakeAttack =
-			((attacker->client->ps.userInt3 & (1 << FLAG_ATTACKFAKE)) != 0) ? qtrue : qfalse;
+		const qboolean fakeAttack = ((attacker->client->ps.userInt3 & (1 << FLAG_ATTACKFAKE)) != 0) ? qtrue : qfalse;
 
 		if (fakeAttack == qtrue)
 		{
@@ -3239,18 +3241,12 @@ qboolean wp_using_dual_saber_as_primary(const playerState_t* ps);
 
 static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboolean check_b_box_block, vec3_t point, const int rSaberNum, const int rBladeNum)
 {
-	// ------------------------------------------------------------
-	// BASIC SAFETY CHECKS
-	// ------------------------------------------------------------
 	if (!self || !self->client || !atk)
 	{
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// PROJECTILES THAT CAN NEVER BE BLOCKED
-	// ------------------------------------------------------------
-	if (atk->s.eType == ET_MISSILE &&
+	if (atk && atk->s.eType == ET_MISSILE &&
 		(atk->s.weapon == WP_ROCKET_LAUNCHER ||
 			atk->s.weapon == WP_THERMAL ||
 			atk->s.weapon == WP_TRIP_MINE ||
@@ -3260,27 +3256,21 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 			atk->methodOfDeath == MOD_CONC_ALT ||
 			atk->methodOfDeath == MOD_FLECHETTE_ALT_SPLASH))
 	{
+		//can't block this stuff with a saber
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// CAN'T BLOCK DURING MASSIVE BOUNCE ANIM
-	// ------------------------------------------------------------
-	if (self->client->MassiveBounceAnimTime > level.time)
+	if (self && self->client && self->client->MassiveBounceAnimTime > level.time)
 	{
 		return 0;
 	}
 
-	if (!PM_SaberInKata(self->client->ps.saberMove))
+	if (PM_SaberInKata(self->client->ps.saberMove))
 	{
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// MANUAL BLOCK IS REQUIRED (your rule)
-	// ------------------------------------------------------------
-
-	if (!((self->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK) != 0))
+	if (!(((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0)))
 	{
 		// Bots cheat-block here
 		if (self->r.svFlags & SVF_BOT)
@@ -3297,16 +3287,15 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// STATES WHERE BLOCKING IS NOT ALLOWED
-	// ------------------------------------------------------------
 	if (PM_InGrappleMove(self->client->ps.torsoAnim))
 	{
+		//you can't block while doing a melee move.
 		return 0;
 	}
 
 	if (PM_SaberInBrokenParry(self->client->ps.saberMove))
 	{
+		//you've been stunned from a broken parry
 		return 0;
 	}
 
@@ -3320,32 +3309,26 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// SABER MUST BE PRESENT AND ACTIVE
-	// ------------------------------------------------------------
 	if (self->client->ps.weapon != WP_SABER ||
 		self->client->ps.weapon == WP_NONE ||
-		self->client->ps.weapon == WP_MELEE)
+		self->client->ps.weapon == WP_MELEE) //saber not here
 	{
 		return 0;
 	}
 
-	if (self->client->ps.saberInFlight)
+	if (self->client->ps.weapon == WP_SABER) //saber not here
 	{
-		return 0;
-	}
-
-	if (!self->client->ps.saberEntityNum || self->client->ps.saberInFlight)
-	{
-		if (!wp_using_dual_saber_as_primary(&self->client->ps))
+		if (!self->client->ps.saberEntityNum || self->client->ps.saberInFlight)
 		{
-			return 0;
+			//our saber is currently dropped or in flight.
+			if (!wp_using_dual_saber_as_primary(&self->client->ps))
+			{
+				//don't have a saber to block with
+				return 0;
+			}
 		}
 	}
 
-	// ------------------------------------------------------------
-	// CAN'T BLOCK WHILE RAISING WEAPON
-	// ------------------------------------------------------------
 	if (self->client->ps.weaponstate == WEAPON_RAISING)
 	{
 		// Bots cheat-block here
@@ -3363,29 +3346,21 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// CAN'T BLOCK WHILE RUNNING IN FORCE SPEED
-	// ------------------------------------------------------------
 	if (!WalkCheck(self) &&
 		(self->client->ps.fd.forcePowersActive & (1 << FP_SPEED)))
 	{
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// CAN'T BLOCK WHILE KNOCKED DOWN
-	// ------------------------------------------------------------
 	if (PM_InKnockDown(&self->client->ps))
 	{
+		//can't block while knocked down or getting up from knockdown.
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// ATTACKER IS USING A SABER
-	// ------------------------------------------------------------
-	if (atk->client && atk->client->ps.weapon == WP_SABER)
+	if (atk && atk->client && atk->client->ps.weapon == WP_SABER)
 	{
-		// Attacker must be in a damaging move
+		//player is attacking with saber
 		if (!PM_SaberInNonIdleDamageMove(&atk->client->ps, atk->localAnimIndex))
 		{
 			// Bots cheat-block here
@@ -3403,7 +3378,6 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 			return 0;
 		}
 
-		// Can't block lunge/spin while fatigued
 		if ((atk->client->ps.saberMove == LS_A_LUNGE ||
 			atk->client->ps.saberMove == LS_SPINATTACK ||
 			atk->client->ps.saberMove == LS_SPINATTACK_DUAL ||
@@ -3411,13 +3385,14 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 			atk->client->ps.saberMove == LS_GRIEVOUS_SPECIAL) &&
 			(self->client->ps.userInt3 & (1 << FLAG_FATIGUED)))
 		{
+			//saber attacker, we can't block lunge attacks while fatigued.
 			return 0;
 		}
 
-		// Can't block superbreak if low block points
 		if (PM_SuperBreakWinAnim(atk->client->ps.torsoAnim) &&
 			self->client->ps.fd.blockPoints < BLOCKPOINTS_THIRTY)
 		{
+			//can't block super breaks when in critical fp.
 			return 0;
 		}
 
@@ -3434,17 +3409,12 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 		}
 	}
 
-	// ------------------------------------------------------------
-	// CAN'T BLOCK WHILE IN MASSIVE BOUNCE OR BASHED
-	// ------------------------------------------------------------
 	if (PM_SaberInMassiveBounce(self->client->ps.torsoAnim) || PM_SaberInBashedAnim(self->client->ps.torsoAnim))
 	{
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// BLOCK POINTS CHECK
-	// ------------------------------------------------------------
+	//check to see if we have the force to do this.
 	if (self->client->ps.fd.blockPoints < WP_SaberBlockCost(self, atk, point))
 	{
 		// Bots cheat-block here
@@ -3462,75 +3432,62 @@ static int wp_saber_must_block(gentity_t* self, const gentity_t* atk, const qboo
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// ALLOW BLOCKING FROM BEHIND
-	// ------------------------------------------------------------
-	if (!InFront(point,
-		self->client->ps.origin,
-		self->client->ps.viewangles,
-		-0.7f))
+	// allow for blocking behind our backs
+	if (!InFront(point, self->client->ps.origin, self->client->ps.viewangles, -0.7f))
 	{
 		return 1;
 	}
 
-	// ------------------------------------------------------------
-	// OPTIONAL: SKIP BBOX BLOCK CHECK
-	// ------------------------------------------------------------
 	if (!check_b_box_block)
 	{
+		//don't do the additional checkBBoxBlock checks.  As such, we're safe to saber block.
 		return 1;
 	}
 
-	// ------------------------------------------------------------
-	// SUPERBREAK WINS CAN'T BE BOX-BLOCKED
-	// ------------------------------------------------------------
-	if (atk->client &&
+	if (atk &&
+		atk->client &&
 		atk->client->ps.weapon == WP_SABER &&
 		PM_SuperBreakWinAnim(atk->client->ps.torsoAnim))
 	{
+		//never box block saberlock super break wins, it looks weird.
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// NO HIT POSITION → CAN'T CHECK SABER MOVEMENT
-	// ------------------------------------------------------------
 	if (VectorCompare(point, vec3_origin))
 	{
+		//no hit position given, can't do blade movement check.
 		return 0;
 	}
 
-	// ------------------------------------------------------------
-	// SABER MOVEMENT DIRECTION CHECK
-	// ------------------------------------------------------------
-	if (atk->client && rSaberNum != -1 && rBladeNum != -1)
+	if (atk && atk->client && rSaberNum != -1 && rBladeNum != -1)
 	{
 		vec3_t saber_move_dir;
 		vec3_t dir_to_body;
-		vec3_t body_max, body_min;
+		vec3_t body_max;
+		vec3_t body_min;
 		vec3_t closest_body_point;
+		//player attacker, if they are here they're using their saber to attack.
+		//Check to make sure that we only block the blade if it is moving towards the player
 
-		// Build vertical line segment through defender
+		//create a line seqment thru the center of the player.
 		VectorCopy(self->client->ps.origin, body_min);
 		VectorCopy(self->client->ps.origin, body_max);
 
 		body_max[2] += self->r.maxs[2];
 		body_min[2] -= self->r.mins[2];
 
-		// Closest point on defender's vertical axis
+		//find dirToBody
 		G_FindClosestPointOnLineSegment(body_min, body_max, point, closest_body_point);
 
-		// Direction from saber hit point to defender body
 		VectorSubtract(closest_body_point, point, dir_to_body);
 
-		// Saber movement direction
-		VectorSubtract(
-			atk->client->saber[rSaberNum].blade[rBladeNum].muzzlePoint,
-			atk->client->saber[rSaberNum].blade[rBladeNum].muzzlePointOld,
-			saber_move_dir);
+		//find current saber movement direction of the attacker
+		VectorSubtract(atk->client->saber[rSaberNum].blade[rBladeNum].muzzlePoint,
+			atk->client->saber[rSaberNum].blade[rBladeNum].muzzlePointOld, saber_move_dir);
 
-		// If saber is moving away from defender → no block
 		if (DotProduct(dir_to_body, saber_move_dir) < 0)
 		{
+			//saber is moving away from defender
 			return 0;
 		}
 	}
@@ -3679,7 +3636,7 @@ int wp_player_must_dodge(const gentity_t* self, const gentity_t* shooter)
 		return qfalse;
 	}
 
-	if ((self->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK) != 0)
+	if (((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0))
 	{
 		return qfalse;
 	}
@@ -3687,15 +3644,11 @@ int wp_player_must_dodge(const gentity_t* self, const gentity_t* shooter)
 	return qtrue;
 }
 
-int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, const qboolean check_b_box_block, vec3_t point, const int rSaberNum, const int rBladeNum)
+int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, const qboolean check_b_box_block, vec3_t point,
+	const int rSaberNum, const int rBladeNum)
 {
 	if (!self || !self->client || !atk)
 	{
-		return 0;
-	}
-
-	if (PM_SaberInMassiveBounce(self->client->ps.torsoAnim))
-	{ // you can't block while in a massive bounce.
 		return 0;
 	}
 
@@ -3718,12 +3671,18 @@ int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, const qboolean 
 		return 0;
 	}
 
-	if (!((self->client->ps.ManualBlockingFlags & 1 << HOLDINGBLOCK) != 0))
+	if (PM_SaberInMassiveBounce(self->client->ps.torsoAnim) || PM_SaberInBashedAnim(self->client->ps.torsoAnim))
+	{
+		return 0;
+	}
+
+	if (!(((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0)))
 	{
 		if (self->r.svFlags & SVF_BOT)
 		{
 			//bots just randomly parry to make up for them not intelligently parrying.
-			if (manual_saberblocking(self))
+			if (self->client->ps.weapon == WP_SABER && !BG_SabersOff(&self->client->ps) && !self->client->ps.
+				saberInFlight)
 			{
 				return 1;
 			}
@@ -3767,7 +3726,8 @@ int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, const qboolean 
 		if (self->r.svFlags & SVF_BOT)
 		{
 			//bots just randomly parry to make up for them not intelligently parrying.
-			if (manual_saberblocking(self))
+			if (self->client->ps.weapon == WP_SABER && !BG_SabersOff(&self->client->ps) && !self->client->ps.
+				saberInFlight)
 			{
 				return 1;
 			}
@@ -3779,12 +3739,6 @@ int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, const qboolean 
 	if (!WalkCheck(self) && self->client->ps.fd.forcePowersActive & 1 << FP_SPEED)
 	{
 		//can't block while running in force speed.
-		return 0;
-	}
-
-	if (PM_SaberInMassiveBounce(self->client->ps.torsoAnim) || PM_SaberInBashedAnim(self->client->ps.torsoAnim))
-	{
-		// can't block in a stagger animation
 		return 0;
 	}
 
@@ -3803,7 +3757,8 @@ int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, const qboolean 
 			if (self->r.svFlags & SVF_BOT)
 			{
 				//bots just randomly parry to make up for them not intelligently parrying.
-				if (manual_saberblocking(self))
+				if (self->client->ps.weapon == WP_SABER && !BG_SabersOff(&self->client->ps) && !self->client->ps.
+					saberInFlight)
 				{
 					return 1;
 				}
@@ -3834,6 +3789,17 @@ int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, const qboolean 
 				|| PM_SaberInAttack(self->client->ps.saberMove)
 				|| PM_SaberInStart(self->client->ps.saberMove)))
 		{
+			//can't block saber swings while running and hit from behind or in swing.
+			if (self->r.svFlags & SVF_BOT)
+			{
+				//bots just randomly parry to make up for them not intelligently parrying.
+				if (self->client->ps.weapon == WP_SABER && !BG_SabersOff(&self->client->ps) && !self->client->ps.
+					saberInFlight)
+				{
+					return 1;
+				}
+				return 0;
+			}
 			return 0;
 		}
 	}
@@ -3844,7 +3810,8 @@ int WP_SaberMustBoltBlock(gentity_t* self, const gentity_t* atk, const qboolean 
 		if (self->r.svFlags & SVF_BOT)
 		{
 			//bots just randomly parry to make up for them not intelligently parrying.
-			if (manual_saberblocking(self))
+			if (self->client->ps.weapon == WP_SABER && !BG_SabersOff(&self->client->ps) && !self->client->ps.
+				saberInFlight)
 			{
 				return 1;
 			}
@@ -4049,7 +4016,7 @@ int g_real_trace(
 	vec3_t mins,
 	vec3_t maxs,
 	vec3_t end,
-	int pass_entity_num,
+	int passEntityNum,
 	int contentmask,
 	int rSaberNum,
 	int rBladeNum
@@ -4083,7 +4050,7 @@ int g_real_trace(
 			mins,
 			maxs,
 			end,
-			pass_entity_num,
+			passEntityNum,
 			contentmask,
 			qfalse,
 			0,
@@ -4257,7 +4224,7 @@ float wp_saber_length(const gentity_t* ent)
 	return best_len;
 }
 
-extern saberInfo_t* BG_MySaber(int clientNum, int saber_num);
+extern saberInfo_t* BG_MySaber(int clientNum, int saberNum);
 
 #define MAX_SABER_VICTIMS 8192
 static int victimentity_num[MAX_SABER_VICTIMS];
@@ -4284,7 +4251,7 @@ static void WP_SaberClearDamage(void)
 	numVictims = 0;
 }
 
-static void wp_saber_specific_do_hit(const gentity_t* self, const int saber_num, const int blade_num, const gentity_t* victim, vec3_t impactpoint, const int dmg)
+static void wp_saber_specific_do_hit(const gentity_t* self, const int saberNum, const int bladeNum, const gentity_t* victim, vec3_t impactpoint, const int dmg)
 {
 	qboolean is_droid = qfalse;
 
@@ -4320,8 +4287,8 @@ static void wp_saber_specific_do_hit(const gentity_t* self, const int saber_num,
 	{
 		te->s.otherentityNum = victim->s.number;
 		te->s.otherentityNum2 = self->s.number;
-		te->s.weapon = saber_num;
-		te->s.legsAnim = blade_num;
+		te->s.weapon = saberNum;
+		te->s.legsAnim = bladeNum;
 
 		VectorCopy(impactpoint, te->s.origin);
 		VectorScale(impactpoint, -1, te->s.angles);
@@ -4349,13 +4316,13 @@ static void wp_saber_specific_do_hit(const gentity_t* self, const int saber_num,
 		}
 		else
 		{
-			if (!WP_SaberBladeUseSecondBladeStyle(&self->client->saber[saber_num], blade_num)
-				&& self->client->saber[saber_num].saberFlags2 & SFL2_NO_CLASH_FLARE)
+			if (!WP_SaberBladeUseSecondBladeStyle(&self->client->saber[saberNum], bladeNum)
+				&& self->client->saber[saberNum].saberFlags2 & SFL2_NO_CLASH_FLARE)
 			{
 				//don't do clash flare
 			}
-			else if (WP_SaberBladeUseSecondBladeStyle(&self->client->saber[saber_num], blade_num)
-				&& self->client->saber[saber_num].saberFlags2 & SFL2_NO_CLASH_FLARE2)
+			else if (WP_SaberBladeUseSecondBladeStyle(&self->client->saber[saberNum], bladeNum)
+				&& self->client->saber[saberNum].saberFlags2 & SFL2_NO_CLASH_FLARE2)
 			{
 				//don't do clash flare
 			}
@@ -4382,7 +4349,7 @@ static int saberClashOther = -1; //the clientNum for the other player involved i
 static QINLINE void G_SetViewLock(const gentity_t* self, vec3_t impact_pos, vec3_t impact_normal);
 static QINLINE void G_SetViewLockDebounce(const gentity_t* self);
 
-static void WP_SaberDoClash(const gentity_t* self, const int saber_num, const int blade_num)
+static void WP_SaberDoClash(const gentity_t* self, const int saberNum, const int bladeNum)
 {
 	if (saberDoClashEffect)
 	{
@@ -4391,8 +4358,8 @@ static void WP_SaberDoClash(const gentity_t* self, const int saber_num, const in
 		VectorCopy(saberClashNorm, te->s.angles);
 		te->s.eventParm = saberClashEventParm;
 		te->s.otherentityNum2 = self->s.number;
-		te->s.weapon = saber_num;
-		te->s.legsAnim = blade_num;
+		te->s.weapon = saberNum;
+		te->s.legsAnim = bladeNum;
 
 		if (saberClashOther != -1 && PM_SaberInParry(g_entities[saberClashOther].client->ps.saberMove))
 		{
@@ -4408,33 +4375,33 @@ static void WP_SaberDoClash(const gentity_t* self, const int saber_num, const in
 	saberDoClashEffect = qfalse;
 }
 
-static void WP_SaberBounceSound(gentity_t* ent, const int saber_num, const int blade_num)
+static void WP_SaberBounceSound(gentity_t* ent, const int saberNum, const int bladeNum)
 {
 	if (!ent || !ent->client)
 	{
 		return;
 	}
 	const int index = Q_irand(1, 64);
-	if (!WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saber_num], blade_num)
-		&& ent->client->saber[saber_num].bounceSound[0])
+	if (!WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saberNum], bladeNum)
+		&& ent->client->saber[saberNum].bounceSound[0])
 	{
-		G_Sound(ent, CHAN_AUTO, ent->client->saber[saber_num].bounceSound[Q_irand(0, 2)]);
+		G_Sound(ent, CHAN_AUTO, ent->client->saber[saberNum].bounceSound[Q_irand(0, 2)]);
 	}
-	else if (WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saber_num], blade_num)
-		&& ent->client->saber[saber_num].bounce2Sound[0])
+	else if (WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saberNum], bladeNum)
+		&& ent->client->saber[saberNum].bounce2Sound[0])
 	{
-		G_Sound(ent, CHAN_AUTO, ent->client->saber[saber_num].bounce2Sound[Q_irand(0, 2)]);
+		G_Sound(ent, CHAN_AUTO, ent->client->saber[saberNum].bounce2Sound[Q_irand(0, 2)]);
 	}
 
-	else if (!WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saber_num], blade_num)
-		&& ent->client->saber[saber_num].blockSound[0])
+	else if (!WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saberNum], bladeNum)
+		&& ent->client->saber[saberNum].blockSound[0])
 	{
-		G_Sound(ent, CHAN_AUTO, ent->client->saber[saber_num].blockSound[Q_irand(0, 2)]);
+		G_Sound(ent, CHAN_AUTO, ent->client->saber[saberNum].blockSound[Q_irand(0, 2)]);
 	}
-	else if (WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saber_num], blade_num)
-		&& ent->client->saber[saber_num].block2Sound[0])
+	else if (WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saberNum], bladeNum)
+		&& ent->client->saber[saberNum].block2Sound[0])
 	{
-		G_Sound(ent, CHAN_AUTO, ent->client->saber[saber_num].block2Sound[Q_irand(0, 2)]);
+		G_Sound(ent, CHAN_AUTO, ent->client->saber[saberNum].block2Sound[Q_irand(0, 2)]);
 	}
 	else
 	{
@@ -4442,7 +4409,7 @@ static void WP_SaberBounceSound(gentity_t* ent, const int saber_num, const int b
 	}
 }
 
-static void WP_SaberBounceOnWallSound(gentity_t* ent, const int saber_num, const int blade_num)
+static void WP_SaberBounceOnWallSound(gentity_t* ent, const int saberNum, const int bladeNum)
 {
 	if (!ent || !ent->client)
 	{
@@ -4451,30 +4418,30 @@ static void WP_SaberBounceOnWallSound(gentity_t* ent, const int saber_num, const
 	const int index = Q_irand(1, 90);
 	const int classicindex = Q_irand(1, 30);
 
-	if (!WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saber_num], blade_num)
-		&& ent->client->saber[saber_num].bounceSound[0])
+	if (!WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saberNum], bladeNum)
+		&& ent->client->saber[saberNum].bounceSound[0])
 	{
-		G_Sound(ent, CHAN_AUTO, ent->client->saber[saber_num].bounceSound[Q_irand(0, 2)]);
+		G_Sound(ent, CHAN_AUTO, ent->client->saber[saberNum].bounceSound[Q_irand(0, 2)]);
 	}
-	else if (WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saber_num], blade_num)
-		&& ent->client->saber[saber_num].bounce2Sound[0])
+	else if (WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saberNum], bladeNum)
+		&& ent->client->saber[saberNum].bounce2Sound[0])
 	{
-		G_Sound(ent, CHAN_AUTO, ent->client->saber[saber_num].bounce2Sound[Q_irand(0, 2)]);
+		G_Sound(ent, CHAN_AUTO, ent->client->saber[saberNum].bounce2Sound[Q_irand(0, 2)]);
 	}
 
-	else if (!WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saber_num], blade_num)
-		&& ent->client->saber[saber_num].blockSound[0])
+	else if (!WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saberNum], bladeNum)
+		&& ent->client->saber[saberNum].blockSound[0])
 	{
-		G_Sound(ent, CHAN_AUTO, ent->client->saber[saber_num].blockSound[Q_irand(0, 2)]);
+		G_Sound(ent, CHAN_AUTO, ent->client->saber[saberNum].blockSound[Q_irand(0, 2)]);
 	}
-	else if (WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saber_num], blade_num)
-		&& ent->client->saber[saber_num].block2Sound[0])
+	else if (WP_SaberBladeUseSecondBladeStyle(&ent->client->saber[saberNum], bladeNum)
+		&& ent->client->saber[saberNum].block2Sound[0])
 	{
-		G_Sound(ent, CHAN_AUTO, ent->client->saber[saber_num].block2Sound[Q_irand(0, 2)]);
+		G_Sound(ent, CHAN_AUTO, ent->client->saber[saberNum].block2Sound[Q_irand(0, 2)]);
 	}
 	else
 	{
-		if (ent->client->saber[saber_num].type == SABER_SINGLE_CLASSIC)
+		if (ent->client->saber[saberNum].type == SABER_SINGLE_CLASSIC)
 		{
 			G_Sound(ent, CHAN_AUTO, G_SoundIndex(va("sound/weapons/saber/classicblock%d.mp3", classicindex)));
 		}
@@ -4980,7 +4947,7 @@ qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int h
 		return qfalse; //dont do if we are already blocking
 	}
 
-	if (self->client->ps.weapon == WP_SABER && ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0))
+	if (self->client->ps.weapon == WP_SABER && ((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0))
 	{
 		return qfalse; //dont do if we are already blocking
 	}
@@ -5005,7 +4972,6 @@ qboolean G_DoDodge(gentity_t* self, gentity_t* shooter, vec3_t dmg_origin, int h
 
 	if (self->r.svFlags & SVF_BOT
 		&& (self->client->ps.weapon != WP_SABER &&
-			self->client->pers.botclass != BCLASS_JANGO_NOJP &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
 			self->client->pers.botclass != BCLASS_MANDOLORIAN2 &&
@@ -5601,7 +5567,7 @@ static qboolean G_DoSaberDodge(gentity_t* dodger, gentity_t* attacker, vec3_t dm
 		return qfalse;
 	}
 
-	if (dodger->client->ps.weapon == WP_SABER && ((dodger->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0))
+	if (dodger->client->ps.weapon == WP_SABER && ((dodger->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0))
 	{
 		return qfalse; //dont do if we are already blocking
 	}
@@ -5627,7 +5593,6 @@ static qboolean G_DoSaberDodge(gentity_t* dodger, gentity_t* attacker, vec3_t dm
 
 	if ((dodger->r.svFlags & SVF_BOT
 		&& dodger->client->ps.weapon != WP_SABER
-		&& dodger->client->pers.botclass != BCLASS_JANGO_NOJP
 		&& dodger->client->pers.botclass != BCLASS_MANDOLORIAN
 		&& dodger->client->pers.botclass != BCLASS_MANDOLORIAN1
 		&& dodger->client->pers.botclass != BCLASS_MANDOLORIAN2
@@ -5637,7 +5602,6 @@ static qboolean G_DoSaberDodge(gentity_t* dodger, gentity_t* attacker, vec3_t dm
 	}
 
 	if (dodger->r.svFlags & SVF_BOT
-		&& dodger->client->pers.botclass == BCLASS_JANGO_NOJP
 		&& dodger->client->pers.botclass == BCLASS_MANDOLORIAN
 		&& dodger->client->pers.botclass == BCLASS_MANDOLORIAN1
 		&& dodger->client->pers.botclass == BCLASS_MANDOLORIAN2
@@ -6072,21 +6036,20 @@ static vec3_t saberHitLocation;
 static qboolean hitDismember[MAX_SABER_VICTIMS];
 static int hitDismemberLoc[MAX_SABER_VICTIMS];
 
-void wp_saber_clear_damage_for_ent_num(gentity_t* attacker, const int entityNum, const int saber_num,
-	const int blade_num)
+void WP_SaberClearDamageForEntNum(gentity_t* attacker, const int entityNum, const int saberNum, const int bladeNum)
 {
 	float knock_back_scale = 0.0f;
 	if (attacker && attacker->client)
 	{
-		if (!WP_SaberBladeUseSecondBladeStyle(&attacker->client->saber[saber_num], blade_num)
-			&& attacker->client->saber[saber_num].knockbackScale > 0.0f)
+		if (!WP_SaberBladeUseSecondBladeStyle(&attacker->client->saber[saberNum], bladeNum)
+			&& attacker->client->saber[saberNum].knockbackScale > 0.0f)
 		{
-			knock_back_scale = attacker->client->saber[saber_num].knockbackScale;
+			knock_back_scale = attacker->client->saber[saberNum].knockbackScale;
 		}
-		else if (WP_SaberBladeUseSecondBladeStyle(&attacker->client->saber[saber_num], blade_num)
-			&& attacker->client->saber[saber_num].knockbackScale2 > 0.0f)
+		else if (WP_SaberBladeUseSecondBladeStyle(&attacker->client->saber[saberNum], bladeNum)
+			&& attacker->client->saber[saberNum].knockbackScale2 > 0.0f)
 		{
-			knock_back_scale = attacker->client->saber[saber_num].knockbackScale2;
+			knock_back_scale = attacker->client->saber[saberNum].knockbackScale2;
 		}
 	}
 
@@ -6143,19 +6106,9 @@ void wp_saber_clear_damage_for_ent_num(gentity_t* attacker, const int entityNum,
 
 static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, const int rBladeNum, vec3_t saber_start, vec3_t saber_end, const int trMask)
 {
-	// --- SAFETY IMPROVEMENT ---
-	// These were previously static, which is dangerous:
-	//  • Not thread‑safe
-	//  • Persist between calls
-	//  • Can cause cross‑frame contamination
-	// Removing 'static' does NOT change behaviour because the function
-	// is always called synchronously per-frame.
 	trace_t tr;
 	vec3_t dir;
 	vec3_t saber_tr_mins, saber_tr_maxs;
-
-	// --- SAFETY IMPROVEMENT ---
-	// self_saber_level was static for no reason.
 	int self_saber_level = 0;
 
 	int dmg = 0;
@@ -6188,11 +6141,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 	float saber_box_size = d_saberBoxTraceSize.value;
 	const float hilt_radius = self->client->saber[rSaberNum].blade[rBladeNum].radius * 1.2f;
 
-	const qboolean self_is_holding_block_button = ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
+	const qboolean self_is_holding_block_button = ((self->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
 
-	const qboolean self_active_blocking = ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
+	const qboolean self_active_blocking = ((self->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
 
-	const qboolean self_m_blocking = ((self->client->ps.ManualBlockingFlags & (1 << PERFECTBLOCKING)) != 0) ? qtrue : qfalse;
+	const qboolean self_m_blocking = ((self->client->ps.ManualBlockingFlags & (1 << MBF_PERFECTBLOCKING)) != 0) ? qtrue : qfalse;
 
 	const qboolean saber_in_kill_move = PM_SaberInKillMove(self->client->ps.saberMove);
 
@@ -6232,7 +6185,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 	}
 
 	// Saber attack power level (unchanged behaviour)
-	self_saber_level = g_saber_attack_power(self, SaberAttacking(self));
+	self_saber_level = g_saber_attack_power(self, WP_SaberAttacking(self));
 
 	// ------------------------------------------------------------
 	// SABER BLADE BOX SIZE CALCULATION
@@ -6281,12 +6234,12 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 	}
 
 	// ------------------------------------------------------------
-// SECTION 3 — Real trace call and early hit/miss handling
-// ------------------------------------------------------------
+	// SECTION 3 — Real trace call and early hit/miss handling
+	// ------------------------------------------------------------
 
-// Perform the actual saber trace.
-// NOTE: g_real_trace now correctly takes const vec3_t parameters,
-// so this call is 100% warning‑free.
+	// Perform the actual saber trace.
+	// NOTE: g_real_trace now correctly takes const vec3_t parameters,
+	// so this call is 100% warning‑free.
 	const int real_trace_result = g_real_trace(
 		self,
 		&tr,
@@ -6351,9 +6304,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 					}
 					else
 					{
-						dmg = g_saberdebug.integer ?
-							SABER_DEBUGTDAMAGE :
-							SABER_MAXHITDAMAGE;
+						dmg = g_saberdebug.integer ? SABER_DEBUGTDAMAGE : SABER_MAXHITDAMAGE;
 					}
 				}
 				else
@@ -6374,9 +6325,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 					}
 					else
 					{
-						dmg = g_saberdebug.integer ?
-							SABER_DEBUGTDAMAGE :
-							SABER_SJEHITDAMAGE;
+						dmg = g_saberdebug.integer ? SABER_DEBUGTDAMAGE : SABER_SJEHITDAMAGE;
 					}
 				}
 			}
@@ -6468,11 +6417,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 	}
 
 	// ------------------------------------------------------------
-// SECTION 4 — Damage scaling, limb penalties, class bonuses,
-//              direction vector, and wall-hit detection
-// ------------------------------------------------------------
+	// SECTION 4 — Damage scaling, limb penalties, class bonuses,
+	//              direction vector, and wall-hit detection
+	// ------------------------------------------------------------
 
-// If this is a real damaging hit (not idle damage), apply global and saber-specific scaling.
+	// If this is a real damaging hit (not idle damage), apply global and saber-specific scaling.
 	if (dmg > SABER_NONATTACK_DAMAGE)
 	{
 		// Global damage scale
@@ -6537,9 +6486,9 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		saber_hit_wall = qtrue;
 	}
 	// ------------------------------------------------------------
-// SECTION 5 — Entity hit handling, blocking logic,
-//              saber-on-saber collisions, clash setup
-// ------------------------------------------------------------
+	// SECTION 5 — Entity hit handling, blocking logic,
+	//              saber-on-saber collisions, clash setup
+	// ------------------------------------------------------------
 
 	gentity_t* hitEnt = &g_entities[tr.entityNum];
 
@@ -6692,12 +6641,12 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		level.time - self->client->sabimpact[rSaberNum][rBladeNum].Debounce < sabimpactdebounce)
 	{
 		// If last impact was saber-on-saber
-		if (self->client->sabimpact[rSaberNum][rBladeNum].blade_num != -1 ||
-			self->client->sabimpact[rSaberNum][rBladeNum].saber_num != -1)
+		if (self->client->sabimpact[rSaberNum][rBladeNum].bladeNum != -1 ||
+			self->client->sabimpact[rSaberNum][rBladeNum].saberNum != -1)
 		{
 			if (blocker &&
-				self->client->sabimpact[rSaberNum][rBladeNum].blade_num == self->client->lastBladeCollided &&
-				self->client->sabimpact[rSaberNum][rBladeNum].saber_num == self->client->lastSaberCollided)
+				self->client->sabimpact[rSaberNum][rBladeNum].bladeNum == self->client->lastBladeCollided &&
+				self->client->sabimpact[rSaberNum][rBladeNum].saberNum == self->client->lastSaberCollided)
 			{
 				return qtrue;
 			}
@@ -6731,8 +6680,8 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		}
 	}
 	// ------------------------------------------------------------
-// SECTION 6 — Damage application, beskar, knockback, bounce logic
-// ------------------------------------------------------------
+	// SECTION 6 — Damage application, beskar, knockback, bounce logic
+	// ------------------------------------------------------------
 
 	if (did_hit &&
 		(!OnSameTeam(self, hitEnt) || g_friendlySaber.integer))
@@ -6764,8 +6713,55 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 			dflags |= DAMAGE_NO_DAMAGE;
 
 			G_Beskar_Attack_Bounce(self, victim);
-			G_Sound(victim, CHAN_BODY,
-				G_SoundIndex(va("sound/weapons/impacts/beskar_impact%d.mp3", index)));
+			G_Sound(victim, CHAN_BODY, G_SoundIndex(va("sound/weapons/impacts/beskar_impact%d.mp3", index)));
+		}
+
+		// Perfect parry: defender in active block/parry state
+		qboolean perfectParry = qfalse;
+
+		if (victim->client &&
+			!(dflags & DAMAGE_NO_DAMAGE) &&
+			(PM_SaberInParry(victim->client->ps.saberMove) ||
+				PM_SaberInReflect(victim->client->ps.saberMove) ||
+				PM_SaberInKnockaway(victim->client->ps.saberMove)))
+		{
+			perfectParry = qtrue;
+		}
+
+		// Hit-confirm chain boost: landing a hit speeds up next chain swing
+		if (!perfectParry && !(dflags & DAMAGE_NO_DAMAGE) && victim->client)
+		{
+			// reduce weaponTime to let the next swing chain faster
+			self->client->ps.weaponTime = (int)(self->client->ps.weaponTime * 0.5f);
+			if (self->client->ps.weaponTime < 50)
+				self->client->ps.weaponTime = 50;
+		}
+
+		if (perfectParry)
+		{// defender perfectly parried: zero damage, stagger attacker, riposte
+			dflags |= DAMAGE_NO_DAMAGE;
+			// stagger attacker for 350ms, cancel their combo
+			self->client->ps.weaponTime = 350;
+			self->client->ps.saberAttackChainCount = 0;
+			self->client->ps.saberMove = LS_READY;
+			// deduct armor from attacker
+			self->client->ps.stats[STAT_ARMOR] -= 10;
+			if (self->client->ps.stats[STAT_ARMOR] < 0)
+				self->client->ps.stats[STAT_ARMOR] = 0;
+			// grant defender riposte window for 500ms
+			victim->client->ps.saberRiposteTime = level.time + 500;
+		}
+
+		// Startup wind-up interrupt: if victim is in early attack frames, bypass armor
+		if (victim->client &&
+			!perfectParry &&
+			PM_SaberInAttack(victim->client->ps.saberMove) &&
+			victim->client->ps.weaponstate == WEAPON_FIRING)
+		{
+			dflags |= DAMAGE_NO_ARMOR;
+			victim->client->ps.saberAttackChainCount = 0;
+			victim->client->ps.saberMove = LS_READY;
+			victim->client->ps.weaponstate = WEAPON_IDLE;
 		}
 
 		// --------------------------------------------------------
@@ -6773,8 +6769,10 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		// --------------------------------------------------------
 		if (self->client->saberHitEntityBitMask & (1 << victim->s.number))
 		{
-			if (!PM_SaberInKata(self->client->ps.saberMove) && !PM_SaberInKillMove(self->client->ps.saberMove))
-			{
+			if (!PM_SaberInKata(self->client->ps.saberMove) &&
+				!PM_SaberInKillMove(self->client->ps.saberMove) &&
+				self->client->ps.saberLockTime < level.time)
+			{ // If we already hit this entity, and we're not in a kata or kill move, don't hit again
 				// Already hit this player with this saber swing → skip
 				if (g_HitTracking.integer && (victim->r.svFlags & SVF_BOT || victim->NPC))
 				{
@@ -6844,8 +6842,10 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		// Tracking damage to player
 		// --------------------------------------------------------
 
-		if (!PM_SaberInKata(self->client->ps.saberMove) && !PM_SaberInKillMove(self->client->ps.saberMove))
-		{
+		if (!PM_SaberInKata(self->client->ps.saberMove) &&
+			!PM_SaberInKillMove(self->client->ps.saberMove) &&
+			self->client->ps.saberLockTime < level.time)
+		{ // If we already hit this entity, and we're not in a kata or kill move, don't hit again
 			if (g_HitTracking.integer && (victim->r.svFlags & SVF_BOT || victim->NPC))
 			{
 				Com_Printf(S_COLOR_RED "Tracking damage to player %d\n", victim->s.number);
@@ -6941,17 +6941,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 					self->client->ps.saberBounceMove =
 						LS_D1_BR + (saberMoveData[self->client->ps.saberMove].startQuad - Q_BR);
 				}
-				else if ((g_SaberBounceOnWalls.integer) &&
-					(PM_SaberInAttackPure(self->client->ps.saberMove) ||
-						self->client->ps.saberMove == LS_A_JUMP_T__B_ ||
-						self->client->ps.saberMove == LS_A_JUMP_PALP_))
-				{
-					WP_SaberBounceOnWallSound(self, rSaberNum, rBladeNum);
-					self->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
-					self->client->ps.saberBounceMove =
-						LS_D1_BR + (saberMoveData[self->client->ps.saberMove].startQuad - Q_BR);
-				}
-				else if (((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) &&
+				else if (((self->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0) &&
 					!PM_SaberInAttackPure(self->client->ps.saberMove) &&
 					!PM_CrouchAnim(self->client->ps.legsAnim) &&
 					!PM_WalkingAnim(self->client->ps.legsAnim) &&
@@ -7010,160 +7000,152 @@ qboolean WP_ForcePowerUsable(const gentity_t* self, forcePowers_t forcePower);
 qboolean InFOV3(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
 qboolean Jedi_WaitingAmbush(const gentity_t* self);
 void Jedi_Ambush(gentity_t* self);
-evasionType_t jedi_saber_block_go(gentity_t* self, usercmd_t* cmd, vec3_t p_hitloc, vec3_t phit_dir, const gentity_t* incoming, float dist);
+evasionType_t jedi_saber_block_go(gentity_t* self, usercmd_t* cmd, vec3_t p_hitloc, vec3_t phit_dir,
+	const gentity_t* incoming,
+	float dist);
 void NPC_SetLookTarget(const gentity_t* self, int entNum, int clear_time);
 int blockedfor_quad(int quad);
 int invert_quad(int quad);
 
 void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 {
-	qboolean    swing_block;
-	qboolean    closest_swing_block = qfalse; // default setting makes the compiler happy.
-	int         swing_block_quad = Q_T;
-	int         closest_swing_quad = Q_T;
-	float       dist;
-	gentity_t* ent;
-	gentity_t* incoming = NULL;
-	static int  entity_list[MAX_GENTITIES];
-	int         num_listed_entities;
-	int         i, e;
-	static vec3_t mins, maxs;
-	float       closest_dist;
-	float       radius = 256.0f;
-	static vec3_t forward, fwdangles = { 0 };
-	static trace_t trace;
-	static vec3_t trace_to, ent_dir;
-	float       look_t_dist = -1.0f;
+	qboolean swing_block;
+	qboolean closest_swing_block = qfalse; //default setting makes the compiler happy.
+	int swing_block_quad = Q_T;
+	int closest_swing_quad = Q_T;
+	float dist;
+	gentity_t* ent, * incoming = NULL;
+	static int entity_list[MAX_GENTITIES];
+	int num_listed_entities;
+	int i, e;
+	vec3_t mins = { 0 }, maxs = { 0 };
+	float closest_dist, radius = 256;
+	vec3_t forward, fwdangles = { 0 };
+	trace_t trace;
+	vec3_t trace_to, ent_dir;
+	float look_t_dist = -1;
 	gentity_t* look_t = NULL;
-	qboolean    do_full_routine = qtrue;
+	qboolean do_full_routine = qtrue;
 
-	if (!self || !self->client)
-	{
-		return;
-	}
-
-	// keep this updated even if we don't get below
+	//keep this updated even if we don't get below
 	if (!(self->client->ps.eFlags2 & EF2_HELD_BY_MONSTER))
 	{
-		// lookTarget is set by and to the monster that's holding you, no other operations can change that
+		//lookTarget is set by and to the monster that's holding you, no other operations can change that
 		self->client->ps.hasLookTarget = qfalse;
 	}
 
-	if (self->client->ps.weapon != WP_SABER) // saber not here
+	if (self->client->ps.weapon != WP_SABER) //saber not here
 	{
 		return;
 	}
-	else if (BG_SabersOff(&self->client->ps))
+	else if (self->client->ps.weapon == WP_SABER && BG_SabersOff(&self->client->ps))
 	{
-		// saber not currently in use or available, attempt to use our hands instead.
+		//saber not currently in use or available, attempt to use our hands instead.
 		do_full_routine = qfalse;
 	}
-	else if (self->client->ps.saberInFlight)
+	else if (self->client->ps.weapon == WP_SABER && self->client->ps.saberInFlight)
 	{
-		// saber not currently in use or available, attempt to use our hands instead.
+		//saber not currently in use or available, attempt to use our hands instead.
 		do_full_routine = qfalse;
 	}
 
 	if (self->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] < FORCE_LEVEL_1)
 	{
-		// you have not the SKILLZ
+		//you have not the SKILLZ
 		do_full_routine = qfalse;
 	}
 
-	if (!(self->r.svFlags & SVF_BOT) &&
-		!((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0))
+	if (!(self->r.svFlags & SVF_BOT) && !((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0))
 	{
 		return;
 	}
 
-	if (!WalkCheck(self) &&
-		(PM_SaberInAttack(self->client->ps.saberMove) ||
-			PM_SaberInStart(self->client->ps.saberMove)))
+	if (!WalkCheck(self)
+		&& (PM_SaberInAttack(self->client->ps.saberMove)
+			|| PM_SaberInStart(self->client->ps.saberMove)))
 	{
-		// this was put in to help bolts stop swings a bit.
-		do_full_routine = qfalse;
-	}
-	else if (self->client->ps.fd.forcePowersActive & (1 << FP_LIGHTNING))
-	{
-		// can't block while zapping
-		do_full_routine = qfalse;
-	}
-	else if (self->client->ps.fd.forcePowersActive & (1 << FP_DRAIN))
-	{
-		// can't block while draining
-		do_full_routine = qfalse;
-	}
-	else if (self->client->ps.fd.forcePowersActive & (1 << FP_PUSH))
-	{
-		// can't block while shoving
-		do_full_routine = qfalse;
-	}
-	else if (self->client->ps.fd.forcePowersActive & (1 << FP_GRIP))
-	{
-		// can't block while gripping
+		//this was put in to help bolts stop swings a bit. I dont know why it helps but it does :p
 		do_full_routine = qfalse;
 	}
 
-	// you should be able to update block positioning if you're already in a block.
-	if (self->client->ps.weaponTime > 0 &&
-		!PM_SaberInParry(self->client->ps.saberMove))
+	else if (self->client->ps.fd.forcePowersActive & 1 << FP_LIGHTNING)
 	{
-		// don't autoblock while busy with stuff
+		//can't block while zapping
+		do_full_routine = qfalse;
+	}
+	else if (self->client->ps.fd.forcePowersActive & 1 << FP_DRAIN)
+	{
+		//can't block while draining
+		do_full_routine = qfalse;
+	}
+	else if (self->client->ps.fd.forcePowersActive & 1 << FP_PUSH)
+	{
+		//can't block while shoving
+		do_full_routine = qfalse;
+	}
+	else if (self->client->ps.fd.forcePowersActive & 1 << FP_GRIP)
+	{
+		//can't block while gripping (FIXME: or should it break the grip?  Pain should break the grip, I think...)
+		do_full_routine = qfalse;
+	}
+
+	//you should be able to update block positioning if you're already in a block.
+	if (self->client->ps.weaponTime > 0 && !PM_SaberInParry(self->client->ps.saberMove))
+	{
+		//don't autoblock while busy with stuff
 		return;
 	}
 
 	if (self->client->saber[0].saberFlags & SFL_NOT_ACTIVE_BLOCKING)
 	{
-		// can't actively block with this saber type
+		//can't actively block with this saber type
 		return;
 	}
 
 	if (self->health <= 0)
 	{
-		// dead don't try to block (NOTE: actual deflection happens in missile code)
+		//dead don't try to block (NOTE: actual deflection happens in missile code)
 		return;
 	}
 
 	if (PM_InKnockDown(&self->client->ps))
 	{
-		// can't block when knocked down
+		//can't block when knocked down
 		return;
 	}
 
-	if (BG_SabersOff(&self->client->ps) &&
-		self->client->NPC_class != CLASS_BOBAFETT &&
-		self->client->pers.botclass != BCLASS_BOBAFETT &&
-		self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
-		self->client->pers.botclass != BCLASS_MANDOLORIAN2)
+	if (BG_SabersOff(&self->client->ps) && self->client->NPC_class != CLASS_BOBAFETT
+		|| self->client->pers.botclass != BCLASS_BOBAFETT
+		|| self->client->pers.botclass != BCLASS_MANDOLORIAN1
+		|| self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 	{
 		if (self->s.eType != ET_NPC)
 		{
-			// player doesn't auto-activate
+			//player doesn't auto-activate
 			do_full_routine = qfalse;
 		}
 	}
 
-	if (self->s.eType == ET_PLAYER && ucmd)
+	if (self->s.eType == ET_PLAYER)
 	{
-		// don't do this if already attacking!
-		if ((ucmd->buttons & BUTTON_ATTACK) ||
-			PM_SaberInAttack(self->client->ps.saberMove) ||
-			PM_SaberInSpecialAttack(self->client->ps.torsoAnim) ||
-			PM_SaberInTransitionAny(self->client->ps.saberMove))
+		//don't do this if already attacking!
+		if (ucmd->buttons & BUTTON_ATTACK
+			|| PM_SaberInAttack(self->client->ps.saberMove)
+			|| PM_SaberInSpecialAttack(self->client->ps.torsoAnim)
+			|| PM_SaberInTransitionAny(self->client->ps.saberMove))
 		{
 			do_full_routine = qfalse;
 		}
 	}
 
-	// leaving it now.
+	//leaving it now.
 	if (self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] > level.time)
 	{
+		//can't block while gripping (FIXME: or should it break the grip?  Pain should break the grip, I think...)
 		do_full_routine = qfalse;
 	}
 
-	fwdangles[0] = 0.0f;
 	fwdangles[1] = self->client->ps.viewangles[1];
-	fwdangles[2] = 0.0f;
 	AngleVectors(fwdangles, forward, NULL, NULL);
 
 	for (i = 0; i < 3; i++)
@@ -7173,51 +7155,50 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 	}
 
 	num_listed_entities = trap->EntitiesInBox(mins, maxs, entity_list, MAX_GENTITIES);
+
 	closest_dist = radius;
 
 	for (e = 0; e < num_listed_entities; e++)
 	{
-		float  dot1;
+		float dot1;
 		vec3_t dir;
-
 		ent = &g_entities[entity_list[e]];
 		swing_block = qfalse;
 
 		if (ent == self)
-		{
 			continue;
-		}
 
-		// as long as we're here I'm going to get a look target too, I guess. -rww
+		//as long as we're here I'm going to get a look target too, I guess. -rww
 		if (self->s.eType == ET_PLAYER &&
 			ent->client &&
 			(ent->s.eType == ET_NPC || ent->s.eType == ET_PLAYER) &&
 			!OnSameTeam(ent, self) &&
 			ent->client->sess.sessionTeam != TEAM_SPECTATOR &&
 			!(ent->client->ps.pm_flags & PMF_FOLLOW) &&
-			(ent->s.eType != ET_NPC || ent->s.NPC_class != CLASS_VEHICLE) && // don't look at vehicle NPCs
+			(ent->s.eType != ET_NPC || ent->s.NPC_class != CLASS_VEHICLE) && //don't look at vehicle NPCs
 			ent->health > 0)
 		{
+			//seems like a valid enemy to look at.
 			vec3_t vec_sub;
-			float  vec_len;
+			float vec_len;
 
 			VectorSubtract(self->client->ps.origin, ent->client->ps.origin, vec_sub);
 			vec_len = VectorLength(vec_sub);
 
-			if (look_t_dist == -1.0f || vec_len < look_t_dist)
+			if (look_t_dist == -1 || vec_len < look_t_dist)
 			{
-				trace_t ltr;
-				vec3_t  my_eyes;
+				trace_t tr;
+				vec3_t my_eyes;
 
 				VectorCopy(self->client->ps.origin, my_eyes);
 				my_eyes[2] += self->client->ps.viewheight;
 
-				trap->Trace(&ltr, my_eyes, NULL, NULL, ent->client->ps.origin,
-					self->s.number, MASK_PLAYERSOLID, qfalse, 0, 0);
+				trap->Trace(&tr, my_eyes, NULL, NULL, ent->client->ps.origin, self->s.number, MASK_PLAYERSOLID, qfalse,
+					0, 0);
 
-				if (ltr.fraction == 1.0f || ltr.entityNum == ent->s.number)
+				if (tr.fraction == 1.0f || tr.entityNum == ent->s.number)
 				{
-					// we have a clear line of sight to him, so it's all good.
+					//we have a clear line of sight to him, so it's all good.
 					look_t = ent;
 					look_t_dist = vec_len;
 				}
@@ -7225,21 +7206,17 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 		}
 
 		if (ent->r.ownerNum == self->s.number)
-		{
 			continue;
-		}
 		if (!ent->inuse)
-		{
 			continue;
-		}
-
 		if (ent->s.eType != ET_MISSILE && !(ent->s.eFlags & EF_MISSILE_STICK))
 		{
-			// not a normal projectile
+			//not a normal projectile
 			gentity_t* p_owner;
 
 			if (ent->r.ownerNum < 0 || ent->r.ownerNum >= ENTITYNUM_WORLD)
 			{
+				//not going to be a client then.
 				continue;
 			}
 
@@ -7247,64 +7224,63 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 
 			if (!p_owner->inuse || !p_owner->client)
 			{
-				continue; // not valid cl owner
+				continue; //not valid cl owner
 			}
 
 			if (!p_owner->client->ps.saberEntityNum ||
 				p_owner->client->ps.saberEntityNum != ent->s.number)
 			{
-				// the saber is knocked away and/or not flying actively, or this ent is not the cl's saber ent at all
+				//the saber is knocked away and/or not flying actively, or this ent is not the cl's saber ent at all
 				continue;
 			}
-
-			// allow the blocking of normal saber swings
+			//allow the blocking of normal saber swings
 			if (!p_owner->client->ps.saberInFlight)
 			{
-				// active saber blade, treat differently.
+				//active saber blade, treat differently.
 				swing_block = qtrue;
-
 				if (PM_SaberInNonIdleDamageMove(&p_owner->client->ps, p_owner->localAnimIndex))
 				{
-					// attacking
+					//attacking
 					swing_block_quad = invert_quad(saberMoveData[p_owner->client->ps.saberMove].startQuad);
 				}
-				else if (PM_SaberInStart(p_owner->client->ps.saberMove) ||
-					PM_SaberInTransition(p_owner->client->ps.saberMove))
+				else if (PM_SaberInStart(p_owner->client->ps.saberMove)
+					|| PM_SaberInTransition(p_owner->client->ps.saberMove))
 				{
-					// preparing to attack
+					//preparing to attack
 					swing_block_quad = invert_quad(saberMoveData[p_owner->client->ps.saberMove].endQuad);
 				}
 				else
 				{
-					// not attacking
+					//not attacking
 					continue;
 				}
 			}
-			// If we get here then it's ok to be treated as a thrown saber, I guess.
+
+			//If we get here then it's ok to be treated as a thrown saber, I guess.
 		}
 		else
 		{
 			if (ent->s.pos.trType == TR_STATIONARY && self->s.eType == ET_PLAYER)
 			{
-				// nothing you can do with a stationary missile if you're the player
+				//nothing you can do with a stationary missile if you're the player
 				continue;
 			}
 		}
 
-		// see if they're in front of me
+		//see if they're in front of me
 		VectorSubtract(ent->r.currentOrigin, self->r.currentOrigin, dir);
 		dist = VectorNormalize(dir);
 
-		if (dist > 150.0f && swing_block)
+		if (dist > 150 && swing_block)
 		{
-			// don't block swings that are too far away.
+			//don't block swings that are too far away.
 			continue;
 		}
 
-		// handle detpacks, proximity mines and tripmines
+		//handle detpacks, proximity mines and tripmines
 		if (ent->s.weapon == WP_THERMAL)
 		{
-			// thermal detonator!
+			//thermal detonator!
 			if (dist < ent->splashRadius && !OnSameTeam(&g_entities[ent->r.ownerNum], self))
 			{
 				if (dist < ent->splashRadius &&
@@ -7315,28 +7291,25 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 						ent->s.pos.trType == TR_INTERPOLATE ||
 						(dot1 = DotProduct(dir, forward)) < SABER_REFLECT_MISSILE_CONE))
 				{
-					// TD is close enough to hurt me, I'm on the ground and the thing is at rest or behind me and about to blow up, or I don't have force-push so force-jump!
-					if (self->client->pers.botclass == BCLASS_BOBAFETT ||
-						self->client->pers.botclass == BCLASS_JANGO_NOJP ||
-						self->client->pers.botclass == BCLASS_MANDOLORIAN1 ||
-						self->client->pers.botclass == BCLASS_MANDOLORIAN2)
+					//TD is close enough to hurt me, I'm on the ground and the thing is at rest or behind me and about to blow up, or I don't have force-push so force-jump!
+					if (self->client->pers.botclass == BCLASS_BOBAFETT
+						|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
+						|| self->client->pers.botclass == BCLASS_MANDOLORIAN2)
 					{
-						// jump out of the way
+						//jump out of the way
 						self->client->ps.fd.forceJumpCharge = 480;
 						PM_AddFatigue(&self->client->ps, FORCE_LONGJUMP_POWER);
 					}
 				}
-				else if (((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) &&
-					self->client->pers.botclass != BCLASS_BOBAFETT &&
-					self->client->pers.botclass != BCLASS_JANGO_NOJP &&
-					self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
-					self->client->pers.botclass != BCLASS_MANDOLORIAN2)
+				else if (((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0)
+					&& self->client->pers.botclass != BCLASS_BOBAFETT
+					&& self->client->pers.botclass != BCLASS_MANDOLORIAN1
+					&& self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 				{
 					ForceThrow(self, qfalse);
 					PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
 				}
-				else if ((self->r.svFlags & SVF_BOT) &&
-					self->client->ps.fd.forcePowerLevel[FP_PUSH] > 1)
+				else if (self->r.svFlags & SVF_BOT && self->client->ps.fd.forcePowerLevel[FP_PUSH] > 1)
 				{
 					ForceThrow(self, qfalse);
 					PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
@@ -7344,54 +7317,43 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 			}
 			continue;
 		}
-
-		if (ent->splashDamage &&
-			ent->splashRadius &&
-			!(ent->s.powerups & (1 << PW_FORCE_PROJECTILE)))
+		if (ent->splashDamage && ent->splashRadius && !(ent->s.powerups & 1 << PW_FORCE_PROJECTILE))
 		{
-			// exploding missile
-			if (ent->s.pos.trType == TR_STATIONARY &&
-				(ent->s.eFlags & EF_MISSILE_STICK))
+			//exploding missile
+			if (ent->s.pos.trType == TR_STATIONARY && ent->s.eFlags & EF_MISSILE_STICK)
 			{
-				// a placed explosive like a tripmine or detpack
-				if (InFOV3(ent->r.currentOrigin, self->client->renderInfo.eyePoint,
-					self->client->ps.viewangles, 90, 90))
+				//a placed explosive like a tripmine or detpack
+				if (InFOV3(ent->r.currentOrigin, self->client->renderInfo.eyePoint, self->client->ps.viewangles, 90,
+					90))
 				{
-					// in front of me
+					//in front of me
 					if (G_ClearLOS4(self, ent))
 					{
+						//can see it
 						vec3_t throw_dir;
-
-						// make the gesture
-						if (((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) &&
-							self->client->pers.botclass != BCLASS_BOBAFETT &&
-							self->client->pers.botclass != BCLASS_JANGO_NOJP &&
-							self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
-							self->client->pers.botclass != BCLASS_MANDOLORIAN2)
+						//make the gesture
+						if (((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0)
+							&& self->client->pers.botclass != BCLASS_BOBAFETT
+							&& self->client->pers.botclass != BCLASS_MANDOLORIAN1
+							&& self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 						{
 							ForceThrow(self, qfalse);
 							PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
 						}
-
-						// take it off the wall and toss it
+						//take it off the wall and toss it
 						ent->s.pos.trType = TR_GRAVITY;
 						ent->s.eType = ET_MISSILE;
 						ent->s.eFlags &= ~EF_MISSILE_STICK;
 						ent->flags |= FL_BOUNCE_HALF;
-
 						AngleVectors(ent->r.currentAngles, throw_dir, NULL, NULL);
-						VectorMA(ent->r.currentOrigin, ent->r.maxs[0] + 4.0f, throw_dir, ent->r.currentOrigin);
+						VectorMA(ent->r.currentOrigin, ent->r.maxs[0] + 4, throw_dir, ent->r.currentOrigin);
 						VectorCopy(ent->r.currentOrigin, ent->s.pos.trBase);
-
-						VectorScale(throw_dir, 300.0f, ent->s.pos.trDelta);
-						ent->s.pos.trDelta[2] += 150.0f;
-						VectorMA(ent->s.pos.trDelta, 800.0f, dir, ent->s.pos.trDelta);
-
+						VectorScale(throw_dir, 300, ent->s.pos.trDelta);
+						ent->s.pos.trDelta[2] += 150;
+						VectorMA(ent->s.pos.trDelta, 800, dir, ent->s.pos.trDelta);
 						ent->s.pos.trTime = level.time; // move a bit on the very first frame
 						VectorCopy(ent->r.currentOrigin, ent->s.pos.trBase);
-
 						ent->r.ownerNum = self->s.number;
-
 						// make it explode, but with less damage
 						ent->splashDamage /= 3;
 						ent->splashRadius /= 3;
@@ -7399,30 +7361,28 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 					}
 				}
 			}
-			else if (dist < ent->splashRadius &&
-				self->client->ps.groundEntityNum != ENTITYNUM_NONE &&
-				DotProduct(dir, forward) < SABER_REFLECT_MISSILE_CONE)
+			else if (dist < ent->splashRadius
+				&& self->client->ps.groundEntityNum != ENTITYNUM_NONE
+				&& DotProduct(dir, forward) < SABER_REFLECT_MISSILE_CONE)
 			{
-				// try to evade it
-				if (self->client->pers.botclass == BCLASS_BOBAFETT ||
-					self->client->pers.botclass == BCLASS_MANDOLORIAN1 ||
-					self->client->pers.botclass == BCLASS_MANDOLORIAN2)
+				//try to evade it
+				if (self->client->pers.botclass == BCLASS_BOBAFETT
+					|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
+					|| self->client->pers.botclass == BCLASS_MANDOLORIAN2)
 				{
-					// jump out of the way
+					//jump out of the way
 					self->client->ps.fd.forceJumpCharge = 480;
 					PM_AddFatigue(&self->client->ps, FORCE_LONGJUMP_POWER);
 				}
 			}
-			else if (((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) &&
-				self->client->pers.botclass != BCLASS_BOBAFETT &&
-				self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
-				self->client->pers.botclass != BCLASS_MANDOLORIAN2)
+			else if (((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0)
+				&& self->client->pers.botclass != BCLASS_BOBAFETT
+				&& self->client->pers.botclass != BCLASS_MANDOLORIAN1
+				&& self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 			{
-				if (!self->s.number &&
-					self->client->ps.fd.forcePowerLevel[FP_PUSH] == 1 &&
-					dist >= 192.0f)
+				if (!self->s.number && self->client->ps.fd.forcePowerLevel[FP_PUSH] == 1 && dist >= 192)
 				{
-					// player with push 1 has to wait until it's closer otherwise the push misses
+					//player with push 1 has to wait until it's closer otherwise the push misses
 				}
 				else
 				{
@@ -7430,96 +7390,73 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 					PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
 				}
 			}
-			else if ((self->r.svFlags & SVF_BOT) &&
-				self->client->ps.fd.forcePowerLevel[FP_PUSH] > 1)
+			else if (self->r.svFlags & SVF_BOT && self->client->ps.fd.forcePowerLevel[FP_PUSH] > 1)
 			{
 				ForceThrow(self, qfalse);
 				PM_AddFatigue(&self->client->ps, FORCE_DEFLECT_PUSH);
 			}
-
-			// otherwise, can't block it, so we're screwed
+			//otherwise, can't block it, so we're screwed
 			continue;
 		}
 
 		if (!do_full_routine)
 		{
-			// don't care about the rest then
+			//don't care about the rest then
 			continue;
 		}
 
 		if (ent->s.weapon != WP_SABER)
 		{
-			// only block shots coming from behind
+			//only block shots coming from behind
 			if ((dot1 = DotProduct(dir, forward)) < SABER_REFLECT_MISSILE_CONE)
-			{
 				continue;
-			}
 		}
 
-		// see if they're heading towards me
+		//see if they're heading towards me
 		if (!swing_block)
 		{
-			float  dot2;
+			float dot2;
 			vec3_t missile_dir;
-
 			VectorCopy(ent->s.pos.trDelta, missile_dir);
 			VectorNormalize(missile_dir);
-
-			if ((dot2 = DotProduct(dir, missile_dir)) > 0.0f)
-			{
+			if ((dot2 = DotProduct(dir, missile_dir)) > 0)
 				continue;
-			}
 		}
 
 		if (dist < closest_dist)
 		{
 			VectorCopy(self->r.currentOrigin, trace_to);
-			trace_to[2] = self->r.absmax[2] - 4.0f;
-
-			trap->Trace(&trace, ent->r.currentOrigin, ent->r.mins, ent->r.maxs,
-				trace_to, ent->s.number, ent->clipmask, qfalse, 0, 0);
-
-			if (trace.allsolid ||
-				trace.startsolid ||
-				(trace.fraction < 1.0f &&
-					trace.entityNum != self->s.number &&
-					trace.entityNum != self->client->ps.saberEntityNum))
+			trace_to[2] = self->r.absmax[2] - 4;
+			trap->Trace(&trace, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, trace_to, ent->s.number, ent->clipmask,
+				qfalse, 0, 0);
+			if (trace.allsolid || trace.startsolid || trace.fraction < 1.0f && trace.entityNum != self->s.number &&
+				trace.entityNum != self->client->ps.saberEntityNum)
 			{
-				// okay, try one more check
+				//okay, try one more check
 				VectorNormalize2(ent->s.pos.trDelta, ent_dir);
 				VectorMA(ent->r.currentOrigin, radius, ent_dir, trace_to);
-
-				trap->Trace(&trace, ent->r.currentOrigin, ent->r.mins, ent->r.maxs,
-					trace_to, ent->s.number, ent->clipmask, qfalse, 0, 0);
-
-				if (trace.allsolid ||
-					trace.startsolid ||
-					(trace.fraction < 1.0f &&
-						trace.entityNum != self->s.number &&
-						trace.entityNum != self->client->ps.saberEntityNum))
+				trap->Trace(&trace, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, trace_to, ent->s.number,
+					ent->clipmask, qfalse, 0, 0);
+				if (trace.allsolid || trace.startsolid || trace.fraction < 1.0f && trace.entityNum != self->s.number &&
+					trace.entityNum != self->client->ps.saberEntityNum)
 				{
-					// can't hit me, ignore it
+					//can't hit me, ignore it
 					continue;
 				}
 			}
-
 			if (self->s.eType == ET_NPC)
 			{
-				// An NPC
+				//An NPC
 				if (self->NPC && !self->enemy && ent->r.ownerNum != ENTITYNUM_NONE)
 				{
 					gentity_t* owner = &g_entities[ent->r.ownerNum];
-
-					if (owner->health >= 0 &&
-						(!owner->client || owner->client->playerTeam != self->client->playerTeam))
+					if (owner->health >= 0 && (!owner->client || owner->client->playerTeam != self->client->playerTeam))
 					{
 						G_SetEnemy(self, owner);
 					}
 				}
 			}
-
-			// FIXME: if NPC, predict the intersection between my current velocity/path and the missile's...
-
+			//FIXME: if NPC, predict the intersection between my current velocity/path and the missile's, see if it intersects my bounding box (+/-saberLength?), don't try to deflect unless it does?
 			closest_dist = dist;
 			incoming = ent;
 			closest_swing_block = swing_block;
@@ -7529,8 +7466,8 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 
 	if (self->s.eType == ET_NPC && self->localAnimIndex <= 1)
 	{
-		// humanoid NPCs don't set angles based on server angles for looking, unlike other NPCs
-		if (self->client->renderInfo.lookTarget < ENTITYNUM_WORLD)
+		//humanoid NPCs don't set angles based on server angles for looking, unlike other NPCs
+		if (self->client && self->client->renderInfo.lookTarget < ENTITYNUM_WORLD)
 		{
 			look_t = &g_entities[self->client->renderInfo.lookTarget];
 		}
@@ -7538,10 +7475,10 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 
 	if (look_t)
 	{
-		// we got a look target at some point so we'll assign it then.
+		//we got a look target at some point so we'll assign it then.
 		if (!(self->client->ps.eFlags2 & EF2_HELD_BY_MONSTER))
 		{
-			// lookTarget is set by and to the monster that's holding you, no other operations can change that
+			//lookTarget is set by and to the monster that's holding you, no other operations can change that
 			self->client->ps.hasLookTarget = qtrue;
 			self->client->ps.lookTarget = look_t->s.number;
 		}
@@ -7549,7 +7486,7 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 
 	if (!do_full_routine)
 	{
-		// then we're done now
+		//then we're done now
 		return;
 	}
 
@@ -7561,40 +7498,36 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 			{
 				Jedi_Ambush(self);
 			}
-
-			if ((self->client->NPC_class == CLASS_BOBAFETT ||
-				self->client->pers.botclass == BCLASS_BOBAFETT ||
-				self->client->pers.botclass == BCLASS_MANDOLORIAN1 ||
-				self->client->pers.botclass == BCLASS_MANDOLORIAN2) &&
-				(self->client->ps.eFlags2 & EF2_FLYING) &&
-				incoming->methodOfDeath != MOD_ROCKET_HOMING)
+			if (self->client->NPC_class == CLASS_BOBAFETT
+				|| self->client->pers.botclass == BCLASS_BOBAFETT
+				|| self->client->pers.botclass == BCLASS_MANDOLORIAN1
+				|| self->client->pers.botclass == BCLASS_MANDOLORIAN2
+				&& self->client->ps.eFlags2 & EF2_FLYING //moveType == MT_FLYSWIM
+				&& incoming->methodOfDeath != MOD_ROCKET_HOMING)
 			{
-				// a hovering Boba Fett, not a tracking rocket
+				//a hovering Boba Fett, not a tracking rocket
 				if (!Q_irand(0, 1))
 				{
-					// strafe
+					//strafe
 					self->NPC->standTime = 0;
-					self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] =
-						level.time + Q_irand(1000, 2000);
+					self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] = level.time + Q_irand(1000, 2000);
 				}
 				if (!Q_irand(0, 1))
 				{
-					// go up/down
+					//go up/down
 					TIMER_Set(self, "heightChange", Q_irand(1000, 3000));
-					self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] =
-						level.time + Q_irand(1000, 2000);
+					self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] = level.time + Q_irand(1000, 2000);
 				}
 			}
 			else if (jedi_saber_block_go(self, &self->NPC->last_ucmd, NULL, NULL, incoming, 0.0f) != EVASION_NONE)
 			{
-				// make sure to turn on your saber if it's not on
-				if (self->client->NPC_class != CLASS_BOBAFETT &&
-					self->client->NPC_class != CLASS_ROCKETTROOPER &&
-					self->client->NPC_class != CLASS_REBORN &&
-					self->client->pers.botclass != BCLASS_BOBAFETT &&
-					self->client->pers.botclass != BCLASS_JANGO_NOJP &&
-					self->client->pers.botclass != BCLASS_MANDOLORIAN1 &&
-					self->client->pers.botclass != BCLASS_MANDOLORIAN2)
+				//make sure to turn on your saber if it's not on
+				if (self->client->NPC_class != CLASS_BOBAFETT
+					&& self->client->NPC_class != CLASS_ROCKETTROOPER
+					&& self->client->NPC_class != CLASS_REBORN
+					&& self->client->pers.botclass != BCLASS_BOBAFETT
+					&& self->client->pers.botclass != BCLASS_MANDOLORIAN1
+					&& self->client->pers.botclass != BCLASS_MANDOLORIAN2)
 				{
 					if (self->s.weapon == WP_SABER)
 					{
@@ -7603,53 +7536,37 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 				}
 			}
 		}
-		else // player
+		else //player
 		{
-			gentity_t* blocker = NULL;
+			gentity_t* blocker = &g_entities[incoming->r.ownerNum];
 
-			if (incoming->r.ownerNum >= 0 && incoming->r.ownerNum < ENTITYNUM_WORLD)
-			{
-				blocker = &g_entities[incoming->r.ownerNum];
-			}
-
-			if (self->client->ps.saberHolstered == 2)
+			if (self->client && self->client->ps.saberHolstered == 2)
 			{
 				WP_ActivateSaber(self);
 			}
-
-			if (blocker && blocker->client && closest_swing_block && blocker->health > 0)
+			if (closest_swing_block && blocker->health > 0)
 			{
 				blocker->client->ps.saberBlocked = blockedfor_quad(closest_swing_quad);
-				blocker->client->ps.userInt3 |= (1 << FLAG_PREBLOCK);
+				blocker->client->ps.userInt3 |= 1 << FLAG_PREBLOCK;
 			}
-			else if (blocker && blocker->client && blocker->health > 0 &&
-				(((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ||
-					((blocker->client->ps.ManualBlockingFlags & (1 << MBF_NPCBLOCKING)) != 0)))
+			else if (blocker->health > 0 && (((blocker->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0) || ((blocker->client->ps.ManualBlockingFlags & 1 << MBF_NPCBLOCKING) != 0)))
 			{
 				wp_saber_block_non_random_missile(blocker, incoming->r.currentOrigin, qtrue);
 			}
 			else
 			{
 				vec3_t diff, start, end;
-				float  scale;
-
 				VectorSubtract(incoming->r.currentOrigin, self->r.currentOrigin, diff);
-				scale = VectorLength(diff);
-
+				float scale = VectorLength(diff);
 				VectorNormalize2(incoming->s.pos.trDelta, ent_dir);
 				VectorMA(incoming->r.currentOrigin, scale, ent_dir, start);
-
 				VectorCopy(self->r.currentOrigin, end);
 				end[2] += self->maxs[2] * 0.75f;
-
-				trap->Trace(&trace, start, incoming->mins, incoming->maxs,
-					end, incoming->s.number, MASK_SHOT, qfalse, 0, 0);
+				trap->Trace(&trace, start, incoming->mins, incoming->maxs, end, incoming->s.number, MASK_SHOT, qfalse, 0, 0);
 
 				jedi_dodge_evasion(self, incoming->owner, &trace, HL_NONE);
 			}
-
-			if (incoming->owner && incoming->owner->client &&
-				(!self->enemy || self->enemy->s.weapon != WP_SABER))
+			if (incoming->owner && incoming->owner->client && (!self->enemy || self->enemy->s.weapon != WP_SABER))
 			{
 				self->enemy = incoming->owner;
 				NPC_SetLookTarget(self, incoming->owner->s.number, level.time + 1000);
@@ -7659,7 +7576,9 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 }
 
 #define MIN_SABER_SLICE_DISTANCE 50
+
 #define MIN_SABER_SLICE_RETURN_DISTANCE 30
+
 #define SABER_THROWN_HIT_DAMAGE 30
 #define SABER_THROWN_RETURN_HIT_DAMAGE 5
 
@@ -7743,8 +7662,8 @@ static QINLINE qboolean WP_CheckThrownSaberDamaged(gentity_t* saberent,
 						te->s.angles[1] = 1;
 
 					te->s.eventParm = 1;
-					te->s.weapon = 0; // saber_num
-					te->s.legsAnim = 0; // blade_num
+					te->s.weapon = 0; // saberNum
+					te->s.legsAnim = 0; // bladeNum
 
 					if (WP_saberCheckKnockdown_Thrown(saberent, saber_owner, &g_entities[tr.entityNum]))
 					{
@@ -7788,8 +7707,8 @@ static QINLINE qboolean WP_CheckThrownSaberDamaged(gentity_t* saberent,
 					te = G_TempEntity(tr.endpos, EV_SABER_HIT);
 					te->s.otherentityNum = ent->s.number;
 					te->s.otherentityNum2 = saber_owner->s.number;
-					te->s.weapon = 0; // saber_num
-					te->s.legsAnim = 0; // blade_num
+					te->s.weapon = 0; // saberNum
+					te->s.legsAnim = 0; // bladeNum
 					VectorCopy(tr.endpos, te->s.origin);
 					VectorCopy(tr.plane.normal, te->s.angles);
 
@@ -7879,8 +7798,8 @@ static QINLINE qboolean WP_CheckThrownSaberDamaged(gentity_t* saberent,
 				te = G_TempEntity(tr.endpos, EV_SABER_HIT);
 				te->s.otherentityNum = ENTITYNUM_NONE; // no throw damage link
 				te->s.otherentityNum2 = saber_owner->s.number;
-				te->s.weapon = 0; // saber_num
-				te->s.legsAnim = 0; // blade_num
+				te->s.weapon = 0; // saberNum
+				te->s.legsAnim = 0; // bladeNum
 				VectorCopy(tr.endpos, te->s.origin);
 				VectorCopy(tr.plane.normal, te->s.angles);
 
@@ -8070,7 +7989,7 @@ static void MakeDeadSaber(const gentity_t* ent)
 	trap->LinkEntity((sharedEntity_t*)saberent);
 }
 
-#define MAX_LEAVE_TIME 2500
+#define MAX_LEAVE_TIME 2000
 #define MAX_BOT_LEAVE_TIME 1750
 #define MAX_PLAYER_LEAVE_TIME 1500
 #define MIN_LEAVE_TIME 1250
@@ -8309,29 +8228,15 @@ void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner)
 
 	saberent->s.apos.trType = TR_LINEAR;
 
-	// Spin axis depends on overpoweredsaberthrow cvar
-	if (g_overpoweredsaberthrow.integer != 0)
-	{// Spin on Y axis (JKA default)
+	if (saber_owner->client->ps.fd.saberAnimLevel == SS_STAFF)
+	{
+		saberent->s.apos.trType = TR_LINEAR;
 		saberent->s.apos.trDelta[0] = 0;
-
-		switch (saber_owner->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
-		{
-		default:
-		case FORCE_LEVEL_1:
-			saberent->s.apos.trDelta[1] = 600;
-			break;
-		case FORCE_LEVEL_2:
-			saberent->s.apos.trDelta[1] = 800;
-			break;
-		case FORCE_LEVEL_3:
-			saberent->s.apos.trDelta[1] = 1000;
-			break;
-		}
-
+		saberent->s.apos.trDelta[1] = 800;
 		saberent->s.apos.trDelta[2] = 0;
 	}
 	else
-	{// Spin on X axis (new style)
+	{
 		switch (saber_owner->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
 		{
 		default:
@@ -8345,7 +8250,6 @@ void WP_saberReactivate(gentity_t* saberent, gentity_t* saber_owner)
 			saberent->s.apos.trDelta[0] = 1000;
 			break;
 		}
-
 		saberent->s.apos.trDelta[1] = 0;
 		saberent->s.apos.trDelta[2] = 0;
 	}
@@ -8689,9 +8593,9 @@ qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t ve
 
 	// Knock saber out of hand (MP equivalent of SP knockdown)
 	WP_saberKnockDown(saberent, saber_owner, saber_owner);
-	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
-	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
-	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << PERFECTBLOCKING);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << MBF_HOLDINGBLOCK);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << MBF_HOLDINGBLOCKANDATTACK);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << MBF_PERFECTBLOCKING);
 	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << MBF_BLOCKWALKING);
 	saber_owner->client->ps.userInt3 &= ~(1 << FLAG_BLOCKING);
 	saber_owner->client->ps.ManualBlockingTime = 0; //Blocking time 1 on
@@ -8715,6 +8619,7 @@ qboolean WP_SaberDisarmed(gentity_t* saberent, gentity_t* saber_owner, vec3_t ve
 	return qtrue;
 }
 
+//Make the saber go flying directly out of the owner's hand in the specified direction
 qboolean WP_saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec3_t velocity)
 {
 	if (!saberent || !saber_owner ||
@@ -8779,9 +8684,9 @@ qboolean WP_saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec
 	G_SetOrigin(saberent, saber_owner->client->lastSaberBase_Always); //use this as opposed to the right hand bolt,
 	//because I don't want to risk reconstructing the skel again to get it here. And it isn't worth storing.
 	WP_saberKnockDown(saberent, saber_owner, saber_owner);
-	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCK);
-	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << HOLDINGBLOCKANDATTACK);
-	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << PERFECTBLOCKING);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << MBF_HOLDINGBLOCK);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << MBF_HOLDINGBLOCKANDATTACK);
+	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << MBF_PERFECTBLOCKING);
 	saber_owner->client->ps.ManualBlockingFlags &= ~(1 << MBF_BLOCKWALKING);
 	saber_owner->client->ps.userInt3 &= ~(1 << FLAG_BLOCKING);
 	saber_owner->client->ps.ManualBlockingTime = 0; //Blocking time 1 on
@@ -8799,11 +8704,9 @@ qboolean WP_saberKnockOutOfHand(gentity_t* saberent, gentity_t* saber_owner, vec
 	return qtrue;
 }
 
+//Knock the saber out of the hands of saberOwner using the net momentum between saberOwner and others net momentum
 qboolean WP_ButterFingers(gentity_t* saberent, gentity_t* saber_owner, const gentity_t* other, const trace_t* tr)
 {
-	if (!saberent || !saber_owner || !saber_owner->client)
-		return qfalse;
-
 	vec3_t svelocity, ovelocity;
 	vec3_t sswing, oswing;
 	vec3_t dir;
@@ -8813,66 +8716,59 @@ qboolean WP_ButterFingers(gentity_t* saberent, gentity_t* saber_owner, const gen
 	VectorClear(sswing);
 	VectorClear(oswing);
 
-	// Validate saber owner data
-	if (!saber_owner->client->olderIsValid ||
-		(level.time - saber_owner->client->lastSaberStorageTime) >= 300 ||
-		saber_owner->client->ps.saberEntityNum <= 0 ||
-		saber_owner->client->ps.saberInFlight)
+	if (!saber_owner->client->olderIsValid || level.time - saber_owner->client->lastSaberStorageTime >= 200
+		|| !saber_owner->client->ps.saberEntityNum || saber_owner->client->ps.saberInFlight)
 	{
+		//old or bad saberOwner data or you don't have a saber in your hand.  We're kind of screwed so just return.
 		return qfalse;
 	}
-
-	// Owner swing vector
-	VectorSubtract(saber_owner->client->lastSaberBase_Always,
-		saber_owner->client->olderSaberBase,
-		sswing);
-
+	VectorSubtract(saber_owner->client->lastSaberBase_Always, saber_owner->client->olderSaberBase, sswing);
 	VectorAdd(saber_owner->client->ps.velocity, sswing, sswing);
 
-	// Other entity influence
 	if (other && other->client && other->inuse)
 	{
-		if (other->client->olderIsValid &&
-			(level.time - other->client->lastSaberStorageTime) <= 300 &&
-			other->client->ps.saberEntityNum > 0 &&
-			!other->client->ps.saberInFlight)
+		if (other->client->olderIsValid && level.time - other->client->lastSaberStorageTime >= 200
+			&& other->client->ps.saberEntityNum && !other->client->ps.saberInFlight)
 		{
-			VectorSubtract(other->client->lastSaberBase_Always,
-				other->client->olderSaberBase,
-				oswing);
-
+			VectorSubtract(other->client->lastSaberBase_Always, other->client->olderSaberBase, oswing);
 			VectorCopy(other->client->ps.velocity, ovelocity);
 			VectorAdd(ovelocity, oswing, oswing);
 		}
-		else if (!VectorCompare(other->client->ps.velocity, vec3_origin))
+		else if (other->client->ps.velocity)
 		{
 			VectorCopy(other->client->ps.velocity, oswing);
 		}
 	}
 	else
 	{
-		// Impact surface fallback
+		//No useable client data....ok  Let's try just bouncing off of the impact surface then.
+		//scale things back a bit for realism.
 		VectorScale(sswing, SABER_ELASTIC_RATIO, sswing);
 
 		if (DotProduct(tr->plane.normal, sswing) > 0)
+		{
+			//weird impact as the saber is moving away from the impact plane.  Oh well.
 			VectorScale(tr->plane.normal, -VectorLength(sswing), oswing);
+		}
 		else
+		{
 			VectorScale(tr->plane.normal, VectorLength(sswing), oswing);
+		}
 	}
 
-	// Combine vectors
 	if (DotProduct(sswing, oswing) > 0)
+	{
 		VectorSubtract(oswing, sswing, dir);
+	}
 	else
+	{
 		VectorAdd(oswing, sswing, dir);
-
-	// Normalize direction
-	if (VectorNormalize(dir) == 0)
-		return qfalse;
-
-	// Prevent immediate re‑grab
+	}
+	//don't pull it back on the next frame
 	if (level.time - saber_owner->client->saberKnockedTime <= MAX_LEAVE_TIME)
+	{
 		saber_owner->client->buttons &= ~BUTTON_ATTACK;
+	}
 
 	return WP_saberKnockOutOfHand(saberent, saber_owner, dir);
 }
@@ -9100,17 +8996,17 @@ void WP_saberBackToOwner(gentity_t* saberent)
 				WP_BlockPointsRegenerate(saber_owner, BLOCKPOINTS_TWENTYFIVE);
 				WP_ForcePowerRegenerate(saber_owner, BLOCKPOINTS_TWENTYFIVE);
 
-				// Schedule BOTH_STAND1TO2 to play 1.2 seconds later
-				saber_owner->client->ps.userInt1 |= BOT_PENDING_STAND_ANIM;
-				saber_owner->client->ps.botPendingStandTime = level.time + 1200;
+				// Schedule delayed saber-style switch (2.5 seconds)
+				saber_owner->client->ps.userInt1 |= BOT_SABER_PENDING_MASK;
+				saber_owner->client->ps.botPendingStyleTime = level.time + 2500;
 
 				// Reset saber state
 				saber_owner->client->ps.saberMove = LS_READY;
 				saber_owner->client->ps.saberBlocked = BLOCKED_NONE;
 
-				// Schedule delayed saber-style switch (2.5 seconds)
-				saber_owner->client->ps.userInt1 |= BOT_SABER_PENDING_MASK;
-				saber_owner->client->ps.botPendingStyleTime = level.time + 2500;
+				// Schedule BOTH_STAND1TO2 to play 1.2 seconds later
+				saber_owner->client->ps.userInt1 |= BOT_PENDING_STAND_ANIM;
+				saber_owner->client->ps.botPendingStandTime = level.time + 1200;
 			}
 			else
 			{
@@ -9139,7 +9035,7 @@ void WP_saberBackToOwner(gentity_t* saberent)
 	saberent->nextthink = level.time;
 }
 
-void WP_thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, const qboolean stuck);
+void thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, qboolean stuck);
 
 void WP_thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* trace)
 {
@@ -9171,9 +9067,9 @@ void WP_thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* t
 			VectorScale(trace->plane.normal, -1.0f, wallInward);
 
 			// Blade must be pointing INTO the wall
-			if (DotProduct(bladeDir, wallInward) > 0.35f)
+			if (DotProduct(bladeDir, wallInward) > 0.5f)
 			{
-				WP_thrownSaberBallistics(saberent, saber_own, qtrue);
+				thrownSaberBallistics(saberent, saber_own, qtrue);
 				return;
 			}
 		}
@@ -9206,22 +9102,7 @@ void WP_thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* t
 	}
 	else
 	{
-		if (g_sabermustreturn.integer == 1) // If the saber must return, then it doesn't matter if it's a bot or not, just return it.
-		{
-			WP_saberReactivate(saberent, saber_own);
-
-			saberent->touch = WP_SaberGotHit;
-			saberent->think = WP_saberBackToOwner;
-			saberent->speed = 0;
-			saberent->genericValue5 = 0;
-			saberent->nextthink = level.time;
-
-			saberent->r.contents = CONTENTS_LIGHTSABER;
-		}
-		else
-		{
-			WP_saberKnockDown(saberent, saber_own, saber_own);
-		}
+		WP_saberKnockDown(saberent, saber_own, saber_own);
 	}
 }
 
@@ -9285,13 +9166,13 @@ static void WP_saberFirstThrown(gentity_t* saberent)
 
 	if (BG_HasYsalamiri(level.gametype, &saber_own->client->ps))
 	{
-		WP_thrownSaberBallistics(saberent, saber_own, qfalse);
+		thrownSaberBallistics(saberent, saber_own, qfalse);
 		goto runMin;
 	}
 
 	if (!BG_CanUseFPNow(level.gametype, &saber_own->client->ps, level.time, FP_SABERTHROW))
 	{
-		WP_thrownSaberBallistics(saberent, saber_own, qfalse);
+		thrownSaberBallistics(saberent, saber_own, qfalse);
 		goto runMin;
 	}
 
@@ -9300,13 +9181,13 @@ static void WP_saberFirstThrown(gentity_t* saberent)
 
 	if (v_len >= 300 && saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW] == FORCE_LEVEL_1)
 	{
-		WP_thrownSaberBallistics(saberent, saber_own, qfalse);
+		thrownSaberBallistics(saberent, saber_own, qfalse);
 		goto runMin;
 	}
 
 	if (v_len >= SABER_MAX_THROW_DISTANCE * saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
 	{
-		WP_thrownSaberBallistics(saberent, saber_own, qfalse);
+		thrownSaberBallistics(saberent, saber_own, qfalse);
 		goto runMin;
 	}
 
@@ -9328,7 +9209,7 @@ static void WP_saberFirstThrown(gentity_t* saberent)
 			else
 			{
 				G_RunObject(saberent);
-				WP_thrownSaberBallistics(saberent, saber_own, qfalse);
+				thrownSaberBallistics(saberent, saber_own, qfalse);
 			}
 			saberent->speed = 0;
 			saberent->genericValue5 = 0;
@@ -9338,23 +9219,8 @@ static void WP_saberFirstThrown(gentity_t* saberent)
 		}
 		else
 		{
-			if (g_sabermustreturn.integer == 1 && (saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW] >= FORCE_LEVEL_3))
-			{// If the saber must return, then it doesn't matter if it's a bot or not, just return it.
-				WP_saberReactivate(saberent, saber_own);
-
-				saberent->touch = WP_SaberGotHit;
-				saberent->think = WP_saberBackToOwner;
-				saberent->speed = 0;
-				saberent->genericValue5 = 0;
-				saberent->nextthink = level.time;
-
-				saberent->r.contents = CONTENTS_LIGHTSABER;
-			}
-			else
-			{
-				G_RunObject(saberent);
-				WP_thrownSaberBallistics(saberent, saber_own, qfalse);
-			}
+			G_RunObject(saberent);
+			thrownSaberBallistics(saberent, saber_own, qfalse);
 		}
 	}
 
@@ -9691,7 +9557,8 @@ static void WP_HolsterSaberAndPlayOffSounds(gentity_t* hit_ent)
 	}
 }
 
-static void WP_KnockdownAndDrain(gentity_t* hit_ent, const gentity_t* pusher, int knockAnimMin, int knockAnimMax, qboolean addFatigueBonus, qboolean useAbsorbDrain)
+extern qboolean PM_KnockDownAnim(int anim);
+static void WP_KnockdownAndDrain(gentity_t* hit_ent, gentity_t* pusher, int knockAnimMin, int knockAnimMax, qboolean addFatigueBonus, qboolean useAbsorbDrain)
 {
 	const qboolean isBot = (qboolean)((hit_ent->r.svFlags & SVF_BOT) != 0);
 
@@ -9743,9 +9610,9 @@ static qboolean WP_AbsorbKick(gentity_t* hit_ent, gentity_t* pusher, vec3_t push
 		return qfalse;
 	}
 
-	const qboolean is_holding_block_button_and_attack = ((hit_ent->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
+	const qboolean is_holding_block_button_and_attack = ((hit_ent->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
 
-	const qboolean is_holding_block_button = ((hit_ent->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
+	const qboolean is_holding_block_button = ((hit_ent->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
 
 	const qboolean npc_blocking = ((hit_ent->client->ps.ManualBlockingFlags & (1 << MBF_NPCKICKBLOCK)) != 0) ? qtrue : qfalse;
 
@@ -9930,7 +9797,7 @@ static qboolean WP_AbsorbKick(gentity_t* hit_ent, gentity_t* pusher, vec3_t push
 
 extern void G_ThrownDeathAnimForDeathAnim(gentity_t* hit_ent, vec3_t impactPoint);
 
-extern void g_kick_throw(gentity_t* targ, const vec3_t new_dir, float push);
+extern void G_Kick_Throw(gentity_t* targ, const vec3_t new_dir, float push);
 
 static gentity_t* G_KickTrace(gentity_t* ent, vec3_t kick_dir, const float kick_dist, vec3_t kick_end, const int kick_damage,
 	const float kick_push,
@@ -10025,7 +9892,7 @@ static gentity_t* G_KickTrace(gentity_t* ent, vec3_t kick_dir, const float kick_
 								hit_ent->client->otherKillerWeaponType = WP_NONE;
 								hit_ent->client->ps.saberMove = LS_READY;
 							}
-							g_kick_throw(hit_ent, kick_dir, 70);
+							G_Kick_Throw(hit_ent, kick_dir, 70);
 							return hit_ent;
 						}
 						G_Damage(hit_ent, ent, ent, kick_dir, trace.endpos, kick_damage * 0.2f, DAMAGE_NO_KNOCKBACK,
@@ -10066,7 +9933,7 @@ static gentity_t* G_KickTrace(gentity_t* ent, vec3_t kick_dir, const float kick_
 								//knock them down
 								if (!(hit_ent->flags & FL_NO_KNOCKBACK))
 								{
-									g_kick_throw(hit_ent, kick_dir, 80);
+									G_Kick_Throw(hit_ent, kick_dir, 80);
 								}
 								G_Knockdown(hit_ent, ent, kick_dir, 80, qtrue);
 							}
@@ -10091,7 +9958,7 @@ static gentity_t* G_KickTrace(gentity_t* ent, vec3_t kick_dir, const float kick_
 						{
 							if (!(hit_ent->flags & FL_NO_KNOCKBACK))
 							{
-								g_kick_throw(hit_ent, kick_dir, 80);
+								G_Kick_Throw(hit_ent, kick_dir, 80);
 							}
 							//see if we should play a better looking death on them
 							G_ThrownDeathAnimForDeathAnim(hit_ent, trace.endpos);
@@ -10110,7 +9977,7 @@ static gentity_t* G_KickTrace(gentity_t* ent, vec3_t kick_dir, const float kick_
 								//he's in the air?  Send him flying back
 								if (!(hit_ent->flags & FL_NO_KNOCKBACK))
 								{
-									g_kick_throw(hit_ent, kick_dir, 80);
+									G_Kick_Throw(hit_ent, kick_dir, 80);
 								}
 							}
 							else
@@ -10126,7 +9993,7 @@ static gentity_t* G_KickTrace(gentity_t* ent, vec3_t kick_dir, const float kick_
 						{
 							if (!(hit_ent->flags & FL_NO_KNOCKBACK))
 							{
-								g_kick_throw(hit_ent, kick_dir, 80);
+								G_Kick_Throw(hit_ent, kick_dir, 80);
 							}
 							//see if we should play a better looking death on them
 							G_ThrownDeathAnimForDeathAnim(hit_ent, trace.endpos);
@@ -10137,7 +10004,7 @@ static gentity_t* G_KickTrace(gentity_t* ent, vec3_t kick_dir, const float kick_
 						//we kicked a dead guy
 						if (!(hit_ent->flags & FL_NO_KNOCKBACK))
 						{
-							g_kick_throw(hit_ent, kick_dir, kick_push * 2);
+							G_Kick_Throw(hit_ent, kick_dir, kick_push * 2);
 						}
 						G_ThrownDeathAnimForDeathAnim(hit_ent, trace.endpos);
 					}
@@ -10145,11 +10012,11 @@ static gentity_t* G_KickTrace(gentity_t* ent, vec3_t kick_dir, const float kick_
 					{
 						if (!(hit_ent->flags & FL_NO_KNOCKBACK))
 						{
-							g_kick_throw(hit_ent, kick_dir, 80);
+							G_Kick_Throw(hit_ent, kick_dir, 80);
 						}
 						if ((hit_ent->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY ||
 							hit_ent->client->ps.BlasterAttackChainCount >= BLASTERMISHAPLEVEL_HEAVY)
-							&& !((hit_ent->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0))
+							&& !((hit_ent->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0))
 						{
 							//knockdown
 							if (hit_ent->client->ps.fd.saberAnimLevel == SS_STAFF)
@@ -10171,7 +10038,7 @@ static gentity_t* G_KickTrace(gentity_t* ent, vec3_t kick_dir, const float kick_
 						else if (ent->client->ps.fd.saberAnimLevel == SS_DESANN
 							&& (hit_ent->client->ps.saberFatigueChainCount >= MISHAPLEVEL_HEAVY ||
 								hit_ent->client->ps.BlasterAttackChainCount >= BLASTERMISHAPLEVEL_HEAVY)
-							&& !((hit_ent->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0))
+							&& !((hit_ent->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0))
 						{
 							//knockdown
 							if (kick_push >= 150.0f && !Q_irand(0, 2))
@@ -11444,13 +11311,13 @@ void WP_SaberPositionUpdate(gentity_t* self, usercmd_t* ucmd)
 	vec3_t rawAngles;
 	int returnAfterUpdate = 0;
 	float animSpeedScale = 1.0f;
-	int saber_num;
+	int saberNum;
 	qboolean clientOverride;
 	gentity_t* vehEnt = NULL;
 	float fVSpeed = 0;
 	vec3_t addVel;
 
-	const qboolean self_is_holding_block_button = ((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
+	const qboolean self_is_holding_block_button = ((self->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0) ? qtrue : qfalse;
 
 #ifdef _DEBUG
 	if (g_disableServerG2.integer)
@@ -11748,7 +11615,7 @@ void WP_SaberPositionUpdate(gentity_t* self, usercmd_t* ucmd)
 								//it might try to put them into a pain anim or something, so override it back again
 								if (grappler->health > 0)
 								{
-									grappler->client->ps.torsoTimer = 1000;
+									grappler->client->ps.torsoTimer = 500;
 									SetClientViewAngle(grappler, grapAng);
 									G_SetAnim(grappler, &grappler->client->pers.cmd, SETANIM_BOTH, BOTH_GETUP3, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
 									grappler->client->grappleState = 0;
@@ -11845,20 +11712,20 @@ void WP_SaberPositionUpdate(gentity_t* self, usercmd_t* ucmd)
 	//for this entity to save us processing time.
 	clientOverride = trap->G2API_OverrideServer(self->ghoul2);
 
-	saber_num = self->client->ps.saberEntityNum;
+	saberNum = self->client->ps.saberEntityNum;
 
-	if (!saber_num)
+	if (!saberNum)
 	{
-		saber_num = self->client->saberStoredIndex;
+		saberNum = self->client->saberStoredIndex;
 	}
 
-	if (!saber_num)
+	if (!saberNum)
 	{
 		returnAfterUpdate = 1;
 		goto nextStep;
 	}
 
-	mySaber = &g_entities[saber_num];
+	mySaber = &g_entities[saberNum];
 
 	if (self->health < 1)
 	{
@@ -12014,7 +11881,7 @@ nextStep:
 		properAngles[1] = vehEnt->m_pVehicle->m_vOrientation[YAW];
 	}
 
-	if (returnAfterUpdate && saber_num)
+	if (returnAfterUpdate && saberNum)
 	{ //We don't even need to do GetBoltMatrix if we're only in here to keep the g2 server instance in sync
 		//but keep our saber entity in sync too, just copy it over our origin.
 
@@ -12073,7 +11940,7 @@ nextStep:
 	if (self->client->ps.saberInFlight)
 	{
 		//do the thrown-saber stuff
-		gentity_t* saberent = &g_entities[saber_num];
+		gentity_t* saberent = &g_entities[saberNum];
 
 		if (saberent)
 		{
@@ -12101,29 +11968,14 @@ nextStep:
 
 				saberent->s.apos.trType = TR_LINEAR;
 
-				// Spin axis depends on overpoweredsaberthrow cvar
-				if (g_overpoweredsaberthrow.integer != 0)
-				{// Spin on Y axis (JKA default)
+				if (self->client->ps.fd.saberAnimLevel == SS_STAFF)
+				{
 					saberent->s.apos.trDelta[0] = 0;
-
-					switch (self->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
-					{
-					default:
-					case FORCE_LEVEL_1:
-						saberent->s.apos.trDelta[1] = 600;
-						break;
-					case FORCE_LEVEL_2:
-						saberent->s.apos.trDelta[1] = 800;
-						break;
-					case FORCE_LEVEL_3:
-						saberent->s.apos.trDelta[1] = 1000;
-						break;
-					}
-
+					saberent->s.apos.trDelta[1] = 800;
 					saberent->s.apos.trDelta[2] = 0;
 				}
 				else
-				{// Spin on X axis (new style)
+				{
 					switch (self->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
 					{
 					default:
@@ -12137,7 +11989,6 @@ nextStep:
 						saberent->s.apos.trDelta[0] = 1000;
 						break;
 					}
-
 					saberent->s.apos.trDelta[1] = 0;
 					saberent->s.apos.trDelta[2] = 0;
 				}
@@ -12222,7 +12073,7 @@ nextStep:
 	{
 		int rSaberNum = 0;
 		int rBladeNum = 0;
-		gentity_t* saberent = &g_entities[saber_num];
+		gentity_t* saberent = &g_entities[saberNum];
 
 		if (!self->client->ps.saberInFlight && saberent)
 		{
@@ -12276,8 +12127,10 @@ nextStep:
 		}
 
 		// Reset hit tracking when a new swing begins
-		if (!PM_SaberInKata(self->client->ps.saberMove) && !PM_SaberInKillMove(self->client->ps.saberMove))
-		{
+		if (!PM_SaberInKata(self->client->ps.saberMove) &&
+			!PM_SaberInKillMove(self->client->ps.saberMove) &&
+			self->client->ps.saberLockTime < level.time)
+		{ // If we already hit this entity, and we're not in a kata or kill move, don't hit again
 			if (self->client->ps.saberAttackSequence != self->client->saberLastAttackSequence)
 			{
 				if (g_HitTracking.integer && !(self->r.svFlags & SVF_BOT) && !(self->NPC))
@@ -12788,7 +12641,14 @@ qboolean Block_Button_Held(const gentity_t* defender)
 
 qboolean manual_saberblocking(const gentity_t* defender)
 {
+	const qboolean saber_in_kill_move = PM_SaberInKillMove(defender->client->ps.saberMove);
+
 	if (defender->r.svFlags & SVF_BOT && defender->client->ps.weapon != WP_SABER)
+	{
+		return qfalse;
+	}
+
+	if (saber_in_kill_move)
 	{
 		return qfalse;
 	}
@@ -12832,8 +12692,8 @@ qboolean manual_saberblocking(const gentity_t* defender)
 		|| PM_SaberInMassiveBounce(defender->client->ps.saberMove)
 		|| PM_SaberInBashedAnim(defender->client->ps.saberMove)
 		|| defender->client->ps.groundEntityNum == ENTITYNUM_NONE
-		|| defender->client->ps.fd.blockPoints < BLOCK_POINTS_MIN
-		|| defender->client->ps.fd.forcePower < BLOCK_POINTS_MIN)
+		|| defender->client->ps.fd.blockPoints < BLOCKPOINTS_FIVE
+		|| defender->client->ps.fd.forcePower < BLOCKPOINTS_FIVE)
 	{
 		return qfalse;
 	}
@@ -12848,13 +12708,13 @@ qboolean manual_saberblocking(const gentity_t* defender)
 		return qfalse;
 	}
 
-	if (SaberAttacking(defender))
+	if (WP_SaberAttacking(defender))
 	{
-		//if (defender->r.svFlags & SVF_BOT)
-		//{
-		//	//bots just randomly parry to make up for them not intelligently parrying.
-		//	return qtrue;
-		//}
+		if (defender->r.svFlags & SVF_BOT)
+		{
+			//bots just randomly parry to make up for them not intelligently parrying.
+			return qtrue;
+		}
 		return qfalse;
 	}
 
@@ -12874,23 +12734,23 @@ float manual_running_and_saberblocking(const gentity_t* defender)
 {
 	if (defender->r.svFlags & SVF_BOT && defender->client->ps.weapon != WP_SABER)
 	{
-		return 0.0f;
+		return qfalse;
 	}
 
 	if (defender->client->buttons & BUTTON_ATTACK)
 	{
-		return 0.0f;
+		return qfalse;
 	}
 
 	if (defender->client->buttons & BUTTON_WALKING)
 	{
-		return 0.0f;
+		return qfalse;
 	}
 
 	if (!(defender->client->ps.fd.forcePowersKnown & 1 << FP_SABER_DEFENSE))
 	{
 		//doesn't have saber defense
-		return 0.0f;
+		return qfalse;
 	}
 
 	if (defender->health <= 1
@@ -12909,21 +12769,21 @@ float manual_running_and_saberblocking(const gentity_t* defender)
 		|| defender->client->ps.fd.blockPoints < BLOCKPOINTS_FIVE
 		|| defender->client->ps.fd.forcePower < BLOCKPOINTS_FIVE)
 	{
-		return 0.0f;
+		return qfalse;
 	}
 
 	if (defender->client->ps.weapon != WP_SABER
 		|| defender->client->ps.weapon == WP_NONE
 		|| defender->client->ps.weapon == WP_MELEE) //saber not here
 	{
-		return 0.0f;
+		return qfalse;
 	}
 
 	if (defender->client->ps.weapon == WP_SABER
 		&& defender->client->ps.saberInFlight)
 	{
 		//saber not currently in use or available.
-		return 0.0f;
+		return qfalse;
 	}
 
 	if (defender->client->buttons & BUTTON_ALT_ATTACK ||
@@ -12933,13 +12793,13 @@ float manual_running_and_saberblocking(const gentity_t* defender)
 		defender->client->buttons & BUTTON_FORCEGRIP ||
 		defender->client->buttons & BUTTON_DASH)
 	{
-		return 0.0f;
+		return qfalse;
 	}
 
-	if (SaberAttacking(defender) && defender->r.svFlags & SVF_BOT)
+	if (WP_SaberAttacking(defender) && defender->r.svFlags & SVF_BOT)
 	{
 		//bots just randomly parry to make up for them not intelligently parrying.
-		return 0.0f;
+		return qtrue;
 	}
 
 	if (!(defender->client->buttons & BUTTON_BLOCK))
@@ -12947,11 +12807,11 @@ float manual_running_and_saberblocking(const gentity_t* defender)
 		if (defender->r.svFlags & SVF_BOT)
 		{
 			//bots just randomly parry to make up for them not intelligently parrying.
-			return 1.0f;
+			return qtrue;
 		}
-		return 0.0f;
+		return qfalse;
 	}
-	return 1.0f;
+	return qtrue;
 }
 
 qboolean manual_meleeblocking(const gentity_t* defender) //Is this guy blocking or not?
@@ -12959,13 +12819,15 @@ qboolean manual_meleeblocking(const gentity_t* defender) //Is this guy blocking 
 	const qboolean is_sprinting = ((defender->client->ps.PlayerEffectFlags & 1 << PEF_SPRINTING) != 0) ? qtrue : qfalse;
 
 	if (defender->client->ps.weapon == WP_MELEE
-		&& defender->client->buttons & BUTTON_WALKING
+		&& (!(defender->client->buttons & BUTTON_WALKING))
 		&& defender->client->buttons & BUTTON_BLOCK
 		&& !PM_KickMove(defender->client->ps.saberMove)
 		&& !PM_KickingAnim(defender->client->ps.torsoAnim)
 		&& !PM_KickingAnim(defender->client->ps.legsAnim)
 		&& !PM_InRoll(&defender->client->ps)
 		&& !PM_InKnockDown(&defender->client->ps)
+		&& !PM_RunningAnim(defender->client->ps.legsAnim)
+		&& !PM_WalkingAnim(defender->client->ps.legsAnim)
 		&& !is_sprinting
 		&& !(defender->client->ps.pm_flags & PMF_DUCKED))
 	{
@@ -12976,11 +12838,8 @@ qboolean manual_meleeblocking(const gentity_t* defender) //Is this guy blocking 
 
 qboolean manual_melee_dodging(const gentity_t* defender) //Is this guy dodgeing or not?
 {
-	if (defender->client->pers.botclass == BCLASS_BOBAFETT ||
-		defender->client->pers.botclass == BCLASS_JANGO_NOJP ||
-		defender->client->pers.botclass == BCLASS_MANDOLORIAN ||
-		defender->client->pers.botclass == BCLASS_MANDOLORIAN1 ||
-		defender->client->pers.botclass == BCLASS_MANDOLORIAN2)
+	if (defender->client->pers.botclass == BCLASS_BOBAFETT || defender->client->pers.botclass == BCLASS_MANDOLORIAN || defender->
+		client->pers.botclass == BCLASS_MANDOLORIAN1 || defender->client->pers.botclass == BCLASS_MANDOLORIAN2)
 	{
 		return qfalse;
 	}
@@ -13066,7 +12925,7 @@ float manual_npc_saberblocking(const gentity_t* defender)
 		return 0.0f;
 	}
 
-	if (SaberAttacking(defender) && defender->client->ps.saberFatigueChainCount < MISHAPLEVEL_HUDFLASH)
+	if (WP_SaberAttacking(defender) && defender->client->ps.saberFatigueChainCount < MISHAPLEVEL_HUDFLASH)
 	{
 		//bots just randomly parry to make up for them not intelligently parrying.
 		return 1.0f;
@@ -13079,7 +12938,7 @@ int PlayerCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can 
 {
 	vec3_t p_l_angles, p_l_fwd;
 
-	const qboolean is_holding_block_button = ((defender->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
+	const qboolean is_holding_block_button = ((defender->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK) != 0) ? qtrue : qfalse;
 	//Normal Blocking
 
 	if (!defender || !defender->client)
@@ -13112,7 +12971,7 @@ int PlayerCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can 
 		|| PM_SaberInKnockaway(defender->client->ps.saberMove) // Saber is being knocked away
 		|| PM_SaberInBrokenParry(defender->client->ps.saberMove) // Your parry got smashed open
 		|| PM_KickMove(defender->client->ps.saberMove) // If you are doing a kick / melee / slap
-		|| SaberAttacking(defender) // you are saber attacking
+		|| WP_SaberAttacking(defender) // you are saber attacking
 		|| PM_InGrappleMove(defender->client->ps.torsoAnim) // Trying to grab
 		|| defender->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] < FORCE_LEVEL_1
 		// No force saber deference (Gunners cant do it at all)
@@ -13141,8 +13000,6 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 {
 	vec3_t p_l_angles, p_l_fwd;
 
-	const qboolean npc_blocking = defender->client->ps.ManualBlockingFlags & 1 << MBF_NPCKICKBLOCK ? qtrue : qfalse;	//NPC Blocking
-
 	if (!defender || !defender->client)
 	{
 		//non-humanoids can't absorb kicks.
@@ -13168,13 +13025,15 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 		|| PM_SaberInKnockaway(defender->client->ps.saberMove) // Saber is being knocked away
 		|| PM_SaberInBrokenParry(defender->client->ps.saberMove) // Your parry got smashed open
 		|| PM_KickMove(defender->client->ps.saberMove) // If you are doing a kick / melee / slap
-		|| SaberAttacking(defender) // you are saber attacking
+		|| WP_SaberAttacking(defender) // you are saber attacking
 		|| PM_InGrappleMove(defender->client->ps.torsoAnim) // Trying to grab
 		|| defender->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] < FORCE_LEVEL_1
 		// No force saber deference (Gunners cant do it at all)
 		|| defender->client->ps.eFlags2 & EF2_FLYING // Bobafett flying cant do it
 		|| defender->client->ps.groundEntityNum == ENTITYNUM_NONE // Your in the air (jumping).
-		&& !npc_blocking)
+		|| defender->client->ps.fd.blockPoints < FATIGUE_DODGEING // Less than 35 Block points
+		|| defender->client->ps.fd.forcePower < FATIGUE_DODGEING // Less than 35 Force points
+		|| defender->client->ps.saberFatigueChainCount >= MISHAPLEVEL_TEN) // Your saber fatigued
 	{
 		return qfalse;
 	}
@@ -13182,7 +13041,7 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 	VectorSet(p_l_angles, 0, defender->client->ps.viewangles[YAW], 0);
 	AngleVectors(p_l_angles, p_l_fwd, NULL, NULL);
 
-	if (DotProduct(p_l_fwd, push_dir) > -0.2f)
+	if (DotProduct(p_l_fwd, push_dir) > 0.2f)
 	{
 		//not hit in the front, can't absorb kick.
 		return qfalse;
@@ -13191,15 +13050,15 @@ int BotCanAbsorbKick(const gentity_t* defender, const vec3_t push_dir) //Can the
 	return qtrue; // If all that stuff above is clear then you can convert a knockdown in to a stagger
 }
 
-qboolean Manual_NPCKickAbsorbing(const gentity_t* defender)
+float Manual_NPCKickAbsorbing(const gentity_t* defender)
 {
 	if (!(defender->r.svFlags & SVF_BOT))
 	{
 		return qfalse;
 	}
 
-	if (defender->client->ps.saberFatigueChainCount > MISHAPLEVEL_TEN &&
-		(defender->client->ps.fd.forcePower <= BLOCKPOINTS_HALF || defender->client->ps.fd.blockPoints <= BLOCKPOINTS_HALF))
+	if (defender->client->ps.saberFatigueChainCount > MISHAPLEVEL_TEN && (defender->client->ps.fd.forcePower <=
+		BLOCKPOINTS_HALF || defender->client->ps.fd.blockPoints <= BLOCKPOINTS_HALF))
 	{
 		return qfalse;
 	}
@@ -13218,6 +13077,8 @@ qboolean Manual_NPCKickAbsorbing(const gentity_t* defender)
 		|| PM_SaberInMassiveBounce(defender->client->ps.saberMove)
 		|| PM_SaberInBashedAnim(defender->client->ps.saberMove)
 		|| defender->client->ps.groundEntityNum == ENTITYNUM_NONE
+		|| defender->client->ps.fd.blockPoints < BLOCKPOINTS_THIRTY
+		|| defender->client->ps.fd.forcePower < BLOCKPOINTS_THIRTY
 		|| defender->client->ps.userInt3 & 1 << FLAG_FATIGUED)
 	{
 		return qfalse;
@@ -13248,6 +13109,11 @@ qboolean Manual_NPCKickAbsorbing(const gentity_t* defender)
 	{
 		//can't block while running.
 		return qfalse;
+	}
+
+	if (defender->r.svFlags & SVF_BOT)
+	{
+		return qtrue;
 	}
 
 	return qtrue;
@@ -13560,7 +13426,7 @@ qboolean WP_SaberMBlockDirection(gentity_t* self, vec3_t hitloc, const qboolean 
 		self->client->ps.weaponTime = Q_irand(300, 600);
 	}
 
-	if (self->r.svFlags & SVF_BOT && self->client->ps.saberBlocked != BLOCKED_NONE)
+	if (/*self->r.svFlags & SVF_BOT &&*/ self->client->ps.saberBlocked != BLOCKED_NONE)
 	{
 		const int parryReCalcTime = Jedi_ReCalcParryTime(self, EVASION_PARRY);
 		if (self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] < level.time + parryReCalcTime)
@@ -13810,7 +13676,7 @@ qboolean WP_SaberBlockNonRandom(gentity_t* self, vec3_t hitloc, const qboolean m
 		self->client->ps.weaponTime = Q_irand(300, 600);
 	}
 
-	if (self->r.svFlags & SVF_BOT && self->client->ps.saberBlocked != BLOCKED_NONE)
+	if (self->client->ps.saberBlocked != BLOCKED_NONE)
 	{
 		const int parryReCalcTime = Jedi_ReCalcParryTime(self, EVASION_PARRY);
 		if (self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] < level.time + parryReCalcTime)
@@ -14400,7 +14266,7 @@ static const int block_back_left_sp[8] =
 //  HELPERS
 // ============================================================
 
-static QINLINE int clamp_int(int v, int lo, int hi)
+static int clamp_int(int v, int lo, int hi)
 {
 	return (v < lo) ? lo : (v > hi ? hi : v);
 }
@@ -14758,7 +14624,7 @@ qboolean WP_SaberBlockBolt(gentity_t* self, vec3_t hitloc, const qboolean missil
 		self->client->ps.weaponTime = Q_irand(300, 600);
 	}
 
-	if (/*self->r.svFlags & SVF_BOT && */self->client->ps.saberBlocked != BLOCKED_NONE)
+	if (self->r.svFlags & SVF_BOT && self->client->ps.saberBlocked != BLOCKED_NONE)
 	{
 		const int parryReCalcTime = Jedi_ReCalcParryTime(self, EVASION_PARRY);
 		if (self->client->ps.fd.forcePowerDebounce[FP_SABER_DEFENSE] < level.time + parryReCalcTime)
@@ -14775,94 +14641,60 @@ extern float Q_clamp(float min, float value, float max);
 
 qboolean WP_SaberCanBlockThrownSaber(gentity_t* self, vec3_t point, qboolean projectile)
 {
-	//==============================================================
-	// Validate inputs BEFORE dereferencing anything
-	//==============================================================
-	if (self == NULL || self->client == NULL || point == NULL)
+	if (!self || !self->client || !point)
 	{
 		return qfalse;
 	}
 
-	//==============================================================
-	// Manual block states (explicit qboolean)
-	//==============================================================
-	const qboolean blocking =
-		((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
-		? qtrue
-		: qfalse;
-
-	const qboolean blocking_and_attack =
-		((self->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0)
-		? qtrue
-		: qfalse;
-
-	//==============================================================
 	// Must be manually blocking unless bot fallback applies
-	//==============================================================
-	if (blocking == qfalse && blocking_and_attack == qfalse)
+	if (!(((self->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)))
 	{
-		// Bots: simplified fallback (if saber is active, they can block)
-		if ((self->r.svFlags & SVF_BOT) != 0)
+		// Bots get a simplified fallback: if saber is active, they can block
+		if (self->r.svFlags & SVF_BOT)
 		{
-			return (manual_saberblocking(self) ? qtrue : qfalse);
+			return manual_saberblocking(self) ? qtrue : qfalse;
 		}
-
 		return qfalse;
 	}
 
-	//==============================================================
-	// Cannot block during broken parry
-	//==============================================================
-	if (PM_SaberInBrokenParry(self->client->ps.saberMove) ? qtrue : qfalse)
+	// Cannot block while in broken parry
+	if (PM_SaberInBrokenParry(self->client->ps.saberMove))
 	{
 		return qfalse;
 	}
 
-	//==============================================================
 	// Saber must be in hand
-	//==============================================================
-	if (self->client->ps.saberEntityNum == 0)
+	if (!self->client->ps.saberEntityNum)
 	{
 		return qfalse;
 	}
 
-	//==============================================================
 	// Saber must be active
-	//==============================================================
-	if (BG_SabersOff(&self->client->ps) ? qtrue : qfalse)
+	if (BG_SabersOff(&self->client->ps))
 	{
 		return qfalse;
 	}
 
-	//==============================================================
 	// Must be using a saber
-	//==============================================================
 	if (self->client->ps.weapon != WP_SABER)
 	{
 		return qfalse;
 	}
 
-	//==============================================================
-	// Cannot block while your own saber is thrown
-	//==============================================================
-	if (self->client->ps.saberInFlight != 0)
+	// Cannot block while saber is thrown (your own saber in flight)
+	if (self->client->ps.saberInFlight)
 	{
 		return qfalse;
 	}
 
-	//==============================================================
-	// Projectile case (thrown saber / missile)
-	// This function performs the actual block logic + animation
-	//==============================================================
+	// If this is a projectile (thrown saber / missile), run the non-random block logic
 	if (projectile == qtrue)
 	{
+		// This function actually plays the block anim and sets saberBlocked.
 		return wp_saber_block_non_random_missile(self, point, qtrue);
 	}
 
-	//==============================================================
-	// Non-projectile case: allowed to block
-	// Higher-level code will choose the animation
-	//==============================================================
+	// Non-projectile case: allowed to block, let higher-level code decide anim
 	return qtrue;
 }
 
@@ -15104,7 +14936,7 @@ qboolean G_CanKickEntity(const gentity_t* self, const gentity_t* target)
 	return qfalse;
 }
 
-static void WP_SaberBallisticsTouch(gentity_t* saberent, const gentity_t* other, trace_t* trace)
+static void SaberBallisticsTouch(gentity_t* saberent, const gentity_t* other, trace_t* trace)
 {
 	//touch function for sabers in ballistics mode
 	gentity_t* saber_own = &g_entities[saberent->r.ownerNum];
@@ -15123,9 +14955,10 @@ static void WP_SaberBallisticsTouch(gentity_t* saberent, const gentity_t* other,
 //when to make the switch to a simple dropped saber.
 #define BALLISTICSABER_BOUNCECOUNT 10
 
-static void WP_SaberBallisticsThink(gentity_t* saberEnt)
+static void SaberBallisticsThink(gentity_t* saberEnt)
 {
 	//think function for sabers in ballistics mode
+	//G_RunObject(saberEnt);
 
 	saberEnt->nextthink = level.time;
 
@@ -15222,37 +15055,27 @@ static void WP_SaberBallisticsThink(gentity_t* saberEnt)
 	}
 }
 
-void WP_thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, const qboolean stuck)
+void thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, const qboolean stuck)
 {
-	// Safety checks
-	if (!saberEnt)
-	{
-		Com_Printf("^1[WP_thrownSaberBallistics] ERROR: saberEnt was NULL\n");
-		return;
-	}
-	if (!saber_own || !saber_own->client)
-	{
-		Com_Printf("^1[WP_thrownSaberBallistics] ERROR: saber_own or saber_own->client was NULL\n");
-		return;
-	}
+	//this function converts the saber from thrown saber that's being held on course by the force into a saber that's just ballastically moving.
+	const saberInfo_t* saber1 = BG_MySaber(saber_own->clientNum, 0);
 
-	// Convert guided thrown saber into ballistic physics
-	// 'stuck' means the saber hit a surface and should stop moving.
-
-	if (stuck == qtrue)
+	if (stuck)
 	{
-		// Stop all movement
+		//lightsaber is stuck in something, just hang there.
 		VectorClear(saberEnt->s.pos.trDelta);
 		VectorClear(saberEnt->s.apos.trDelta);
 
-		// Stick into the surface
+		//set the sticky eflag
 		saberEnt->s.eFlags = EF_MISSILE_STICK;
 
+		//don't move at all.
 		saberEnt->s.pos.trType = TR_STATIONARY;
 		saberEnt->s.apos.trType = TR_STATIONARY;
 
-		// Retrieve delay depends on bot vs player
-		if ((saber_own->r.svFlags & SVF_BOT) != 0)
+		//set the force retrieve timer so we'll know when to pull it out
+		//of the object with the force/turn off saber.
+		if (saber_own->r.svFlags & SVF_BOT)
 		{
 			saber_own->client->saberKnockedTime = level.time + SABER_BOTRETRIEVE_DELAY;
 		}
@@ -15261,44 +15084,34 @@ void WP_thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, c
 			saber_own->client->saberKnockedTime = level.time + SABER_RETRIEVE_DELAY;
 		}
 
-		// Loop sound from saber definition
+		//no more loop sound!
 		saberEnt->s.loopSound = saber_own->client->saber[0].soundLoop;
 		saberEnt->s.loopIsSoundset = qfalse;
 
+		//don't actually bounce on impact with walls.
 		saberEnt->bounceCount = 0;
 
-		// Ensure ballistics think runs again
-		saberEnt->think = WP_SaberBallisticsThink;
+		// Make sure SaberBallisticsThink runs again
+		saberEnt->think = SaberBallisticsThink;
 		saberEnt->nextthink = level.time + 50;
 	}
 	else
 	{
+		//otherwise, just move by normal ballistic physics
+		//spin just like we were in our saber throw.
+
 		// Ballistic movement (gravity + spin)
 		saberEnt->s.apos.trType = TR_LINEAR;
 
-		// Spin axis depends on overpoweredsaberthrow cvar
-		if (g_overpoweredsaberthrow.integer != 0)
-		{// Spin on Y axis (JKA default)
+		if (saber_own->client->ps.fd.saberAnimLevel == SS_STAFF)
+		{
+			saberEnt->s.apos.trType = TR_LINEAR;
 			saberEnt->s.apos.trDelta[0] = 0;
-
-			switch (saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
-			{
-			default:
-			case FORCE_LEVEL_1:
-				saberEnt->s.apos.trDelta[1] = 600;
-				break;
-			case FORCE_LEVEL_2:
-				saberEnt->s.apos.trDelta[1] = 800;
-				break;
-			case FORCE_LEVEL_3:
-				saberEnt->s.apos.trDelta[1] = 1000;
-				break;
-			}
-
+			saberEnt->s.apos.trDelta[1] = 800;
 			saberEnt->s.apos.trDelta[2] = 0;
 		}
 		else
-		{// Spin on X axis (new style)
+		{
 			switch (saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW])
 			{
 			default:
@@ -15312,54 +15125,46 @@ void WP_thrownSaberBallistics(gentity_t* saberEnt, const gentity_t* saber_own, c
 				saberEnt->s.apos.trDelta[0] = 1000;
 				break;
 			}
-
 			saberEnt->s.apos.trDelta[1] = 0;
 			saberEnt->s.apos.trDelta[2] = 0;
 		}
 
-		// Gravity now applies
+		//but now gravity has an effect.
 		saberEnt->s.pos.trType = TR_GRAVITY;
 
-		// Clear entity flags (ballistic sabers have no special eFlags)
+		//clear the entity flags
 		saberEnt->s.eFlags = 0;
 
-		// Number of allowed bounces
 		saberEnt->bounceCount = BALLISTICSABER_BOUNCECOUNT;
 	}
 
-	// Saber-style bouncing
+	//set up for saber style bouncing
 	saberEnt->flags |= FL_BOUNCE_HALF;
 
-	// Setup angular trajectory
+	//set transect timers and initial positions
 	saberEnt->s.apos.trTime = level.time;
 	VectorCopy(saberEnt->r.currentAngles, saberEnt->s.apos.trBase);
 
-	// Setup positional trajectory
 	saberEnt->s.pos.trTime = level.time;
 	VectorCopy(saberEnt->r.currentOrigin, saberEnt->s.pos.trBase);
 
-	// Player loses control of saber
+	//let the player know that they've lost control of the saber.
 	saber_own->client->ps.saberEntityNum = 0;
 
-	// Assign think/touch functions
-	saberEnt->think = WP_SaberBallisticsThink;
-	saberEnt->touch = WP_SaberBallisticsTouch;
+	//set the appropriate function pointer stuff
+	saberEnt->think = SaberBallisticsThink;
+	saberEnt->touch = SaberBallisticsTouch;
 	saberEnt->nextthink = level.time + FRAMETIME;
 
-	// Link entity
 	trap->LinkEntity((sharedEntity_t*)saberEnt);
 
-	// Add saber G2 model
-	WP_SaberAddG2Model(
-		saberEnt,
-		saber_own->client->saber[0].model,
-		saber_own->client->saber[0].skin
-	);
+	//add the saber model to our gentity ghoul2 instance
+	WP_SaberAddG2Model(saberEnt, saber_own->client->saber[0].model,
+		saber_own->client->saber[0].skin);
 
 	saberEnt->s.modelGhoul2 = 1;
 	saberEnt->s.g2radius = 20;
 
-	// Convert to missile entity
 	saberEnt->s.eType = ET_MISSILE;
 	saberEnt->s.weapon = WP_SABER;
 }
@@ -15377,28 +15182,28 @@ void DebounceSaberImpact(const gentity_t* self, const gentity_t* other_saberer, 
 	if (other_saberer)
 	{
 		//we hit an enemy saber so update our sabimpactdebounce data with that info for us and the enemy.
-		self->client->sabimpact[rsaber_num][rblade_num].saber_num = self->client->lastSaberCollided;
-		self->client->sabimpact[rsaber_num][rblade_num].blade_num = self->client->lastBladeCollided;
+		self->client->sabimpact[rsaber_num][rblade_num].saberNum = self->client->lastSaberCollided;
+		self->client->sabimpact[rsaber_num][rblade_num].bladeNum = self->client->lastBladeCollided;
 
 		//Also add this impact to the otherowner so he doesn't do do his behavior rolls twice.
 		other_saberer->client->sabimpact[self->client->lastSaberCollided][self->client->lastBladeCollided].entityNum =
 			self->client->ps.saberEntityNum;
 		other_saberer->client->sabimpact[self->client->lastSaberCollided][self->client->lastBladeCollided].Debounce =
 			level.time;
-		other_saberer->client->sabimpact[self->client->lastSaberCollided][self->client->lastBladeCollided].saber_num =
+		other_saberer->client->sabimpact[self->client->lastSaberCollided][self->client->lastBladeCollided].saberNum =
 			rsaber_num;
-		other_saberer->client->sabimpact[self->client->lastSaberCollided][self->client->lastBladeCollided].blade_num =
+		other_saberer->client->sabimpact[self->client->lastSaberCollided][self->client->lastBladeCollided].bladeNum =
 			rblade_num;
 	}
 	else
 	{
 		//blank out the saber blade impact stuff since we didn't hit another guy's saber
-		self->client->sabimpact[rsaber_num][rblade_num].saber_num = -1;
-		self->client->sabimpact[rsaber_num][rblade_num].blade_num = -1;
+		self->client->sabimpact[rsaber_num][rblade_num].saberNum = -1;
+		self->client->sabimpact[rsaber_num][rblade_num].bladeNum = -1;
 	}
 }
 
-qboolean WP_SaberIsOff(const gentity_t* self, const int saber_num)
+qboolean WP_SaberIsOff(const gentity_t* self, const int saberNum)
 {
 	//this function checks to see if a given saber is off.
 	switch (self->client->ps.saberHolstered)
@@ -15415,7 +15220,7 @@ qboolean WP_SaberIsOff(const gentity_t* self, const int saber_num)
 			saberEntityNum)
 		{
 			//special case where the secondary blade is lit instead of the primary
-			if (saber_num == 0)
+			if (saberNum == 0)
 			{
 				//primary is off
 				return qtrue;
@@ -15424,7 +15229,7 @@ qboolean WP_SaberIsOff(const gentity_t* self, const int saber_num)
 			return qfalse;
 		}
 		//the normal case
-		if (saber_num == 0)
+		if (saberNum == 0)
 		{
 			//primary is on
 			return qfalse;
@@ -15440,17 +15245,17 @@ qboolean WP_SaberIsOff(const gentity_t* self, const int saber_num)
 	}
 }
 
-qboolean WP_BladeIsOff(const gentity_t* self, const int saber_num, const int blade_num)
+qboolean WP_BladeIsOff(const gentity_t* self, const int saberNum, const int bladeNum)
 {
 	//checks to see if a given saber blade is supposed to be off.  This function does not check to see if the
 	//saber or saber blade actually exists.
 
 	//We have this function to account for the special cases with dual sabers where one saber has been dropped.
 
-	if (saber_num > 0)
+	if (saberNum > 0)
 	{
 		//secondary sabers are all on/all off.
-		if (WP_SaberIsOff(self, saber_num))
+		if (WP_SaberIsOff(self, saberNum))
 		{
 			//blades are all off
 			return qtrue;
@@ -15460,13 +15265,13 @@ qboolean WP_BladeIsOff(const gentity_t* self, const int saber_num, const int bla
 	}
 	//primary blade
 	//based on number of blades on saber
-	if (WP_SaberIsOff(self, saber_num)) //This function accounts for the weird saber throw situations.
+	if (WP_SaberIsOff(self, saberNum)) //This function accounts for the weird saber throw situations.
 	{
 		//saber is off, all blades are off
 		return qtrue;
 	}
 	//saber is on, secondary blades status is based on saberHolstered value.
-	if (blade_num > 0 && self->client->ps.saberHolstered == 1)
+	if (bladeNum > 0 && self->client->ps.saberHolstered == 1)
 	{
 		//secondaries are off
 		return qtrue;
@@ -15563,6 +15368,8 @@ void player_StopBurn(const gentity_t* self)
 	}
 }
 
+void player_Freeze(const gentity_t* self);
+
 static void player_StopFreeze(const gentity_t* self)
 {
 	if (self && self->client)
@@ -15645,15 +15452,11 @@ void WP_BlockPointsDrain(const gentity_t* self, const int fatigue)
 
 void G_Beskar_Attack_Bounce(const gentity_t* self, gentity_t* other)
 {
-	if (!g_standard_humanoid(other))
-	{
-		return;
-	}
 	if (self->client->ps.saberBlocked == BLOCKED_NONE)
 	{
 		if (!PM_SaberInSpecialAttack(self->client->ps.torsoAnim))
 		{
-			if (SaberAttacking(self))
+			if (WP_SaberAttacking(self))
 			{
 				// Saber is in attack, use bounce for this attack.
 				self->client->ps.saberBounceMove = PM_SaberBounceForAttack(self->client->ps.saberMove);

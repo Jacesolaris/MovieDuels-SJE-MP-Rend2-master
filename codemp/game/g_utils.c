@@ -483,7 +483,7 @@ void G_Throw(gentity_t* targ, const vec3_t new_dir, const float push)
 	}
 }
 
-void g_kick_throw(gentity_t* targ, const vec3_t new_dir, const float push)
+void G_Kick_Throw(gentity_t* targ, const vec3_t new_dir, const float push)
 {
 	//====================================================
 	// 0. Absolute safety: never touch targ before this

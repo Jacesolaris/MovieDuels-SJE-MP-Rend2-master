@@ -27,7 +27,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///													SERENITY JEDI ENGINE														///
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
-///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
+///						      System designed by Serenity and modded by JaceSolaris. (c) 2026 SJE   		                    ///
 ///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
@@ -2507,7 +2507,7 @@ void CG_NextWeapon_f(void)
 		return;
 	}
 
-	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 	{
 		return;
 	}
@@ -2602,7 +2602,7 @@ void CG_PrevWeapon_f(void)
 		return;
 	}
 
-	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 	{
 		return;
 	}
@@ -2697,7 +2697,7 @@ void CG_Weapon_f(void)
 		return;
 	}
 
-	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 	{
 		return;
 	}
@@ -2720,7 +2720,7 @@ void CG_Weapon_f(void)
 	}
 
 	if (num == 1 && cg.snap->ps.weapon == WP_SABER
-		&& !((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0))
+		&& !((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0))
 	{
 		if (cg.snap->ps.weaponTime < 1)
 		{
@@ -2867,7 +2867,7 @@ void CG_WeaponClean_f(void)
 		return;
 	}
 
-	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 	{
 		return;
 	}

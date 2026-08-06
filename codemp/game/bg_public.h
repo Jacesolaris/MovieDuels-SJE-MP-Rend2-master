@@ -27,7 +27,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///													SERENITY JEDI ENGINE														///
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
-///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
+///						      System designed by Serenity and modded by JaceSolaris. (c) 2026 SJE   		                    ///
 ///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
@@ -64,7 +64,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-05,Month-08,Year-26,BuildNum-03" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-06,Month-08,Year-26,BuildNum-04" // build date
 
 #define	STEPSIZE		18
 
@@ -2070,7 +2070,7 @@ void BG_SI_Deactivate(saberInfo_t* saber);
 void BG_SI_BladeActivate(saberInfo_t* saber, int iBlade, qboolean bActive);
 qboolean BG_SI_Active(const saberInfo_t* saber);
 void BG_SI_SetLength(saberInfo_t* saber, float length);
-void BG_SI_SetDesiredLength(saberInfo_t* saber, float len, int blade_num);
+void BG_SI_SetDesiredLength(saberInfo_t* saber, float len, int bladeNum);
 void BG_SI_SetLengthGradual(saberInfo_t* saber, int time);
 float BG_SI_Length(const saberInfo_t* saber);
 float BG_SI_LengthMax(const saberInfo_t* saber);

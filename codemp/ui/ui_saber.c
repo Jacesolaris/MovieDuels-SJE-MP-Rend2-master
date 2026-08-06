@@ -378,7 +378,7 @@ static int UI_saber_numBladesForSaber(const char* saber_name)
 	return numBlades;
 }
 
-static qboolean UI_SaberShouldDrawBlade(const char* saber_name, int blade_num)
+static qboolean UI_SaberShouldDrawBlade(const char* saber_name, int bladeNum)
 {
 	int bladeStyle2Start = 0, noBlade = 0;
 	char	bladeStyle2StartString[8] = { 0 };
@@ -389,7 +389,7 @@ static qboolean UI_SaberShouldDrawBlade(const char* saber_name, int blade_num)
 		bladeStyle2Start = atoi(bladeStyle2StartString);
 	}
 	if (bladeStyle2Start
-		&& blade_num >= bladeStyle2Start)
+		&& bladeNum >= bladeStyle2Start)
 	{//use second blade style
 		WP_SaberParseParm(saber_name, "noBlade2", noBladeString);
 		if (noBladeString[0])
@@ -420,7 +420,7 @@ static qboolean UI_IsSaberTwoHanded(const char* saber_name)
 	return twoHanded != 0;
 }
 
-static float UI_SaberBladeLengthForSaber(const char* saber_name, int blade_num)
+static float UI_SaberBladeLengthForSaber(const char* saber_name, int bladeNum)
 {
 	char	lengthString[8] = { 0 };
 	float	length = 40.0f;
@@ -434,7 +434,7 @@ static float UI_SaberBladeLengthForSaber(const char* saber_name, int blade_num)
 		}
 	}
 
-	WP_SaberParseParm(saber_name, va("saberLength%d", blade_num + 1), lengthString);
+	WP_SaberParseParm(saber_name, va("saberLength%d", bladeNum + 1), lengthString);
 	if (lengthString[0])
 	{
 		length = atof(lengthString);
@@ -447,7 +447,7 @@ static float UI_SaberBladeLengthForSaber(const char* saber_name, int blade_num)
 	return length;
 }
 
-static float UI_SaberBladeRadiusForSaber(const char* saber_name, int blade_num)
+static float UI_SaberBladeRadiusForSaber(const char* saber_name, int bladeNum)
 {
 	char	radiusString[8] = { 0 };
 	float	radius = 3.0f;
@@ -461,7 +461,7 @@ static float UI_SaberBladeRadiusForSaber(const char* saber_name, int blade_num)
 		}
 	}
 
-	WP_SaberParseParm(saber_name, va("saberRadius%d", blade_num + 1), radiusString);
+	WP_SaberParseParm(saber_name, va("saberRadius%d", bladeNum + 1), radiusString);
 	if (radiusString[0])
 	{
 		radius = atof(radiusString);
@@ -2714,7 +2714,7 @@ static void UI_DoMaulSaber(vec3_t origin, vec3_t dir, float length, float length
 	trap->R_AddRefEntityToScene(&saber);
 }
 
-static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saberModel, saberType_t saberType, vec3_t origin, vec3_t angles, int blade_num)
+static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saberModel, saberType_t saberType, vec3_t origin, vec3_t angles, int bladeNum)
 {
 	char bladeColorString[MAX_QPATH];
 	vec3_t	bladeOrigin = { 0 };
@@ -2743,10 +2743,10 @@ static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saber
 
 	const saber_colors_t bladeColor = TranslateSaberColor(bladeColorString);
 
-	const float bladeLength = UI_SaberBladeLengthForSaber(saber_name, blade_num);
-	const float bladeRadius = UI_SaberBladeRadiusForSaber(saber_name, blade_num);
+	const float bladeLength = UI_SaberBladeLengthForSaber(saber_name, bladeNum);
+	const float bladeRadius = UI_SaberBladeRadiusForSaber(saber_name, bladeNum);
 
-	const char* tagName = va("*blade%d", blade_num + 1);
+	const char* tagName = va("*blade%d", bladeNum + 1);
 	int bolt = trap->G2API_AddBolt(item->ghoul2, saberModel, tagName);
 
 	if (bolt == -1)
@@ -2806,32 +2806,32 @@ static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saber
 		case SABER_STAFF_SFX:
 		case SABER_STAFF_MAUL:
 		case SABER_ELECTROSTAFF:
-			if (blade_num == 0)
+			if (bladeNum == 0)
 			{
 				VectorMA(bladeOrigin, 12 * scale, axis[0], bladeOrigin);
 			}
-			if (blade_num == 1)
+			if (bladeNum == 1)
 			{
 				VectorScale(axis[0], -1, axis[0]);
 				VectorMA(bladeOrigin, 12 * scale, axis[0], bladeOrigin);
 			}
 			break;
 		case SABER_BROAD:
-			if (blade_num == 0)
+			if (bladeNum == 0)
 			{
 				VectorMA(bladeOrigin, -1 * scale, axis[1], bladeOrigin);
 			}
-			else if (blade_num == 1)
+			else if (bladeNum == 1)
 			{
 				VectorMA(bladeOrigin, 1 * scale, axis[1], bladeOrigin);
 			}
 			break;
 		case SABER_PRONG:
-			if (blade_num == 0)
+			if (bladeNum == 0)
 			{
 				VectorMA(bladeOrigin, -3 * scale, axis[1], bladeOrigin);
 			}
-			else if (blade_num == 1)
+			else if (bladeNum == 1)
 			{
 				VectorMA(bladeOrigin, 3 * scale, axis[1], bladeOrigin);
 			}
@@ -2839,7 +2839,7 @@ static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saber
 		case SABER_ARC:
 			VectorSubtract(axis[1], axis[2], axis[1]);
 			VectorNormalize(axis[1]);
-			switch (blade_num)
+			switch (bladeNum)
 			{
 			case 0:
 				VectorMA(bladeOrigin, 8 * scale, axis[0], bladeOrigin);
@@ -2868,17 +2868,17 @@ static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saber
 			}
 			break;
 		case SABER_SAI:
-			if (blade_num == 1)
+			if (bladeNum == 1)
 			{
 				VectorMA(bladeOrigin, -3 * scale, axis[1], bladeOrigin);
 			}
-			else if (blade_num == 2)
+			else if (bladeNum == 2)
 			{
 				VectorMA(bladeOrigin, 3 * scale, axis[1], bladeOrigin);
 			}
 			break;
 		case SABER_CLAW:
-			switch (blade_num)
+			switch (bladeNum)
 			{
 			case 0:
 				VectorMA(bladeOrigin, 2 * scale, axis[0], bladeOrigin);
@@ -2898,7 +2898,7 @@ static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saber
 			}
 			break;
 		case SABER_STAR:
-			switch (blade_num)
+			switch (bladeNum)
 			{
 			case 0:
 				VectorMA(bladeOrigin, 8 * scale, axis[0], bladeOrigin);
@@ -2935,7 +2935,7 @@ static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saber
 			}
 			break;
 		case SABER_TRIDENT:
-			switch (blade_num)
+			switch (bladeNum)
 			{
 			case 0:
 				VectorMA(bladeOrigin, 24 * scale, axis[0], bladeOrigin);
@@ -3121,12 +3121,12 @@ static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saber
 	}
 }
 
-static void UI_GetSaberForMenu(char* saber, int saber_num)
+static void UI_GetSaberForMenu(char* saber, int saberNum)
 {
 	char saberTypeString[MAX_QPATH] = { 0 };
 	saberType_t saberType = SABER_NONE;
 
-	if (saber_num == 0)
+	if (saberNum == 0)
 	{
 		trap->Cvar_VariableStringBuffer("ui_saber", saber, MAX_QPATH);
 		if (!UI_SaberValidForPlayerInMP(saber))
@@ -3191,13 +3191,13 @@ void UI_SaberDrawBlades(itemDef_t* item, vec3_t origin, vec3_t angles)
 		numSabers = 2;
 	}
 
-	for (int saber_num = 0; saber_num < numSabers; saber_num++)
+	for (int saberNum = 0; saberNum < numSabers; saberNum++)
 	{
 		char saber[MAX_QPATH];
 		if (item->flags & ITF_ISCHARACTER)//hacked sabermoves sabers in character's hand
 		{
-			UI_GetSaberForMenu(saber, saber_num);
-			saberModel = saber_num + 1;
+			UI_GetSaberForMenu(saber, saberNum);
+			saberModel = saberNum + 1;
 		}
 		else if (item->flags & ITF_ISSABER)
 		{
@@ -3261,13 +3261,13 @@ void UI_SaberAttachToChar(itemDef_t* item)
 		numSabers = 2;
 	}
 
-	for (int saber_num = 0; saber_num < numSabers; saber_num++)
+	for (int saberNum = 0; saberNum < numSabers; saberNum++)
 	{
 		//bolt sabers
 		char modelPath[MAX_QPATH];
 		char saber[MAX_QPATH];
 
-		UI_GetSaberForMenu(saber, saber_num);
+		UI_GetSaberForMenu(saber, saberNum);
 
 		if (UI_SaberModelForSaber(saber, modelPath))
 		{//successfully found a model
@@ -3286,7 +3286,7 @@ void UI_SaberAttachToChar(itemDef_t* item)
 				{
 					trap->G2API_SetSkin(item->ghoul2, g2Saber, 0, 0);//turn off custom skin
 				}
-				if (saber_num == 0)
+				if (saberNum == 0)
 				{
 					boltNum = trap->G2API_AddBolt(item->ghoul2, 0, "*r_hand");
 				}

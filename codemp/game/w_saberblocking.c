@@ -26,7 +26,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///													SERENITY JEDI ENGINE														///
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
-///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
+///						      System designed by Serenity and modded by JaceSolaris. (c) 2026 SJE   		                    ///
 ///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
@@ -79,7 +79,7 @@ extern void WP_BlockPointsRegenerate_over_ride(const gentity_t* self, int overri
 void sab_beh_animate_heavy_slow_bounce_attacker(gentity_t* attacker);
 extern void G_StaggerAttacker(gentity_t* atk);
 extern void G_BounceAttacker(gentity_t* atk);
-extern void wp_saber_clear_damage_for_ent_num(gentity_t* attacker, int entityNum, int saber_num, int blade_num);
+extern void WP_SaberClearDamageForEntNum(gentity_t* attacker, int entityNum, int saberNum, int bladeNum);
 extern void g_do_m_block_response(const gentity_t* speaker_npc_self);
 extern qboolean Rosh_BeingHealed(const gentity_t* self);
 //////////Defines////////////////
@@ -152,8 +152,8 @@ qboolean g_accurate_blocking(const gentity_t* blocker, const gentity_t* attacker
 			blocker->client->ps.viewangles,
 			0.3f);
 
-	const qboolean blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;	//Normal Blocking
-	const qboolean active_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;	//Active Blocking
+	const qboolean blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0) ? qtrue : qfalse;	//Normal Blocking
+	const qboolean active_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;	//Active Blocking
 
 	// Player must be holding block (NPCs exempt)
 	if (!(blocker->r.svFlags & SVF_BOT))
@@ -595,7 +595,7 @@ static qboolean sab_beh_attack_blocked(gentity_t* attacker, gentity_t* blocker, 
 
 	// Perfect blocking (timed block)
 	const qboolean m_blocking =
-		(blocker->client->ps.ManualBlockingFlags & (1 << PERFECTBLOCKING)) ? qtrue : qfalse;
+		(blocker->client->ps.ManualBlockingFlags & (1 << MBF_PERFECTBLOCKING)) ? qtrue : qfalse;
 
 	//
 	// HARD MISHAP — attacker fully fatigued
@@ -865,8 +865,8 @@ static qboolean sab_beh_attack_vs_attack(gentity_t* attacker, gentity_t* blocker
 qboolean sab_beh_attack_vs_block(
 	gentity_t* attacker,
 	gentity_t* blocker,
-	const int saber_num,
-	const int blade_num,
+	const int saberNum,
+	const int bladeNum,
 	vec3_t hit_loc
 )
 {
@@ -874,11 +874,11 @@ qboolean sab_beh_attack_vs_block(
 	const qboolean accurate_parry =
 		g_accurate_blocking(blocker, attacker, hit_loc); // Perfect normal blocking
 
-	const qboolean blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse; // Normal blocking
+	const qboolean blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0) ? qtrue : qfalse; // Normal blocking
 
-	const qboolean m_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << PERFECTBLOCKING)) != 0) ? qtrue : qfalse; // Perfect blocking
+	const qboolean m_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_PERFECTBLOCKING)) != 0) ? qtrue : qfalse; // Perfect blocking
 
-	const qboolean is_holding_block_button_and_attack = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse; // Active blocking
+	const qboolean is_holding_block_button_and_attack = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse; // Active blocking
 
 	const qboolean npc_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_NPCBLOCKING)) != 0) ? qtrue : qfalse; // NPC blocking
 
@@ -898,7 +898,7 @@ qboolean sab_beh_attack_vs_block(
 			attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
 
 			// Remove damage
-			wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
+			WP_SaberClearDamageForEntNum(attacker, blocker->s.number, saberNum, bladeNum);
 		}
 		else
 		{
@@ -1082,8 +1082,8 @@ qboolean sab_beh_attack_vs_block(
 qboolean sab_beh_block_vs_attack(
 	gentity_t* blocker,
 	gentity_t* attacker,
-	const int saber_num,
-	const int blade_num,
+	const int saberNum,
+	const int bladeNum,
 	vec3_t hit_loc
 )
 {
@@ -1104,11 +1104,11 @@ qboolean sab_beh_block_vs_attack(
 	const qboolean accurate_parry =
 		g_accurate_blocking(blocker, attacker, hit_loc);
 
-	const qboolean blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
+	const qboolean blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
 
-	const qboolean m_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << PERFECTBLOCKING)) != 0) ? qtrue : qfalse;
+	const qboolean m_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_PERFECTBLOCKING)) != 0) ? qtrue : qfalse;
 
-	const qboolean is_holding_block_button_and_attack = ((blocker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
+	const qboolean is_holding_block_button_and_attack = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
 
 	const qboolean npc_blocking = ((blocker->client->ps.ManualBlockingFlags & (1 << MBF_NPCBLOCKING)) != 0) ? qtrue : qfalse;
 
@@ -1154,7 +1154,7 @@ qboolean sab_beh_block_vs_attack(
 
 				blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 				attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
+				WP_SaberClearDamageForEntNum(attacker, blocker->s.number, saberNum, bladeNum);
 			}
 			else
 			{
@@ -1169,7 +1169,7 @@ qboolean sab_beh_block_vs_attack(
 
 				blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 				attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
+				WP_SaberClearDamageForEntNum(attacker, blocker->s.number, saberNum, bladeNum);
 			}
 		}
 
@@ -1225,7 +1225,7 @@ qboolean sab_beh_block_vs_attack(
 
 					blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 					attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-					wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
+					WP_SaberClearDamageForEntNum(attacker, blocker->s.number, saberNum, bladeNum);
 
 					WP_BlockPointsRegenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);//SAC Reward blocker
 					sab_beh_add_balance(blocker, -MPCOST_MBLOCKED); //SAC Reward blocker
@@ -1281,7 +1281,7 @@ qboolean sab_beh_block_vs_attack(
 
 					blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 					attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-					wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
+					WP_SaberClearDamageForEntNum(attacker, blocker->s.number, saberNum, bladeNum);
 				}
 			}
 
@@ -1337,7 +1337,7 @@ qboolean sab_beh_block_vs_attack(
 
 				blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 				attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
+				WP_SaberClearDamageForEntNum(attacker, blocker->s.number, saberNum, bladeNum);
 			}
 
 			// ----------------------------------------------------
@@ -1419,7 +1419,7 @@ qboolean sab_beh_block_vs_attack(
 
 				blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 				attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-				wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
+				WP_SaberClearDamageForEntNum(attacker, blocker->s.number, saberNum, bladeNum);
 			}
 
 			// ----------------------------------------------------
@@ -1475,7 +1475,7 @@ qboolean sab_beh_block_vs_attack(
 
 			blocker->client->ps.saberEventFlags |= SEF_PARRIED;
 			attacker->client->ps.saberEventFlags |= SEF_BLOCKED;
-			wp_saber_clear_damage_for_ent_num(attacker, blocker->s.number, saber_num, blade_num);
+			WP_SaberClearDamageForEntNum(attacker, blocker->s.number, saberNum, bladeNum);
 
 			WP_BlockPointsRegenerate_over_ride(blocker, BLOCKPOINTS_FIFTEEN);
 			PM_AddBlockFatigue(&attacker->client->ps, BLOCKPOINTS_TEN); //BP Punish Attacker

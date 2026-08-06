@@ -27,7 +27,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///													SERENITY JEDI ENGINE														///
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
-///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
+///						      System designed by Serenity and modded by JaceSolaris. (c) 2026 SJE   		                    ///
 ///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
@@ -4605,8 +4605,8 @@ static void G_GetDismemberBolt(gentity_t* self, vec3_t bolt_point, const int lim
 		gentity_t* te = G_TempEntity(bolt_point, EV_SABER_BODY_HIT);
 		te->s.otherentityNum = self->s.number;
 		te->s.otherentityNum2 = ENTITYNUM_NONE;
-		te->s.weapon = 0; //saber_num
-		te->s.legsAnim = 0; //blade_num
+		te->s.weapon = 0; //saberNum
+		te->s.legsAnim = 0; //bladeNum
 
 		VectorCopy(bolt_point, te->s.origin);
 		VectorCopy(boltAngles, te->s.angles);
@@ -8224,7 +8224,7 @@ void AddFatigueKillBonus(const gentity_t* attacker, const gentity_t* victim, con
 
 	// Compute block‑button state safely
 	const qboolean is_holding_block_button =
-		((attacker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+		((attacker->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 		? qtrue
 		: qfalse;
 
@@ -8277,7 +8277,7 @@ void AddFatigueHurtBonus(const gentity_t* attacker, const gentity_t* victim, con
 
 	// Compute block‑button state safely
 	const qboolean is_holding_block_button =
-		((attacker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+		((attacker->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 		? qtrue
 		: qfalse;
 
@@ -8330,7 +8330,7 @@ void AddFatigueHurtBonusMax(const gentity_t* attacker, const gentity_t* victim, 
 
 	// Compute block‑button state safely
 	const qboolean is_holding_block_button =
-		((attacker->client->ps.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+		((attacker->client->ps.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 		? qtrue
 		: qfalse;
 

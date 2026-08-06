@@ -11991,14 +11991,14 @@ static void Bot_CheckFallLanding(bot_state_t* bs)
 	}
 }
 
-extern saberInfo_t* BG_MySaber(int clientNum, int saber_num);
+extern saberInfo_t* BG_MySaber(int clientNum, int saberNum);
 void bot_check_speak(gentity_t* self, const qboolean moving);
 extern void AngleClamp(vec3_t ang);
 //the main AI loop.
 //please don't be too frightened.
 void standard_bot_ai(bot_state_t* bs)
 {
-	const int saber_num = 0;
+	const int saberNum = 0;
 	int doing_fallback = 0;
 	int fj_halt;
 	vec3_t a;
@@ -14189,7 +14189,7 @@ void standard_bot_ai(bot_state_t* bs)
 
 void Enhanced_bot_ai(bot_state_t* bs)
 {
-	const int saber_num = 0;
+	const int saberNum = 0;
 	int doing_fallback = 0;
 	int fj_halt;
 	vec3_t a;

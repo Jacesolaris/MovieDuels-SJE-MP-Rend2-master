@@ -29,7 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///													SERENITY JEDI ENGINE														///
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
-///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
+///						      System designed by Serenity and modded by JaceSolaris. (c) 2026 SJE   		                    ///
 ///								    https://www.moddb.com/mods/movie-duels											            ///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
@@ -61,7 +61,7 @@ qboolean PM_SaberInTransition(int move);
 qboolean PM_SaberInDeflect(int move);
 extern qboolean PM_SaberInBounce(int move);
 extern qboolean PM_SaberInBrokenParry(int move);
-extern saberInfo_t* BG_MySaber(int clientNum, int saber_num);
+extern saberInfo_t* BG_MySaber(int clientNum, int saberNum);
 extern qboolean PM_InBackFlip(int anim);
 qboolean PM_SaberInParry(const int move);
 qboolean PM_SaberInKnockaway(const int move);

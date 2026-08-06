@@ -27,7 +27,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ///													SERENITY JEDI ENGINE														///
 ///										          LIGHTSABER COMBAT SYSTEM													    ///
 ///																																///
-///						      System designed by Serenity and modded by JaceSolaris. (c) 2023 SJE   		                    ///
+///						      System designed by Serenity and modded by JaceSolaris. (c) 2026 SJE   		                    ///
 ///								    https://www.moddb.com/mods/movie-duels											///
 ///																																///
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///
@@ -1970,7 +1970,7 @@ static void CG_DrawMDHiltVert(const centity_t* cent, const menuDef_t* menu_hud)
 	const itemDef_t* focus_block_icon = Menu_FindItemByName(menu_hud, "md_block_vert");
 	const itemDef_t* focus_mblock_icon = Menu_FindItemByName(menu_hud, "md_mblock_vert");
 
-	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 	{
 		CG_DrawPic(
 			focus_block_icon->window.rect.x,
@@ -1981,7 +1981,7 @@ static void CG_DrawMDHiltVert(const centity_t* cent, const menuDef_t* menu_hud)
 		);
 	}
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << PERFECTBLOCKING)
+	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_PERFECTBLOCKING)
 	{
 		CG_DrawPic(
 			focus_mblock_icon->window.rect.x,
@@ -3819,7 +3819,7 @@ static void CG_DrawMDHiltHoz(const centity_t* cent, const menuDef_t* menu_hud)
 	const itemDef_t* focus_block_icon = Menu_FindItemByName(menu_hud, "md_block_hoz");
 	const itemDef_t* focus_mblock_icon = Menu_FindItemByName(menu_hud, "md_mblock_hoz");
 
-	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+	if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 	{
 		CG_DrawRotatePic2(
 			focus_block_icon->window.rect.x,
@@ -3831,7 +3831,7 @@ static void CG_DrawMDHiltHoz(const centity_t* cent, const menuDef_t* menu_hud)
 		);
 	}
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << PERFECTBLOCKING)
+	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_PERFECTBLOCKING)
 	{
 		CG_DrawRotatePic2(
 			focus_mblock_icon->window.rect.x,
@@ -4002,7 +4002,7 @@ static void CG_DrawJK2blockPoints(const int x, const int y, const menuDef_t* men
 	//	Outer block circular
 	//==========================================================================================================//
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << PERFECTBLOCKING)
+	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_PERFECTBLOCKING)
 	{
 		memcpy(calc_color, colorTable[CT_GREEN], sizeof(vec4_t));
 	}
@@ -4049,7 +4049,7 @@ static void CG_DrawJK2blockPoints(const int x, const int y, const menuDef_t* men
 
 	trap->R_SetColor(calc_color);
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << PERFECTBLOCKING)
+	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_PERFECTBLOCKING)
 	{
 		CG_DrawPic(x, y, 35, 35, cgs.media.HUDblockpointMB1);
 	}
@@ -4069,7 +4069,7 @@ static void CG_DrawJK2blockPoints(const int x, const int y, const menuDef_t* men
 		block_percent = (float)cg.snap->ps.fd.blockPoints / (BLOCK_POINTS_MAX / 2);
 	}
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << PERFECTBLOCKING)
+	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_PERFECTBLOCKING)
 	{
 		memcpy(calc_color, colorTable[CT_GREEN], sizeof(vec4_t));
 	}
@@ -4084,7 +4084,7 @@ static void CG_DrawJK2blockPoints(const int x, const int y, const menuDef_t* men
 
 	trap->R_SetColor(calc_color);
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << PERFECTBLOCKING)
+	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_PERFECTBLOCKING)
 	{
 		CG_DrawPic(x, y, 35, 35, cgs.media.HUDblockpointMB2);
 	}
@@ -5523,7 +5523,7 @@ static void CG_DrawCusblockPoints(const int x, const int y, const menuDef_t* men
 	//	Outer block circular
 	//==========================================================================================================//
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << PERFECTBLOCKING)
+	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_PERFECTBLOCKING)
 	{
 		memcpy(calc_color, colorTable[CT_GREEN], sizeof(vec4_t));
 	}
@@ -5570,7 +5570,7 @@ static void CG_DrawCusblockPoints(const int x, const int y, const menuDef_t* men
 
 	trap->R_SetColor(calc_color);
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << PERFECTBLOCKING)
+	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_PERFECTBLOCKING)
 	{
 		CG_DrawPic(x - 3.4, y + 3.5, 40, 40, cgs.media.HUDblockpointMB1);
 	}
@@ -5590,7 +5590,7 @@ static void CG_DrawCusblockPoints(const int x, const int y, const menuDef_t* men
 		block_percent = (float)cg.snap->ps.fd.blockPoints / (BLOCK_POINTS_MAX / 2);
 	}
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << PERFECTBLOCKING)
+	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_PERFECTBLOCKING)
 	{
 		memcpy(calc_color, colorTable[CT_GREEN], sizeof(vec4_t));
 	}
@@ -5605,7 +5605,7 @@ static void CG_DrawCusblockPoints(const int x, const int y, const menuDef_t* men
 
 	trap->R_SetColor(calc_color);
 
-	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << PERFECTBLOCKING)
+	if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_PERFECTBLOCKING)
 	{
 		CG_DrawPic(x - 3.4, y + 3.5, 40, 40, cgs.media.HUDblockpointMB2);
 	}
@@ -6445,7 +6445,7 @@ static void CG_DrawJK2blockingMode(const centity_t* cent, const menuDef_t* menu_
 
 	if (com_outcast.integer == 1) //jko
 	{
-		if (cg.predictedPlayerState.ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK)
+		if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCKANDATTACK)
 		{
 			blockindex = Menu_FindItemByName(menu_hud, "jk2MBlockingMode");
 
@@ -6462,7 +6462,7 @@ static void CG_DrawJK2blockingMode(const centity_t* cent, const menuDef_t* menu_
 				);
 			}
 		}
-		else if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+		else if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 		{
 			blockindex = Menu_FindItemByName(menu_hud, "jk2BlockingMode");
 
@@ -6499,7 +6499,7 @@ static void CG_DrawJK2blockingMode(const centity_t* cent, const menuDef_t* menu_
 	}
 	else
 	{
-		if (cg.predictedPlayerState.ManualBlockingFlags & 1 << HOLDINGBLOCKANDATTACK)
+		if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCKANDATTACK)
 		{
 			blockindex = Menu_FindItemByName(menu_hud, "jk2MBlockingMode");
 
@@ -6516,7 +6516,7 @@ static void CG_DrawJK2blockingMode(const centity_t* cent, const menuDef_t* menu_
 				);
 			}
 		}
-		else if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0)
+		else if ((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0)
 		{
 			blockindex = Menu_FindItemByName(menu_hud, "jk2BlockingMode");
 
@@ -11326,8 +11326,8 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 	vec4_t ecolor = { 0, 0, 0, 0 };
 	const centity_t* crossEnt = NULL;
 
-	const qboolean holding_block = ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
-	const qboolean holding_block_and_attack = ((cg.predictedPlayerState.ManualBlockingFlags & (1 << HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
+	const qboolean holding_block = ((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
+	const qboolean holding_block_and_attack = ((cg.predictedPlayerState.ManualBlockingFlags & (1 << MBF_HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
 	const qboolean holding_sprint = ((cg.predictedPlayerState.PlayerEffectFlags & (1 << PEF_SPRINTING)) != 0) ? qtrue : qfalse;
 	const qboolean holding_block_button = ((cg.predictedPlayerState.pm_flags & PMF_BLOCK_HELD) != 0) ? qtrue : qfalse;
 	const qboolean holding_walking_button = ((cg.predictedPlayerState.pm_flags & PMF_WALKING_HELD) != 0) ? qtrue : qfalse;
@@ -15194,6 +15194,7 @@ static void CG_Draw2D(void)
 	//if (cg.predictedPlayerState.communicatingflags & (1 << HACKER))
 	//if (cg.snap->ps.userInt3 & (1 << FLAG_PERFECTBLOCK))
 	//if (cg.predictedPlayerState.communicatingflags & (1 << CF_SABERLOCK_ADVANCE))
+	//if (cg.predictedPlayerState.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCK)
 	//{//test for all sorts of shit... does it work? show me.
 		//CG_DrawPic(0, 0, 640, 480, trap->R_RegisterShader("gfx/2d/jsense"));
 		//CG_DrawPic(0, 0, 640, 480, trap->R_RegisterShader("gfx/2d/droid_view"));
