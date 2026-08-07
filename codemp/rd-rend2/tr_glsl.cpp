@@ -333,17 +333,20 @@ static size_t GLSL_GetShaderHeader(
 			"#define AGEN_PORTAL %i\n"
 			"#endif\n",
 			AGEN_LIGHTING_SPECULAR,
+			AGEN_LIGHTING_SPECULAR_STATIC,
 			AGEN_PORTAL));
 
 	Q_strcat(dest, size,
-		va("#define ALPHA_TEST_GT0 %d\n"
-			"#define ALPHA_TEST_LT128 %d\n"
-			"#define ALPHA_TEST_GE128 %d\n"
-			"#define ALPHA_TEST_GE192 %d\n",
+		va("#define ALPHA_TEST_GT0 %i\n"
+			"#define ALPHA_TEST_LT128 %i\n"
+			"#define ALPHA_TEST_GE128 %i\n"
+			"#define ALPHA_TEST_GE192 %i\n"
+			"#define ALPHA_TEST_E255 %i\n",
 			ALPHA_TEST_GT0,
 			ALPHA_TEST_LT128,
 			ALPHA_TEST_GE128,
-			ALPHA_TEST_GE192));
+			ALPHA_TEST_GE192,
+			ALPHA_TEST_E255));
 
 	Q_strcat(dest, size,
 		va("#define MAX_G2_BONES %i\n",
