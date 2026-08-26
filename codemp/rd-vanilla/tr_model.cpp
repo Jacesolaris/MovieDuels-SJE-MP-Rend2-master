@@ -686,7 +686,10 @@ static qboolean ServerLoadMDXA(model_t* mod, void* buffer, const char* mod_name,
 	qboolean bAlreadyFound = qfalse;
 	mdxa = mod->mdxa = static_cast<mdxaHeader_t*>(RE_RegisterServerModels_Malloc(size, buffer, mod_name, &bAlreadyFound, TAG_MODEL_GLA));
 
-	assert(bAlreadyCached == bAlreadyFound);	// I should probably eliminate 'bAlreadyFound', but wtf?
+	if (bAlreadyCached != bAlreadyFound)
+	{
+		Com_Printf(S_COLOR_YELLOW "ServerLoadMDXA: cache flag mismatch for %s (caller:%d cache:%d)\n", mod_name, bAlreadyCached, bAlreadyFound);
+	}
 
 	if (!bAlreadyFound)
 	{
@@ -831,18 +834,20 @@ ServerLoadMDXM - load a Ghoul 2 Mesh file
 =================
 */
 extern int OldToNewRemapTable[72];
+
 static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
-	int                 i, j;
+	int					i, j;
 	mdxmHeader_t* pinmodel, * mdxm;
 	mdxmLOD_t* lod;
 	mdxmSurface_t* surf;
-	int                 version;
-	int                 size;
+	int					version;
+	int					size;
+	//shader_t			*sh;
 	mdxmSurfHierarchy_t* surfInfo;
 
 #ifdef Q3_BIG_ENDIAN
-	int                     k;
+	int					k;
 	mdxmTriangle_t* tri;
 	mdxmVertex_t* v;
 	int* boneRef;
@@ -851,10 +856,12 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 	mdxmHierarchyOffsets_t* surfIndexes;
 #endif
 
-	pinmodel = (mdxmHeader_t*)buffer;
-
-	version = pinmodel->version;
-	size = pinmodel->ofsEnd;
+	pinmodel = static_cast<mdxmHeader_t*>(buffer);
+	//
+	// read some fields from the binary, but only LittleLong() them when we know this wasn't an already-cached model...
+	//
+	version = (pinmodel->version);
+	size = (pinmodel->ofsEnd);
 
 	if (!bAlreadyCached)
 	{
@@ -862,8 +869,7 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 		LL(size);
 	}
 
-	if (version != MDXM_VERSION)
-	{
+	if (version != MDXM_VERSION) {
 		return qfalse;
 	}
 
@@ -871,10 +877,12 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 	mod->dataSize += size;
 
 	qboolean bAlreadyFound = qfalse;
-	mdxm = mod->mdxm = (mdxmHeader_t*)RE_RegisterServerModels_Malloc(
-		size, buffer, mod_name, &bAlreadyFound, TAG_MODEL_GLM);
+	mdxm = mod->mdxm = static_cast<mdxmHeader_t*>(RE_RegisterServerModels_Malloc(size, buffer, mod_name, &bAlreadyFound, TAG_MODEL_GLM));
 
-	assert(bAlreadyCached == bAlreadyFound);
+	if (bAlreadyCached != bAlreadyFound)
+	{
+		Com_Printf(S_COLOR_YELLOW "ServerLoadMDXM: cache flag mismatch for %s (caller:%d cache:%d)\n", mod_name, bAlreadyCached, bAlreadyFound);
+	}
 
 	if (!bAlreadyFound)
 	{
@@ -932,7 +940,7 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 
 	if (bAlreadyFound)
 	{
-		return qtrue;
+		return qtrue;	// All done. Stop, go no further, do not LittleLong(), do not pass Go...
 	}
 
 	bool isAnOldModelFile = false;
@@ -941,52 +949,48 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 		isAnOldModelFile = true;
 	}
 
-	/*
-	============================================================
-		SURFACE + LOD PROCESSING (unchanged)
-	============================================================
-	*/
-
-	surfInfo = (mdxmSurfHierarchy_t*)((byte*)mdxm + mdxm->ofsSurfHierarchy);
-
+	surfInfo = reinterpret_cast<mdxmSurfHierarchy_t*>(reinterpret_cast<byte*>(mdxm) + mdxm->ofsSurfHierarchy);
 #ifdef Q3_BIG_ENDIAN
 	surfIndexes = (mdxmHierarchyOffsets_t*)((byte*)mdxm + sizeof(mdxmHeader_t));
 #endif
-
 	for (i = 0; i < mdxm->numSurfaces; i++)
 	{
 		LL(surfInfo->numChildren);
 		LL(surfInfo->parentIndex);
 
+		// do all the children indexs
 		for (int j = 0; j < surfInfo->numChildren; j++)
 		{
 			LL(surfInfo->childIndexes[j]);
 		}
+
+		// We will not be using shaders on the server.
+		//sh = 0;
+		// insert it in the surface list
 
 		surfInfo->shaderIndex = 0;
 
 		RE_RegisterModels_StoreShaderRequest(mod_name, &surfInfo->shader[0], &surfInfo->shaderIndex);
 
 #ifdef Q3_BIG_ENDIAN
+		// swap the surface offset
 		LL(surfIndexes->offsets[i]);
 		assert(surfInfo == (mdxmSurfHierarchy_t*)((byte*)surfIndexes + surfIndexes->offsets[i]));
 #endif
 
-		surfInfo = (mdxmSurfHierarchy_t*)((byte*)surfInfo +
-			(intptr_t) & ((mdxmSurfHierarchy_t*)0)->childIndexes[surfInfo->numChildren]);
+		// find the next surface
+		surfInfo = reinterpret_cast<mdxmSurfHierarchy_t*>(reinterpret_cast<byte*>(surfInfo) + reinterpret_cast<intptr_t>(&static_cast<mdxmSurfHierarchy_t*>(nullptr)->childIndexes[surfInfo->numChildren]));
 	}
 
-	lod = (mdxmLOD_t*)((byte*)mdxm + mdxm->ofsLODs);
-
+	// swap all the LOD's	(we need to do the middle part of this even for intel, because of shader reg and err-check)
+	lod = reinterpret_cast<mdxmLOD_t*>(reinterpret_cast<byte*>(mdxm) + mdxm->ofsLODs);
 	for (int l = 0; l < mdxm->numLODs; l++)
 	{
-		int triCount = 0;
+		int	triCount = 0;
 
 		LL(lod->ofsEnd);
-
-		surf = (mdxmSurface_t*)((byte*)lod + sizeof(mdxmLOD_t) +
-			mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t));
-
+		// swap all the surfaces
+		surf = reinterpret_cast<mdxmSurface_t*>(reinterpret_cast<byte*>(lod) + sizeof(mdxmLOD_t) + (mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
 		for (i = 0; i < mdxm->numSurfaces; i++)
 		{
 			LL(surf->thisSurfaceIndex);
@@ -1001,36 +1005,43 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 
 			triCount += surf->numTriangles;
 
-			if (surf->numVerts > SHADER_MAX_VERTEXES)
+			if (surf->numVerts > SHADER_MAX_VERTEXES) {
 				return qfalse;
-
-			if (surf->numTriangles * 3 > SHADER_MAX_INDEXES)
+			}
+			if (surf->numTriangles * 3 > SHADER_MAX_INDEXES) {
 				return qfalse;
+			}
 
+			// change to surface identifier
 			surf->ident = SF_MDX;
 
+			// register the shaders
 #ifdef Q3_BIG_ENDIAN
+			// swap the LOD offset
 			indexes = (mdxmLODSurfOffset_t*)((byte*)lod + sizeof(mdxmLOD_t));
 			LL(indexes->offsets[surf->thisSurfaceIndex]);
 
+			// do all the bone reference data
 			boneRef = (int*)((byte*)surf + surf->ofsBoneReferences);
-			for (int j = 0; j < surf->numBoneReferences; j++)
+			for (j = 0; j < surf->numBoneReferences; j++)
 			{
 				LL(boneRef[j]);
 			}
 
+			// swap all the triangles
 			tri = (mdxmTriangle_t*)((byte*)surf + surf->ofsTriangles);
-			for (int j = 0; j < surf->numTriangles; j++, tri++)
+			for (j = 0; j < surf->numTriangles; j++, tri++)
 			{
 				LL(tri->indexes[0]);
 				LL(tri->indexes[1]);
 				LL(tri->indexes[2]);
 			}
 
+			// swap all the vertexes
 			v = (mdxmVertex_t*)((byte*)surf + surf->ofsVerts);
 			pTexCoords = (mdxmVertexTexCoord_t*)&v[surf->numVerts];
 
-			for (int j = 0; j < surf->numVerts; j++)
+			for (j = 0; j < surf->numVerts; j++)
 			{
 				LF(v->normal[0]);
 				LF(v->normal[1]);
@@ -1050,7 +1061,7 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 #endif
 			if (isAnOldModelFile)
 			{
-				int* boneRef = (int*)((byte*)surf + surf->ofsBoneReferences);
+				auto boneRef = reinterpret_cast<int*>(reinterpret_cast<byte*>(surf) + surf->ofsBoneReferences);
 				for (j = 0; j < surf->numBoneReferences; j++)
 				{
 					assert(boneRef[j] >= 0 && boneRef[j] < 72);
@@ -1065,10 +1076,12 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 				}
 			}
 
-			surf = (mdxmSurface_t*)((byte*)surf + surf->ofsEnd);
+			// find the next surface
+			surf = reinterpret_cast<mdxmSurface_t*>(reinterpret_cast<byte*>(surf) + surf->ofsEnd);
 		}
 
-		lod = (mdxmLOD_t*)((byte*)lod + lod->ofsEnd);
+		// find the next LOD
+		lod = reinterpret_cast<mdxmLOD_t*>(reinterpret_cast<byte*>(lod) + lod->ofsEnd);
 	}
 
 	return qtrue;
@@ -1493,19 +1506,15 @@ static qboolean R_LoadMD3(model_t* mod, int lod, void* buffer, const char* name,
 	qboolean bAlreadyFound = qfalse;
 	mod->md3[lod] = static_cast<md3Header_t*>(RE_RegisterModels_Malloc(size, buffer, name, &bAlreadyFound, TAG_MODEL_MD3));
 
-	assert(bAlreadyCached == bAlreadyFound);	// I should probably eliminate 'bAlreadyFound', but wtf?
+	if (bAlreadyCached != bAlreadyFound)
+	{
+		Com_Printf(S_COLOR_YELLOW "R_LoadMD3: cache flag mismatch for %s (caller:%d cache:%d)\n", name, bAlreadyCached, bAlreadyFound);
+	}
 
 	if (!bAlreadyFound)
 	{
-		// horrible new hackery, if !bAlreadyFound then we've just done a tag-morph, so we need to set the
-		//	bool reference passed into this function to true, to tell the caller NOT to do an ri->FS_Freefile since
-		//	we've hijacked that memory block...
-		//
-		// Aaaargh. Kill me now...
-		//
 		bAlreadyCached = qtrue;
 		assert(mod->md3[lod] == buffer);
-		//		memcpy( mod->md3[lod], buffer, size );	// and don't do this now, since it's the same thing
 
 		LL(mod->md3[lod]->ident);
 		LL(mod->md3[lod]->version);

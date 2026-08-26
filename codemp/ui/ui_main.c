@@ -1643,6 +1643,24 @@ void UI_LoadMenus(const char* menuFile, const qboolean reset)
 
 	Com_Printf("UI menu load time = %d milli seconds\n", trap->Milliseconds() - start);
 
+	Com_Printf("-----------------------------------------------------------------\n");
+	Com_Printf("--------------------- Client Initialization ---------------------\n");
+	Com_Printf("-----------------------------------------------------------------\n");
+	Com_Printf("---- Genuine MovieDuels SerenityJediEngine (Solaris Edition) ----\n");
+	Com_Printf("----------------------- MovieDuels-SJE-MP -----------------------\n");
+	Com_Printf("-----------------------------------------------------------------\n");
+	Com_Printf("-------------------------- Update 8.0 ---------------------------\n");
+	Com_Printf("--------------------- Build Date 26/08/2026 ---------------------\n");// build date
+	Com_Printf("--------------------------- Build 09 ----------------------------\n");
+	Com_Printf("-----------------------------------------------------------------\n");
+	Com_Printf("-------------------------- Lightsaber ---------------------------\n");
+	Com_Printf("---------- An elegant weapon for a more civilized age -----------\n");
+	Com_Printf("-----------------------------------------------------------------\n");
+
+	//Com_Printf("------Type (seta cl_noprint 0) to see text------\n");	// 
+	//Com_Printf("------Type (helpdebug) to open debug command list------\n");
+	//Com_Printf("------Type (Adminlogin <password>) to log in as admin------\n");
+
 	trap->PC_FreeSource(handle);
 
 	trap->PC_RemoveAllGlobalDefines();

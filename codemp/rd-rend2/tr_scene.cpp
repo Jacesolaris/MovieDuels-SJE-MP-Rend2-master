@@ -206,12 +206,8 @@ void RE_AddRefEntityToScene(const refEntity_t* ent) {
 		return;
 	}
 
-	if (ent->reType == RT_ENT_CHAIN)
-	{ //minirefents must die.
-		return;
-	}
-
-	if ((int)ent->reType < 0 || ent->reType >= RT_MAX_REF_ENTITY_TYPE) {
+	if (static_cast<int>(ent->reType) < 0 || ent->reType >= RT_MAX_SP_REF_ENTITY_TYPE || ent->reType == RT_MAX_MP_REF_ENTITY_TYPE || ent->reType >= RT_MAX_REF_ENTITY_TYPE)
+	{
 		ri->Error(ERR_DROP, "RE_AddRefEntityToScene: bad reType %i", ent->reType);
 	}
 
@@ -228,7 +224,7 @@ void RE_AddRefEntityToScene(const refEntity_t* ent) {
 =====================
 RE_AddMiniRefEntityToScene
 
-1:1 with how vanilla does it --eez
+1:1 with how vanilla does it
 =====================
 */
 void RE_AddMiniRefEntityToScene(const miniRefEntity_t* miniRefEnt)
@@ -310,8 +306,6 @@ void RE_AddAdditiveLightToScene(const vec3_t org, const float intensity, const f
 
 void RE_BeginScene(const refdef_t* fd)
 {
-	Com_Memcpy(tr.refdef.text, fd->text, sizeof(tr.refdef.text));
-
 	tr.refdef.x = fd->x;
 	tr.refdef.y = fd->y;
 	tr.refdef.width = fd->width;
@@ -326,7 +320,7 @@ void RE_BeginScene(const refdef_t* fd)
 
 	tr.refdef.time = fd->time;
 	tr.refdef.rdflags = fd->rdflags;
-	tr.refdef.frameTime = fd->time - tr.refdef.lastTime;
+	tr.refdef.frameTime = MIN(fd->time - tr.refdef.lastTime, 50.f);
 
 	// copy the areamask data over and note if it has changed, which
 	// will force a reset of the visible leafs even if the view hasn't moved
@@ -466,9 +460,7 @@ void RE_BeginScene(const refdef_t* fd)
 	// Add the decals here because decals add polys and we need to ensure
 	// that the polys are added before the the renderer is prepared
 	if (!(fd->rdflags & RDF_NOWORLDMODEL))
-	{
 		R_AddDecals();
-	}
 
 	tr.refdef.numPolys = r_numpolys - r_firstScenePoly;
 	tr.refdef.polys = &backEndData->polys[r_firstScenePoly];
@@ -478,8 +470,8 @@ void RE_BeginScene(const refdef_t* fd)
 
 	// turn off dynamic lighting globally by clearing all the
 	// dlights if it needs to be disabled or if vertex lighting is enabled
-	if (r_dynamiclight->integer == 0 || r_vertexLight->integer == 1)
-	{
+	if (r_dynamiclight->integer == 0 ||
+		r_vertexLight->integer == 1) {
 		tr.refdef.num_dlights = 0;
 	}
 
@@ -490,10 +482,10 @@ void RE_BeginScene(const refdef_t* fd)
 		// Don't update constants yet. Store everything and render everything next scene
 		return;
 	}
-	else
+	else if (backEndData->currentFrame->currentScene == 0)
 	{
-		// pasted this from SP
 		// cdr - only change last time for the real render, not the portal
+		// nor other scenes to be rendered like ui scenes
 		tr.refdef.lastTime = fd->time;
 	}
 
@@ -504,10 +496,13 @@ void RE_BeginScene(const refdef_t* fd)
 	// each scene / view.
 	tr.frameSceneNum++;
 	tr.sceneCount++;
+	tr.portalRenderedThisFrame = qfalse;
 
-	//ri->Printf(PRINT_ALL, "RE_BeginScene Frame: %i, skyportal: %i, entities: %i\n", backEndData->realFrameNumber, int(tr.world->skyboxportal && (tr.refdef.rdflags & RDF_SKYBOXPORTAL)), tr.refdef.num_entities);
+	//ri.Printf(PRINT_ALL, "RE_BeginScene Frame: %i, skyportal: %i, entities: %i\n", backEndData->realFrameNumber, int(tr.world->skyboxportal && (tr.refdef.rdflags & RDF_SKYBOXPORTAL)), tr.refdef.num_entities);
 	R_GatherFrameViews(&tr.refdef);
 	RB_UpdateConstants(&tr.refdef);
+
+	R_PushDebugGroup(AL_SCENE, va("Scene_%i", backEndData->currentFrame->currentScene));
 }
 
 void RE_EndScene()
@@ -519,6 +514,9 @@ void RE_EndScene()
 	r_firstScenePoly = r_numpolys;
 	tr.skyPortalEntities = 0;
 	tr.numCachedViewParms = 0;
+	tr.refdef.doLAGoggles = false;
+	tr.refdef.doFullbright = false;
+	backEndData->currentFrame->currentScene++;
 }
 
 /*
@@ -546,6 +544,10 @@ void RE_RenderScene(const refdef_t* fd)
 	}
 
 	startTime = ri->Milliseconds();
+
+	if (backEndData->currentFrame->currentScene >= MAX_SCENES) {
+		ri->Error(ERR_DROP, "Tried to render to many subscenes per frame. Developer: Increase MAX_SCENES");
+	}
 
 	if (!tr.world && !(fd->rdflags & RDF_NOWORLDMODEL)) {
 		ri->Error(ERR_DROP, "R_RenderScene: NULL worldmodel");
@@ -588,6 +590,17 @@ void RE_RenderScene(const refdef_t* fd)
 	// Render all the passes
 	for (int i = 0; i < tr.numCachedViewParms; i++)
 	{
+		const char* viewParmTypeNames[VPT_ALL] = {
+			"Skyportal View",
+			"Sunshadow Cascade",
+			"Player Shadowmap",
+			"Pointlight Shadow",
+			"Portal View",
+			"Main View" };
+		R_PushDebugGroup(AL_VIEW, va(
+			"%s_%i",
+			viewParmTypeNames[tr.cachedViewParms[i].viewParmType],
+			i));
 		qhandle_t timer = R_BeginTimedBlockCmd(va("Render Pass %i", i));
 		tr.refdef.numDrawSurfs = 0;
 		R_RenderView(&tr.cachedViewParms[i]);
@@ -597,6 +610,7 @@ void RE_RenderScene(const refdef_t* fd)
 
 	if (!(fd->rdflags & RDF_NOWORLDMODEL))
 	{
+		R_PushDebugGroup(AL_VIEW, "Post processing");
 		qhandle_t timer = R_BeginTimedBlockCmd("Post processing");
 		R_AddPostProcessCmd();
 		R_EndTimedBlockCmd(timer);
@@ -605,6 +619,7 @@ void RE_RenderScene(const refdef_t* fd)
 	R_IssuePendingRenderCommands();
 
 	RE_EndScene();
+	R_PushDebugGroup(AL_VIEW, "2D Pass");
 
 	tr.frontEndMsec += ri->Milliseconds() - startTime;
 }

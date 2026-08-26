@@ -56,19 +56,25 @@ size_t Allocator::GetSize() const
 
 void* Allocator::Alloc(size_t allocSize)
 {
-	if ((size_t)((char*)end - (char*)mark) < allocSize)
+	// Remaining bytes in this allocator
+	const size_t remaining = (size_t)((char*)end - (char*)mark);
+
+	if (remaining < allocSize)
 	{
-		assert(!"Allocator is out of memory");
 		return nullptr;
 	}
 
 	void* result = mark;
-	size_t alignedSize = PAD(allocSize, alignment);
 
+	// Align allocation size
+	const size_t alignedSize = PAD(allocSize, alignment);
+
+	// Advance mark
 	mark = (char*)mark + alignedSize;
 
 	return result;
 }
+
 
 void* Allocator::Mark() const
 {

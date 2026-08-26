@@ -724,7 +724,7 @@ qboolean trap_GetEntityToken(char* buffer, const int buffer_size)
 	return Q_syscall(CG_GET_ENTITY_TOKEN, buffer, buffer_size);
 }
 
-qboolean trap_R_inPVS(const vec3_t p1, const vec3_t p2, const byte* mask)
+qboolean trap_R_inPVS(const vec3_t p1, const vec3_t p2, byte* mask)
 {
 	return Q_syscall(CG_R_INPVS, p1, p2, mask);
 }

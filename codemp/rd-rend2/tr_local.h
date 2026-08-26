@@ -48,14 +48,16 @@ typedef unsigned int glIndex_t;
 // 14 bits
 // can't be increased without changing bit packing for drawsurfs
 // see QSORT_SHADERNUM_SHIFT
+
+#define MAX_FRAMES (2)
 #define SHADERNUM_BITS	14
 #define MAX_SHADERS		(1<<SHADERNUM_BITS)
 
-#define	MAX_FBOS      256
+#define	MAX_FBOS      512
 #define MAX_VISCOUNTS 5
 #define MAX_VBOS      4096
 #define MAX_IBOS      4096
-#define MAX_G2_BONES  72
+#define MAX_G2_BONES  256
 #define MAX_GPU_FOGS  24
 
 #define MAX_CALC_PSHADOWS    64
@@ -116,6 +118,11 @@ extern cvar_t* r_facePlaneCull;
 extern cvar_t* r_showcluster;
 extern cvar_t* r_nocurves;
 
+extern cvar_t* r_volumetricFog;
+extern cvar_t* r_volumetricFogDefaultScale;
+extern cvar_t* r_volumetricFogSamples;
+extern cvar_t* r_volumetricFogScale;
+
 extern cvar_t* r_allowExtensions;
 
 extern cvar_t* r_ext_compressed_textures;
@@ -130,6 +137,9 @@ extern cvar_t* r_ext_texture_float;
 extern cvar_t* r_arb_half_float_pixel;
 extern cvar_t* r_ext_framebuffer_multisample;
 extern cvar_t* r_arb_seamless_cube_map;
+
+extern cvar_t* r_smaa;
+extern cvar_t* r_smaa_quality;
 
 extern cvar_t* r_cameraExposure;
 
@@ -296,6 +306,16 @@ End Cvars
 
 typedef enum
 {
+	AL_NONE,
+	AL_SCENE,
+	AL_VIEW,
+	AL_STAGE
+} annotationLayer_t;
+
+void R_PushDebugGroup(annotationLayer_t layer, const char* name);
+
+typedef enum
+{
 	IMGTYPE_COLORALPHA, // for color, lightmap, diffuse, and specular
 	IMGTYPE_NORMAL,
 	IMGTYPE_NORMALHEIGHT,
@@ -441,17 +461,18 @@ typedef enum
 typedef struct VBO_s
 {
 	uint32_t        vertexesVBO;
-	int             vertexesSize;	// amount of memory data allocated for all vertices in bytes
+	size_t          vertexesSize;	// amount of memory data allocated for all vertices in bytes
 
 	uint32_t		offsets[ATTR_INDEX_MAX];
 	uint32_t		strides[ATTR_INDEX_MAX];
 	uint32_t		sizes[ATTR_INDEX_MAX];
+	uint32_t		stepRates[ATTR_INDEX_MAX];
 } VBO_t;
 
 typedef struct IBO_s
 {
 	uint32_t        indexesVBO;
-	int             indexesSize;	// amount of memory data allocated for all triangles in bytes
+	size_t          indexesSize;	// amount of memory data allocated for all triangles in bytes
 	//  uint32_t        ofsIndexes;
 } IBO_t;
 
@@ -590,6 +611,8 @@ typedef enum {
 	TCGEN_LIGHTMAP3,
 	TCGEN_TEXTURE,
 	TCGEN_ENVIRONMENT_MAPPED,
+	TCGEN_ENVIRONMENT_MAPPED_SP,
+	TCGEN_ENVIRONMENT_MAPPED_SP_FP,
 	TCGEN_FOG,
 	TCGEN_VECTOR			// S and T from world coordinates
 } texCoordGen_t;
@@ -762,6 +785,19 @@ struct EntityBlock
 	float fxVolumetricBase;
 	vec3_t modelLightDir;
 	float vertexLerp;
+	bool operator == (const EntityBlock& other) const
+	{
+		return (
+			Matrix16Compare(this->modelMatrix, other.modelMatrix) == qtrue &&
+			VectorCompare4(this->lightOrigin, other.lightOrigin) == qtrue &&
+			VectorCompare(this->ambientLight, other.ambientLight) == qtrue &&
+			this->entityTime == other.entityTime &&
+			VectorCompare(this->directedLight, other.directedLight) == qtrue &&
+			this->fxVolumetricBase == other.fxVolumetricBase &&
+			VectorCompare(this->modelLightDir, other.modelLightDir) == qtrue &&
+			this->vertexLerp == other.vertexLerp
+			);
+	}
 };
 
 struct ShaderInstanceBlock
@@ -777,6 +813,15 @@ struct ShaderInstanceBlock
 struct SkeletonBoneMatricesBlock
 {
 	mat3x4_t matrices[MAX_G2_BONES];
+};
+
+struct TemporalBlock
+{
+	matrix_t previousViewProjectionMatrix;
+	vec2_t currentJitter;
+	vec2_t previousJitter;
+	float previousTime;
+	float pad0[3];
 };
 
 struct surfaceSprite_t
@@ -800,7 +845,7 @@ struct surfaceSprite_t
 	vec2_t fxGrow;
 	surfaceSpriteOrientation_t facing;
 
-	int spriteUboOffset;
+	size_t spriteUboOffset;
 };
 
 #define	MAX_IMAGE_ANIMATIONS	(32)
@@ -939,6 +984,12 @@ typedef struct {
 	float	depthForOpaque;
 } fogParms_t;
 
+typedef enum {
+	DEPTHPREPASS_ALPHATESTED,
+	DEPTHPREPASS_SIMPLE,
+	DEPTHPREPASS_SKIP
+} depthPrepass_t;
+
 typedef struct shader_s {
 	char		name[MAX_QPATH];		// game path, including extension
 	int			lightmapIndex[MAXLIGHTMAPS];	// for a shader to match, both name and all lightmapIndex must match
@@ -992,6 +1043,7 @@ typedef struct shader_s {
 	void		(*optimalStageIteratorFunc)(void);
 	qboolean	isHDRLit;
 	qboolean	useSimpleDepthShader;
+	depthPrepass_t	depthPrepass;
 	qboolean	useDistortion;
 
 	float clampTime;                                  // time this shader is clamped to
@@ -1099,6 +1151,10 @@ enum
 
 	GLS_POLYGON_OFFSET_FILL = (1 << 28),
 
+	GLS_COLORMASK_BUF1 = (1 << 29),
+
+	GLS_DEPTH_CLAMP = (1 << 30),
+
 	GLS_DEFAULT = GLS_DEPTHMASK_TRUE
 };
 
@@ -1178,9 +1234,10 @@ enum
 	GENERICDEF_USE_SKELETAL_ANIMATION = 0x0010,
 	GENERICDEF_USE_GLOW_BUFFER = 0x0020,
 	GENERICDEF_USE_ALPHA_TEST = 0x0040,
+	GENERICDEF_USE_FLARE_TEST = 0x0080,
 #ifdef REND2_SP
-	GENERICDEF_USE_VERTEX_ANIMATION = 0x0080,
-	GENERICDEF_ALL = 0x00FF,
+	GENERICDEF_USE_VERTEX_ANIMATION = 0x0100,
+	GENERICDEF_ALL = 0x01FF,
 #else
 	GENERICDEF_ALL = 0x007F,
 #endif // REND2_SP
@@ -1277,8 +1334,9 @@ enum
 	SSDEF_FOG_MODULATE = 0x20,
 	SSDEF_ADDITIVE = 0x40,
 	SSDEF_FLATTENED = 0x80,
+	SSDEF_VELOCITY = 0x100,
 
-	SSDEF_ALL = 0xFF,
+	SSDEF_ALL = 0x1FF,
 	SSDEF_COUNT = SSDEF_ALL + 1
 };
 
@@ -1300,8 +1358,11 @@ enum uniformBlock_t
 	UNIFORM_BLOCK_LIGHTS,
 	UNIFORM_BLOCK_FOGS,
 	UNIFORM_BLOCK_ENTITY,
+	UNIFORM_BLOCK_PREVIOUS_ENTITY,
 	UNIFORM_BLOCK_SHADER_INSTANCE,
 	UNIFORM_BLOCK_BONES,
+	UNIFORM_BLOCK_PREVIOUS_BONES,
+	UNIFORM_BLOCK_TEMPORAL_INFO,
 	UNIFORM_BLOCK_SURFACESPRITE,
 	UNIFORM_BLOCK_COUNT
 };
@@ -1366,6 +1427,17 @@ typedef enum
 
 	UNIFORM_SCREENIMAGEMAP,
 	UNIFORM_SCREENDEPTHMAP,
+
+	UNIFORM_EDGEMAP,
+	UNIFORM_AREAMAP,
+	UNIFORM_SEARCHMAP,
+	UNIFORM_BLENDMAP,
+	UNIFORM_VELOCITYMAP,
+
+	UNIFORM_VOLUMETRICLIGHTMAP,
+
+	UNIFORM_LIGHTGRIDORIGIN,
+	UNIFORM_LIGHTGRIDCELLINVERSESIZE,
 
 	UNIFORM_SHADOWMAP,
 	UNIFORM_SHADOWMAP2,
@@ -1436,6 +1508,8 @@ typedef enum
 	UNIFORM_ENVFORCE,
 	UNIFORM_RANDOMOFFSET,
 	UNIFORM_CHUNK_PARTICLES,
+
+	UNIFORM_BLOOMSTRENGTH,
 
 	UNIFORM_COUNT
 } uniform_t;
@@ -1518,6 +1592,8 @@ typedef struct {
 
 	float       autoExposureMinMax[2];
 	float       toneMinAvgMaxLinear[3];
+	bool		doLAGoggles;
+	bool		doFullbright;
 } trRefdef_t;
 
 //=================================================================================
@@ -1739,6 +1815,9 @@ typedef struct srfG2GoreSurface_s
 	// BSP VBO offsets
 	int             firstVert;
 	int             firstIndex;
+
+	// VBO cache info
+	bool			cachedInFrame[MAX_FRAMES];
 } srfG2GoreSurface_t;
 #endif
 
@@ -2014,6 +2093,8 @@ typedef struct {
 	word* lightGridArray;
 	int			numGridArrayElements;
 
+	image_t* volumetricLightMaps[MAXLIGHTMAPS];
+
 	int			skyboxportal;
 	int			numClusters;
 	int			clusterBytes;
@@ -2171,15 +2252,20 @@ void		R_ModelInit(void);
 
 model_t* R_GetModelByHandle(const qhandle_t index);
 int	R_LerpTag(orientation_t* tag, const qhandle_t handle, const int startFrame, const int endFrame, const float frac, const char* tagName);
+
 void R_ModelBounds(const qhandle_t handle, vec3_t mins, vec3_t maxs);
 
-void R_model_list_f(void);
+void R_Modellist_f(void);
 
 //====================================================
-constexpr auto MAX_SKINS = 1024;
 
-constexpr auto MAX_DRAWSURFS = 0x10000;
+#define	MAX_DRAWIMAGES			2048
+#define	MAX_SKINS				1024
+
+#define	MAX_DRAWSURFS			0x10000
 #define	DRAWSURF_MASK			(MAX_DRAWSURFS-1)
+
+#define MAX_INSTANCES			256
 
 extern	int gl_filter_min, gl_filter_max;
 
@@ -2219,8 +2305,8 @@ struct vertexAttribute_t
 struct bufferBinding_t
 {
 	GLuint buffer;
-	int offset;
-	int size;
+	size_t offset;
+	size_t size;
 };
 
 // the renderer front end should never modify glstate_t
@@ -2240,7 +2326,6 @@ typedef struct glstate_s {
 	uint32_t        vertexAttribsNewFrame;
 	uint32_t        vertexAttribsOldFrame;
 	float           vertexAttribsInterpolation;
-	int				vertexAttribsTexCoordOffset[2];
 	qboolean        vertexAnimation;
 	qboolean		skeletalAnimation;
 	qboolean		genShadows;
@@ -2301,6 +2386,8 @@ typedef struct {
 	qboolean timerQuery;
 
 	qboolean floatLightmap;
+
+	qboolean annotateResources;
 } glRefConfig_t;
 
 enum
@@ -2331,7 +2418,7 @@ typedef struct {
 
 	int     c_staticVboDraws;
 	int     c_dynamicVboDraws;
-	int		c_dynamicVboTotalSize;
+	size_t	c_dynamicVboTotalSize;
 
 	int     c_multidraws;
 	int     c_multidrawsMerged;
@@ -2363,6 +2450,7 @@ typedef struct {
 	backEndCounters_t	pc;
 	trRefEntity_t* currentEntity;
 	qboolean	skyRenderedThisView;	// flag for drawing sun
+	uint32_t	skyNumber;
 
 	qboolean	projection2D;	// if qtrue, drawstretchpic doesn't need to change modes
 	float		color2D[4];
@@ -2423,11 +2511,15 @@ typedef struct trGlobals_s {
 	image_t* dlightImage;	// inverse-quare highlight for projective adding
 	image_t* flareImage;
 	image_t* whiteImage;			// full of 0xff
+	image_t* whiteImage3D;
 	image_t* identityLightImage;	// full of tr.identityLightByte
 
 	image_t* renderImage;
 	image_t* glowImage;
 	image_t* glowImageScaled[6];
+	image_t* velocityImage;
+	image_t* temporalResolveImage;
+	image_t* historyImage;
 	image_t* sunRaysImage;
 	image_t* renderDepthImage;
 	image_t* pshadowArrayImage;
@@ -2446,10 +2538,17 @@ typedef struct trGlobals_s {
 	image_t* envBrdfImage;
 	image_t* textureDepthImage;
 	image_t* weatherDepthImage;
+	image_t* smaaSearchImage;
+	image_t* smaaAreaImage;
+	image_t* smaaEdgeImage;
+	image_t* smaaBlendImage;
+	image_t* smaaResolveImage;
 
 	FBO_t* renderFbo;
+	FBO_t* depthVelocityFbo;
 	FBO_t* glowFboScaled[6];
 	FBO_t* msaaResolveFbo;
+	FBO_t* msaaResolveVelocityFbo;
 	FBO_t* sunRaysFbo;
 	FBO_t* depthFbo;
 	FBO_t* pshadowFbos[MAX_DRAWN_PSHADOWS];
@@ -2465,6 +2564,11 @@ typedef struct trGlobals_s {
 	FBO_t* renderCubeFbo[6];
 	FBO_t* filterCubeFbo;
 	FBO_t* weatherDepthFbo;
+	FBO_t* smaaEdgeFbo;
+	FBO_t* smaaBlendFbo;
+	FBO_t* smaaResolveFbo;
+	FBO_t* temporalResolveFbo;
+	FBO_t* historyFbo;
 
 	shader_t* defaultShader;
 	shader_t* shadowShader;
@@ -2475,6 +2579,8 @@ typedef struct trGlobals_s {
 	shader_t* flareShader;
 	shader_t* sunShader;
 	shader_t* sunFlareShader;
+
+	shader_t* volumetricFogCapShader;
 
 	int						numLightmaps;
 	int						lightmapSize;
@@ -2500,8 +2606,9 @@ typedef struct trGlobals_s {
 	shaderProgram_t splashScreenShader;
 	shaderProgram_t genericShader[GENERICDEF_COUNT];
 	shaderProgram_t refractionShader[REFRACTIONDEF_COUNT];
-	shaderProgram_t textureColorShader;
+	shaderProgram_t textureColorShader[TEXCOLORDEF_COUNT];
 	shaderProgram_t fogShader[FOGDEF_COUNT];
+	shaderProgram_t velocityShader[VELOCITYDEF_COUNT];
 	shaderProgram_t lightallShader[LIGHTDEF_COUNT];
 	shaderProgram_t pshadowShader;
 	shaderProgram_t volumeShadowShader;
@@ -2510,6 +2617,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t tonemapShader[2];
 	shaderProgram_t calclevels4xShader[2];
 	shaderProgram_t ssaoShader;
+	shaderProgram_t highpassShader;
 	shaderProgram_t depthBlurShader[2];
 	shaderProgram_t testcubeShader;
 	shaderProgram_t prefilterEnvMapShader;
@@ -2520,33 +2628,40 @@ typedef struct trGlobals_s {
 	shaderProgram_t spriteShader[SSDEF_COUNT];
 	shaderProgram_t weatherUpdateShader;
 	shaderProgram_t weatherShader;
+	shaderProgram_t smaaEdgeShader;
+	shaderProgram_t smaaBlendShader;
+	shaderProgram_t smaaResolveShader;
+	shaderProgram_t smaaTemporalResolveShader;
 
 	GLuint staticUbo;
 	GLuint spriteUbos[MAX_SUB_BSP + 1];
 	GLuint shaderInstanceUbo;
-	int shaderInstanceUboWriteOffset;
-	int entity2DUboOffset;
-	int camera2DUboOffset;
-	int entityFlareUboOffset;
-	int cameraFlareUboOffset;
-	int defaultLightsUboOffset;
-	int defaultSceneUboOffset;
-	int defaultFogsUboOffset;
-	int defaultShaderInstanceUboOffset;
+	size_t shaderInstanceUboWriteOffset;
+	size_t entity2DUboOffset;
+	size_t camera2DUboOffset;
+	size_t entityFlareUboOffset;
+	size_t defaultLightsUboOffset;
+	size_t defaultSceneUboOffset;
+	size_t defaultFogsUboOffset;
+	size_t defaultShaderInstanceUboOffset;
 
-	int cameraUboOffsets[3 + MAX_DLIGHTS * 6 + 3 + MAX_DRAWN_PSHADOWS];
-	int sceneUboOffset;
-	int lightsUboOffset;
-	int fogsUboOffset;
-	int skyEntityUboOffset;
-	int entityUboOffsets[REFENTITYNUM_WORLD + 1];
-	int animationBoneUboOffset;
+	long cameraUboOffsets[3 + MAX_DLIGHTS * 6 + 3 + MAX_DRAWN_PSHADOWS];
+	long sceneUboOffset;
+	long temporalInfoUboOffset;
+	long lightsUboOffset;
+	long fogsUboOffset;
+	long skyEntityUboOffset;
+	long entityUboOffsets[REFENTITYNUM_WORLD + 1];
+	long previousEntityUboOffsets[REFENTITYNUM_WORLD + 1];
+	long animationBoneUboOffset;
+	long previousAnimationBoneUboOffset;
 
 	// -----------------------------------------
 
 	viewParms_t				viewParms;
 	viewParms_t				cachedViewParms[3 + MAX_DLIGHTS * 6 + 3 + MAX_DRAWN_PSHADOWS];
 	int						numCachedViewParms;
+	qboolean				portalRenderedThisFrame;
 
 	viewParms_t				skyPortalParms;
 	byte					skyPortalAreaMask[MAX_MAP_AREA_BYTES];
@@ -2568,6 +2683,8 @@ typedef struct trGlobals_s {
 	qboolean                sunShadows;
 	vec3_t					sunLight;			// from the sky shader for this level
 	vec3_t					sunDirection;
+
+	float					volumetricFogScale;
 
 	frontEndCounters_t		pc;
 	int						frontEndMsec;		// not in pc due to clearing issue
@@ -2596,13 +2713,6 @@ typedef struct trGlobals_s {
 
 	int						numIBOs;
 	IBO_t* ibos[MAX_IBOS];
-
-#ifdef _G2_GORE
-	VBO_t* goreVBO;
-	int						goreVBOCurrentIndex;
-	IBO_t* goreIBO;
-	int						goreIBOCurrentIndex;
-#endif
 
 	// shader indexes from other modules will be looked up in tr.shaders[]
 	// shader indexes from drawsurfs will be looked up in sortedShaders[]
@@ -2636,6 +2746,10 @@ typedef struct trGlobals_s {
 struct glconfigExt_t
 {
 	glconfig_t* glConfig;
+
+	qboolean textureFilterAnisotropicAvailable;
+	qboolean doGammaCorrectionWithShaders;
+	qboolean doStencilShadowsInOneDrawcall;
 
 	const char* originalExtensionString;
 };
@@ -2732,6 +2846,9 @@ extern	cvar_t* r_anaglyphMode;
 extern  cvar_t* r_mergeMultidraws;
 extern  cvar_t* r_mergeLeafSurfaces;
 
+extern cvar_t* r_smaa;
+extern cvar_t* r_smaa_quality;
+
 extern	cvar_t* r_externalGLSL;
 
 extern  cvar_t* r_hdr;
@@ -2808,6 +2925,7 @@ extern cvar_t* r_dynamicGlowIntensity;
 extern cvar_t* r_dynamicGlowSoft;
 extern cvar_t* r_dynamicGlowWidth;
 extern cvar_t* r_dynamicGlowHeight;
+extern cvar_t* r_dynamicGlowBloom;
 
 extern cvar_t* r_debugContext;
 extern cvar_t* r_debugWeather;
@@ -2896,7 +3014,7 @@ void	GL_DepthRange(float min, float max);
 void	GL_VertexAttribPointers(size_t numAttributes,
 	vertexAttribute_t* attributes);
 void	GL_DrawIndexed(GLenum primitiveType, int numIndices, GLenum indexType,
-	int offset, int numInstances, int baseVertex);
+	size_t offset, int numInstances, int baseVertex);
 void	GL_MultiDrawIndexed(GLenum primitiveType, int* numIndices,
 	glIndex_t** offsets, int numDraws);
 void	GL_Draw(GLenum primitiveType, int firstVertex, int numVertices, int numInstances);
@@ -2912,6 +3030,8 @@ typedef _skinSurface_t skinSurface_t;
 void RE_StretchRaw(const int x, const int y, const int w, const int h, const int cols, const int rows, const byte* data, const int client, const qboolean dirty);
 void RE_UploadCinematic(const int cols, const int rows, const byte* data, const int client, const qboolean dirty);
 void RE_SetRangedFog(float range);
+void RE_LAGoggles(void);
+void RE_Scissor(float x, float y, float w, float h);
 
 void		RE_BeginRegistration(glconfig_t* glconfig);
 void		RE_LoadWorldMap(const char* mapname);
@@ -3032,7 +3152,7 @@ struct shaderCommands_s
 	int			fogNum;
 	int         cubemapIndex;
 	bool		entityMergable;
-#ifdef REND2_SP_MAYBE
+#ifdef REND2_SP_GORE
 	bool		scale;		// uses texCoords[input->firstIndex] for storage
 	bool		fade;		// uses svars.colors[input->firstIndex] for storage
 #endif
@@ -3100,7 +3220,7 @@ void R_AddBrushModelSurfaces(trRefEntity_t* ent, int entityNum);
 void R_AddWorldSurfaces(viewParms_t* viewParms, trRefdef_t* refdef);
 void R_MarkLeaves(void);
 void R_RecursiveWorldNode(mnode_t* node, int planeBits, int dlightBits, int pshadowBits);
-qboolean R_inPVS(const vec3_t p1, const vec3_t p2, const byte* mask);
+qboolean R_inPVS(const vec3_t p1, const vec3_t p2, byte* mask);
 
 /*
 ============================================================
@@ -3183,11 +3303,12 @@ struct VertexArraysProperties
 	int numVertexArrays;
 
 	int enabledAttributes[ATTR_INDEX_MAX];
-	int offsets[ATTR_INDEX_MAX];
-	int sizes[ATTR_INDEX_MAX];
-	int strides[ATTR_INDEX_MAX];
-	int streamStrides[ATTR_INDEX_MAX];
+	size_t offsets[ATTR_INDEX_MAX];
+	size_t sizes[ATTR_INDEX_MAX];
+	size_t strides[ATTR_INDEX_MAX];
+	size_t streamStrides[ATTR_INDEX_MAX];
 	void* streams[ATTR_INDEX_MAX];
+	size_t stepRates[ATTR_INDEX_MAX];
 };
 
 uint32_t R_VboPackTangent(vec4_t v);
@@ -3195,8 +3316,8 @@ uint32_t R_VboPackNormal(vec3_t v);
 void R_VboUnpackTangent(vec4_t v, uint32_t b);
 void R_VboUnpackNormal(vec3_t v, uint32_t b);
 
-VBO_t* R_CreateVBO(byte* vertexes, int vertexesSize, vboUsage_t usage);
-IBO_t* R_CreateIBO(byte* indexes, int indexesSize, vboUsage_t usage);
+VBO_t* R_CreateVBO(byte* vertexes, size_t vertexesSize, vboUsage_t usage, const char* debugName);
+IBO_t* R_CreateIBO(byte* indexes, size_t indexesSize, vboUsage_t usage, const char* debugName);
 
 void            R_BindVBO(VBO_t* vbo);
 void            R_BindNullVBO(void);
@@ -3210,18 +3331,18 @@ void            R_VBOList_f(void);
 
 void            RB_UpdateVBOs(unsigned int attribBits);
 #ifdef _G2_GORE
-void			RB_UpdateGoreVBO(srfG2GoreSurface_t* goreSurface);
+void			RB_UpdateGoreVertexData(struct gpuFrame_t* currentFrame, srfG2GoreSurface_t* goreSurface, bool updateFirstVertAndIndex);
 #endif
 void			RB_CommitInternalBufferData();
 
-void			RB_BindUniformBlock(GLuint ubo, uniformBlock_t block, int offset);
-int				RB_BindAndUpdateFrameUniformBlock(uniformBlock_t block, void* data);
+void			RB_BindUniformBlock(GLuint ubo, uniformBlock_t block, size_t offset);
+size_t			RB_BindAndUpdateFrameUniformBlock(uniformBlock_t block, void* data);
 void			RB_AddShaderToShaderInstanceUBO(shader_t* shader);
-int				RB_AddShaderInstanceBlock(void* data);
+size_t			RB_AddShaderInstanceBlock(void* data);
 void			RB_UpdateConstants(const trRefdef_t* refdef);
 void			RB_BeginConstantsUpdate(struct gpuFrame_t* frame);
 void			RB_EndConstantsUpdate(const struct gpuFrame_t* frame);
-int				RB_AppendConstantsData(struct gpuFrame_t* frame, const void* data, size_t dataSize);
+size_t			RB_AppendConstantsData(struct gpuFrame_t* frame, const void* data, size_t dataSize);
 void			CalculateVertexArraysProperties(uint32_t attributes, VertexArraysProperties* properties);
 void			CalculateVertexArraysFromVBO(uint32_t attributes, const VBO_t* vbo, VertexArraysProperties* properties);
 
@@ -3286,7 +3407,7 @@ void RE_AddLightToScene(const vec3_t org, const float intensity, const float r, 
 void RE_AddAdditiveLightToScene(const vec3_t org, const float intensity, const float r, const float g, const float b);
 void RE_BeginScene(const refdef_t* fd);
 void RE_RenderScene(const refdef_t* fd);
-void RE_EndScene(void);
+void RE_EndScene();
 
 /*
 =============================================================
@@ -3341,9 +3462,9 @@ public:
 	mdxmVBOMesh_t* vboMesh;
 
 	// tell the renderer to render shadows for this surface
-	qboolean         genShadows;
-	int              dlightBits;
-	int              pshadowBits;
+	qboolean genShadows;
+	int dlightBits;
+	int pshadowBits;
 
 	// pointer to surface data loaded into file - only used by client renderer
 	// DO NOT USE IN GAME SIDE - if there is a vid restart this will be out of
@@ -3355,41 +3476,29 @@ public:
 	srfG2GoreSurface_t* alternateTex;
 	void* goreChain;
 
-	float               scale;
-	float               fade;
+	float scale;
+	float fade;
 
 	// this is a number between 0 and 1 that dictates the progression of the
 	// bullet impact
-	float               impactTime;
+	float impactTime;
 #endif
 
-	// ---------------------------------------------------------
-	// Assignment operator
-	// ---------------------------------------------------------
-	CRenderableSurface& operator=(const CRenderableSurface& src)
+	// Copy assignment: copy all relevant members
+	CRenderableSurface& operator =(const CRenderableSurface& src)
 	{
 		ident = src.ident;
 		boneCache = src.boneCache;
-		vboMesh = src.vboMesh;
 		surfaceData = src.surfaceData;
-
-		genShadows = (src.genShadows == qtrue ? qtrue : qfalse);
-		dlightBits = src.dlightBits;
-		pshadowBits = src.pshadowBits;
-
 #ifdef _G2_GORE
 		alternateTex = src.alternateTex;
 		goreChain = src.goreChain;
-		scale = src.scale;
-		fade = src.fade;
-		impactTime = src.impactTime;
 #endif
+		vboMesh = src.vboMesh;
+
 		return *this;
 	}
 
-	// ---------------------------------------------------------
-	// Constructor — initialize EVERYTHING
-	// ---------------------------------------------------------
 	CRenderableSurface()
 		: ident(SF_MDX)
 		, boneCache(nullptr)
@@ -3408,27 +3517,17 @@ public:
 	{
 	}
 
-	// ---------------------------------------------------------
-	// Init() — optional re‑initializer
-	// ---------------------------------------------------------
 	void Init()
 	{
 		ident = SF_MDX;
 		boneCache = nullptr;
 		surfaceData = nullptr;
-		vboMesh = nullptr;
-
-		genShadows = qfalse;
-		dlightBits = 0;
-		pshadowBits = 0;
-
 #ifdef _G2_GORE
 		alternateTex = nullptr;
 		goreChain = nullptr;
-		scale = 1.0f;
-		fade = 0.0f;
-		impactTime = 0.0f;
 #endif
+		vboMesh = nullptr;
+		genShadows = qfalse;
 	}
 };
 
@@ -3537,6 +3636,12 @@ typedef struct rotatePicCommand_s {
 	float	a;
 } rotatePicCommand_t;
 
+typedef struct scissorCommand_s {
+	int	commandId;
+	float x, y;
+	float w, h;
+} scissorCommand_t;
+
 typedef struct drawSurfsCommand_s {
 	int		commandId;
 	trRefdef_t	refdef;
@@ -3613,6 +3718,7 @@ typedef enum {
 	RC_DRAW_BUFFER,
 	RC_SWAP_BUFFERS,
 	RC_SCREENSHOT,
+	RC_SCISSOR,
 	RC_VIDEOFRAME,
 	RC_COLORMASK,
 	RC_CLEARDEPTH,
@@ -3646,17 +3752,36 @@ struct screenshotReadback_t
 	char filename[MAX_QPATH];
 };
 
-constexpr auto MAX_GPU_TIMERS = (512);
-constexpr auto MAX_SCENES = (3);
+struct ghoul2UboCache_t
+{
+	void* ghoulPointer;
+	qhandle_t model;
+	int boltIndex;
+	int boneUboOffset;
+};
+
+struct modelUboCache_t
+{
+	modtype_t type;
+	qhandle_t hModel;
+	void* ghoulPointer;
+	vec3_t    origin;
+	vec3_t    velocity;
+	int       modelUboOffset;
+};
+
+#define MAX_GPU_TIMERS (512)
+#define MAX_SCENES (3)
 
 struct gpuFrame_t
 {
 	GLsync sync;
-	GLuint ubo;
-	size_t uboWriteOffset;
-	size_t uboSize;
-	size_t uboMapBase;
-	void* uboMemory;
+	byte   currentScene;
+	GLuint ubo[MAX_SCENES];
+	size_t uboWriteOffset[MAX_SCENES];
+	size_t uboSize[MAX_SCENES];
+	size_t uboMapBase[MAX_SCENES];
+	void* uboMemory[MAX_SCENES];
 
 	screenshotReadback_t screenshotReadback;
 
@@ -3670,8 +3795,26 @@ struct gpuFrame_t
 	size_t dynamicIboWriteOffset;
 	size_t dynamicIboCommitOffset;
 
+#ifdef _G2_GORE
+	VBO_t* goreVBO;
+	void* goreVBOMemory;
+	int						goreVBOCurrentIndex;
+	IBO_t* goreIBO;
+	void* goreIBOMemory;
+	int						goreIBOCurrentIndex;
+#endif
+
 	int numTimers;
 	int numTimedBlocks;
+
+	int numCachedGhoulUboOffsets;
+	ghoul2UboCache_t cachedGhoulUboOffsets[MAX_GENTITIES];
+
+	int numCachedModelUboOffsets;
+	modelUboCache_t cachedModelUboOffsets[MAX_REFENTITIES];
+
+	matrix_t viewProjectionMatrix;
+	float    time;
 
 	gpuTimer_t timers[MAX_GPU_TIMERS];
 	gpuTimedBlock_t timedBlocks[MAX_GPU_TIMERS / 2]; // Each block will need 2 timer queries.
@@ -3679,7 +3822,6 @@ struct gpuFrame_t
 
 // all of the information needed by the back end must be
 // contained in a backEndData_t.
-#define MAX_FRAMES (2)
 #define PER_FRAME_MEMORY_BYTES (32 * 1024 * 1024)
 class Allocator;
 struct Pass;
@@ -3687,8 +3829,13 @@ typedef struct backEndData_s {
 	unsigned realFrameNumber;
 	gpuFrame_t frames[MAX_FRAMES];
 	gpuFrame_t* currentFrame;
+	gpuFrame_t* previousFrame;
 	Allocator* perFrameMemory;
 	Pass* currentPass;
+
+	bool cachePreviousFrameUbos;
+	uint32_t numFrameUbos;
+	GLuint* frameUbos;
 
 	drawSurf_t	drawSurfs[MAX_DRAWSURFS];
 	dlight_t	dlights[MAX_DLIGHTS];
@@ -3752,6 +3899,7 @@ qhandle_t RE_RegisterShader(const char* name);
 qhandle_t RE_RegisterShaderNoMip(const char* name);
 const char* RE_ShaderNameFromIndex(int index);
 image_t* R_CreateImage(const char* name, byte* pic, int width, int height, imgType_t type, int flags, int internalFormat);
+image_t* R_CreateImage3D(const char* name, byte* data, int width, int height, int depth, int internalFormat);
 
 float ProjectRadius(const float r, vec3_t location);
 void RE_RegisterModels_StoreShaderRequest(const char* psModelFileName, const char* psShaderName, int* piShaderIndexPoke);
@@ -3777,7 +3925,7 @@ struct SamplerBinding
 struct UniformBlockBinding
 {
 	GLuint ubo;
-	int offset;
+	size_t offset;
 	uniformBlock_t block;
 };
 
@@ -3936,6 +4084,7 @@ void RB_FillDrawCommand(
 );
 
 uint32_t RB_CreateSortKey(const DrawItem& item, int stage, int layer);
+uint32_t RB_CreateSkySortKey(const DrawItem& item, int stage, int skyNumber, int layer);
 void RB_AddDrawItem(Pass* pass, uint32_t sortKey, const DrawItem& drawItem);
 DepthRange RB_GetDepthRange(const trRefEntity_t* re, const shader_t* shader);
 

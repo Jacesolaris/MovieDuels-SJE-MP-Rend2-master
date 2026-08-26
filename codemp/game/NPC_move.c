@@ -850,10 +850,6 @@ qboolean NPC_ClearPathToGoal(gentity_t* goal)
 {
 	trace_t trace;
 
-	//FIXME: What does do about area portals?  THIS IS BROKEN
-	//if ( trap->inPVS( NPC->r.currentOrigin, goal->r.currentOrigin ) == qfalse )
-	//	return qfalse;
-
 	//Look ahead and see if we're clear to move to our goal position
 	if (NAV_CheckAhead(NPCS.NPC, goal->r.currentOrigin, &trace, NPCS.NPC->clipmask & ~CONTENTS_BODY | CONTENTS_BOTCLIP))
 	{

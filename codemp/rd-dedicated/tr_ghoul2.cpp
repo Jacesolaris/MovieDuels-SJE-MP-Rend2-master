@@ -3372,8 +3372,8 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 	mdxmSurfHierarchy_t* surfInfo;
 
 #if 0 //#ifndef _M_IX86
-	int                 k;
-	int                 frameSize;
+	int					k;
+	int					frameSize;
 	mdxmTag_t* tag;
 	mdxmTriangle_t* tri;
 	mdxmVertex_t* v;
@@ -3382,10 +3382,11 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 #endif
 
 	pinmodel = static_cast<mdxmHeader_t*>(buffer);
-
+	//
 	// read some fields from the binary, but only LittleLong() them when we know this wasn't an already-cached model...
-	version = pinmodel->version;
-	size = pinmodel->ofsEnd;
+	//
+	version = (pinmodel->version);
+	size = (pinmodel->ofsEnd);
 
 	if (!bAlreadyCached)
 	{
@@ -3395,8 +3396,7 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 
 	if (version != MDXM_VERSION)
 	{
-		Com_Printf(S_COLOR_YELLOW "R_LoadMDXM: %s has wrong version (%i should be %i)\n",
-			mod_name, version, MDXM_VERSION);
+		Com_Printf(S_COLOR_YELLOW "R_LoadMDXM: %s has wrong version (%i should be %i)\n", mod_name, version, MDXM_VERSION);
 		return qfalse;
 	}
 
@@ -3404,10 +3404,12 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 	mod->dataSize += size;
 
 	qboolean bAlreadyFound = qfalse;
-	mdxm = mod->mdxm = static_cast<mdxmHeader_t*>(RE_RegisterModels_Malloc(
-		size, buffer, mod_name, &bAlreadyFound, TAG_MODEL_GLM));
+	mdxm = mod->mdxm = static_cast<mdxmHeader_t*>(RE_RegisterModels_Malloc(size, buffer, mod_name, &bAlreadyFound, TAG_MODEL_GLM));
 
-	assert(bAlreadyCached == bAlreadyFound);
+	if (bAlreadyCached != bAlreadyFound)
+	{
+		Com_Printf(S_COLOR_YELLOW "R_LoadMDXM: cache flag mismatch for %s (caller:%d cache:%d)\n", mod_name, bAlreadyCached, bAlreadyFound);
+	}
 
 	if (!bAlreadyFound)
 	{
@@ -3468,32 +3470,28 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 
 	if (bAlreadyFound)
 	{
-		// All done. Stop, go no further, do not LittleLong(), do not pass Go...
-		return qtrue;
+		return qtrue; // All done. Stop, go no further, do not LittleLong(), do not pass Go...
 	}
 
 	bool isAnOldModelFile = false;
-	if (mdxm->numBones == 72 &&
-		(strstr(mdxm->animName, "_humanoid_mp")))
+	if (mdxm->numBones == 72 && strstr(mdxm->animName, "_humanoid_mp"))
 	{
 		isAnOldModelFile = true;
 	}
 
-	surfInfo = reinterpret_cast<mdxmSurfHierarchy_t*>(
-		reinterpret_cast<byte*>(mdxm) + mdxm->ofsSurfHierarchy);
-
+	surfInfo = reinterpret_cast<mdxmSurfHierarchy_t*>(reinterpret_cast<byte*>(mdxm) + mdxm->ofsSurfHierarchy);
 	for (i = 0; i < mdxm->numSurfaces; i++)
 	{
 		LL(surfInfo->numChildren);
 		LL(surfInfo->parentIndex);
 
-		Q_strlwr(surfInfo->name); // just in case
+		Q_strlwr(surfInfo->name); //just in case
 		if (strcmp(&surfInfo->name[strlen(surfInfo->name) - 4], "_off") == 0)
 		{
-			surfInfo->name[strlen(surfInfo->name) - 4] = 0; // remove "_off" from name
+			surfInfo->name[strlen(surfInfo->name) - 4] = 0; //remove "_off" from name
 		}
 
-		// do all the children indexes
+		// do all the children indexs
 		for (j = 0; j < surfInfo->numChildren; j++)
 		{
 			LL(surfInfo->childIndexes[j]);
@@ -3502,24 +3500,18 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		RE_RegisterModels_StoreShaderRequest(mod_name, &surfInfo->shader[0], &surfInfo->shaderIndex);
 
 		// find the next surface
-		surfInfo = reinterpret_cast<mdxmSurfHierarchy_t*>(
-			(byte*)surfInfo + (size_t) & static_cast<mdxmSurfHierarchy_t*>(nullptr)->childIndexes[surfInfo->numChildren]);
+		surfInfo = reinterpret_cast<mdxmSurfHierarchy_t*>((byte*)surfInfo + (size_t) & static_cast<mdxmSurfHierarchy_t*>(nullptr)->childIndexes[surfInfo->numChildren]);
 	}
 
-	// swap all the LOD's
-	lod = reinterpret_cast<mdxmLOD_t*>(
-		reinterpret_cast<byte*>(mdxm) + mdxm->ofsLODs);
-
+	// swap all the LOD's	(we need to do the middle part of this even for intel, because of shader reg and err-check)
+	lod = reinterpret_cast<mdxmLOD_t*>(reinterpret_cast<byte*>(mdxm) + mdxm->ofsLODs);
 	for (int l = 0; l < mdxm->numLODs; l++)
 	{
 		int triCount = 0;
 
 		LL(lod->ofsEnd);
-
 		// swap all the surfaces
-		surf = reinterpret_cast<mdxmSurface_t*>(
-			reinterpret_cast<byte*>(lod) + sizeof(mdxmLOD_t) + mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t));
-
+		surf = reinterpret_cast<mdxmSurface_t*>(reinterpret_cast<byte*>(lod) + sizeof(mdxmLOD_t) + (mdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
 		for (i = 0; i < mdxm->numSurfaces; i++)
 		{
 			LL(surf->numTriangles);
@@ -3535,26 +3527,21 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 
 			if (surf->numVerts > SHADER_MAX_VERTEXES)
 			{
-				Com_Error(ERR_DROP, "R_LoadMDXM: %s has more than %i verts on a surface (%i)",
-					mod_name, SHADER_MAX_VERTEXES, surf->numVerts);
+				Com_Error(ERR_DROP, "R_LoadMDXM: %s has more than %i verts on a surface (%i)", mod_name,
+					SHADER_MAX_VERTEXES, surf->numVerts);
 			}
 			if (surf->numTriangles * 3 > SHADER_MAX_INDEXES)
 			{
-				Com_Error(ERR_DROP, "R_LoadMDXM: %s has more than %i triangles on a surface (%i)",
-					mod_name, SHADER_MAX_INDEXES / 3, surf->numTriangles);
+				Com_Error(ERR_DROP, "R_LoadMDXM: %s has more than %i triangles on a surface (%i)", mod_name,
+					SHADER_MAX_INDEXES / 3, surf->numTriangles);
 			}
 
 			// change to surface identifier
 			surf->ident = SF_MDX;
 
-#if 0 //#ifndef _M_IX86
-			// ... endian-swapping vertex/triangle data if needed ...
-#endif
-
 			if (isAnOldModelFile)
 			{
-				auto boneRef = reinterpret_cast<int*>(
-					reinterpret_cast<byte*>(surf) + surf->ofsBoneReferences);
+				auto boneRef = reinterpret_cast<int*>(reinterpret_cast<byte*>(surf) + surf->ofsBoneReferences);
 				for (j = 0; j < surf->numBoneReferences; j++)
 				{
 					assert(boneRef[j] >= 0 && boneRef[j] < 72);
@@ -3568,17 +3555,12 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 					}
 				}
 			}
-
 			// find the next surface
-			surf = reinterpret_cast<mdxmSurface_t*>(
-				reinterpret_cast<byte*>(surf) + surf->ofsEnd);
+			surf = reinterpret_cast<mdxmSurface_t*>(reinterpret_cast<byte*>(surf) + surf->ofsEnd);
 		}
-
 		// find the next LOD
-		lod = reinterpret_cast<mdxmLOD_t*>(
-			reinterpret_cast<byte*>(lod) + lod->ofsEnd);
+		lod = reinterpret_cast<mdxmLOD_t*>(reinterpret_cast<byte*>(lod) + lod->ofsEnd);
 	}
-
 	return qtrue;
 }
 
@@ -3844,22 +3826,18 @@ qboolean R_LoadMDXA(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 #endif
 		mod_name, &bAlreadyFound, TAG_MODEL_GLA));
 
-	assert(bAlreadyCached == bAlreadyFound); // I should probably eliminate 'bAlreadyFound', but wtf?
+	if (bAlreadyCached != bAlreadyFound)
+	{
+		Com_Printf(S_COLOR_YELLOW "R_LoadMDXA: cache flag mismatch for %s (caller:%d cache:%d)\n", mod_name, bAlreadyCached, bAlreadyFound);
+	}
 
 	if (!bAlreadyFound)
 	{
 #ifdef CREATE_LIMB_HIERARCHY
 		memcpy(mdxa, buffer, oSize);
 #else
-		// horrible new hackery, if !bAlreadyFound then we've just done a tag-morph, so we need to set the
-		//	bool reference passed into this function to true, to tell the caller NOT to do an ri->FS_Freefile since
-		//	we've hijacked that memory block...
-		//
-		// Aaaargh. Kill me now...
-		//
 		bAlreadyCached = qtrue;
 		assert(mdxa == buffer);
-		//		memcpy( mdxa, buffer, size );	// and don't do this now, since it's the same thing
 #endif
 		LL(mdxa->ident);
 		LL(mdxa->version);

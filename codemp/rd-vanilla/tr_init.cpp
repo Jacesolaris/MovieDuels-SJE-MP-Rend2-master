@@ -292,66 +292,54 @@ void RE_GetBModelVerts(const int bmodelIndex, vec3_t* verts, vec3_t normal);
 
 static void R_Splash()
 {
-	image_t* pImage;
-	const int splash_pick = rand() % 5;
+	image_t* pImage = R_FindImageFile("menu/splash", qfalse, qfalse, qfalse, GL_CLAMP);
 
-	switch (splash_pick)
+	if (!pImage)
 	{
-	case 0:
-		pImage = R_FindImageFile("menu/splash", qfalse, qfalse, qfalse, GL_CLAMP);
-		break;
-	case 1:
-		pImage = R_FindImageFile("menu/splash2", qfalse, qfalse, qfalse, GL_CLAMP);
-		break;
-	case 2:
-		pImage = R_FindImageFile("menu/splash3", qfalse, qfalse, qfalse, GL_CLAMP);
-		break;
-	case 3:
-		pImage = R_FindImageFile("menu/splash4", qfalse, qfalse, qfalse, GL_CLAMP);
-		break;
-	case 4:
-		pImage = R_FindImageFile("menu/splash5", qfalse, qfalse, qfalse, GL_CLAMP);
-		break;
-	default:
-		pImage = R_FindImageFile("menu/splash", qfalse, qfalse, qfalse, GL_CLAMP);
-		break;
+		// Can't find the splash image so just clear to black
+		qglClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		qglClear(GL_COLOR_BUFFER_BIT);
 	}
+	else
+	{
+		extern void	RB_SetGL2D(void);
+		RB_SetGL2D();
 
-	extern void	RB_SetGL2D();
-	RB_SetGL2D();
-
-	if (pImage)
-	{//invalid paths?
 		GL_Bind(pImage);
+		GL_State(GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
+
+		constexpr int width = 640;
+		constexpr int height = 480;
+		constexpr float x1 = 320 - width / 2;
+		constexpr float x2 = 320 + width / 2;
+		constexpr float y1 = 240 - height / 2;
+		constexpr float y2 = 240 + height / 2;
+
+		qglBegin(GL_TRIANGLE_STRIP);
+		qglTexCoord2f(0, 0);
+		qglVertex2f(x1, y1);
+		qglTexCoord2f(1, 0);
+		qglVertex2f(x2, y1);
+		qglTexCoord2f(0, 1);
+		qglVertex2f(x1, y2);
+		qglTexCoord2f(1, 1);
+		qglVertex2f(x2, y2);
+		qglEnd();
 	}
-	GL_State(GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
-
-	constexpr int width = 640;
-	constexpr int height = 480;
-	constexpr float x1 = 320 - width / 2;
-	constexpr float x2 = 320 + width / 2;
-	constexpr float y1 = 240 - height / 2;
-	constexpr float y2 = 240 + height / 2;
-
-	qglBegin(GL_TRIANGLE_STRIP);
-	qglTexCoord2f(0, 0);
-	qglVertex2f(x1, y1);
-	qglTexCoord2f(1, 0);
-	qglVertex2f(x2, y1);
-	qglTexCoord2f(0, 1);
-	qglVertex2f(x1, y2);
-	qglTexCoord2f(1, 1);
-	qglVertex2f(x2, y2);
-	qglEnd();
 
 	if (r_com_rend2->integer != 0)
 	{
 		ri->Cvar_Set("com_rend2", "0");
 	}
 
-	if (com_outcast->integer != 0)
+	qboolean forceCgShadows =
+		(r_shadows->integer == 0 ||
+			r_shadows->integer == 1 ||
+			r_shadows->integer == 3) ? qtrue : qfalse;
+
+	if (forceCgShadows == qtrue)
 	{
-		ri->Cvar_Set("com_outcast", "0");
+		ri->Cvar_Set("cg_shadows", "2");
 	}
 
 	ri->WIN_Present(&window);
@@ -1561,6 +1549,8 @@ static consoleCommand_t	commands[] = {
 	{ "r_weather",			R_WeatherEffect_f },
 };
 
+static const size_t numCommands = ARRAY_LEN(commands);
+
 #ifdef _DEBUG
 #define MIN_PRIMITIVES -1
 #else
@@ -1744,19 +1734,17 @@ R_Init
 ===============
 */
 extern void R_InitWorldEffects(); //tr_WorldEffects.cpp
-void R_Init()
+void R_Init(void)
 {
 	int i;
 	byte* ptr;
 
-	ri->Printf(PRINT_ALL, "----- Loading Vanilla renderer-----\n");
+	ri->Printf(PRINT_ALL, "-----Loading MP Performance Mode-----\n");
 
 	// clear all our internal state
 	memset(&tr, 0, sizeof tr);
 	memset(&backEnd, 0, sizeof backEnd);
 	memset(&tess, 0, sizeof tess);
-
-	//	Swap_Init();
 
 #ifndef FINAL_BUILD
 	if ((intptr_t)tess.xyz & 15) {
@@ -1790,7 +1778,6 @@ void R_Init()
 		}
 	}
 	R_InitFogTable();
-
 	R_ImageLoader_Init();
 	R_NoiseInit();
 	R_Register();
@@ -1810,18 +1797,14 @@ void R_Init()
 	{
 		RE_SetLightStyle(i, -1);
 	}
-	InitOpenGL();
 
+	InitOpenGL();
 	R_InitImages();
 	R_InitShaders(qfalse);
 	R_InitSkins();
-
 	R_InitFonts();
-
 	R_ModelInit();
-	//	re.G2VertSpaceServer = &IHeapAllocator_singleton;
 	R_InitDecals();
-
 	R_InitWorldEffects();
 
 #if defined(_DEBUG)
@@ -1838,7 +1821,7 @@ void R_Init()
 	{
 		ri->Cvar_Set("com_rend2", "0");
 	}
-	ri->Printf(PRINT_ALL, "----- Vanilla renderer loaded-----\n");
+	ri->Printf(PRINT_ALL, "-----MP Performance Mode loaded-----\n");
 }
 
 /*
@@ -1846,12 +1829,12 @@ void R_Init()
 RE_Shutdown
 ===============
 */
-void RE_Shutdown(const qboolean destroyWindow, const qboolean restarting)
+void RE_Shutdown(qboolean destroyWindow, qboolean restarting)
 {
 	ri->Printf(PRINT_ALL, "RE_Shutdown( %i )\n", destroyWindow);
 
-	for (const auto& command : commands)
-		ri->Cmd_RemoveCommand(command.cmd);
+	for (size_t i = 0; i < numCommands; i++)
+		ri->Cmd_RemoveCommand(commands[i].cmd);
 
 	if (r_DynamicGlow && r_DynamicGlow->integer)
 	{

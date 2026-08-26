@@ -6388,10 +6388,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		self_active_blocking ||
 		self_m_blocking ||
 		self->client->ps.saberManualBlockingTime > level.time) &&
+		!PM_SaberInSpecialAttack(self->client->ps.torsoAnim) &&
 		!(self->r.svFlags & SVF_BOT))
-	{
-		dmg = SABER_NO_DAMAGE;
-		idle_damage = qtrue;
+		{
+			dmg = SABER_NO_DAMAGE;
+			idle_damage = qtrue;
 	}
 	// Case 5: Idle damage
 	else
@@ -6721,9 +6722,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 
 		if (victim->client &&
 			!(dflags & DAMAGE_NO_DAMAGE) &&
-			(PM_SaberInParry(victim->client->ps.saberMove) ||
-				PM_SaberInReflect(victim->client->ps.saberMove) ||
-				PM_SaberInKnockaway(victim->client->ps.saberMove)))
+			(self_m_blocking == qtrue))
 		{
 			perfectParry = qtrue;
 		}

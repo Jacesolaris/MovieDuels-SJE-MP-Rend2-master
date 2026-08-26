@@ -854,7 +854,6 @@ static void NPC_BSSniper_Attack(void)
 	Sniper_UpdateEnemyPos();
 	//can we see our target?
 	if (NPC_ClearLOS4(NPCS.NPC->enemy))
-		//|| (NPCInfo->stats.aim >= 5 && trap->inPVS( NPC->client->renderInfo.eyePoint, NPC->enemy->r.currentOrigin )) )
 	{
 		NPCS.NPCInfo->enemyLastSeenTime = level.time;
 		VectorCopy(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPCInfo->enemyLastSeenLocation);
@@ -878,13 +877,6 @@ static void NPC_BSSniper_Attack(void)
 			}
 		}
 	}
-	/*
-	else if ( trap->inPVS( NPC->enemy->r.currentOrigin, NPC->r.currentOrigin ) )
-	{
-		NPCInfo->enemyLastSeenTime = level.time;
-		faceEnemy2 = qtrue;
-	}
-	*/
 
 	if (enemyLOS2)
 	{

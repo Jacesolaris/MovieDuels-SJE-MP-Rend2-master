@@ -305,6 +305,8 @@ static consoleCommand_t commands[] = {
 	{"modelcacheinfo", RE_RegisterModels_Info_f},
 };
 
+static const size_t numCommands = ARRAY_LEN(commands);
+
 #ifdef _DEBUG
 #define MIN_PRIMITIVES -1
 #else
@@ -491,16 +493,14 @@ void R_Register()
 R_Init
 ===============
 */
-extern void R_InitWorldEffects(); //tr_WorldEffects.cpp
-void R_Init()
+extern void R_InitWorldEffects();
+void R_Init(void)
 {
 	Com_Printf("----- Loading Dedicated renderer-----\n");
 
 	// clear all our internal state
 	memset(&tr, 0, sizeof tr);
 	memset(&backEnd, 0, sizeof backEnd);
-
-	//	Swap_Init();
 
 	//
 	// init function tables
@@ -549,12 +549,12 @@ void R_Init()
 RE_Shutdown
 ===============
 */
-void RE_Shutdown(const qboolean destroyWindow, const qboolean restarting)
+void RE_Shutdown(qboolean destroyWindow, qboolean restarting)
 {
 	Com_Printf("RE_Shutdown( %i )\n", destroyWindow);
 
-	for (const auto& command : commands)
-		ri->Cmd_RemoveCommand(command.cmd);
+	for (size_t i = 0; i < numCommands; i++)
+		ri->Cmd_RemoveCommand(commands[i].cmd);
 
 	tr.registered = qfalse;
 }

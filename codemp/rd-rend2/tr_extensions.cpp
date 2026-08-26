@@ -74,6 +74,7 @@ PFNGLISBUFFERPROC qglIsBuffer;
 // Texturing
 PFNGLACTIVETEXTUREPROC qglActiveTexture;
 PFNGLTEXIMAGE3DPROC qglTexImage3D;
+PFNGLTEXSUBIMAGE3DPROC qglTexSubImage3D;
 
 // Shader objects
 PFNGLCREATESHADERPROC qglCreateShader;
@@ -215,6 +216,7 @@ PFNGLGETQUERYOBJECTUIVPROC qglGetQueryObjectuiv;
 
 // GL state
 PFNGLGETSTRINGIPROC qglGetStringi;
+PFNGLCOLORMASKIPROC qglColorMaski;
 
 // Sync objects and fences
 PFNGLFENCESYNCPROC qglFenceSync;
@@ -241,6 +243,12 @@ PFNGLQUERYCOUNTERPROC qglQueryCounter;
 PFNGLGETQUERYOBJECTI64VPROC qglGetQueryObjecti64v;
 PFNGLGETQUERYOBJECTUI64VPROC qglGetQueryObjectui64v;
 
+// GL_KHR_debug
+PFNGLPUSHDEBUGGROUPPROC qglPushDebugGroupKHR;
+PFNGLPOPDEBUGGROUPPROC qglPopDebugGroupKHR;
+PFNGLOBJECTLABELPROC qglObjectLabel;
+PFNGLOBJECTPTRLABELPROC qglObjectPtrLabel;
+
 static qboolean GLimp_HaveExtension(const char* ext)
 {
 	const char* ptr = Q_stristr(glConfigExt.originalExtensionString, ext);
@@ -266,6 +274,7 @@ static qboolean GetGLFunction(GLFuncType& glFunction, const char* glFunctionStri
 
 	return qtrue;
 }
+
 
 static void QCALL GLimp_OnError(GLenum source, GLenum type, GLuint id, GLenum severity,
 	GLsizei length, const GLchar* message, const void* userParam)
@@ -362,6 +371,7 @@ void GLimp_InitCoreFunctions()
 	// Texturing
 	GetGLFunction(qglActiveTexture, "glActiveTexture", qtrue);
 	GetGLFunction(qglTexImage3D, "glTexImage3D", qtrue);
+	GetGLFunction(qglTexSubImage3D, "glTexSubImage3D", qtrue);
 
 	// Shader objects
 	GetGLFunction(qglCreateShader, "glCreateShader", qtrue);
@@ -511,12 +521,14 @@ void GLimp_InitCoreFunctions()
 
 	// GL state
 	GetGLFunction(qglGetStringi, "glGetStringi", qtrue);
+	GetGLFunction(qglColorMaski, "glColorMaski", qtrue);
 
 	// Sync objects and fences
 	GetGLFunction(qglFenceSync, "glFenceSync", qtrue);
 	GetGLFunction(qglDeleteSync, "glDeleteSync", qtrue);
 	GetGLFunction(qglClientWaitSync, "glClientWaitSync", qtrue);
 	GetGLFunction(qglWaitSync, "glWaitSync", qtrue);
+
 }
 
 void GLW_InitTextureCompression(void);
@@ -675,6 +687,21 @@ void GLimp_InitExtensions()
 		loaded = (qboolean)(loaded && GetGLFunction(qglGetQueryObjectui64v, "glGetQueryObjectui64v", qfalse));
 
 		glRefConfig.timerQuery = loaded;
+
+		ri->Printf(PRINT_ALL, result[loaded], extension);
+	}
+
+	extension = "GL_KHR_debug";
+	if (GLimp_HaveExtension(extension))
+	{
+		qboolean loaded = qtrue;
+
+		loaded = (qboolean)(loaded && GetGLFunction(qglPushDebugGroupKHR, "glPushDebugGroup", qfalse));
+		loaded = (qboolean)(loaded && GetGLFunction(qglPopDebugGroupKHR, "glPopDebugGroup", qfalse));
+		loaded = (qboolean)(loaded && GetGLFunction(qglObjectLabel, "glObjectLabel", qfalse));
+		loaded = (qboolean)(loaded && GetGLFunction(qglObjectPtrLabel, "glObjectPtrLabel", qfalse));
+
+		glRefConfig.annotateResources = loaded;
 
 		ri->Printf(PRINT_ALL, result[loaded], extension);
 	}

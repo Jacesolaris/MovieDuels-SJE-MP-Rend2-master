@@ -762,8 +762,6 @@ static animNumber_t QINLINE PM_GetWeaponReadyAnim(void)
 	return WeaponIdleAnim[pm->ps->weapon];
 }
 
-
-
 int PM_ReadyPoseForsaber_anim_levelBOT(void);
 
 int PM_ReadyPoseForsaber_anim_level(void)
@@ -12518,7 +12516,6 @@ rest:
 #endif
 		if (pm->ps->weapon == WP_BOWCASTER)
 		{// set the weapon anims
-
 			PM_StartTorsoAnim(WeaponAltAttackAnim[pm->ps->weapon]);
 		}
 		// dumb, but since we shoot a charged weapon on button-up, we need to repress this button for now
@@ -14309,7 +14306,7 @@ static void PM_Weapon(void)
 		if (pm->ps->weapon == WP_EMPLACED_GUN)
 		{
 			PM_StartTorsoAnim(BOTH_GUNSIT1);
-		} 
+		}
 		else
 		{
 			if (PM_CanSetWeaponReadyAnim() == qtrue)

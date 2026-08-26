@@ -34,6 +34,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 static size_t STATIC_UNIFORM_BUFFER_SIZE = 1 * 1024 * 1024;
 static size_t FRAME_UNIFORM_BUFFER_SIZE = 8 * 1024 * 1024;
+static size_t FRAME_SCENE_UNIFORM_BUFFER_SIZE = 1 * 1024 * 1024;
 static size_t FRAME_VERTEX_BUFFER_SIZE = 12 * 1024 * 1024;
 static size_t FRAME_INDEX_BUFFER_SIZE = 4 * 1024 * 1024;
 
@@ -91,6 +92,11 @@ cvar_t* r_facePlaneCull;
 cvar_t* r_showcluster;
 cvar_t* r_nocurves;
 
+cvar_t* r_volumetricFog;
+cvar_t* r_volumetricFogDefaultScale;
+cvar_t* r_volumetricFogSamples;
+cvar_t* r_volumetricFogScale;
+
 cvar_t* r_allowExtensions;
 
 cvar_t* r_ext_compressed_textures;
@@ -111,6 +117,9 @@ cvar_t* r_arb_buffer_storage;
 
 cvar_t* r_mergeMultidraws;
 cvar_t* r_mergeLeafSurfaces;
+
+cvar_t* r_smaa;
+cvar_t* r_smaa_quality;
 
 cvar_t* r_cameraExposure;
 
@@ -251,6 +260,8 @@ cvar_t* r_screenshotJpegQuality;
 cvar_t* r_surfaceSprites;
 cvar_t* r_AdvancedsurfaceSprites;
 
+cvar_t* r_patchStitching;
+
 // the limits apply to the sum of all scenes in a frame --
 // the main view, all the 3D icons, etc
 #define	DEFAULT_MAX_POLYS		600
@@ -267,18 +278,17 @@ cvar_t* r_dynamicGlowIntensity;
 cvar_t* r_dynamicGlowSoft;
 cvar_t* r_dynamicGlowWidth;
 cvar_t* r_dynamicGlowHeight;
+cvar_t* r_dynamicGlowBloom;
 
 cvar_t* r_debugContext;
 cvar_t* r_debugWeather;
+
+cvar_t* r_aspectCorrectFonts;
 
 cvar_t* r_com_rend2;
 cvar_t* r_weather;
 
 cvar_t* com_outcast;
-
-cvar_t* r_aspectCorrectFonts;
-
-cvar_t* r_patchStitching;
 
 extern void	RB_SetGL2D(void);
 static void R_Splash()
@@ -293,30 +303,7 @@ static void R_Splash()
 
 	GL_Cull(CT_TWO_SIDED);
 
-	image_t* pImage;
-	const int splash_pick = rand() % 5;
-
-	switch (splash_pick)
-	{
-	case 0:
-		pImage = R_FindImageFile("menu/splash5", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		break;
-	case 1:
-		pImage = R_FindImageFile("menu/splash4", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		break;
-	case 2:
-		pImage = R_FindImageFile("menu/splash3", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		break;
-	case 3:
-		pImage = R_FindImageFile("menu/splash2", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		break;
-	case 4:
-		pImage = R_FindImageFile("menu/splash1", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		break;
-	default:
-		pImage = R_FindImageFile("menu/splash", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		break;
-	}
+	image_t* pImage = R_FindImageFile("menu/splash", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 
 	if (pImage)
 		GL_Bind(pImage);
@@ -330,15 +317,16 @@ static void R_Splash()
 		ri->Cvar_Set("com_rend2", "1");
 	}
 
-	if (r_shadows->integer != 1)
+	qboolean forceCgShadows =
+		(r_shadows->integer == 0 ||
+			r_shadows->integer == 1 ||
+			r_shadows->integer == 3) ? qtrue : qfalse;
+
+	if (forceCgShadows == qtrue)
 	{
-		ri->Cvar_Set("cg_shadows", "1");
+		ri->Cvar_Set("cg_shadows", "2");
 	}
 
-	if (com_outcast->integer != 0)
-	{
-		ri->Cvar_Set("com_outcast", "0");
-	}
 
 	ri->WIN_Present(&window);
 }
@@ -600,6 +588,9 @@ static void InitOpenGL(void)
 		GLuint vao;
 		qglGenVertexArrays(1, &vao);
 		qglBindVertexArray(vao);
+#ifndef __APPLE__
+		if (glRefConfig.annotateResources) qglObjectLabel(GL_VERTEX_ARRAY, vao, -1, "GlobalVAO");
+#endif
 		tr.globalVao = vao;
 
 		// set default state
@@ -609,6 +600,10 @@ static void InitOpenGL(void)
 	}
 	else
 	{
+		if (r_com_rend2->integer != 1)
+		{
+			ri->Cvar_Set("com_rend2", "1");
+		}
 		// set default state
 		GL_SetDefaultState();
 	}
@@ -689,8 +684,7 @@ Return value must be freed with ri->Hunk_FreeTempMemory()
 ==================
 */
 
-static byte* RB_ReadPixels(
-	int x, int y, int width, int height, size_t* offset, int* padlen)
+static byte* RB_ReadPixels(	int x, int y, int width, int height, size_t* offset, int* padlen)
 {
 	byte* buffer, * bufstart;
 	int padwidth, linelen;
@@ -702,7 +696,7 @@ static byte* RB_ReadPixels(
 	padwidth = PAD(linelen, packAlign);
 
 	// Allocate a few more bytes so that we can choose an alignment we like
-	buffer = (byte*)ri->Hunk_AllocateTempMemory(padwidth * height + *offset + packAlign - 1);
+	buffer = (byte*)ri->Hunk_AllocateTempMemory(static_cast<unsigned long long>(padwidth) * height + *offset + packAlign - 1);
 
 	bufstart = (byte*)(PADP((intptr_t)buffer + *offset, packAlign));
 	qglReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, bufstart);
@@ -743,7 +737,7 @@ static void R_SaveTGA(
 	int stride)
 {
 	const size_t headerSize = 18;
-	const size_t pixelBufferSize = stride * height;
+	const size_t pixelBufferSize = static_cast<size_t>(stride) * height;
 	const size_t bufferSize = headerSize + pixelBufferSize;
 
 	byte* buffer = (byte*)ri->Hunk_AllocateTempMemory(bufferSize);
@@ -800,8 +794,7 @@ static void R_SaveScreenshotPNG(
 R_SaveScreenshotJPG
 ==================
 */
-static void R_SaveScreenshotJPG(
-	const screenshotReadback_t* screenshotReadback, byte* pixels)
+static void R_SaveScreenshotJPG(const screenshotReadback_t* screenshotReadback, byte* pixels)
 {
 	RE_SaveJPG(
 		screenshotReadback->filename,
@@ -829,7 +822,7 @@ void R_SaveScreenshot(screenshotReadback_t* screenshotReadback)
 	{
 		const int height = screenshotReadback->height;
 		const int stride = screenshotReadback->strideInBytes;
-		const size_t pixelBufferSize = stride * height;
+		const size_t pixelBufferSize = static_cast<size_t>(stride) * height;
 
 		byte* pixels = (byte*)ri->Hunk_AllocateTempMemory(pixelBufferSize);
 		Com_Memcpy(pixels, pixelBuffer, pixelBufferSize);
@@ -888,7 +881,7 @@ const void* RB_TakeScreenshotCmd(const void* data) {
 	qglBindBuffer(GL_PIXEL_PACK_BUFFER, screenshot->pbo);
 	qglBufferData(
 		GL_PIXEL_PACK_BUFFER,
-		strideInBytes * cmd->height,
+		static_cast<GLsizeiptr>(strideInBytes) * cmd->height,
 		nullptr,
 		GL_STATIC_COPY);
 	qglReadPixels(
@@ -1144,7 +1137,7 @@ const void* RB_TakeVideoFrameCmd(const void* data)
 
 	qglGetIntegerv(GL_PACK_ALIGNMENT, &packAlign);
 
-	linelen = cmd->width * 3;
+	linelen = static_cast<size_t>(cmd->width) * 3;
 
 	// Alignment stuff for glReadPixels
 	padwidth = PAD(linelen, packAlign);
@@ -1158,7 +1151,7 @@ const void* RB_TakeVideoFrameCmd(const void* data)
 	qglReadPixels(0, 0, cmd->width, cmd->height, GL_RGB,
 		GL_UNSIGNED_BYTE, cBuf);
 
-	memcount = padwidth * cmd->height;
+	memcount = static_cast<size_t>(padwidth) * cmd->height;
 
 	// gamma correct
 	if (glConfig.deviceSupportsGamma)
@@ -1448,7 +1441,7 @@ static consoleCommand_t	commands[] = {
 	{ "gfxinfo",			GfxInfo_f },
 	{ "gfxmeminfo",			GfxMemInfo_f },
 	{ "r_we",				R_WorldEffect_f },
-	{ "modelList",			R_model_list_f },
+	{ "modelList",			R_Modellist_f },
 	{ "vbolist",			R_VBOList_f },
 	{ "capframes",			R_CaptureFrameData_f },
 	{ "r_weather",			R_WeatherEffect_f },
@@ -1491,6 +1484,8 @@ static void R_Register(void)
 	r_dynamicGlowSoft = ri->Cvar_Get("r_dynamicGlowSoft", "1", CVAR_ARCHIVE, "");
 	r_dynamicGlowWidth = ri->Cvar_Get("r_dynamicGlowWidth", "320", CVAR_ARCHIVE | CVAR_LATCH, "");
 	r_dynamicGlowHeight = ri->Cvar_Get("r_dynamicGlowHeight", "240", CVAR_ARCHIVE | CVAR_LATCH, "");
+	r_dynamicGlowBloom = ri->Cvar_Get("r_dynamicGlowBloom", "0.0", CVAR_ARCHIVE, "");
+	ri->Cvar_CheckRange(r_dynamicGlowBloom, 0.f, 2.f, qfalse);
 
 	r_debugContext = ri->Cvar_Get("r_debugContext", "0", CVAR_LATCH, "");
 	r_debugWeather = ri->Cvar_Get("r_debugWeather", "0", CVAR_ARCHIVE, "");
@@ -1536,9 +1531,9 @@ static void R_Register(void)
 	r_specularMapping = ri->Cvar_Get("r_specularMapping", "1", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable specular mapping");
 	r_deluxeMapping = ri->Cvar_Get("r_deluxeMapping", "1", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable reading deluxemaps when compiled with q3map2");
 	r_deluxeSpecular = ri->Cvar_Get("r_deluxeSpecular", "1", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable/scale the specular response from deluxemaps");
-	r_parallaxMapping = ri->Cvar_Get("r_parallaxMapping", "0", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable parallax mapping");
-	r_cubeMapping = ri->Cvar_Get("r_cubeMapping", "0", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable cubemapping");
-	r_cubeMappingBounces = ri->Cvar_Get("r_cubeMappingBounces", "1", CVAR_ARCHIVE | CVAR_LATCH, "Renders cubemaps multiple times to get reflections in reflections");
+	r_parallaxMapping = ri->Cvar_Get("r_parallaxMapping", "1", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable parallax mapping");
+	r_cubeMapping = ri->Cvar_Get("r_cubeMapping", "1", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable cubemapping");
+	r_cubeMappingBounces = ri->Cvar_Get("r_cubeMappingBounces", "2", CVAR_ARCHIVE | CVAR_LATCH, "Renders cubemaps multiple times to get reflections in reflections");
 	ri->Cvar_CheckRange(r_cubeMappingBounces, 0, 2, qfalse);
 	r_baseNormalX = ri->Cvar_Get("r_baseNormalX", "1.0", CVAR_ARCHIVE | CVAR_LATCH, "");
 	r_baseNormalY = ri->Cvar_Get("r_baseNormalY", "1.0", CVAR_ARCHIVE | CVAR_LATCH, "");
@@ -1557,6 +1552,12 @@ static void R_Register(void)
 	r_forceSunAmbientScale = ri->Cvar_Get("r_forceSunAmbientScale", "0.5", CVAR_CHEAT, "");
 	r_drawSunRays = ri->Cvar_Get("r_drawSunRays", "0", CVAR_ARCHIVE | CVAR_LATCH, "");
 	r_sunlightMode = ri->Cvar_Get("r_sunlightMode", "1", CVAR_ARCHIVE | CVAR_LATCH, "");
+
+	r_volumetricFog = ri->Cvar_Get("r_volumetricFog", "0", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable lightgrid lighting on fog volumes");
+	r_volumetricFogDefaultScale = ri->Cvar_Get("r_volumetricFogDefaultScale", "1.0", CVAR_ARCHIVE | CVAR_LATCH, "Scales volumetric fog density unless scale has been explicitly defined");
+	r_volumetricFogSamples = ri->Cvar_Get("r_volumetricFogSamples", "48", CVAR_ARCHIVE | CVAR_LATCH, "How many ray samples to take");
+	ri->Cvar_CheckRange(r_volumetricFogSamples, 16, 128, qfalse);
+	r_volumetricFogScale = ri->Cvar_Get("r_volumetricFogScale", "1.0", CVAR_TEMP, "Temporarily scales volumetric fog density");
 
 	r_sunShadows = ri->Cvar_Get("r_sunShadows", "1", CVAR_ARCHIVE | CVAR_LATCH, "");
 	r_shadowFilter = ri->Cvar_Get("r_shadowFilter", "1", CVAR_ARCHIVE | CVAR_LATCH, "");
@@ -1605,6 +1606,9 @@ static void R_Register(void)
 	r_mergeMultidraws = ri->Cvar_Get("r_mergeMultidraws", "1", CVAR_ARCHIVE, "");
 	r_mergeLeafSurfaces = ri->Cvar_Get("r_mergeLeafSurfaces", "1", CVAR_ARCHIVE, "");
 
+	r_smaa = ri->Cvar_Get("r_smaa", "0", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable SMAA");
+	r_smaa_quality = ri->Cvar_Get("r_smaa_quality", "2", CVAR_ARCHIVE | CVAR_LATCH, "0: LOW | 1: MEDIUM | 2: HIGH | 3: ULTRA");
+
 	//
 	// temporary variables that can change at any time
 	//
@@ -1652,7 +1656,7 @@ static void R_Register(void)
 	r_drawBuffer = ri->Cvar_Get("r_drawBuffer", "GL_BACK", CVAR_CHEAT, "");
 	r_lockpvs = ri->Cvar_Get("r_lockpvs", "0", CVAR_CHEAT, "");
 	r_noportals = ri->Cvar_Get("r_noportals", "0", CVAR_CHEAT, "");
-	r_shadows = ri->Cvar_Get("cg_shadows", "1", 0, "");
+	r_shadows = ri->Cvar_Get("cg_shadows", "2", 0, "");
 
 	r_marksOnTriangleMeshes = ri->Cvar_Get("r_marksOnTriangleMeshes", "0", CVAR_ARCHIVE, "");
 
@@ -1718,36 +1722,116 @@ static void R_ShutDownQueries(void)
 
 void RE_SetLightStyle(int style, int color);
 
+#ifdef _G2_GORE
+static void R_InitGoreVertexData(gpuFrame_t* currentFrame)
+{
+	static int numGoreArrays = 0;
+	currentFrame->goreVBO = R_CreateVBO(
+		nullptr,
+		sizeof(g2GoreVert_t) * (MAX_GORE_RECORDS + 1) * MAX_GORE_VERTS,
+		VBO_USAGE_DYNAMIC, va("Gore_%i", numGoreArrays));
+
+	currentFrame->goreVBO->offsets[ATTR_INDEX_POSITION] = offsetof(g2GoreVert_t, position);
+	currentFrame->goreVBO->offsets[ATTR_INDEX_NORMAL] = offsetof(g2GoreVert_t, normal);
+	currentFrame->goreVBO->offsets[ATTR_INDEX_TEXCOORD0] = offsetof(g2GoreVert_t, texCoords);
+	currentFrame->goreVBO->offsets[ATTR_INDEX_BONE_INDEXES] = offsetof(g2GoreVert_t, bonerefs);
+	currentFrame->goreVBO->offsets[ATTR_INDEX_BONE_WEIGHTS] = offsetof(g2GoreVert_t, weights);
+	currentFrame->goreVBO->offsets[ATTR_INDEX_TANGENT] = offsetof(g2GoreVert_t, tangents);
+
+	currentFrame->goreVBO->strides[ATTR_INDEX_POSITION] = sizeof(g2GoreVert_t);
+	currentFrame->goreVBO->strides[ATTR_INDEX_NORMAL] = sizeof(g2GoreVert_t);
+	currentFrame->goreVBO->strides[ATTR_INDEX_TEXCOORD0] = sizeof(g2GoreVert_t);
+	currentFrame->goreVBO->strides[ATTR_INDEX_BONE_INDEXES] = sizeof(g2GoreVert_t);
+	currentFrame->goreVBO->strides[ATTR_INDEX_BONE_WEIGHTS] = sizeof(g2GoreVert_t);
+	currentFrame->goreVBO->strides[ATTR_INDEX_TANGENT] = sizeof(g2GoreVert_t);
+
+	currentFrame->goreVBO->sizes[ATTR_INDEX_POSITION] = sizeof(vec3_t);
+	currentFrame->goreVBO->sizes[ATTR_INDEX_NORMAL] = sizeof(uint32_t);
+	currentFrame->goreVBO->sizes[ATTR_INDEX_TEXCOORD0] = sizeof(vec2_t);
+	currentFrame->goreVBO->sizes[ATTR_INDEX_BONE_WEIGHTS] = sizeof(byte);
+	currentFrame->goreVBO->sizes[ATTR_INDEX_BONE_INDEXES] = sizeof(byte);
+	currentFrame->goreVBO->sizes[ATTR_INDEX_TANGENT] = sizeof(uint32_t);
+
+	currentFrame->goreIBO = R_CreateIBO(
+		nullptr,
+		sizeof(glIndex_t) * (MAX_GORE_RECORDS + 1) * MAX_GORE_INDECIES,
+		VBO_USAGE_DYNAMIC, va("Gore_%i", numGoreArrays));
+
+	if (glRefConfig.immutableBuffers)
+	{
+		const GLbitfield mapFlags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+
+		R_BindVBO(currentFrame->goreVBO);
+		currentFrame->goreVBOMemory = qglMapBufferRange(GL_ARRAY_BUFFER, 0,
+			currentFrame->goreVBO->vertexesSize, mapFlags);
+
+		R_BindIBO(currentFrame->goreIBO);
+		currentFrame->goreIBOMemory = qglMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0,
+			currentFrame->goreIBO->indexesSize, mapFlags);
+	}
+	else
+	{
+		currentFrame->goreVBOMemory = nullptr;
+		currentFrame->goreIBOMemory = nullptr;
+	}
+
+	numGoreArrays++;
+	GL_CheckErrors();
+}
+#endif
+
 static void R_InitBackEndFrameData()
 {
 	GLuint timerQueries[MAX_GPU_TIMERS * MAX_FRAMES];
 	qglGenQueries(MAX_GPU_TIMERS * MAX_FRAMES, timerQueries);
 
-	GLuint ubos[MAX_FRAMES * MAX_SCENES];
-	qglGenBuffers(MAX_FRAMES * MAX_SCENES, ubos);
+	// For temporal data we need ubo buffers between frames for
+	// reading last frame data without fear of writing next frames data into them
+	bool reserveTemporalUbo = (r_smaa->integer == 2
+		// || r_smaa->integer == 4
+		// || r_taa->integer
+		// || r_ssr->integer
+		// || r_motionBlur->integer
+		);
+
+	if (reserveTemporalUbo)
+		backEndData->numFrameUbos = (MAX_FRAMES + 1) * MAX_SCENES;
+	else
+		backEndData->numFrameUbos = MAX_FRAMES * MAX_SCENES;
+
+	backEndData->frameUbos = (uint32_t*)Z_Malloc(backEndData->numFrameUbos * sizeof(*backEndData->frameUbos), TAG_GENERAL);
+	backEndData->cachePreviousFrameUbos = reserveTemporalUbo;
+
+	qglGenBuffers(backEndData->numFrameUbos, backEndData->frameUbos);
 
 	for (int i = 0; i < MAX_FRAMES; i++)
 	{
 		gpuFrame_t* frame = backEndData->frames + i;
 		const GLbitfield mapBits = GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT | GL_MAP_PERSISTENT_BIT;
 
-		frame->ubo = ubos[i];
-		frame->uboWriteOffset = 0;
-		frame->uboSize = FRAME_UNIFORM_BUFFER_SIZE;
-		qglBindBuffer(GL_UNIFORM_BUFFER, frame->ubo);
-		glState.currentGlobalUBO = frame->ubo;
+		for (byte j = 0; j < MAX_SCENES; j++)
+		{
+			size_t BUFFER_SIZE = j == 0 ? FRAME_UNIFORM_BUFFER_SIZE : FRAME_SCENE_UNIFORM_BUFFER_SIZE;
+			frame->ubo[j] = backEndData->frameUbos[i * MAX_SCENES + j];
+			frame->uboWriteOffset[j] = 0;
+			frame->uboSize[j] = BUFFER_SIZE;
+			qglBindBuffer(GL_UNIFORM_BUFFER, frame->ubo[j]);
+			glState.currentGlobalUBO = frame->ubo[j];
 
-		// TODO: persistently mapped UBOs
-		qglBufferData(GL_UNIFORM_BUFFER, FRAME_UNIFORM_BUFFER_SIZE,
-			nullptr, GL_DYNAMIC_DRAW);
+			if (glRefConfig.annotateResources) qglObjectLabel(GL_BUFFER, frame->ubo[j], -1, va("FrameUBO_%i_%i", i, j));
+
+			// TODO: persistently mapped UBOs
+			qglBufferData(GL_UNIFORM_BUFFER, BUFFER_SIZE,
+				nullptr, GL_DYNAMIC_DRAW);
+		}
 
 		frame->dynamicVbo = R_CreateVBO(nullptr, FRAME_VERTEX_BUFFER_SIZE,
-			VBO_USAGE_DYNAMIC);
+			VBO_USAGE_DYNAMIC, va("Frame_%i", i));
 		frame->dynamicVboCommitOffset = 0;
 		frame->dynamicVboWriteOffset = 0;
 
 		frame->dynamicIbo = R_CreateIBO(nullptr, FRAME_INDEX_BUFFER_SIZE,
-			VBO_USAGE_DYNAMIC);
+			VBO_USAGE_DYNAMIC, va("Frame_%i", i));
 		frame->dynamicIboCommitOffset = 0;
 		frame->dynamicIboWriteOffset = 0;
 
@@ -1772,48 +1856,34 @@ static void R_InitBackEndFrameData()
 			gpuTimer_t* timer = frame->timers + j;
 			timer->queryName = timerQueries[i * MAX_GPU_TIMERS + j];
 		}
+#ifdef _G2_GORE
+		R_InitGoreVertexData(frame);
+#endif
+	}
+
+	if (reserveTemporalUbo)
+	{
+		// Allocate the spare ubo for last frame infos
+		gpuFrame_t* frame = &backEndData->frames[0];
+		for (byte j = 0; j < MAX_SCENES; j++)
+		{
+			size_t BUFFER_SIZE = j == 0 ? FRAME_UNIFORM_BUFFER_SIZE : FRAME_SCENE_UNIFORM_BUFFER_SIZE;
+			frame->ubo[j] = backEndData->frameUbos[MAX_FRAMES * MAX_SCENES + j];
+			frame->uboWriteOffset[j] = 0;
+			frame->uboSize[j] = BUFFER_SIZE;
+			qglBindBuffer(GL_UNIFORM_BUFFER, frame->ubo[j]);
+			glState.currentGlobalUBO = frame->ubo[j];
+
+			if (glRefConfig.annotateResources) qglObjectLabel(GL_BUFFER, frame->ubo[j], -1, va("FrameUBO_spare_%i", j));
+
+			// TODO: persistently mapped UBOs
+			qglBufferData(GL_UNIFORM_BUFFER, BUFFER_SIZE,
+				nullptr, GL_DYNAMIC_DRAW);
+		}
 	}
 
 	backEndData->currentFrame = backEndData->frames;
 }
-
-#ifdef _G2_GORE
-static void R_InitGoreVao()
-{
-	tr.goreVBO = R_CreateVBO(
-		nullptr,
-		sizeof(g2GoreVert_t) * MAX_LODS * MAX_GORE_RECORDS * MAX_GORE_VERTS * MAX_FRAMES,
-		VBO_USAGE_DYNAMIC);
-	tr.goreVBO->offsets[ATTR_INDEX_POSITION] = offsetof(g2GoreVert_t, position);
-	tr.goreVBO->offsets[ATTR_INDEX_NORMAL] = offsetof(g2GoreVert_t, normal);
-	tr.goreVBO->offsets[ATTR_INDEX_TEXCOORD0] = offsetof(g2GoreVert_t, texCoords);
-	tr.goreVBO->offsets[ATTR_INDEX_BONE_INDEXES] = offsetof(g2GoreVert_t, bonerefs);
-	tr.goreVBO->offsets[ATTR_INDEX_BONE_WEIGHTS] = offsetof(g2GoreVert_t, weights);
-	tr.goreVBO->offsets[ATTR_INDEX_TANGENT] = offsetof(g2GoreVert_t, tangents);
-
-	tr.goreVBO->strides[ATTR_INDEX_POSITION] = sizeof(g2GoreVert_t);
-	tr.goreVBO->strides[ATTR_INDEX_NORMAL] = sizeof(g2GoreVert_t);
-	tr.goreVBO->strides[ATTR_INDEX_TEXCOORD0] = sizeof(g2GoreVert_t);
-	tr.goreVBO->strides[ATTR_INDEX_BONE_INDEXES] = sizeof(g2GoreVert_t);
-	tr.goreVBO->strides[ATTR_INDEX_BONE_WEIGHTS] = sizeof(g2GoreVert_t);
-	tr.goreVBO->strides[ATTR_INDEX_TANGENT] = sizeof(g2GoreVert_t);
-
-	tr.goreVBO->sizes[ATTR_INDEX_POSITION] = sizeof(vec3_t);
-	tr.goreVBO->sizes[ATTR_INDEX_NORMAL] = sizeof(uint32_t);
-	tr.goreVBO->sizes[ATTR_INDEX_TEXCOORD0] = sizeof(vec2_t);
-	tr.goreVBO->sizes[ATTR_INDEX_BONE_WEIGHTS] = sizeof(byte);
-	tr.goreVBO->sizes[ATTR_INDEX_BONE_INDEXES] = sizeof(byte);
-	tr.goreVBO->sizes[ATTR_INDEX_TANGENT] = sizeof(uint32_t);
-
-	tr.goreIBO = R_CreateIBO(
-		nullptr,
-		sizeof(glIndex_t) * MAX_LODS * MAX_GORE_RECORDS * MAX_GORE_INDECIES * MAX_FRAMES,
-		VBO_USAGE_DYNAMIC);
-
-	tr.goreIBOCurrentIndex = 0;
-	tr.goreVBOCurrentIndex = 0;
-}
-#endif
 
 static void R_InitStaticConstants()
 {
@@ -1821,6 +1891,7 @@ static void R_InitStaticConstants()
 	size_t alignedBlockSize = 0;
 
 	qglBindBuffer(GL_UNIFORM_BUFFER, tr.staticUbo);
+	if (glRefConfig.annotateResources) qglObjectLabel(GL_BUFFER, tr.staticUbo, -1, "StaticUBO");
 	qglBufferData(
 		GL_UNIFORM_BUFFER,
 		STATIC_UNIFORM_BUFFER_SIZE,
@@ -1862,22 +1933,6 @@ static void R_InitStaticConstants()
 		GL_UNIFORM_BUFFER, tr.entityFlareUboOffset, sizeof(entityFlareBlock), &entityFlareBlock);
 	alignedBlockSize += (sizeof(EntityBlock) + alignment) & ~alignment;
 
-	// Setup static flare camera data
-	CameraBlock flareCameraBlock = {};
-	Matrix16Ortho(
-		0.0f,
-		glConfig.vidWidth,
-		glConfig.vidHeight,
-		0.0f,
-		-99999.0f,
-		99999.0f,
-		flareCameraBlock.viewProjectionMatrix);
-
-	tr.cameraFlareUboOffset = alignedBlockSize;
-	qglBufferSubData(
-		GL_UNIFORM_BUFFER, tr.cameraFlareUboOffset, sizeof(flareCameraBlock), &flareCameraBlock);
-	alignedBlockSize += (sizeof(CameraBlock) + alignment) & ~alignment;
-
 	// Setup default light block
 	LightsBlock lightsBlock = {};
 	lightsBlock.numLights = 0;
@@ -1913,7 +1968,7 @@ static void R_InitStaticConstants()
 		GL_UNIFORM_BUFFER, tr.defaultShaderInstanceUboOffset, sizeof(shaderInstanceBlock), &shaderInstanceBlock);
 	alignedBlockSize += (sizeof(ShaderInstanceBlock) + alignment) & ~alignment;
 
-	qglBindBuffer(GL_UNIFORM_BUFFER, NULL);
+	qglBindBuffer(GL_UNIFORM_BUFFER, 0);
 	glState.currentGlobalUBO = -1;
 
 	GL_CheckErrors();
@@ -1923,6 +1978,9 @@ static void R_ShutdownBackEndFrameData()
 {
 	if (!backEndData)
 		return;
+
+	qglDeleteBuffers(backEndData->numFrameUbos, backEndData->frameUbos);
+	Z_Free(backEndData->frameUbos);
 
 	for (int i = 0; i < MAX_FRAMES; i++)
 	{
@@ -1934,14 +1992,19 @@ static void R_ShutdownBackEndFrameData()
 			frame->sync = NULL;
 		}
 
-		qglDeleteBuffers(1, &frame->ubo);
-
 		if (glRefConfig.immutableBuffers)
 		{
 			R_BindVBO(frame->dynamicVbo);
 			R_BindIBO(frame->dynamicIbo);
 			qglUnmapBuffer(GL_ARRAY_BUFFER);
 			qglUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+
+#ifdef _G2_GORE
+			R_BindVBO(frame->goreVBO);
+			R_BindIBO(frame->goreIBO);
+			qglUnmapBuffer(GL_ARRAY_BUFFER);
+			qglUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+#endif
 		}
 
 		for (int j = 0; j < MAX_GPU_TIMERS; j++)
@@ -1951,6 +2014,23 @@ static void R_ShutdownBackEndFrameData()
 		}
 	}
 }
+
+static bool r_cacheGPUShaders = false;
+
+static void R_ClearTr(void)
+{
+	if (r_cacheGPUShaders)
+	{
+		// clear all but GPU shaders in tr
+		Com_Memset(&tr, 0, (byte*)&tr.splashScreenShader - (byte*)&tr);
+		Com_Memset(&tr.staticUbo, 0, sizeof(tr) - ((byte*)&tr.staticUbo - (byte*)&tr));
+	}
+	else
+		// clear all of tr
+		Com_Memset(&tr, 0, sizeof(tr));
+}
+
+static bool r_inited = false;
 
 /*
 ===============
@@ -1962,10 +2042,13 @@ void R_Init(void)
 	byte* ptr;
 	int i;
 
-	ri->Printf(PRINT_ALL, "----- Loading Rend2 renderer -----\n");
+	if (r_inited)
+		return;
+
+	ri->Printf(PRINT_ALL, "-----Loading MP Quality Mode-----\n");
 
 	// clear all our internal state
-	Com_Memset(&tr, 0, sizeof(tr));
+	R_ClearTr();
 	Com_Memset(&backEnd, 0, sizeof(backEnd));
 	Com_Memset(&tess, 0, sizeof(tess));
 
@@ -2041,13 +2124,11 @@ void R_Init(void)
 	R_InitBackEndFrameData();
 	R_InitImages();
 
-#ifdef _G2_GORE
-	R_InitGoreVao();
-#endif
-
 	FBO_Init();
 
-	GLSL_LoadGPUShaders();
+	if (!r_cacheGPUShaders)
+		GLSL_LoadGPUShaders();
+	r_cacheGPUShaders = false;
 
 	R_InitShaders(qfalse);
 
@@ -2073,13 +2154,13 @@ void R_Init(void)
 
 	// print info
 	GfxInfo_f();
+	r_inited = true;
 
 	if (r_com_rend2->integer != 1)
 	{
 		ri->Cvar_Set("com_rend2", "1");
 	}
-
-	ri->Printf(PRINT_ALL, "----- Rend2 renderer loaded -----\n");
+	ri->Printf(PRINT_ALL, "-----MP Quality Mode loaded-----\n");
 }
 
 /*
@@ -2087,7 +2168,7 @@ void R_Init(void)
 RE_Shutdown
 ===============
 */
-void RE_Shutdown(const qboolean destroyWindow, const qboolean restarting)
+void RE_Shutdown(qboolean destroyWindow, qboolean restarting)
 {
 	ri->Printf(PRINT_ALL, "RE_Shutdown( %i )\n", destroyWindow);
 
@@ -2104,29 +2185,41 @@ void RE_Shutdown(const qboolean destroyWindow, const qboolean restarting)
 	R_ShutdownWeatherSystem();
 
 	R_ShutdownFonts();
-	if (tr.registered) {
+
+	if (r_inited)
+	{
 		R_ShutDownQueries();
 		FBO_Shutdown();
 		R_DeleteTextures();
 		R_DestroyGPUBuffers();
-		GLSL_ShutdownGPUShaders();
 
-		if (destroyWindow && restarting)
+		if (!destroyWindow && !restarting)
 		{
-			ri->Z_Free((void*)glConfig.extensions_string);
-			ri->Z_Free((void*)glConfigExt.originalExtensionString);
-
-			qglDeleteVertexArrays(1, &tr.globalVao);
-			SaveGhoul2InfoArray();
+			r_cacheGPUShaders = true;
+			glState.currentProgram = 0;
+			qglUseProgram(0);
 		}
+		else
+			GLSL_ShutdownGPUShaders();
+	}
+
+	if (destroyWindow && restarting && tr.registered)
+	{
+		ri->Z_Free((void*)glConfig.extensions_string);
+		ri->Z_Free((void*)glConfigExt.originalExtensionString);
+
+		qglDeleteVertexArrays(1, &tr.globalVao);
+		SaveGhoul2InfoArray();
 	}
 
 	// shut down platform specific OpenGL stuff
-	if (destroyWindow) {
+	if (destroyWindow)
+	{
 		ri->WIN_Shutdown();
 	}
 
 	tr.registered = qfalse;
+	r_inited = false;
 	backEndData = NULL;
 }
 
@@ -2233,7 +2326,8 @@ GetRefAPI
 @@@@@@@@@@@@@@@@@@@@@
 */
 extern "C" {
-	Q_EXPORT refexport_t* QDECL GetRefAPI(int apiVersion, refimport_t* rimp) {
+	Q_EXPORT refexport_t* QDECL GetRefAPI(int apiVersion, refimport_t* rimp)
+	{
 		static refexport_t	re;
 
 		assert(rimp);
@@ -2288,6 +2382,8 @@ extern "C" {
 		re.DrawStretchPic = RE_StretchPic;
 		re.DrawStretchRaw = RE_StretchRaw;
 		re.UploadCinematic = RE_UploadCinematic;
+		//re.LAGoggles = RE_LAGoggles;
+		//re.Scissor = RE_Scissor;
 
 		re.RegisterFont = RE_RegisterFont;
 		re.Font_StrLenPixels = RE_Font_StrLenPixels;
@@ -2311,6 +2407,12 @@ extern "C" {
 		re.GetRealRes = GetRealRes;
 		// R_AutomapElevationAdjustment
 		re.InitializeWireframeAutomap = stub_InitializeWireframeAutomap;
+		//re.GetWindVector = R_GetWindVector;
+		//re.GetWindGusting = R_GetWindGusting;
+		//re.IsOutsideCausingPain = R_IsOutsideCausingPain;
+		//re.IsOutside = R_IsOutside;
+		//re.GetChanceOfSaberFizz = R_GetChanceOfSaberFizz;
+		//re.IsShaking = R_IsShaking;
 		re.AddWeatherZone = stub_RE_AddWeatherZone;
 		re.WorldEffectCommand = RE_WorldEffectCommand;
 		re.RegisterMedia_LevelLoadBegin = C_LevelLoadBegin;

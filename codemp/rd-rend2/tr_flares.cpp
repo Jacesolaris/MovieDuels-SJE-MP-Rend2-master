@@ -233,7 +233,9 @@ void RB_AddDlightFlares(void) {
 		else
 			j = 0;
 
-		RB_AddFlare((void*)l, j, l->origin, l->color, NULL);
+		vec3_t normal;
+		VectorCopy(backEnd.viewParms.ori.axis[0], normal);
+		RB_AddFlare(nullptr, j, l->origin, l->color, normal);
 	}
 }
 
@@ -323,8 +325,15 @@ static void RB_RenderFlare(flare_t* f)
 
 	srfFlare_t* flare = (srfFlare_t*)f->surface;
 
-	backEnd.currentEntity = &tr.worldEntity;
-	RB_BeginSurface(flare->shader, f->fogNum, 0);
+	backEnd.currentEntity = &backEnd.entityFlare;
+
+	shader_t* shader;
+	if (flare == nullptr)
+		shader = tr.flareShader;
+	else
+		shader = (flare->shader->remappedShader) ? flare->shader->remappedShader : flare->shader;
+
+	RB_BeginSurface(shader, f->fogNum, 0);
 
 	vec3_t		dir;
 	vec3_t		left, up;
@@ -421,8 +430,7 @@ void RB_RenderFlares(void) {
 		f->drawIntensity = 0;
 		if (f->frameSceneNum == backEnd.viewParms.frameSceneNum
 			&& f->inPortal == backEnd.viewParms.isPortal) {
-			RB_TestFlare(f);
-			if (f->drawIntensity) {
+			if (true) { // draw all flares, testing happens in shaders
 				draw = qtrue;
 			}
 			else {
@@ -443,8 +451,7 @@ void RB_RenderFlares(void) {
 
 	for (f = r_activeFlares; f; f = f->next) {
 		if (f->frameSceneNum == backEnd.viewParms.frameSceneNum
-			&& f->inPortal == backEnd.viewParms.isPortal
-			&& f->drawIntensity) {
+			&& f->inPortal == backEnd.viewParms.isPortal) {
 			RB_RenderFlare(f);
 		}
 	}

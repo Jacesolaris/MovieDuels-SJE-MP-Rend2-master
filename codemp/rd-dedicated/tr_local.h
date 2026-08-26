@@ -1395,7 +1395,7 @@ qboolean R_GetEntityToken(char* buffer, int size);
 
 model_t* R_AllocModel(void);
 
-void R_Init();
+void R_Init(void);
 
 image_t* R_FindImageFile(const char* name, qboolean mipmap, qboolean allow_picmip, qboolean allow_tc,
 	int gl_wrap_clamp_mode);
@@ -1530,7 +1530,7 @@ WORLD MAP
 
 void R_AddBrushModelSurfaces(trRefEntity_t* ent);
 void R_AddWorldSurfaces(void);
-qboolean R_inPVS(const vec3_t p1, const vec3_t p2, const byte* mask);
+qboolean R_inPVS(const vec3_t p1, const vec3_t p2, byte* mask);
 
 /*
 ============================================================

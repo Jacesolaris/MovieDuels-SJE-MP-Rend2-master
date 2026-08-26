@@ -1309,7 +1309,7 @@ void	GL_Cull(int cullType);
 #define GLS_DEFAULT			GLS_DEPTHMASK_TRUE
 #define GLS_ALPHA			(GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA)
 
-void	RE_StretchRaw(int x, int y, int w, int h, int cols, int rows, const byte* data, int client, qboolean dirty);
+void	RE_StretchRaw(const int x, const int y, const int w, const int h, const int cols, const int rows, const byte* data, const int client, const qboolean dirty);
 void	RE_UploadCinematic(int cols, int rows, const byte* data, int client, qboolean dirty);
 
 void		RE_BeginFrame(stereoFrame_t stereoFrame);
@@ -1484,7 +1484,7 @@ WORLD MAP
 
 void R_AddBrushModelSurfaces(trRefEntity_t* ent);
 void R_AddWorldSurfaces(void);
-qboolean R_inPVS(const vec3_t p1, const vec3_t p2, const byte* mask);
+qboolean R_inPVS(const vec3_t p1, const vec3_t p2, byte* mask);
 
 /*
 ============================================================

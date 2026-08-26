@@ -255,6 +255,8 @@ static void ParseAlphaTestFunc(shaderStage_t* stage, const char* funcname)
 		stage->alphaTestType = ALPHA_TEST_GE128;
 	else if (!Q_stricmp(funcname, "GE192"))
 		stage->alphaTestType = ALPHA_TEST_GE192;
+	else if (!Q_stricmp(funcname, "E255"))
+		stage->alphaTestType = ALPHA_TEST_E255;
 	else
 		ri->Printf(PRINT_WARNING,
 			"WARNING: invalid alphaFunc name '%s' in shader '%s'\n",
@@ -1951,7 +1953,11 @@ static qboolean ParseStage(shaderStage_t* stage, const char** text)
 
 			if (!Q_stricmp(token, "environment"))
 			{
+#ifndef REND2_SP
 				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_MAPPED;
+#else
+				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_MAPPED_SP;
+#endif
 			}
 			else if (!Q_stricmp(token, "lightmap"))
 			{
@@ -3023,6 +3029,8 @@ static void ComputeVertexAttribs(void)
 					ATTR_TEXCOORD3 | ATTR_TEXCOORD4);
 				break;
 			case TCGEN_ENVIRONMENT_MAPPED:
+			case TCGEN_ENVIRONMENT_MAPPED_SP:
+			case TCGEN_ENVIRONMENT_MAPPED_SP_FP:
 				shader.vertexAttribs |= ATTR_NORMAL;
 				break;
 
@@ -3067,19 +3075,15 @@ static void ComputeVertexAttribs(void)
 	}
 }
 
-static void CollapseStagesToLightall(shaderStage_t* stage, shaderStage_t* lightmap,
-	qboolean useLightVector, qboolean useLightVertex, qboolean tcgen)
+static void CollapseStagesToLightall(shaderStage_t* stage, shaderStage_t* lightmap, qboolean useLightVector, qboolean useLightVertex, qboolean tcgen)
 {
 	int defs = 0;
-
-	//ri->Printf(PRINT_ALL, "shader %s has diffuse %s", shader.name, stage->bundle[0].image[0]->imgName);
 
 	// reuse diffuse, mark others inactive
 	stage->type = ST_GLSL;
 
 	if (lightmap)
 	{
-		//ri->Printf(PRINT_ALL, ", lightmap");
 		stage->bundle[TB_LIGHTMAP] = lightmap->bundle[0];
 		defs |= LIGHTDEF_USE_LIGHTMAP;
 	}
@@ -3094,7 +3098,6 @@ static void CollapseStagesToLightall(shaderStage_t* stage, shaderStage_t* lightm
 
 	if (r_deluxeMapping->integer && tr.worldDeluxeMapping && lightmap)
 	{
-		//ri->Printf(PRINT_ALL, ", deluxemap");
 		stage->bundle[TB_DELUXEMAP] = lightmap->bundle[TB_DELUXEMAP];
 	}
 
@@ -3104,28 +3107,23 @@ static void CollapseStagesToLightall(shaderStage_t* stage, shaderStage_t* lightm
 		if (stage->bundle[TB_NORMALMAP].image[0])
 		{
 			if (stage->bundle[TB_NORMALMAP].image[0]->type == IMGTYPE_NORMALHEIGHT &&
-				r_parallaxMapping->integer &&
 				defs & LIGHTDEF_LIGHTTYPE_MASK)
+			{
 				defs |= LIGHTDEF_USE_PARALLAXMAP;
-			//ri->Printf(PRINT_ALL, ", normalmap %s", stage->bundle[TB_NORMALMAP].image[0]->imgName);
+			}
 		}
 		else if ((lightmap || useLightVector || useLightVertex) && (diffuseImg = stage->bundle[TB_DIFFUSEMAP].image[0]) != NULL)
 		{
 			char normalName[MAX_QPATH];
 			image_t* normalImg;
 			int normalFlags = (diffuseImg->flags & ~(IMGFLAG_GENNORMALMAP | IMGFLAG_SRGB)) | IMGFLAG_NOLIGHTSCALE;
-			qboolean parallax = qfalse;
 			// try a normalheight image first
 			COM_StripExtension(diffuseImg->imgName, normalName, sizeof(normalName));
 			Q_strcat(normalName, sizeof(normalName), "_nh");
 
 			normalImg = R_FindImageFile(normalName, IMGTYPE_NORMALHEIGHT, normalFlags);
 
-			if (normalImg)
-			{
-				parallax = qtrue;
-			}
-			else
+			if (!normalImg)
 			{
 				// try a normal image ("_n" suffix)
 				normalName[strlen(normalName) - 1] = '\0';
@@ -3138,7 +3136,7 @@ static void CollapseStagesToLightall(shaderStage_t* stage, shaderStage_t* lightm
 				stage->bundle[TB_NORMALMAP].numImageAnimations = 0;
 				stage->bundle[TB_NORMALMAP].image[0] = normalImg;
 
-				if (parallax && r_parallaxMapping->integer)
+				if (normalImg->type == IMGTYPE_NORMALHEIGHT)
 					defs |= LIGHTDEF_USE_PARALLAXMAP;
 
 				VectorSet4(stage->normalScale, r_baseNormalX->value, r_baseNormalY->value, 1.0f, r_baseParallax->value);
@@ -3209,16 +3207,8 @@ static void CollapseStagesToLightall(shaderStage_t* stage, shaderStage_t* lightm
 		defs |= LIGHTDEF_USE_TCGEN_AND_TCMOD;
 	}
 
-	if (stage->glow)
-		defs |= LIGHTDEF_USE_GLOW_BUFFER;
-
 	if (stage->cloth)
 		defs |= LIGHTDEF_USE_CLOTH_BRDF;
-
-	if (stage->alphaTestType != ALPHA_TEST_NONE)
-		defs |= LIGHTDEF_USE_ALPHA_TEST;
-
-	//ri->Printf(PRINT_ALL, ".\n");
 
 	stage->glslShaderGroup = tr.lightallShader;
 	stage->glslShaderIndex = defs;
@@ -3290,6 +3280,8 @@ static qboolean CollapseStagesToGLSL(void)
 			case TCGEN_LIGHTMAP2:
 			case TCGEN_LIGHTMAP3:
 			case TCGEN_ENVIRONMENT_MAPPED:
+			case TCGEN_ENVIRONMENT_MAPPED_SP:
+			case TCGEN_ENVIRONMENT_MAPPED_SP_FP:
 			case TCGEN_VECTOR:
 				break;
 			default:
@@ -3416,6 +3408,8 @@ static qboolean CollapseStagesToGLSL(void)
 
 			tcgen = qfalse;
 			if (diffuse->bundle[0].tcGen == TCGEN_ENVIRONMENT_MAPPED
+				|| diffuse->bundle[0].tcGen == TCGEN_ENVIRONMENT_MAPPED_SP
+				|| diffuse->bundle[0].tcGen == TCGEN_ENVIRONMENT_MAPPED_SP_FP
 				|| (diffuse->bundle[0].tcGen >= TCGEN_LIGHTMAP && diffuse->bundle[0].tcGen <= TCGEN_LIGHTMAP3)
 				|| diffuse->bundle[0].tcGen == TCGEN_VECTOR)
 			{
@@ -3496,7 +3490,9 @@ static qboolean CollapseStagesToGLSL(void)
 		// Move diffuse after the lightmap stages now.
 		if (stages[1].active &&
 			stages[1].bundle[0].isLightmap &&
-			stages[0].active)
+			(stages[1].stateBits & (GLS_DEPTHFUNC_BITS)) != GLS_DEPTHFUNC_EQUAL &&
+			stages[0].active &&
+			shader.numDeforms != 1)
 		{
 			int blendBits = stages[1].stateBits & (GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS);
 
@@ -3506,7 +3502,7 @@ static qboolean CollapseStagesToGLSL(void)
 				for (i = 1; i < MAX_SHADER_STAGES; i++)
 				{
 					if (!stages[i + 1].active)
-						continue;
+						break;
 
 					if (stages[i + 1].bundle[0].tcGen < TCGEN_LIGHTMAP1 ||
 						stages[i + 1].bundle[0].tcGen > TCGEN_LIGHTMAP3 ||
@@ -3563,9 +3559,9 @@ static qboolean CollapseStagesToGLSL(void)
 		numStages++;
 	}
 
-	// convert any remaining lightmap stages to a lighting pass with a white texture
-	// only do this with r_sunlightMode non-zero, as it's only for correct shadows.
-	if (r_sunlightMode->integer && shader.numDeforms != 1)
+	// convert any remaining lightmap, lightingdiffuse and vert lit stages to a lighting pass
+	// always do this, so dynamic lights work properly
+	if (shader.numDeforms != 1)
 	{
 		for (i = 0; i < MAX_SHADER_STAGES; i++)
 		{
@@ -3576,6 +3572,15 @@ static qboolean CollapseStagesToGLSL(void)
 
 			if (pStage->adjustColorsForFog)
 				continue;
+
+			switch (pStage->alphaGen)
+			{
+			case AGEN_PORTAL:
+			case AGEN_LIGHTING_SPECULAR:
+				continue;
+			default:
+				break;
+			}
 
 			if (pStage->bundle[TB_DIFFUSEMAP].tcGen >= TCGEN_LIGHTMAP
 				&& pStage->bundle[TB_DIFFUSEMAP].tcGen <= TCGEN_LIGHTMAP3
@@ -3588,21 +3593,14 @@ static qboolean CollapseStagesToGLSL(void)
 				pStage->bundle[TB_DIFFUSEMAP].isLightmap = qfalse;
 				pStage->bundle[TB_DIFFUSEMAP].tcGen = TCGEN_TEXTURE;
 			}
-		}
-	}
-
-	// convert any remaining lightingdiffuse stages to a lighting pass
-	if (shader.numDeforms != 1)
-	{
-		for (i = 0; i < MAX_SHADER_STAGES; i++)
-		{
-			shaderStage_t* pStage = &stages[i];
-
-			if (!pStage->active)
-				continue;
-
-			if (pStage->adjustColorsForFog)
-				continue;
+			else if (pStage->rgbGen == CGEN_VERTEX_LIT
+				|| pStage->rgbGen == CGEN_EXACT_VERTEX_LIT
+				|| pStage->rgbGen == CGEN_VERTEX
+				|| pStage->rgbGen == CGEN_EXACT_VERTEX)
+			{
+				pStage->glslShaderGroup = tr.lightallShader;
+				pStage->glslShaderIndex = LIGHTDEF_USE_LIGHT_VERTEX;
+			}
 
 			if (pStage->rgbGen == CGEN_LIGHTING_DIFFUSE ||
 				pStage->rgbGen == CGEN_LIGHTING_DIFFUSE_ENTITY)
@@ -3640,6 +3638,8 @@ static qboolean CollapseStagesToGLSL(void)
 
 	return (qboolean)numStages;
 }
+
+#ifndef REND2_SP
 
 /*
 =============
@@ -3726,6 +3726,7 @@ static void FixRenderCommandList(const int newShader)
 		}
 	}
 }
+#endif
 
 /*
 ==============
@@ -3770,9 +3771,11 @@ static void SortNewShader(void)
 		tr.sortedShaders[i + 1]->sortedIndex++;
 	}
 
+#ifndef REND2_SP
 	// Arnout: fix rendercommandlist
 	// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=493
 	FixRenderCommandList(i + 1);
+#endif
 
 	newShader->sortedIndex = i + 1;
 	tr.sortedShaders[i + 1] = newShader;
@@ -5225,12 +5228,18 @@ static void ScanAndLoadShaderFiles(void)
 	}
 }
 
+/*
+====================
+R_CreateShaderFromTextureBundle
+====================
+*/
 shader_t* R_CreateShaderFromTextureBundle(
 	const char* name,
 	const textureBundle_t* bundle,
 	uint32_t stateBits)
 {
 	shader_t* result = R_FindShaderByName(name);
+
 	if (result == tr.defaultShader)
 	{
 		Com_Memset(&shader, 0, sizeof(shader));
@@ -5241,8 +5250,10 @@ shader_t* R_CreateShaderFromTextureBundle(
 		stages[0].active = qtrue;
 		stages[0].bundle[0] = *bundle;
 		stages[0].stateBits = stateBits;
+
 		result = FinishShader();
 	}
+
 	return result;
 }
 
@@ -5287,6 +5298,15 @@ static void CreateInternalShaders(void) {
 	Q_strncpyz(shader.name, "<weather>", sizeof(shader.name));
 	shader.sort = SS_SEE_THROUGH;
 	tr.weatherInternalShader = FinishShader();
+
+	// volumetric fog cap shader
+	Q_strncpyz(shader.name, "<volumetric fog cap>", sizeof(shader.name));
+	shader.sort = SS_ENVIRONMENT;
+	shader.isSky = qfalse;
+	shader.fogPass = FP_LE;
+	stages[0].bundle[0].image[0] = tr.whiteImage;
+	stages[0].stateBits = GLS_DEPTH_CLAMP;
+	tr.volumetricFogCapShader = FinishShader();
 }
 
 static void CreateExternalShaders(void) {

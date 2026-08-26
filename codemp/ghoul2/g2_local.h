@@ -224,16 +224,16 @@ extern mdxaBone_t worldMatrix;
 extern mdxaBone_t worldMatrixInv;
 
 // internal surface calls  G2_surfaces.cpp
-qboolean G2_SetSurfaceOnOff(const CGhoul2Info* ghlInfo, surfaceInfo_v& slist, const char* surfaceName, const int offFlags);
-int G2_IsSurfaceOff(const CGhoul2Info* ghlInfo, const surfaceInfo_v& slist, const char* surfaceName);
+qboolean G2_SetSurfaceOnOff(CGhoul2Info* ghlInfo, surfaceInfo_v& slist, const char* surfaceName, const int offFlags);
+int G2_IsSurfaceOff(CGhoul2Info* ghlInfo, surfaceInfo_v& slist, const char* surfaceName);
 qboolean G2_SetRootSurface(CGhoul2Info_v& ghoul2, const int modelIndex, const char* surfaceName);
 int G2_AddSurface(CGhoul2Info* ghoul2, const int surfaceNumber, const int polyNumber, const float BarycentricI, const float BarycentricJ, int lod);
 qboolean G2_RemoveSurface(surfaceInfo_v& slist, const int index);
 surfaceInfo_t* G2_FindOverrideSurface(int surfaceNum, surfaceInfo_v& surfaceList);
 int G2_IsSurfaceLegal(void* mod, const char* surfaceName, int* flags);
-int G2_GetParentSurface(const CGhoul2Info* ghlInfo, const int index);
-int G2_GetSurfaceIndex(const CGhoul2Info* ghlInfo, const char* surfaceName);
-int G2_IsSurfaceRendered(const CGhoul2Info* ghlInfo, const char* surfaceName, const surfaceInfo_v& slist);
+int G2_GetParentSurface(CGhoul2Info* ghlInfo, const int index);
+int G2_GetSurfaceIndex(CGhoul2Info* ghlInfo, const char* surfaceName);
+int G2_IsSurfaceRendered(CGhoul2Info* ghlInfo, const char* surfaceName, surfaceInfo_v& slist);
 
 // internal bone calls - G2_Bones.cpp
 qboolean G2_Set_Bone_Angles(const CGhoul2Info* ghlInfo, boneInfo_v& blist, const char* boneName, const float* angles, const int flags, const Eorientations up, const Eorientations left, const Eorientations forward, qhandle_t* modelList, const int modelIndex, const int blendTime, const int currentTime);
@@ -265,7 +265,7 @@ qboolean G2_Get_Bone_Anim_Index(boneInfo_v& blist, const int index, const int cu
 
 // misc functions G2_misc.cpp
 void G2_List_Model_Surfaces(const char* fileName);
-void G2_List_Model_Bones(const char* fileName, int frame);
+void G2_List_Model_Bones(const char* fileName);
 qboolean G2_GetAnimFileName(const char* fileName, char** filename);
 
 #ifdef _G2_GORE

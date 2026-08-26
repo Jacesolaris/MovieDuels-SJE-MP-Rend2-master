@@ -21103,7 +21103,7 @@ stillDoSaber:
 		legs.shaderRGBA[0] = 255;
 		legs.shaderRGBA[1] = 255;
 		legs.shaderRGBA[2] = 0;
-		legs.renderfx |= RF_MINLIGHT;
+		legs.renderfx |= RF_MORELIGHT;
 	}
 
 	if (cent->currentState.eFlags & EF_DISINTEGRATION)
