@@ -241,7 +241,7 @@ static void LoadTips(void)
 	{
 		CG_DrawSmallProportionalString(
 			560, 400,
-			CG_GetStringEdString("LOADTIPS", (char*)tipKeys[SCREENTIP_CURRENT_INDEX]),
+			CG_GetStringEdString("LOADTIPSMP", (char*)tipKeys[SCREENTIP_CURRENT_INDEX]),
 			UI_RIGHT | UI_SMALLFONT | UI_DROPSHADOW,
 			colorWhite
 		);

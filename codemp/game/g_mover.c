@@ -688,7 +688,7 @@ void MatchTeam(gentity_t* team_leader, const int mover_state, const int time)
 ReturnToPos1
 ================
 */
-void ReturnToPos1(gentity_t* ent)
+static void ReturnToPos1(gentity_t* ent)
 {
 	ent->think = 0;
 	ent->nextthink = 0;
@@ -707,7 +707,7 @@ Reached_BinaryMover
 ================
 */
 
-void Reached_BinaryMover(gentity_t* ent)
+static void Reached_BinaryMover(gentity_t* ent)
 {
 	// stop the looping sound
 	ent->s.loopSound = 0;
@@ -786,7 +786,7 @@ void Reached_BinaryMover(gentity_t* ent)
 Use_BinaryMover_Go
 ================
 */
-void Use_BinaryMover_Go(gentity_t* ent)
+static void Use_BinaryMover_Go(gentity_t* ent)
 {
 	int total;
 	int partial;
@@ -943,7 +943,7 @@ void lock_doors(gentity_t* ent)
 Use_BinaryMover
 ================
 */
-void Use_BinaryMover(gentity_t* ent, gentity_t* other, gentity_t* activator)
+static void Use_BinaryMover(gentity_t* ent, gentity_t* other, gentity_t* activator)
 {
 	if (!ent->use)
 	{
@@ -1015,18 +1015,39 @@ void InitMoverTrData(gentity_t* ent)
 	}
 }
 
-void InitMover(gentity_t* ent)
+static void InitMover(gentity_t* ent)
 {
-	float light;
+	// Safety: do nothing if ent is NULL
+	if (!ent)
+	{
+		Com_Printf("InitMover: called with NULL ent\n");
+		return;
+	}
+
+	float  light;
 	vec3_t color;
 
-	// if the "model2" key is set, use a seperate model
-	// for drawing, but clip against the brushes
+	// ----------------------------------------------------------------------
+	// No locked doors in MP, ever: clear MOVER_LOCKED on self and parent
+	// ----------------------------------------------------------------------
+	if (ent->spawnflags & MOVER_LOCKED)
+	{
+		ent->spawnflags &= ~MOVER_LOCKED;
+	}
+
+	if (ent->parent && (ent->parent->spawnflags & MOVER_LOCKED))
+	{
+		ent->parent->spawnflags &= ~MOVER_LOCKED;
+	}
+
+	// ----------------------------------------------------------------------
+	// Optional visual model: model2 used for drawing, brushes for clipping
+	// ----------------------------------------------------------------------
 	if (ent->model2)
 	{
 		if (strstr(ent->model2, ".glm"))
 		{
-			//for now, not supported in MP.
+			// GLM movers not supported in MP
 			ent->s.model_index2 = 0;
 		}
 		else
@@ -1035,50 +1056,82 @@ void InitMover(gentity_t* ent)
 		}
 	}
 
-	// if the "color" or "light" keys are set, setup constantLight
-	const qboolean lightSet = G_SpawnFloat("light", "100", &light);
-	const qboolean colorSet = G_SpawnVector("color", "1 1 1", color);
-	if (lightSet || colorSet)
+	// ----------------------------------------------------------------------
+	// Constant light setup from "light" and "color" spawn keys
+	// ----------------------------------------------------------------------
+	const qboolean lightSet = (G_SpawnFloat("light", "100", &light) == qtrue) ? qtrue : qfalse;
+	const qboolean colorSet = (G_SpawnVector("color", "1 1 1", color) == qtrue) ? qtrue : qfalse;
+
+	if (lightSet == qtrue || colorSet == qtrue)
 	{
-		int r = color[0] * 255;
+		int r = (int)(color[0] * 255.0f);
 		if (r > 255)
 		{
 			r = 255;
 		}
-		int g = color[1] * 255;
+		else if (r < 0)
+		{
+			r = 0;
+		}
+
+		int g = (int)(color[1] * 255.0f);
 		if (g > 255)
 		{
 			g = 255;
 		}
-		int b = color[2] * 255;
+		else if (g < 0)
+		{
+			g = 0;
+		}
+
+		int b = (int)(color[2] * 255.0f);
 		if (b > 255)
 		{
 			b = 255;
 		}
-		int i = light / 4;
+		else if (b < 0)
+		{
+			b = 0;
+		}
+
+		int i = (int)(light / 4.0f);
 		if (i > 255)
 		{
 			i = 255;
 		}
-		ent->s.constantLight = r | g << 8 | b << 16 | i << 24;
+		else if (i < 0)
+		{
+			i = 0;
+		}
+
+		ent->s.constantLight = (r) | (g << 8) | (b << 16) | (i << 24);
 	}
 
+	// ----------------------------------------------------------------------
+	// Mover behaviour setup
+	// ----------------------------------------------------------------------
 	ent->use = Use_BinaryMover;
 	ent->reached = Reached_BinaryMover;
 
 	ent->moverState = MOVER_POS1;
 	ent->r.svFlags = SVF_USE_CURRENT_ORIGIN;
+	ent->s.eType = ET_MOVER;
+
+	// Inactive movers
 	if (ent->spawnflags & MOVER_INACTIVE)
 	{
-		// Make it inactive
 		ent->flags |= FL_INACTIVE;
 	}
+
+	// Player-usable movers
 	if (ent->spawnflags & MOVER_PLAYER_USE)
 	{
-		//Can be used by the player's BUTTON_USE
 		ent->r.svFlags |= SVF_PLAYER_USABLE;
 	}
-	ent->s.eType = ET_MOVER;
+
+	// ----------------------------------------------------------------------
+	// Final origin and linking
+	// ----------------------------------------------------------------------
 	VectorCopy(ent->pos1, ent->r.currentOrigin);
 	trap->LinkEntity((sharedEntity_t*)ent);
 
@@ -1101,7 +1154,7 @@ targeted by another entity.
 Blocked_Door
 ================
 */
-void Blocked_Door(gentity_t* ent, gentity_t* other)
+static void Blocked_Door(gentity_t* ent, gentity_t* other)
 {
 	//determines if we need to relock after moving or not.
 	const qboolean relock = ent->spawnflags & MOVER_LOCKED ? qtrue : qfalse;
@@ -1257,7 +1310,7 @@ All of the parts of a door have been spawned, so create
 a trigger that encloses all of them
 ======================
 */
-void Think_SpawnNewDoorTrigger(gentity_t* ent)
+static void Think_SpawnNewDoorTrigger(gentity_t* ent)
 {
 	// SAFETY: prevent NULL dereference (fixes C6011)
 	if (ent == NULL)
@@ -1314,7 +1367,7 @@ void Think_SpawnNewDoorTrigger(gentity_t* ent)
 	MatchTeam(ent, ent->moverState, level.time);
 }
 
-void Think_MatchTeam(gentity_t* ent)
+static void Think_MatchTeam(gentity_t* ent)
 {
 	MatchTeam(ent, ent->moverState, level.time);
 }
@@ -1483,7 +1536,7 @@ INACTIVE	must be used by a target_activate before it can be used
 */
 void SP_func_door(gentity_t* ent)
 {
-	vec3_t abs_movedir;
+	vec3_t abs_movedir = {0};
 	vec3_t size;
 	float lip;
 
@@ -1593,7 +1646,7 @@ Touch_Plat
 Don't allow descent if a living player is on it
 ===============
 */
-void Touch_Plat(gentity_t* ent, const gentity_t* other, trace_t* trace)
+static void Touch_Plat(gentity_t* ent, const gentity_t* other, trace_t* trace)
 {
 	if (!other->client || other->client->ps.stats[STAT_HEALTH] <= 0)
 	{
@@ -1614,7 +1667,7 @@ Touch_PlatCenterTrigger
 If the plat is at the bottom position, start it going up
 ===============
 */
-void Touch_PlatCenterTrigger(gentity_t* ent, gentity_t* other, trace_t* trace)
+static void Touch_PlatCenterTrigger(gentity_t* ent, gentity_t* other, trace_t* trace)
 {
 	if (!other->client)
 	{
@@ -1638,7 +1691,7 @@ not just sit on top of it.
 */
 static void SpawnPlatTrigger(gentity_t* ent)
 {
-	vec3_t tmin, tmax;
+	vec3_t tmin = {0}, tmax = {0};
 
 	// the middle trigger will be a thin trigger just
 	// above the starting position
@@ -1777,7 +1830,7 @@ When a button is touched, it moves some distance in the direction of it's angle,
 */
 void SP_func_button(gentity_t* ent)
 {
-	vec3_t abs_movedir;
+	vec3_t abs_movedir = {0};
 	vec3_t size;
 	float lip;
 
@@ -1843,7 +1896,7 @@ Think_BeginMoving
 The wait time at a corner has completed, so start moving again
 ===============
 */
-void Think_BeginMoving(gentity_t* ent)
+static void Think_BeginMoving(gentity_t* ent)
 {
 	G_PlayDoorSound(ent, BMS_START);
 	G_PlayDoorLoopSound(ent);
@@ -1856,7 +1909,7 @@ void Think_BeginMoving(gentity_t* ent)
 Reached_Train
 ===============
 */
-void Reached_Train(gentity_t* ent)
+static void Reached_Train(gentity_t* ent)
 {
 	float speed;
 	vec3_t move;
@@ -1924,9 +1977,9 @@ Think_SetupTrainTargets
 Link all the corners together
 ===============
 */
-void Think_SetupTrainTargets(gentity_t* ent)
+static void Think_SetupTrainTargets(gentity_t* ent)
 {
-	gentity_t* next;
+	gentity_t* next = NULL;
 
 	ent->nextTrain = G_Find(NULL, FOFS(targetname), ent->target);
 	if (!ent->nextTrain)
@@ -2171,7 +2224,7 @@ ROTATING
 ===============================================================================
 */
 
-void func_rotating_use(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void func_rotating_use(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	if (self->s.apos.trType == TR_LINEAR)
 	{
@@ -2554,7 +2607,7 @@ void G_Chunks(const int owner, vec3_t origin, const vec3_t normal, const vec3_t 
 }
 
 //--------------------------------------
-void funcBBrushDieGo(gentity_t* ent)
+static void funcBBrushDieGo(gentity_t* ent)
 {
 	vec3_t org, dir, up;
 	gentity_t* attacker = ent->enemy;
@@ -2679,7 +2732,7 @@ static void funcBBrushDie(gentity_t* self, gentity_t* inflictor, gentity_t* atta
 	funcBBrushDieGo(self);
 }
 
-void funcBBrushUse(gentity_t* self, gentity_t* other, gentity_t* activator)
+static void funcBBrushUse(gentity_t* self, gentity_t* other, gentity_t* activator)
 {
 	G_ActivateBehavior(self, BSET_USE);
 	if (self->spawnflags & 64)
@@ -2827,7 +2880,7 @@ static void InitBBrush(gentity_t* ent)
 	VectorCopy(ent->pos1, ent->s.pos.trBase);
 }
 
-void funcBBrushTouch(gentity_t* ent, gentity_t* other, trace_t* trace)
+static void funcBBrushTouch(gentity_t* ent, gentity_t* other, trace_t* trace)
 {
 }
 
@@ -3063,7 +3116,7 @@ GLASS
 */
 static void GlassDie(gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, int mod)
 {
-	vec3_t dif;
+	vec3_t dif = {0};
 
 	if (self->genericValue5)
 	{
@@ -3093,7 +3146,7 @@ static void GlassDie(gentity_t* self, gentity_t* inflictor, gentity_t* attacker,
 
 static void GlassDie_Old(gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, int mod)
 {
-	vec3_t dif;
+	vec3_t dif = {0};
 
 	dif[0] = (self->r.absmax[0] + self->r.absmin[0]) / 2;
 	dif[1] = (self->r.absmax[1] + self->r.absmin[1]) / 2;
@@ -3182,7 +3235,7 @@ void func_usable_use(gentity_t* self, const gentity_t* other, gentity_t* activat
 
 extern gentity_t* G_TestEntityPosition(const gentity_t* ent);
 
-void func_wait_return_solid(gentity_t* self)
+static void func_wait_return_solid(gentity_t* self)
 {
 	//once a frame, see if it's clear.
 	self->clipmask = CONTENTS_BODY;
@@ -3219,7 +3272,7 @@ void func_wait_return_solid(gentity_t* self)
 	}
 }
 
-void func_usable_think(gentity_t* self)
+static	void func_usable_think(gentity_t* self)
 {
 	if (self->spawnflags & 8)
 	{
@@ -3428,7 +3481,7 @@ WALL
 */
 
 //static -slc
-void use_wall(gentity_t* ent, gentity_t* other, gentity_t* activator)
+static void use_wall(gentity_t* ent, gentity_t* other, gentity_t* activator)
 {
 	G_ActivateBehavior(ent, BSET_USE);
 
