@@ -20187,7 +20187,7 @@ SkipTrueView:
 			axis[2][2] = boltMatrix.matrix[2][2];
 
 			//
-			// ⭐ Choose FX based on frozen state
+			// Choose FX based on frozen state
 			//
 			if (frozen)
 			{

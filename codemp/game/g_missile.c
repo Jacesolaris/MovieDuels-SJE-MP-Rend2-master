@@ -553,7 +553,7 @@ void G_StasisMissile(gentity_t* ent, gentity_t* missile, vec3_t forward)
 	static qboolean registered = qfalse;
 
 	//
-	// ⭐ 1. UNFREEZE CHECK — after 10 seconds, restore full speed
+	// 1. UNFREEZE CHECK — after 10 seconds, restore full speed
 	//
 	if (missile->s.userFloat1 > 0 && level.time >= missile->s.userFloat1)
 	{
@@ -581,7 +581,7 @@ void G_StasisMissile(gentity_t* ent, gentity_t* missile, vec3_t forward)
 	}
 
 	//
-	// ⭐ 2. STASIS START — set unfreeze timer and extend lifetime
+	// 2. STASIS START — set unfreeze timer and extend lifetime
 	//
 	if (missile->s.userFloat1 == 0)
 	{
@@ -592,18 +592,18 @@ void G_StasisMissile(gentity_t* ent, gentity_t* missile, vec3_t forward)
 	}
 
 	//
-	// ⭐ 3. Compute direction once
+	// 3. Compute direction once
 	//
 	VectorNormalize2(missile->s.pos.trDelta, dir);
 
 	//
-	// ⭐ 4. Slow-motion speed during stasis
+	// 4. Slow-motion speed during stasis
 	//
 	float slowSpeed = 1.0f / 200.0f;   // your slow-motion factor
 	float fullSpeed = 1.0f;            // normalized full speed
 
 	//
-	// ⭐ 5. Apply correct speed depending on timer
+	// 5. Apply correct speed depending on timer
 	//
 	if (level.time < missile->s.userFloat1)
 	{
@@ -637,7 +637,7 @@ void G_StasisMissile(gentity_t* ent, gentity_t* missile, vec3_t forward)
 	}
 
 	//
-	// ⭐ 6. Rocket/Thermal proximity logic preserved
+	// 6. Rocket/Thermal proximity logic preserved
 	//
 	//
 // ⭐ 6. Rocket/Thermal proximity logic preserved (fixed)

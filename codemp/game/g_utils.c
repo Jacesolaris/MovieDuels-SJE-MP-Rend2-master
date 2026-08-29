@@ -2478,7 +2478,7 @@ qboolean G_CheckInSolid(gentity_t* self, const qboolean fix)
 	}
 
 	//===========================================
-	// ⭐ NUDGE ATTEMPT 1: Move to trace end (your original)
+	// NUDGE ATTEMPT 1: Move to trace end (your original)
 	//===========================================
 	{
 		vec3_t neworg;
@@ -2495,7 +2495,7 @@ qboolean G_CheckInSolid(gentity_t* self, const qboolean fix)
 	}
 
 	//===========================================
-	// ⭐ NUDGE ATTEMPT 2: Try 6 cardinal directions
+	// NUDGE ATTEMPT 2: Try 6 cardinal directions
 	//===========================================
 	static const vec3_t nudges[] =
 	{
@@ -2522,7 +2522,7 @@ qboolean G_CheckInSolid(gentity_t* self, const qboolean fix)
 	}
 
 	//===========================================
-	// ⭐ NUDGE ATTEMPT 3: Spiral search (small radius)
+	// NUDGE ATTEMPT 3: Spiral search (small radius)
 	//===========================================
 	for (float r = 4.0f; r <= 16.0f; r += 4.0f)
 	{

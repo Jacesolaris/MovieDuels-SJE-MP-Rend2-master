@@ -551,7 +551,7 @@ static void PM_VehicleImpact(bgEntity_t* pEnt, trace_t* trace)
 #else   // this is gonna result in "double effects" for the client doing the prediction.
 			// it doesn't look bad though. could just use predicted events, but I'm too lazy.
 
-			if (!trace)   // ⭐ FIX: prevent NULL dereference
+			if (!trace)   // FIX: prevent NULL dereference
 				return;
 
 			hit_ent = PM_BGEntForNum(trace->entityNum);

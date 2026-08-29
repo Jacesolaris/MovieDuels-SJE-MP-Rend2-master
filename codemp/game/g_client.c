@@ -732,7 +732,7 @@ static gentity_t* SelectNearestDeathmatchSpawnPoint(vec3_t from)
 	baseOrigin[2] += 9;
 
 	// ---------------------------------------------------------
-	// ⭐ ALWAYS run SafeSpawn for bots or single-spawn maps
+	// ALWAYS run SafeSpawn for bots or single-spawn maps
 	// ---------------------------------------------------------
 	if (SafeSpawn_IsOccupied(baseOrigin) ||
 		level.numDeathmatchSpawns <= 1 ||   // tiny maps
@@ -2347,18 +2347,18 @@ static const char* humanoid_prefixes[] =
 	"models/players/_humanoid_galen",
 	"models/players/_humanoid_gon",
 	"models/players/_humanoid_grievous",
-	"models/players/_humanoid_jabba",   // ⭐ Added
+	"models/players/_humanoid_jabba",   // Added
 	"models/players/_humanoid_jango",
 	"models/players/_humanoid_kotor",
 	"models/players/_humanoid_luke",
 	"models/players/_humanoid_mace",
 	"models/players/_humanoid_maul",
 	"models/players/_humanoid_md",
-	"models/players/_humanoid_melee",  // ⭐ Added
+	"models/players/_humanoid_melee",  // Added
 	"models/players/_humanoid_obi",
 	"models/players/_humanoid_obi3",
 	"models/players/_humanoid_pal",
-	"models/players/_humanoid_reb",    // ⭐ Added
+	"models/players/_humanoid_reb",    // Added
 	"models/players/_humanoid_ren",
 	"models/players/_humanoid_rey",
 	"models/players/_humanoid_sbd",
