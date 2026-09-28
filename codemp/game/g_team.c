@@ -737,8 +737,10 @@ static int Team_TouchOurFlag(gentity_t* ent, const gentity_t* other, const int t
 	int enemy_flag;
 	vec3_t mins, maxs;
 
-	// FIX: move large array off stack (C6262)
-	int* touch = (int*)BG_Alloc(MAX_GENTITIES * sizeof(int));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int touch_buf[MAX_GENTITIES] = { 0 };
+	int* touch = touch_buf;
 	if (!touch)
 	{
 		Com_Printf(S_COLOR_RED "Team_TouchOurFlag: BG_Alloc failed\n");
@@ -901,8 +903,10 @@ int Team_TouchEnemyFlag(gentity_t* ent, const gentity_t* other, const int team)
 	vec3_t mins, maxs;
 	int ourFlag;
 
-	// FIX: move large array off stack (C6262)
-	int* touch = (int*)BG_Alloc(MAX_GENTITIES * sizeof(int));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int touch_buf[MAX_GENTITIES] = { 0 };
+	int* touch = touch_buf;
 	if (!touch)
 	{
 		Com_Printf(S_COLOR_RED "Team_TouchEnemyFlag: BG_Alloc failed\n");
@@ -1234,8 +1238,10 @@ qboolean BOT_FindCTFWaypointSpawnPoint_blue(gentity_t* bot, vec3_t outOrigin)
 		return qfalse;
 	}
 
-	// FIX: move large array off stack (C6262)
-	int* spawnList = (int*)BG_Alloc(MAX_WPARRAY_SIZE * sizeof(int));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int spawnList_buf[MAX_WPARRAY_SIZE] = { 0 };
+	int* spawnList = spawnList_buf;
 	if (!spawnList)
 	{
 		Com_Printf(S_COLOR_RED "BOT_FindCTFWaypointSpawnPoint_blue: BG_Alloc failed\n");
@@ -1302,8 +1308,10 @@ qboolean BOT_FindCTFWaypointSpawnPoint_red(gentity_t* bot, vec3_t outOrigin)
 		return qfalse;
 	}
 
-	// FIX: move large array off stack (C6262)
-	int* spawnList = (int*)BG_Alloc(MAX_WPARRAY_SIZE * sizeof(int));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int spawnList_buf[MAX_WPARRAY_SIZE] = { 0 };
+	int* spawnList = spawnList_buf;
 	if (!spawnList)
 	{
 		Com_Printf(S_COLOR_RED "BOT_FindCTFWaypointSpawnPoint_red: BG_Alloc failed\n");
@@ -1370,8 +1378,10 @@ qboolean BOT_FindFFAWaypointSpawnPoint(gentity_t* bot, vec3_t outOrigin)
 		return qfalse;
 	}
 
-	// FIX: move large array off stack (C6262)
-	int* spawnList = (int*)BG_Alloc(MAX_WPARRAY_SIZE * sizeof(int));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int spawnList_buf[MAX_WPARRAY_SIZE] = { 0 };
+	int* spawnList = spawnList_buf;
 	if (!spawnList)
 	{
 		Com_Printf(S_COLOR_RED "BOT_FindFFAWaypointSpawnPoint: BG_Alloc failed\n");
@@ -1461,8 +1471,10 @@ static qboolean PointWouldTelefrag(vec3_t point)
 {
 	vec3_t mins, maxs;
 
-	// FIX: move large array off stack (C6262)
-	int* touch = (int*)BG_Alloc(MAX_GENTITIES * sizeof(int));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int touch_buf[MAX_GENTITIES] = { 0 };
+	int* touch = touch_buf;
 	if (!touch)
 	{
 		Com_Printf(S_COLOR_RED "PointWouldTelefrag: BG_Alloc failed\n");
@@ -1725,9 +1737,11 @@ void TeamplayInfoMessage(const gentity_t* ent)
 	qsort(clients, cnt, sizeof(clients[0]), SortClients);
 
 	// ---------------------------------------------------------
-	// Allocate large string buffer safely (fixes C6262)
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
 	// ---------------------------------------------------------
-	char* string = (char*)BG_Alloc(8192);
+	char string_buf[8192] = { 0 };
+	char* string = string_buf;
 	if (!string)
 	{
 		Com_Printf(S_COLOR_RED "TeamplayInfoMessage: BG_Alloc failed\n");

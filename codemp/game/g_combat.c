@@ -7582,7 +7582,8 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 		}
 	}
 
-	if (targ->client && attacker->client && targ->health > 0 && g_standard_humanoid(targ))
+	// point is NULL for telefrags (G_KillBox) - the head shot code below reads point[2]
+	if (point && targ->client && attacker->client && targ->health > 0 && g_standard_humanoid(targ))
 	{
 		//do head shots
 		if (inflictor->s.weapon == WP_BLASTER

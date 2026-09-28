@@ -7379,7 +7379,7 @@ static int siege_target_closest_objective(bot_state_t* bs, const int flag)
 	float bestdistance = 999999999.9f;
 	vec3_t a, dif = { 0 };
 	vec3_t mins = { 0 }, maxs = { 0 };
-	gentity_t* goalent = &g_entities[bs->wpDestination->associated_entity];
+	gentity_t* goalent;
 
 	mins[0] = -1;
 	mins[1] = -1;
@@ -7424,6 +7424,7 @@ static int siege_target_closest_objective(bot_state_t* bs, const int flag)
 		return 0;
 	}
 hasPoint:
+	goalent = &g_entities[bs->wpDestination->associated_entity];
 
 	if (!goalent)
 	{

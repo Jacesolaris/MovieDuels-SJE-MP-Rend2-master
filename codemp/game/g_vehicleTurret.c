@@ -233,9 +233,12 @@ static qboolean VEH_TurretFindEnemies(Vehicle_t* p_veh,
 	vec3_t org2;
 	qboolean foundClient = qfalse;
 
-	// FIX: move large arrays off stack (C6262)
-	gentity_t** entity_list = (gentity_t**)BG_Alloc(MAX_GENTITIES * sizeof(gentity_t*));
-	trace_t* tr = (trace_t*)BG_Alloc(sizeof(trace_t));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	gentity_t* entity_list_buf[MAX_GENTITIES] = { 0 };
+	gentity_t** entity_list = entity_list_buf;
+	trace_t tr_buf = { 0 };
+	trace_t* tr = &tr_buf;
 
 	if (!entity_list || !tr)
 	{

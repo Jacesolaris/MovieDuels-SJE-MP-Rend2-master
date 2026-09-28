@@ -63,8 +63,10 @@ static void BubbleShield_PushEnt(gentity_t* pushed, vec3_t smack_dir)
 // Behaviour preserved; only structure, safety, and stack usage improved.
 static void BubbleShield_PushRadiusEnts(void)
 {
-	// Allocate large array on heap to avoid C6262 stack warning
-	int* entity_list = (int*)BG_Alloc(MAX_GENTITIES * sizeof(int));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int entity_list_buf[MAX_GENTITIES] = { 0 };
+	int* entity_list = entity_list_buf;
 	if (!entity_list)
 	{
 		return;

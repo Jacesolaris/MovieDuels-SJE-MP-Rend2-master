@@ -636,9 +636,7 @@ static void CM_LoadMap_Actual(const char* name, const qboolean clientload, int* 
 	dheader_t header;
 	static unsigned last_checksum;
 	char orig_name[MAX_OSPATH];
-	fileHandle_t h;
-	const int i_bsp_len = FS_FOpenFileRead(name, &h, qfalse);
-	void* new_buff = Z_Malloc(i_bsp_len, TAG_BSP_DISKIMAGE);
+	void* new_buff = nullptr;
 
 	if (!name || !name[0])
 	{
@@ -702,8 +700,11 @@ static void CM_LoadMap_Actual(const char* name, const qboolean clientload, int* 
 	//	then discard it after that...
 	//
 	buf = nullptr;
+	fileHandle_t h;
+	const int i_bsp_len = FS_FOpenFileRead(name, &h, qfalse);
 	if (h)
 	{
+		new_buff = Z_Malloc(i_bsp_len, TAG_BSP_DISKIMAGE);
 		FS_Read(new_buff, i_bsp_len, h);
 		FS_FCloseFile(h);
 
