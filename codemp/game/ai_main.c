@@ -725,6 +725,13 @@ static qboolean AI_ComputeBallisticJump(gentity_t* bot,
 	if (height <= 0.0f)
 		height = 1.0f;
 
+	if (bot->client->ps.gravity <= 0)
+	{
+		//ps.gravity is still 0 between ClientSpawn and the bot's first ClientThink;
+		//dividing by it gave time = inf and outVel[2] = inf * 0 = NaN (bot origin NaN)
+		return qfalse;
+	}
+
 	time = sqrtf(height / (0.5f * bot->client->ps.gravity));
 	if (time <= 0.0f)
 		return qfalse;
@@ -5955,9 +5962,9 @@ int pass_loved_one_check(const bot_state_t* bs, const gentity_t* ent)
 
 	int i = 0;
 
-	if (!botstates[ent->s.number])
+	if (ent->s.number >= MAX_CLIENTS || !botstates[ent->s.number])
 	{
-		//not a bot
+		//not a bot (NPCs and vehicles have a client too, but botstates only has MAX_CLIENTS entries)
 		return 1;
 	}
 
@@ -10570,8 +10577,11 @@ static int saber_bot_fallback_navigation(bot_state_t* bs)
 			// Ready for a new point.
 			const int choice = rand() % 4;
 			qboolean found = qfalse;
+			int tries = 0;
 
-			while (found == qfalse)
+			//bounded: with the bot origin in solid or not a number no point is ever visible
+			//and the server hung here forever
+			while (found == qfalse && tries++ < 256)
 			{
 				if (choice == 2)
 				{
@@ -10600,7 +10610,15 @@ static int saber_bot_fallback_navigation(bot_state_t* bs)
 					found = qtrue;
 			}
 
-			next_point[bs->entityNum] = level.time + 2000 + rand() % 5 * 1000;
+			if (found == qfalse)
+			{
+				//nothing visible this frame, keep the old goal and try again next frame
+				VectorCopy(bs->goalPosition, trto);
+			}
+			else
+			{
+				next_point[bs->entityNum] = level.time + 2000 + rand() % 5 * 1000;
+			}
 		}
 		else
 		{

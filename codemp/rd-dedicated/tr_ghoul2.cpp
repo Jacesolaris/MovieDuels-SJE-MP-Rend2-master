@@ -3657,7 +3657,19 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 				"R_LoadMDXM: required MP humanoid GLA missing: %s.gla", forcedHumanoid);
 		}
 
-		animNameToUse = forcedHumanoid;
+		// A mesh with more bones than the MP humanoid skeleton (e.g. the protocol droid, 54 bones) was
+		// built for its own skeleton: its bone references would index past the humanoid bone cache and
+		// corrupt memory. Keep its own GLA in that case (old 72-bone models are remapped further down).
+		const model_t* humanoidGLA = R_GetModelByHandle(animIndex);
+		if (mdxm->numBones != 72 && humanoidGLA && humanoidGLA->type == MOD_MDXA && humanoidGLA->mdxa &&
+			mdxm->numBones > humanoidGLA->mdxa->numBones)
+		{
+			animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
+		}
+		else
+		{
+			animNameToUse = forcedHumanoid;
+		}
 	}
 	else
 	{

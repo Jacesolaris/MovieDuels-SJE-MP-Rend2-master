@@ -1210,15 +1210,16 @@ gentity_t* G_Spawn(void)
 			return e;
 		}
 
-		// IMPORTANT FIX:
-		// If we did NOT reach the end of the active entity list,
-		// break out and do NOT force reuse yet.
-		if (i != level.num_entities)
+		// Only force the reuse of a slot freed less than a second ago when no new
+		// slot can be opened any more (the loop always ends with i == level.num_entities,
+		// so the old check "i != level.num_entities" never broke out and the freetime
+		// rule above was always bypassed).
+		if (level.num_entities < ENTITYNUM_MAX_NORMAL)
 			break;
 	}
 
 	// No free slot found — try to remove something safely
-	if (i == ENTITYNUM_MAX_NORMAL)
+	if (level.num_entities >= ENTITYNUM_MAX_NORMAL)
 	{
 		e = find_remove_able_gent();
 		if (e)
@@ -1228,8 +1229,9 @@ gentity_t* G_Spawn(void)
 			return e;
 		}
 
+		// Never hand out ENTITYNUM_WORLD / ENTITYNUM_NONE
 		G_SpewEntList();
-		Com_Printf("^1G_Spawn: no free entities — attempting to recover\n");
+		trap->Error(ERR_DROP, "G_Spawn: no free entities");
 	}
 
 	// HARD LIMIT CHECK — this is the critical fix
@@ -2681,6 +2683,7 @@ void TextWrapCenterPrint(char orgtext[CENTERPRINT_MAXSTRING], char output[CENTER
 	//running sje.  Clients running sje do this text wrapping on the client side.
 	//scan thru print text and add new lines where needed.
 	int orgIndex, outputIndex, charCounter;
+	int lineStart = 0; //orgtext index of the first char of the current output line
 
 	for (orgIndex = 0, outputIndex = 0, charCounter = 0;
 		orgIndex < CENTERPRINT_MAXSTRING && outputIndex < CENTERPRINT_MAXSTRING;
@@ -2690,6 +2693,7 @@ void TextWrapCenterPrint(char orgtext[CENTERPRINT_MAXSTRING], char output[CENTER
 		{
 			//manual newline, reset charCounter
 			charCounter = -1;
+			lineStart = orgIndex + 1;
 		}
 
 		if (charCounter == 50)
@@ -2701,7 +2705,9 @@ void TextWrapCenterPrint(char orgtext[CENTERPRINT_MAXSTRING], char output[CENTER
 				const int savedOrgIndex = orgIndex;
 				const int savedOutputIndex = outputIndex;
 
-				for (; orgIndex >= 0; orgIndex--, outputIndex--)
+				//only search the current line: a whitespace before it (a word longer than a line)
+				//would break at the same place again and again, forever.
+				for (; orgIndex >= lineStart; orgIndex--, outputIndex--)
 				{
 					if (BG_IsWhiteSpace(orgtext[orgIndex]))
 					{
@@ -2712,7 +2718,7 @@ void TextWrapCenterPrint(char orgtext[CENTERPRINT_MAXSTRING], char output[CENTER
 						break;
 					}
 				}
-				if (orgIndex < 0)
+				if (orgIndex < lineStart)
 				{
 					//couldn't find a break in the text, just go ahead and cut off the word mid-word.
 					orgIndex = savedOrgIndex;
@@ -2725,6 +2731,9 @@ void TextWrapCenterPrint(char orgtext[CENTERPRINT_MAXSTRING], char output[CENTER
 
 			//reset charCounter, set to -1 to account for autoincrement
 			charCounter = -1;
+
+			//the char at orgIndex starts the next line
+			lineStart = orgIndex;
 
 			//decrement orgtext index so we'll try to recopy this char on the next pass.
 			orgIndex--;

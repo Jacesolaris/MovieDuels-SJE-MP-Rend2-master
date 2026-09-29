@@ -1819,6 +1819,8 @@ void R_Init(void)
 RE_Shutdown
 ===============
 */
+extern void R_ModelFree(void);
+
 void RE_Shutdown(qboolean destroyWindow, qboolean restarting)
 {
 	ri->Printf(PRINT_ALL, "RE_Shutdown( %i )\n", destroyWindow);
@@ -1884,6 +1886,13 @@ void RE_Shutdown(qboolean destroyWindow, qboolean restarting)
 				SaveGhoul2InfoArray();
 			}
 		}
+	}
+
+	if (destroyWindow)
+	{
+		// the renderer dll is unloaded after this (vid_restart, quit): free the model cache,
+		// otherwise its zone memory (TAG_MODEL_GLA/GLM/MD3) is lost and every model is loaded again
+		R_ModelFree();
 	}
 
 	// shut down platform specific OpenGL stuff

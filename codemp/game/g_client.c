@@ -2397,13 +2397,19 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 	char gla_name[MAX_QPATH] = { 0 };
 	const vec3_t tempVec = { 0, 0, 0 };
 
+	// The model name comes from the client's userinfo: a name that is too long must not stop the
+	// server (it was ERR_FATAL), use the default model instead.
+	char safeModel[MAX_QPATH];
 	if (strlen(modelname) >= MAX_QPATH)
 	{
-		Com_Error(ERR_FATAL, "SetupGameGhoul2Model(%s): modelname exceeds MAX_QPATH.\n", modelname);
+		Com_Printf(S_COLOR_YELLOW "SetupGameGhoul2Model: modelname exceeds MAX_QPATH, using %s\n", DEFAULT_MODEL);
+		Q_strncpyz(safeModel, DEFAULT_MODEL, sizeof safeModel);
+		modelname = safeModel;
 	}
 	if (skinName && strlen(skinName) >= MAX_QPATH)
 	{
-		Com_Error(ERR_FATAL, "SetupGameGhoul2Model(%s): skinName exceeds MAX_QPATH.\n", skinName);
+		Com_Printf(S_COLOR_YELLOW "SetupGameGhoul2Model: skinName exceeds MAX_QPATH, using the default skin\n");
+		skinName = NULL;
 	}
 
 	// First things first.  If this is a ghoul2 model, then let's make sure we demolish this first.
@@ -3239,16 +3245,35 @@ Send message to player that their model/class is changing.
 Kills the player (except in duel/siege) so changes apply.
 ==================
 */
+// Class, scale and model before the current G_AssignClassAndScaleFromModel call.
+// client_userinfo_Message is called from every class branch, also when only the
+// name or another userinfo value changed; it must only act on a real change.
+static int s_classMsgOldClass;
+static int s_classMsgOldScale;
+static qboolean s_classMsgModelChanged;
+static char s_classMsgLastModel[MAX_CLIENTS][MAX_QPATH];
+
 static qboolean client_userinfo_Message(const int clientNum)
 {
 	gentity_t* ent = &g_entities[clientNum];
 	gclient_t* client = ent->client;
 
+	if (client->pers.nextbotclass == s_classMsgOldClass &&
+		client->pers.botmodelscale == s_classMsgOldScale &&
+		!s_classMsgModelChanged)
+	{
+		// nothing changed (e.g. /name): no message, no kill
+		return qtrue;
+	}
+
 	if (!(ent->r.svFlags & SVF_BOT))
 	{
 		if (g_gametype.integer != GT_DUEL &&
 			g_gametype.integer != GT_POWERDUEL &&
-			g_gametype.integer != GT_SIEGE)
+			g_gametype.integer != GT_SIEGE &&
+			client->pers.connected == CON_CONNECTED &&
+			client->sess.sessionTeam != TEAM_SPECTATOR &&
+			ent->health > 0)
 		{
 			client->ps.stats[STAT_HEALTH] = 0;
 			ent->health = 0;
@@ -3272,9 +3297,19 @@ Class_Model System
 // ------------------------------------------------------------
 // CLASS + SCALE ASSIGNMENT HELPER
 // ------------------------------------------------------------
-static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, char* userinfo, char* model)
+static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, char* userinfo, char* model, const size_t modelSize)
 {
 	gclient_t* client = ent->client;
+
+	// remember the state before this userinfo change for client_userinfo_Message
+	s_classMsgOldClass = client->pers.botclass;
+	s_classMsgOldScale = client->pers.botmodelscale;
+	s_classMsgModelChanged = qfalse;
+	if (clientNum >= 0 && clientNum < MAX_CLIENTS)
+	{
+		s_classMsgModelChanged = Q_stricmp(model, s_classMsgLastModel[clientNum]) ? qtrue : qfalse;
+		Q_strncpyz(s_classMsgLastModel[clientNum], model, sizeof s_classMsgLastModel[clientNum]);
+	}
 
 	// ------------------------------------------------------------------
 	// LOAD CLASS SYSTEM (PLAYERS + BOTS ONLY, NO NPC, NO SIEGE)
@@ -3308,7 +3343,7 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 			Class_Model(model, "z-95"))
 		{
 			// Don't allow them to pick these models
-			Q_strncpyz(model, DEFAULT_MODEL, sizeof(model));
+			Q_strncpyz(model, DEFAULT_MODEL, modelSize);
 			Q_strncpyz(client->modelname, DEFAULT_MODEL, sizeof(client->modelname));
 			client->pers.botmodelscale = BOTZIZE_NORMAL;
 			model_changed = qtrue;
@@ -5761,7 +5796,7 @@ qboolean client_userinfo_changed(const int clientNum)
 	if (ent->s.eType != ET_NPC && level.gametype != GT_SIEGE)
 	{
 		// model already filled from userinfo above
-		G_AssignClassAndScaleFromModel(ent, clientNum, userinfo, model);
+		G_AssignClassAndScaleFromModel(ent, clientNum, userinfo, model, sizeof(model));
 	}
 
 	if (WinterGear)

@@ -6898,7 +6898,12 @@ void ForceThrow(gentity_t* self, qboolean pull)
 			}
 			else if (g_pushitems.integer && CheckPushItem(push_target[x]))
 			{
-				if (push_target[x]->item->giType == IT_TEAM)
+				if (push_target[x]->flags & FL_DROPPED_ITEM)
+				{
+					//dropped items keep their own think (G_FreeEntity, Team_DroppedFlagThink, ...),
+					//they have no spawn spot to go back to
+				}
+				else if (push_target[x]->item->giType == IT_TEAM)
 				{
 					push_target[x]->nextthink = level.time + CTF_FLAG_RETURN_TIME;
 					push_target[x]->think = ResetItem; //incase it falls off a cliff
@@ -6920,7 +6925,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 					push_target[x]->s.apos.trTime = level.time; // move a bit on the very first frame
 					VectorCopy(push_target[x]->r.currentOrigin, push_target[x]->s.pos.trBase);
 					VectorCopy(push_target[x]->r.currentOrigin, push_target[x]->s.apos.trBase);
-					push_target[x]->s.eFlags = FL_BOUNCE_HALF;
+					push_target[x]->flags |= FL_BOUNCE_HALF; //gentity flag, not an EF_ flag
 				}
 				else
 				{
@@ -6932,7 +6937,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 					push_target[x]->s.apos.trTime = level.time; // move a bit on the very first frame
 					VectorCopy(push_target[x]->r.currentOrigin, push_target[x]->s.pos.trBase);
 					VectorCopy(push_target[x]->r.currentOrigin, push_target[x]->s.apos.trBase);
-					push_target[x]->s.eFlags = FL_BOUNCE_HALF;
+					push_target[x]->flags |= FL_BOUNCE_HALF; //gentity flag, not an EF_ flag
 				}
 			}
 			else if (!Q_stricmp("func_static", push_target[x]->classname))

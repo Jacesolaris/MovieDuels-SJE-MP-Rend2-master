@@ -3923,6 +3923,9 @@ void FinishSpawningItem(gentity_t* ent)
 		G_SetOrigin(ent, tr.endpos);
 	}
 
+	// remember where the item rests: RespawnItem and ResetItem (g_pushitems) put it back here
+	VectorCopy(ent->r.currentOrigin, ent->origOrigin);
+
 	if (ent->spawnflags & ITMSF_VERTICAL)
 	{
 		ent->s.angles[PITCH] += 75;

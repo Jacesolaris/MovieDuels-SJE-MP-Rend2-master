@@ -2219,6 +2219,13 @@ void RE_Shutdown(qboolean destroyWindow, qboolean restarting)
 		SaveGhoul2InfoArray();
 	}
 
+	if (destroyWindow)
+	{
+		// the renderer dll is unloaded after this (vid_restart, quit): free the model cache,
+		// otherwise its zone memory (TAG_MODEL_GLA/GLM/MD3) is lost and every model is loaded again
+		CModelCache->DeleteAll();
+	}
+
 	// shut down platform specific OpenGL stuff
 	if (destroyWindow)
 	{

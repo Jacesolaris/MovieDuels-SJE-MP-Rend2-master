@@ -4239,16 +4239,19 @@ static int numVictims = 0;
 
 static void WP_SaberClearDamage(void)
 {
-	for (int ven = 0; ven < MAX_SABER_VICTIMS; ven++)
+	// Only entries [0, numVictims) are ever read (WP_SaberApplyDamage loops i < numVictims),
+	// so only those need clearing - not all MAX_SABER_VICTIMS (8192) entries, ~360 KB, for
+	// every lit saber every server frame.
+	for (int ven = 0; ven < numVictims && ven < MAX_SABER_VICTIMS; ven++)
 	{
 		victimentity_num[ven] = ENTITYNUM_NONE;
+		victimHitEffectDone[ven] = qfalse;
+		totalDmg[ven] = 0;
+		VectorClear(dmgDir[ven]);
+		VectorClear(dmgSpot[ven]);
+		dismemberDmg[ven] = qfalse;
+		saberKnockbackFlags[ven] = 0;
 	}
-	memset(victimHitEffectDone, 0, sizeof victimHitEffectDone);
-	memset(totalDmg, 0, sizeof totalDmg);
-	memset(dmgDir, 0, sizeof dmgDir);
-	memset(dmgSpot, 0, sizeof dmgSpot);
-	memset(dismemberDmg, 0, sizeof dismemberDmg);
-	memset(saberKnockbackFlags, 0, sizeof saberKnockbackFlags);
 	numVictims = 0;
 }
 

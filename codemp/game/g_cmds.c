@@ -2886,12 +2886,22 @@ static void Cmd_ChangeMap(gentity_t* ent)
 		return;
 	}
 
+	// The arguments come from the client and go into the server command buffer:
+	// only accept a gametype number and a map name without command separators.
+	char   arg2[MAX_STRING_CHARS];
 	trap->Argv(1, arg1, sizeof(arg1));
-	trap->SendConsoleCommand(EXEC_APPEND, va("g_gametype %s\n", arg1));
-	G_LogPrintf("ChangeMap admin command executed by SERVER to GAMETYPE:%s", arg1);
-	trap->Argv(2, arg1, sizeof(arg1));
-	trap->SendConsoleCommand(EXEC_APPEND, va("map %s\n", arg1));
-	G_LogPrintf(" MAP:%s.\n", arg1);
+	trap->Argv(2, arg2, sizeof(arg2));
+	const int gametype = atoi(arg1);
+	if (!arg1[0] || gametype < 0 || gametype >= GT_MAX_GAME_TYPE ||
+		!arg2[0] || strpbrk(arg2, ";\"\n\r"))
+	{
+		trap->SendServerCommand(ent - g_entities, "print \"Usage: /Adminchangemap <gametype number> <map name>\n\"");
+		return;
+	}
+	trap->SendConsoleCommand(EXEC_APPEND, va("g_gametype %i\n", gametype));
+	G_LogPrintf("ChangeMap admin command executed by SERVER to GAMETYPE:%i", gametype);
+	trap->SendConsoleCommand(EXEC_APPEND, va("map %s\n", arg2));
+	G_LogPrintf(" MAP:%s.\n", arg2);
 }
 
 static void Cmd_Punish(gentity_t* ent)
@@ -3036,7 +3046,8 @@ static void Cmd_AdminLogin(gentity_t* ent)
 
 	if (ent->client->pers.plugindetect == qtrue)
 	{
-		if (strcmp(password, g_adminpassword.string) == 0)
+		// no admin login while g_adminpassword is not set (its default is ""), and never with a blank password
+		if (g_adminpassword.string[0] && password[0] && strcmp(password, g_adminpassword.string) == 0)
 		{
 			strcpy(ent->client->pers.login, g_adminlogin_saying.string);
 			strcpy(ent->client->pers.logout, g_adminlogout_saying.string);

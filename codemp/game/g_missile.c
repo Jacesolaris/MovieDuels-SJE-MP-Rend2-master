@@ -1239,8 +1239,10 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 	//
 	// Beskar / Boba special bounce flags
 	//
+	//only clients: FL_DINDJARIN and FL_BOBAFETT share their bits with FL_VEH_BOARDING and
+	//FL_DMG_BY_SABER_ONLY (saber-only func_breakable), and the bounce code below uses other->client
 	qboolean beskar =
-		((other->flags & FL_DINDJARIN) &&
+		(other->client && (other->flags & FL_DINDJARIN) &&
 			!ent->splashDamage &&
 			!ent->splashRadius &&
 			ent->methodOfDeath != MOD_SABER &&
@@ -1257,7 +1259,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 			ent->methodOfDeath != MOD_CONC);
 
 	qboolean boba_fett =
-		((other->flags & FL_BOBAFETT) &&
+		(other->client && (other->flags & FL_BOBAFETT) &&
 			!ent->splashDamage &&
 			!ent->splashRadius &&
 			ent->methodOfDeath != MOD_SABER &&
@@ -1447,7 +1449,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 		// Reset weaponTime if not attacking OR if using force powers
 		if (other->client &&
 			(!PM_SaberInAttack(other->client->ps.saberMove) ||
-				(pm->cmd.buttons & (BUTTON_FORCEPOWER |
+				(other->client->pers.cmd.buttons & (BUTTON_FORCEPOWER |
 					BUTTON_FORCEGRIP |
 					BUTTON_DASH |
 					BUTTON_FORCE_LIGHTNING))))
@@ -1485,7 +1487,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 		{
 			if (saber_owner->client &&
 				(!PM_SaberInAttack(saber_owner->client->ps.saberMove) ||
-					(pm->cmd.buttons & (BUTTON_FORCEPOWER |
+					(saber_owner->client->pers.cmd.buttons & (BUTTON_FORCEPOWER |
 						BUTTON_FORCEGRIP |
 						BUTTON_DASH |
 						BUTTON_FORCE_LIGHTNING))) &&

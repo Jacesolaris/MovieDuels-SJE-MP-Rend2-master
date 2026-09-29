@@ -11825,10 +11825,10 @@ static void CG_DrawCrosshair(vec3_t world_point, const int ch_ent_valid)
 			cid < MAX_CLIENTS &&
 			cg_entities[cid].currentState.eType == ET_PLAYER &&
 			(cg_entities[cid].currentState.eFlags & EF3_DUAL_WEAPONS) &&
-			cg.snap->ps.weapon == WP_BRYAR_PISTOL ||
+			(cg.snap->ps.weapon == WP_BRYAR_PISTOL ||
 			cg.snap->ps.weapon == WP_REY ||
 			cg.snap->ps.weapon == WP_JANGO ||
-			cg.snap->ps.weapon == WP_CLONEPISTOL)
+			cg.snap->ps.weapon == WP_CLONEPISTOL))
 		{
 			w = h = cg_crosshairDualSize.value;
 		}

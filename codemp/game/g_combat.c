@@ -3452,7 +3452,7 @@ void player_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker
 	}
 
 	const int contents = trap->PointContents(self->r.currentOrigin, -1);
-	if (!(contents & CONTENTS_NODROP) && !self->client->ps.fallingToDeath || self->client->NPC_class != CLASS_GALAKMECH)
+	if (!(contents & CONTENTS_NODROP) && !self->client->ps.fallingToDeath && self->client->NPC_class != CLASS_GALAKMECH)
 	{
 		TossClientItems(self);
 	}
