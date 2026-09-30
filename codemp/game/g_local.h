@@ -1099,6 +1099,10 @@ struct gclient_s
 	int SaberSmashStartTime;
 	int SaberSmashLastStartTime;
 	int Smash_Count;
+
+	// BOT_SABER_PENDING_MASK / BOT_PENDING_STAND_ANIM. Kept out of ps.userInt1, whose bits are the LOCK_* view/move
+	// locks (any bit there also zeroes ps.speed), so a pending bot action no longer freezes the bot.
+	int botPendingFlags;
 };
 
 //animations

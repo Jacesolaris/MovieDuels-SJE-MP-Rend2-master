@@ -845,6 +845,7 @@ qboolean CROFFSystem::ApplyROFF(SROFFEntity* roff_ent, const CROFF* roff)
 	sharedEntity_t* ent = nullptr;
 	trajectory_t* originTrajectory, * angleTrajectory;
 	float* origin, * angle;
+	vec3_t originTemp, angleTemp; // function scope: origin/angle point here and are used after the if block
 
 	if (svs.time < roff_ent->mNextROFFTime)
 	{
@@ -854,8 +855,9 @@ qboolean CROFFSystem::ApplyROFF(SROFFEntity* roff_ent, const CROFF* roff)
 
 	if (roff_ent->mIsClient)
 	{
-#ifndef DEDICATED
-		vec3_t originTemp, angleTemp;
+#ifdef DEDICATED
+		return qfalse; // no client game on a dedicated server
+#else
 		originTrajectory = CGVM_GetOriginTrajectory(roff_ent->mEntID);
 		angleTrajectory = CGVM_GetAngleTrajectory(roff_ent->mEntID);
 		CGVM_GetOrigin(roff_ent->mEntID, originTemp);
@@ -996,11 +998,13 @@ qboolean CROFFSystem::ClearLerp(const SROFFEntity* roff_ent)
 {
 	trajectory_t* originTrajectory, * angleTrajectory;
 	float* origin, * angle;
+	vec3_t originTemp, angleTemp; // function scope: origin/angle point here and are used after the if block
 
 	if (roff_ent->mIsClient)
 	{
-#ifndef DEDICATED
-		vec3_t originTemp, angleTemp;
+#ifdef DEDICATED
+		return qfalse; // no client game on a dedicated server
+#else
 		originTrajectory = CGVM_GetOriginTrajectory(roff_ent->mEntID);
 		angleTrajectory = CGVM_GetAngleTrajectory(roff_ent->mEntID);
 		CGVM_GetOrigin(roff_ent->mEntID, originTemp);

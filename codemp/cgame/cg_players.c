@@ -6308,9 +6308,15 @@ void CG_ParseScriptedSaber(char* script, clientInfo_t* ci, const int snum)
 	char* p = script;
 
 	const int l = strlen(p);
+	if (l == 0)
+	{
+		ci->ScriptedNum[snum] = 0;
+		return;
+	}
 	p++; //skip the 1st ':'
 
-	while (p[0] && p - script < l && n < 10)
+	// Never step past the terminator: check the length before reading p[0]
+	while (p - script < l && p[0] && n < 10)
 	{
 		ParseRGBSaber(p, ci->ScriptedColors[n][snum]);
 		while (p[0] && p[0] != ':')
@@ -6324,7 +6330,8 @@ void CG_ParseScriptedSaber(char* script, clientInfo_t* ci, const int snum)
 
 		ci->ScriptedTimes[n][snum] = getint(&p);
 
-		p++;
+		if (p[0] == ':')
+			p++;
 		n++;
 	}
 	ci->ScriptedNum[snum] = n;
@@ -13091,7 +13098,7 @@ void CG_AddSaberBlade(centity_t* cent, centity_t* scent, int renderfx, int saber
 						}
 						else
 						{
-							if (trace.contents & CONTENTS_WATER | CONTENTS_SLIME)
+							if (trace.contents & (CONTENTS_WATER | CONTENTS_SLIME))
 							{
 								if (Q_irand(1, client->saber[saberNum].numBlades) == 1)
 								{
@@ -13177,6 +13184,9 @@ void CG_AddSaberBlade(centity_t* cent, centity_t* scent, int renderfx, int saber
 	}
 CheckTrail:
 
+	// Set before any goto JustDoIt: the blade code after JustDoIt reads saber_trail->inAction.
+	saber_trail = &client->saber[saberNum].blade[bladeNum].trail;
+
 	if (!cg_saberTrail.integer)
 	{
 		//don't do the trail in this case
@@ -13193,8 +13203,6 @@ CheckTrail:
 	}
 
 	//FIXME: if trailStyle is 1, use the motion blur instead
-
-	saber_trail = &client->saber[saberNum].blade[bladeNum].trail;
 
 	if (cg_SFXSabers.integer == 0 || cg_SFXSabers.integer == 9 || cg_SFXSabers.integer == 10 || cg_SFXSabers.integer == 11)
 	{

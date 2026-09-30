@@ -720,38 +720,39 @@ static qboolean AI_ComputeBallisticJump(gentity_t* bot,
 {
 	float height = apex[2] - start[2];
 	float time;
+	float dist;
 	vec3_t flat;
+	// ps.gravity is still 0 between ClientSpawn and the bot's first ClientThink; dividing by it gave
+	// time = inf and a NaN vertical velocity, which then turned the bot's origin into NaN.
+	const float gravity = bot->client->ps.gravity > 0 ? (float)bot->client->ps.gravity : g_gravity.value;
+
+	if (gravity <= 0.0f)
+		return qfalse;
 
 	if (height <= 0.0f)
 		height = 1.0f;
 
-	if (bot->client->ps.gravity <= 0)
-	{
-		//ps.gravity is still 0 between ClientSpawn and the bot's first ClientThink;
-		//dividing by it gave time = inf and outVel[2] = inf * 0 = NaN (bot origin NaN)
-		return qfalse;
-	}
-
-	time = sqrtf(height / (0.5f * bot->client->ps.gravity));
-	if (time <= 0.0f)
+	time = sqrtf(height / (0.5f * gravity));
+	if (!(time > 0.0f) || Q_isnan(time))
 		return qfalse;
 
 	VectorSubtract(apex, start, flat);
 	flat[2] = 0.0f;
 
-	if (VectorNormalize(flat) == 0.0f)
+	// VectorNormalize returns the length before normalising: that is the horizontal distance to the apex.
+	// (Measuring flat after normalising always gave 1, so bots jumped almost straight up.)
+	dist = VectorNormalize(flat);
+	if (dist == 0.0f)
 		return qfalse;
 
-	// Horizontal speed
-	{
-		float dist = VectorLength(flat);
-		float forward = dist / time;
-
-		VectorScale(flat, forward, outVel);
-	}
+	// Horizontal speed: reach the apex (halfway to the target) at the top of the arc
+	VectorScale(flat, dist / time, outVel);
 
 	// Vertical speed
-	outVel[2] = time * bot->client->ps.gravity;
+	outVel[2] = time * gravity;
+
+	if (Q_isnan(outVel[0]) || Q_isnan(outVel[1]) || Q_isnan(outVel[2]))
+		return qfalse;
 
 	return qtrue;
 }
@@ -10697,7 +10698,7 @@ static int saber_bot_fallback_navigation(bot_state_t* bs)
 BotTryAnotherWeapon
 ==================
 */
-static BotTryAnotherWeapon(bot_state_t* bs)
+static int BotTryAnotherWeapon(bot_state_t* bs)
 {
 	int i = 1;
 
@@ -11175,7 +11176,7 @@ static gentity_t* check_for_friend_in_lof(const bot_state_t* bs)
 				return trent;
 			}
 
-			if (botstates[trent->s.number] && get_love_level(bs, botstates[trent->s.number]) > 1)
+			if (trent->s.number < MAX_CLIENTS && botstates[trent->s.number] && get_love_level(bs, botstates[trent->s.number]) > 1)
 			{
 				return trent;
 			}
@@ -11974,6 +11975,11 @@ static qboolean bot_should_jump_to_enemy(bot_state_t* bs, float xy, qboolean wil
 
 	// Never jump if already jumping
 	if (bs->BOTjumpState > JS_WAITING)
+		return qfalse;
+
+	// Only follow an enemy that is standing somewhere higher/lower (a ledge). An enemy in mid-jump is just
+	// "above us" for a moment: don't mirror the jump, keep facing them and wait for them to land.
+	if (enemy->client->ps.groundEntityNum == ENTITYNUM_NONE)
 		return qfalse;
 
 	// Jetpack bots prefer flight, not jumps

@@ -64,7 +64,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-20,Month-09,Year-26,BuildNum-09" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-30,Month-09,Year-26,BuildNum-13" // build date
 
 #define	STEPSIZE		18
 
@@ -2056,6 +2056,8 @@ qboolean PM_InSaberLock(int anim);
 void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const int weapon, const int anim, float* animSpeed, const int fatigued);
 
 void WP_ForcePowerDrain(playerState_t* ps, forcePowers_t force_power, int override_amt);
+void WP_SaberFatigueRegenerate(playerState_t* ps, int override_amt);
+void WP_BlasterFatigueRegenerate(playerState_t* ps, int override_amt);
 void BG_ForcePowerKill(playerState_t* ps);
 
 void	BG_EvaluateTrajectory(const trajectory_t* tr, int at_time, vec3_t result);
@@ -2157,9 +2159,11 @@ extern int force_power_dark_light[NUM_FORCE_POWERS];
 #define MAX_BOTS			4096
 #define MAX_BOTS_TEXT		16384
 
-#define	HYPERSPACE_TIME				4000 //For hyperspace triggers
+#define	HYPERSPACE_TIME				8000 //For hyperspace triggers (was 4000)
 #define	HYPERSPACE_TELEPORT_FRAC	0.75f
-#define	HYPERSPACE_SPEED			10000.0f//was 30000
+//half of what it was (10000; 30000 before that): with twice the time the ship would fly twice as far before it is
+//teleported, out of the far end of the trigger_hyperspace boxes of the maps, and would never arrive
+#define	HYPERSPACE_SPEED			5000.0f
 #define	HYPERSPACE_TURN_RATE		45.0f
 
 extern const char* gametypeStringShort[GT_MAX_GAME_TYPE];
