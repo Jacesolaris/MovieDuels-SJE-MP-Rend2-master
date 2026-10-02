@@ -151,15 +151,18 @@ public:
 	CEffect();
 
 	virtual ~CEffect()
-	{}
+	{
+	}
 
 	virtual void Die()
-	{}
+	{
+	}
 
 	virtual bool Update() { return true; }
 
 	virtual void Draw(void)
-	{}
+	{
+	}
 
 	miniRefEntity_t& GetRefEnt(void) { return mRefEnt; }
 
@@ -252,10 +255,12 @@ public:
 	qhandle_t mShader;
 
 	CTrail()
-	{};
+	{
+	};
 
 	~CTrail() override
-	{};
+	{
+	};
 
 	bool Update() override;
 };
@@ -444,10 +449,12 @@ public:
 		mScreenX(0),
 		mScreenY(0),
 		mRadiusModifier(1)
-	{}
+	{
+	}
 
 	~CFlash() override
-	{}
+	{
+	}
 
 	bool Update() override;
 	void Draw(void) override;
@@ -474,10 +481,12 @@ public:
 	CLine();
 
 	~CLine() override
-	{}
+	{
+	}
 
 	void Die() override
-	{}
+	{
+	}
 
 	bool Update() override;
 
@@ -500,10 +509,12 @@ public:
 	CBezier() { mInit = false; }
 
 	~CBezier() override
-	{}
+	{
+	}
 
 	void Die() override
-	{}
+	{
+	}
 
 	bool Update() override;
 	bool Cull(void) override;
@@ -537,10 +548,12 @@ public:
 	CElectricity();
 
 	~CElectricity() override
-	{}
+	{
+	}
 
 	void Die() override
-	{}
+	{
+	}
 
 	bool Update() override;
 
@@ -560,7 +573,8 @@ public:
 	COrientedParticle();
 
 	~COrientedParticle() override
-	{}
+	{
+	}
 
 	bool Update() override;
 	bool Cull(void) override;
@@ -590,7 +604,8 @@ public:
 	CTail();
 
 	~CTail() override
-	{}
+	{
+	}
 
 	bool Update() override;
 
@@ -616,7 +631,8 @@ public:
 	CCylinder();
 
 	~CCylinder() override
-	{}
+	{
+	}
 
 	bool Cull(void) override;
 	virtual void UpdateLength(void);
@@ -712,10 +728,12 @@ public:
 	int mLastFrameTime;
 
 	CPoly()
-	{}
+	{
+	}
 
 	~CPoly() override
-	{}
+	{
+	}
 
 	bool Update() override;
 	bool Cull(void) override;

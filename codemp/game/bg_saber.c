@@ -103,6 +103,7 @@ saberMoveName_t PM_NPC_Force_Leap_Attack(void);
 extern qboolean PM_SaberInnonblockableAttack(int anim);
 extern qboolean PM_SaberInSmashdown(saberMoveName_t saberMove);
 
+
 int PM_irand_timesync(const int val1, const int val2)
 {
 	int i = val1 - 1 + Q_random(&pm->cmd.serverTime) * (val2 - val1) + 1;
@@ -5325,6 +5326,7 @@ static qboolean PM_CanDoSmashdown(const pmove_t* pm)
 	const qboolean smashReady = (PM_SaberSmashOnCooldown(pm->ps) == qfalse) ? qtrue : qfalse;
 	const qboolean AllowSmashDown = (g_AllowSmashDown.integer != 0) ? qtrue : qfalse;
 	const qboolean ButtonUse = (pm->cmd.buttons & BUTTON_USE) ? qtrue : qfalse;
+
 
 #ifdef _GAME
 	if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT)

@@ -7923,7 +7923,8 @@ static void UI_RunMenuScript(char** args)
 }
 
 static void UI_GetTeamColor(vec4_t* color)
-{}
+{
+}
 static void UI_SetSiegeTeams(void)
 {
 	static char info[MAX_INFO_VALUE];

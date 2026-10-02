@@ -905,6 +905,7 @@ void CG_AddViewWeaponDuals(refEntity_t* parent, playerState_t* ps, centity_t* ce
 				return;
 			}
 
+
 			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, flashorigin);
 			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, flashdir);
 		}
@@ -1709,6 +1710,7 @@ void CG_AddViewWeapon(playerState_t* ps)
 			qtrue      // left-hand
 		);
 	}
+
 }
 
 /*
@@ -3905,9 +3907,9 @@ void CG_CopyG2WeaponInstance(const centity_t* cent, const int weapon_num, void* 
 
 				if ((cent->currentState.eFlags & EF3_DUAL_WEAPONS) &&
 					(cent->currentState.weapon == WP_BRYAR_PISTOL ||
-						cent->currentState.weapon == WP_REY ||
-						cent->currentState.weapon == WP_JANGO ||
-						cent->currentState.weapon == WP_CLONEPISTOL))
+					cent->currentState.weapon == WP_REY ||
+					cent->currentState.weapon == WP_JANGO ||
+					cent->currentState.weapon == WP_CLONEPISTOL))
 				{
 					void* weapG2_2 = CG_G2WeaponInstance2(cent, weapon_num);
 					if (weapG2_2 != NULL)
@@ -4046,9 +4048,9 @@ void CG_CheckPlayerG2Weapons(const playerState_t* ps, centity_t* cent)
 
 		if (((cent->currentState.eFlags & EF3_DUAL_WEAPONS) != 0) &&
 			(ps->weapon == WP_BRYAR_PISTOL ||
-				ps->weapon == WP_REY ||
-				ps->weapon == WP_JANGO ||
-				ps->weapon == WP_CLONEPISTOL))
+			ps->weapon == WP_REY ||
+			ps->weapon == WP_JANGO ||
+			ps->weapon == WP_CLONEPISTOL))
 		{
 			cent->ghoul2weapon2 = CG_G2WeaponInstance2(cent, ps->weapon);
 		}

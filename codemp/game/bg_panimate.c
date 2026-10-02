@@ -533,8 +533,8 @@ qboolean PM_SaberInSmashdown(const saberMoveName_t saberMove)
 {
 	switch (saberMove)
 	{
-		//case LS_STABDOWN_WINDU:
-			///////////////////////////////////////////
+	//case LS_STABDOWN_WINDU:
+		///////////////////////////////////////////
 	case LS_SMASHDOWN_DUAL:
 	case LS_SMASHDOWN_SINGLE:
 	case LS_SMASHDOWN_STAFF:
@@ -4870,7 +4870,8 @@ void BG_InitAnimsets(void)
 
 //ALWAYS call on game/cgame shutdown
 void BG_ClearAnimsets()
-{}
+{
+}
 
 static animation_t* BG_AnimsetAlloc(void)
 {
@@ -4881,7 +4882,8 @@ static animation_t* BG_AnimsetAlloc(void)
 }
 
 static void BG_AnimsetFree()
-{}
+{
+}
 
 #ifdef _CGAME //none of this is actually needed server side. Could just be moved to cgame code but it's here since it used to tie in a lot with the anim loading stuff.
 
