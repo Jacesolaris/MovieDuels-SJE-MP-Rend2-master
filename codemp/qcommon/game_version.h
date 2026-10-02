@@ -40,15 +40,15 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #define VERSION_MAJOR_RELEASE		26  // Build year
 #define VERSION_MINOR_RELEASE		10  // Build month
-#define VERSION_INTERNAL_BUILD		01  // Build number
+#define VERSION_INTERNAL_BUILD		02  // Build number
 
-#define VERSION_STRING				"Day-02,Month-10,Year-26,BuildNum-01" // build date
-#define VERSION_STRING_DOTTED		"Day-02.Month-10.Year-26.BuildNum-01" // build date
+#define VERSION_STRING				"Day-02,Month-10,Year-26,BuildNum-02" // build date
+#define VERSION_STRING_DOTTED		"Day-02.Month-10.Year-26.BuildNum-02" // build date
 #if defined(_DEBUG)
-#define	JK_VERSION		"(debug)MovieDuels-MP-Default: " VERSION_STRING_DOTTED
-#define JK_VERSION_OLD	"(debug)MovieDuels-MP-Default: " VERSION_STRING_DOTTED
+#define	JK_VERSION		"(debug)MovieDuels-MP-Advanced: " VERSION_STRING_DOTTED
+#define JK_VERSION_OLD	"(debug)MovieDuels-MP-Advanced: " VERSION_STRING_DOTTED
 #else
-#define	JK_VERSION		"MovieDuels-MP-Default: " VERSION_STRING_DOTTED
-#define JK_VERSION_OLD	"MovieDuels-MP-Default: " VERSION_STRING_DOTTED
+#define	JK_VERSION		"MovieDuels-MP-Advanced: " VERSION_STRING_DOTTED
+#define JK_VERSION_OLD	"MovieDuels-MP-Advanced: " VERSION_STRING_DOTTED
 #endif
 #endif // GAME_VERSION_H

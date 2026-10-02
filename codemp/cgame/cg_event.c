@@ -5130,7 +5130,10 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 
 	case EV_WEAPON_CHARGE:
 		DEBUGNAME("EV_WEAPON_CHARGE");
-		assert(es->eventParm > WP_NONE && es->eventParm < WP_NUM_WEAPONS);
+		if (es->eventParm <= WP_NONE || es->eventParm >= WP_NUM_WEAPONS)
+		{
+			break; // (a ship locking its homing missiles: it holds no weapon, there is no charge sound)
+		}
 		if (cg_weapons[es->eventParm].chargeSound)
 		{
 			trap->S_StartSound(NULL, es->number, CHAN_WEAPON, cg_weapons[es->eventParm].chargeSound);
@@ -5143,7 +5146,10 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 
 	case EV_WEAPON_CHARGE_ALT:
 		DEBUGNAME("EV_WEAPON_CHARGE_ALT");
-		assert(es->eventParm > WP_NONE && es->eventParm < WP_NUM_WEAPONS);
+		if (es->eventParm <= WP_NONE || es->eventParm >= WP_NUM_WEAPONS)
+		{
+			break; // (a ship locking its homing missiles: it holds no weapon, there is no charge sound)
+		}
 		if (cg_weapons[es->eventParm].altChargeSound)
 		{
 			trap->S_StartSound(NULL, es->number, CHAN_WEAPON, cg_weapons[es->eventParm].altChargeSound);

@@ -4227,8 +4227,7 @@ static void Item_StartCapture(itemDef_t* item, const int key)
 }
 
 static void Item_StopCapture(itemDef_t* item)
-{
-}
+{}
 
 static qboolean Item_Slider_HandleKey(itemDef_t* item, const int key, qboolean down)
 {

@@ -1507,7 +1507,9 @@ static void ProcessOrientCommands(Vehicle_t* p_veh)
 	{
 		//no yaw control
 	}
-	else if (p_veh->m_pPilot && p_veh->m_pPilot->s.number < MAX_CLIENTS && parent_ps->speed > 0.0f)
+	else if (p_veh->m_pPilot
+		&& (p_veh->m_pPilot->s.number < MAX_CLIENTS || p_veh->m_pPilot->playerState) // a player or an NPC pilot (ai_fighter.c)
+		&& parent_ps->speed > 0.0f)
 		//&& !( p_veh->m_ucmd.forwardmove > 0 && p_veh->m_LandTrace.fraction != 1.0f ) )
 	{
 #ifdef VEH_CONTROL_SCHEME_4
@@ -1657,8 +1659,9 @@ static void ProcessOrientCommands(Vehicle_t* p_veh)
 	}
 	else
 	{
-		//add in strafing roll
-		const float strafeRoll = parent_ps->hackingTime / MAX_STRAFE_TIME * p_veh->m_pVehicleInfo->rollLimit;
+		//add in strafing roll, banked the way it goes: a strafe to the left (m_ucmd.rightmove < 0) counts the
+		//strafe time up, and a positive roll banks to the right (turning, cur_roll -= yaw delta, banks into the turn)
+		const float strafeRoll = -parent_ps->hackingTime / MAX_STRAFE_TIME * p_veh->m_pVehicleInfo->rollLimit;
 		//p_veh->m_pVehicleInfo->bankingSpeed*
 		const float strafeDif = AngleSubtract(strafeRoll, p_veh->m_vOrientation[ROLL]);
 		p_veh->m_vOrientation[ROLL] += strafeDif * 0.1f * p_veh->m_fTimeModifier;
@@ -1779,8 +1782,7 @@ static void AnimateVehicle(Vehicle_t* p_veh)
 
 // This function makes sure that the rider's in this vehicle are properly animated.
 static void AnimateRiders(Vehicle_t* p_veh)
-{
-}
+{}
 
 #endif //game-only
 

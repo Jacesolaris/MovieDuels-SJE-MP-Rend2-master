@@ -21357,9 +21357,9 @@ stillDoSaber:
 	{
 		if ((cent->currentState.eFlags & EF3_DUAL_WEAPONS) &&
 			(cent->currentState.weapon == WP_BRYAR_PISTOL ||
-			cent->currentState.weapon == WP_REY ||
-			cent->currentState.weapon == WP_JANGO ||
-			cent->currentState.weapon == WP_CLONEPISTOL))
+				cent->currentState.weapon == WP_REY ||
+				cent->currentState.weapon == WP_JANGO ||
+				cent->currentState.weapon == WP_CLONEPISTOL))
 		{
 			// Right-hand world weapon (Ghoul2 index 1)
 			CG_AddViewWeaponDuals(
@@ -21432,7 +21432,7 @@ stillDoSaber:
 
 	// Local player: saber damage coloring (blue = partial, red = full)
 	if (cent->currentState.number == cg.snap->ps.clientNum)
-	{	
+	{
 		if (g_IsSaberDoingAttackDamage.integer == 1)
 		{
 			qboolean doTint = qfalse;

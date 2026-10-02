@@ -33,7 +33,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #  include "ui/menudef.h"
 #endif
 
-
 extern displayContextDef_t cgDC;
 
 static int CG_GetSelectedPlayer() {
@@ -857,8 +856,7 @@ void CG_ShowResponseHead(void) {
 	cg.voiceTime = cg.time;
 }
 
-void CG_RunMenuScript(char** args) {
-}
+void CG_RunMenuScript(char** args) {}
 
 qboolean CG_DeferMenuScript(char** args)
 {
