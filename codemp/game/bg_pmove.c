@@ -3788,7 +3788,7 @@ static qboolean PM_AdjustAngleForWallRun(playerState_t* ps, usercmd_t* ucmd, con
 			//still a vertical wall there
 #ifdef _GAME
 			if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT || pm_entSelf->s.eType == ET_NPC) ||
-				(!(ps->userInt3 |= 1 << FLAG_FROZEN)))
+				(!(ps->userInt3 & 1 << FLAG_FROZEN)))
 			{
 				// Maintain right/left movement
 				if (ps->legsAnim == BOTH_WALL_RUN_RIGHT)
@@ -3823,7 +3823,7 @@ static qboolean PM_AdjustAngleForWallRun(playerState_t* ps, usercmd_t* ucmd, con
 			// ------------------------------------------------------------------
 #ifdef _GAME
 			if ((g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT || pm_entSelf->s.eType == ET_NPC) ||
-				(!(ps->userInt3 |= 1 << FLAG_FROZEN)))
+				(!(ps->userInt3 & 1 << FLAG_FROZEN)))
 			{
 				if (doMove == qtrue)
 				{
@@ -6493,7 +6493,11 @@ static void PM_WaterMove(void)
 		{
 #ifdef _GAME
 			gentity_t* self = &g_entities[pm->ps->clientNum];
-			G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/change.wav"));
+			//only when entering the water/ladder (waterlevel of the previous pmove), not every pmove
+			if (self->waterlevel <= 1)
+			{
+				G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/change.wav"));
+			}
 #endif
 		}
 	}
@@ -6602,7 +6606,11 @@ static void PM_LadderMove(void)
 		{
 #ifdef _GAME
 			gentity_t* self = &g_entities[pm->ps->clientNum];
-			G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/change.wav"));
+			//only when entering the water/ladder (waterlevel of the previous pmove), not every pmove
+			if (self->waterlevel <= 1)
+			{
+				G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/change.wav"));
+			}
 #endif
 		}
 	}
@@ -8028,8 +8036,8 @@ static void PM_CrashLand(void)
 		// Bot saber follow‑up after force jump land
 		if (isBotWithSaber == qtrue && fjAnim == BOTH_LAND1)
 		{
-			pm->ps->userInt1 |= BOT_SABER_PENDING_MASK;
-			pm->ps->userInt2 = pm->cmd.serverTime + BOT_SABER_PENDING_DELAY_MS;
+			g_entities[pm->ps->clientNum].client->botPendingFlags |= BOT_SABER_PENDING_MASK;
+			pm->ps->botPendingStyleTime = pm->cmd.serverTime + BOT_SABER_PENDING_DELAY_MS;
 		}
 #endif
 	}
@@ -8056,8 +8064,8 @@ static void PM_CrashLand(void)
 #ifdef _GAME
 			if (isBotWithSaber == qtrue && landingAnim == BOTH_LAND1)
 			{
-				pm->ps->userInt1 |= BOT_SABER_PENDING_MASK;
-				pm->ps->userInt2 = pm->cmd.serverTime + BOT_SABER_PENDING_DELAY_MS;
+				g_entities[pm->ps->clientNum].client->botPendingFlags |= BOT_SABER_PENDING_MASK;
+				pm->ps->botPendingStyleTime = pm->cmd.serverTime + BOT_SABER_PENDING_DELAY_MS;
 			}
 #endif
 		}
@@ -10340,7 +10348,11 @@ static void PM_SwimFloatAnim(void)
 		{
 #ifdef _GAME
 			gentity_t* self = &g_entities[pm->ps->clientNum];
-			G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/change.wav"));
+			//only when entering the water/ladder (waterlevel of the previous pmove), not every pmove
+			if (self->waterlevel <= 1)
+			{
+				G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/change.wav"));
+			}
 #endif
 		}
 	}
@@ -10598,7 +10610,11 @@ static void PM_Footsteps(void)
 				{
 #ifdef _GAME
 					gentity_t* self = &g_entities[pm->ps->clientNum];
-					G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/change.wav"));
+					//only when entering the water (waterlevel of the previous pmove), not every pmove
+					if (self->waterlevel <= 1)
+					{
+						G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/change.wav"));
+					}
 #endif
 				}
 			}
@@ -19567,8 +19583,9 @@ static void PmoveSingle(pmove_t* pmove)
 	{
 		bgEntity_t* veh = pm_entVeh;
 
-		if (veh && veh->playerState &&
-			pm->cmd.serverTime - veh->playerState->hyperSpaceTime < HYPERSPACE_TIME)
+		if (veh && veh->playerState
+			&& veh->playerState->hyperSpaceTime // 0 = never hyperspaced (else the first 4 s of a map forced it)
+			&& pm->cmd.serverTime - veh->playerState->hyperSpaceTime < HYPERSPACE_TIME)
 		{
 			//going into hyperspace, turn to face the right angles
 			PM_VehFaceHyperspacePoint(veh);
@@ -20212,7 +20229,36 @@ Pmove
 Can be called by either the server or the client
 ================
 */
+static void Pmove_Internal(pmove_t* pmove);
+
+// Pmove can re-enter itself (something done during one entity's move can run another entity's Pmove).
+// The inner call repoints the globals pm/pml at its own stack data, leaving the outer move with a
+// dangling pm, so a nested call restores them on return (same fix as SP). A top-level call leaves pm as
+// before, since code after Pmove in the caller still uses it.
+static int pmove_depth = 0;
+
 void Pmove(pmove_t* pmove)
+{
+	if (pmove_depth == 0)
+	{
+		pmove_depth++;
+		Pmove_Internal(pmove);
+		pmove_depth--;
+		return;
+	}
+
+	pmove_t* const outerPm = pm;
+	const pml_t outerPml = pml;
+
+	pmove_depth++;
+	Pmove_Internal(pmove);
+	pmove_depth--;
+
+	pm = outerPm;
+	pml = outerPml;
+}
+
+static void Pmove_Internal(pmove_t* pmove)
 {
 	pm = pmove;
 

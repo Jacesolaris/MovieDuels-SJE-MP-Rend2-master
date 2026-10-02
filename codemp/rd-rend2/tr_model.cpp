@@ -626,7 +626,19 @@ static qboolean R_LoadMDXM_Server(model_t* mod, void* buffer, const char* mod_na
 				"R_LoadMDXM_Server: required MP humanoid GLA missing: %s.gla", forcedHumanoid);
 		}
 
-		animNameToUse = forcedHumanoid;
+		// A mesh with more bones than the MP humanoid skeleton (e.g. the protocol droid, 54 bones) was
+		// built for its own skeleton: its bone references would index past the humanoid bone cache and
+		// corrupt memory. Keep its own GLA in that case (old 72-bone models are remapped further down).
+		const model_t* humanoidGLA = R_GetModelByHandle(animIndex);
+		if (mdxm->numBones != 72 && humanoidGLA && humanoidGLA->type == MOD_MDXA && humanoidGLA->data.gla &&
+			mdxm->numBones > humanoidGLA->data.gla->numBones)
+		{
+			animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
+		}
+		else
+		{
+			animNameToUse = forcedHumanoid;
+		}
 	}
 	else
 	{
@@ -1887,7 +1899,9 @@ int R_LerpTag(orientation_t* tag, qhandle_t handle, int startFrame, int endFrame
 	model_t* model;
 
 	model = R_GetModelByHandle(handle);
-	if (!model->data.mdv[0])
+	// model->data is a union: for ghoul2 / mdr / iqm / brush models mdv[0] is not NULL,
+	// so check the type before reading it as an md3 (like rd-vanilla, which has a separate md3 field)
+	if (model->type != MOD_MESH || !model->data.mdv[0])
 	{
 		if (model->type == MOD_MDR)
 		{

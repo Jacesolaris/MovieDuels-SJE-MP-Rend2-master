@@ -1392,6 +1392,19 @@ static void RoQ_init(void)
 *
 ******************************************************************************/
 
+// The menu opened under the opening logos video and started its music, which ending the video stops
+// (all sounds are stopped): open the main menu again so it starts its music.
+static qboolean cl_openingLogos = qfalse;
+
+static void CL_OpeningLogosDone(void)
+{
+	if (cl_openingLogos)
+	{
+		cl_openingLogos = qfalse;
+		Cbuf_AddText("ui_openmenu main\n");
+	}
+}
+
 static void RoQShutdown(void)
 {
 	if (!cinTable[currentHandle].buf)
@@ -1426,6 +1439,7 @@ static void RoQShutdown(void)
 			Cvar_Set("nextmap", "");
 		}
 		CL_handle = -1;
+		CL_OpeningLogosDone();
 	}
 	cinTable[currentHandle].fileName[0] = 0;
 	currentHandle = -1;
@@ -1537,7 +1551,9 @@ e_status CIN_RunCinematic(const int handle)
 		}
 		else
 		{
+			// RoQShutdown sets currentHandle to -1, so don't index cinTable with it afterwards.
 			RoQShutdown();
+			return FMV_EOF;
 		}
 	}
 
@@ -1794,6 +1810,18 @@ void CL_PlayCinematic_f(void)
 
 	S_StopAllSounds();
 
+	// the opening logos video has no sound of its own: play its music with it, as singleplayer does
+	// (as a sound, not a music track: the file is mono and the music player only streams stereo)
+	if (!Q_stricmp(arg, "openinglogos.roq") || !Q_stricmp(arg, "openinglogos"))
+	{
+		const sfxHandle_t logos_music = S_RegisterSound("music/mainMenu/main/OpeningLogosMusic.mp3");
+		if (logos_music)
+		{
+			S_StartLocalSound(logos_music, CHAN_LOCAL_SOUND);
+		}
+		cl_openingLogos = qtrue;
+	}
+
 	CL_handle = CIN_PlayCinematic(arg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, bits);
 	if (CL_handle >= 0)
 	{
@@ -1832,6 +1860,7 @@ void SCR_StopCinematic(void)
 		CIN_StopCinematic(CL_handle);
 		S_StopAllSounds();
 		CL_handle = -1;
+		CL_OpeningLogosDone();
 	}
 }
 

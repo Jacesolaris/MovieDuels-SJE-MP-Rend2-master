@@ -264,8 +264,8 @@ cvar_t* r_patchStitching;
 
 // the limits apply to the sum of all scenes in a frame --
 // the main view, all the 3D icons, etc
-#define	DEFAULT_MAX_POLYS		600
-#define	DEFAULT_MAX_POLYVERTS	3000
+#define	DEFAULT_MAX_POLYS		4096
+#define	DEFAULT_MAX_POLYVERTS	32768
 cvar_t* r_maxpolys;
 cvar_t* r_maxpolyverts;
 int		max_polys;
@@ -2092,8 +2092,8 @@ void R_Init(void)
 	R_NoiseInit();
 	R_Register();
 
-	max_polys = Q_min(r_maxpolys->integer, DEFAULT_MAX_POLYS);
-	max_polyverts = Q_min(r_maxpolyverts->integer, DEFAULT_MAX_POLYVERTS);
+	max_polys = Q_max(r_maxpolys->integer, DEFAULT_MAX_POLYS); // default is the minimum; the cvar can only raise it
+	max_polyverts = Q_max(r_maxpolyverts->integer, DEFAULT_MAX_POLYVERTS);
 
 	ptr = (byte*)ri->Hunk_Alloc(
 		sizeof(*backEndData) +
@@ -2217,6 +2217,13 @@ void RE_Shutdown(qboolean destroyWindow, qboolean restarting)
 
 		qglDeleteVertexArrays(1, &tr.globalVao);
 		SaveGhoul2InfoArray();
+	}
+
+	if (destroyWindow)
+	{
+		// the renderer dll is unloaded after this (vid_restart, quit): free the model cache,
+		// otherwise its zone memory (TAG_MODEL_GLA/GLM/MD3) is lost and every model is loaded again
+		CModelCache->DeleteAll();
 	}
 
 	// shut down platform specific OpenGL stuff

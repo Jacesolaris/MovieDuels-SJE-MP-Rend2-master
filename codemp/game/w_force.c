@@ -340,26 +340,11 @@ void DetermineDodgeMax(const gentity_t* ent)
 		}
 	}
 
-	//additional skills
-	for (i = 0; i < NUM_SKILLS; i++)
-	{
-		if (ent->client->skillLevel[i])
-		{
-			//has points in this skill
-			for (skillCount = FORCE_LEVEL_1; skillCount <= ent->client->skillLevel[i]; skillCount++)
-			{
-				if (i >= SK_BLUESTYLE && i <= SK_STAFFSTYLE)
-				{
-					//styles count as force powers
-					dodgeMax += bgForcePowerCost[i + NUM_FORCE_POWERS][skillCount] * SK_DP_FORFORCE;
-				}
-				else
-				{
-					dodgeMax += bgForcePowerCost[i + NUM_FORCE_POWERS][skillCount] * SK_DP_FORMERC;
-				}
-			}
-		}
-	}
+	// Additional skills (SK_*) add nothing for now. The old code read their cost from
+	// bgForcePowerCost[i + NUM_FORCE_POWERS], but that table only has NUM_FORCE_POWERS rows, so every
+	// skill read garbage from past the end of the array (into bg_itemlist).
+	// TODO: add a real skill cost table here if skills should raise max dodge
+	// (styles SK_BLUESTYLE..SK_STAFFSTYLE used SK_DP_FORFORCE, the rest SK_DP_FORMERC).
 
 	ent->client->ps.stats[STAT_MAX_DODGE] = (int)dodgeMax;
 }
@@ -6898,7 +6883,12 @@ void ForceThrow(gentity_t* self, qboolean pull)
 			}
 			else if (g_pushitems.integer && CheckPushItem(push_target[x]))
 			{
-				if (push_target[x]->item->giType == IT_TEAM)
+				if (push_target[x]->flags & FL_DROPPED_ITEM)
+				{
+					//dropped items keep their own think (G_FreeEntity, Team_DroppedFlagThink, ...),
+					//they have no spawn spot to go back to
+				}
+				else if (push_target[x]->item->giType == IT_TEAM)
 				{
 					push_target[x]->nextthink = level.time + CTF_FLAG_RETURN_TIME;
 					push_target[x]->think = ResetItem; //incase it falls off a cliff
@@ -6920,7 +6910,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 					push_target[x]->s.apos.trTime = level.time; // move a bit on the very first frame
 					VectorCopy(push_target[x]->r.currentOrigin, push_target[x]->s.pos.trBase);
 					VectorCopy(push_target[x]->r.currentOrigin, push_target[x]->s.apos.trBase);
-					push_target[x]->s.eFlags = FL_BOUNCE_HALF;
+					push_target[x]->flags |= FL_BOUNCE_HALF; //gentity flag, not an EF_ flag
 				}
 				else
 				{
@@ -6932,7 +6922,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 					push_target[x]->s.apos.trTime = level.time; // move a bit on the very first frame
 					VectorCopy(push_target[x]->r.currentOrigin, push_target[x]->s.pos.trBase);
 					VectorCopy(push_target[x]->r.currentOrigin, push_target[x]->s.apos.trBase);
-					push_target[x]->s.eFlags = FL_BOUNCE_HALF;
+					push_target[x]->flags |= FL_BOUNCE_HALF; //gentity flag, not an EF_ flag
 				}
 			}
 			else if (!Q_stricmp("func_static", push_target[x]->classname))

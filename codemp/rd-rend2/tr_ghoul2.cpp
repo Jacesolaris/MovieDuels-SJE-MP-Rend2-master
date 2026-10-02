@@ -276,8 +276,7 @@ public:
 		, rootSList(initrootSList)
 		, currentModel(initcurrentModel)
 		, boneList(initboneList)
-	{
-	}
+	{}
 };
 
 class CTransformBone
@@ -291,8 +290,7 @@ public:
 	CTransformBone()
 		: touch(0)
 		, touchRender(0)
-	{
-	}
+	{}
 };
 
 struct SBoneCalc
@@ -827,8 +825,7 @@ public:
 		, gore_shader(initgore_shader)
 		, gore_set(initgore_set)
 #endif
-	{
-	}
+	{}
 };
 
 /*
@@ -3984,7 +3981,19 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 				"R_LoadMDXM: required MP humanoid GLA missing: %s.gla", forcedHumanoid);
 		}
 
-		animNameToUse = forcedHumanoid;
+		// A mesh with more bones than the MP humanoid skeleton (e.g. the protocol droid, 54 bones) was
+		// built for its own skeleton: its bone references would index past the humanoid bone cache and
+		// corrupt memory. Keep its own GLA in that case (old 72-bone models are remapped further down).
+		const model_t* humanoidGLA = R_GetModelByHandle(animIndex);
+		if (mdxm->numBones != 72 && humanoidGLA && humanoidGLA->type == MOD_MDXA && humanoidGLA->data.gla &&
+			mdxm->numBones > humanoidGLA->data.gla->numBones)
+		{
+			animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
+		}
+		else
+		{
+			animNameToUse = forcedHumanoid;
+		}
 	}
 	else
 	{
@@ -4019,7 +4028,7 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		LL(surfInfo->parentIndex);
 
 		Q_strlwr(surfInfo->name);	//just in case
-		if (!strcmp(&surfInfo->name[strlen(surfInfo->name) - 4], "_off"))
+		if (strlen(surfInfo->name) >= 4 && !strcmp(&surfInfo->name[strlen(surfInfo->name) - 4], "_off"))
 		{
 			surfInfo->name[strlen(surfInfo->name) - 4] = 0;	//remove "_off" from name
 		}

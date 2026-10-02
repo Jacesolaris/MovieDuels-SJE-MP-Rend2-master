@@ -3452,7 +3452,7 @@ void player_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker
 	}
 
 	const int contents = trap->PointContents(self->r.currentOrigin, -1);
-	if (!(contents & CONTENTS_NODROP) && !self->client->ps.fallingToDeath || self->client->NPC_class != CLASS_GALAKMECH)
+	if (!(contents & CONTENTS_NODROP) && !self->client->ps.fallingToDeath && self->client->NPC_class != CLASS_GALAKMECH)
 	{
 		TossClientItems(self);
 	}
@@ -4622,8 +4622,7 @@ static void G_GetDismemberBolt(gentity_t* self, vec3_t bolt_point, const int lim
 }
 
 static void LimbTouch(gentity_t* self, gentity_t* other, trace_t* trace)
-{
-}
+{}
 
 static void LimbThink(gentity_t* ent)
 {
@@ -7582,7 +7581,8 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 		}
 	}
 
-	if (targ->client && attacker->client && targ->health > 0 && g_standard_humanoid(targ))
+	// point is NULL for telefrags (G_KillBox) - the head shot code below reads point[2]
+	if (point && targ->client && attacker->client && targ->health > 0 && g_standard_humanoid(targ))
 	{
 		//do head shots
 		if (inflictor->s.weapon == WP_BLASTER

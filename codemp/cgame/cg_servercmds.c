@@ -30,7 +30,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "ui/menudef.h"
 #include "ghoul2/G2.h"
 #include "ui/ui_public.h"
-#include "cg_pazaak.h"
 
 // Compatibility aliases for SP-style identifiers -> MP-style identifiers
 #ifndef gameModels
@@ -1493,6 +1492,28 @@ static void CG_RestoreClientGhoul_f(void) {
 	clent->ghoul2weapon = NULL; //force a weapon reinit
 }
 
+/*
+=================
+CG_Pazaak_f
+
+Pazaak: the board instructions of the game go on to the UI ("uipzk" console command)
+=================
+*/
+static void CG_Pazaak_f(void)
+{
+	char buf[MAX_STRING_CHARS];
+	const int argc = trap->Cmd_Argc();
+	int i;
+
+	Q_strncpyz(buf, "uipzk", sizeof buf);
+	for (i = 1; i < argc; i++)
+	{
+		Q_strcat(buf, sizeof buf, va(" \"%s\"", CG_Argv(i)));
+	}
+	Q_strcat(buf, sizeof buf, "\n");
+	trap->SendConsoleCommand(buf);
+}
+
 static void CG_CenterPrint_f(void) {
 	char strEd[MAX_STRINGED_SV_STRING] = { 0 };
 
@@ -1646,7 +1667,7 @@ static serverCommand_t	commands[] = {
 	{ "inGameCinematic",    CG_inGameCinematic_f},
 	{ "LMSWin",             CG_LMSWin_f},
 	{ "LMSLose",            CG_LMSLose_f},
-	{ "pzk",			    CG_Pazaak_ServerCmd_f },
+	{ "pzk",			    CG_Pazaak_f },
 	{ "openadminmenu",      CG_AdminMenu_f },
 };
 

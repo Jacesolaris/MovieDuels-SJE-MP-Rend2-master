@@ -874,7 +874,8 @@ static void CG_General(centity_t* cent)
 		}
 	}
 
-	if (cent->currentState.weapon == WP_STUN_BATON)
+	//corpses (ET_BODY, also drawn here) keep the weapon of the dead player: no stun cable / grapple line for them
+	if (cent->currentState.weapon == WP_STUN_BATON && cent->currentState.eType != ET_BODY)
 	{
 		int i;
 		orientation_t lerped;
@@ -910,7 +911,7 @@ static void CG_General(centity_t* cent)
 		//GOING OUT
 	}
 
-	if (cent->currentState.weapon == WP_MELEE)
+	if (cent->currentState.weapon == WP_MELEE && cent->currentState.eType != ET_BODY)
 	{
 		int i;
 		orientation_t lerped;
@@ -2766,6 +2767,22 @@ extern void CG_AddSaberBlade(centity_t* cent, centity_t* scent, int renderfx,
 	qboolean dont_draw);
 extern void CG_DoSaberLight(const saberInfo_t* saber, int cnum, int bnum);
 
+//Client info of the owner of a thrown or dropped saber. The owner can be an NPC (entity number
+//>= MAX_CLIENTS, e.g. a saber knocked out of an NPC's hand): cgs.clientinfo only has MAX_CLIENTS
+//entries, NPCs keep theirs in npcClient (the same one CG_AddSaberBlade uses).
+static clientInfo_t* CG_SaberOwnerClientInfo(const int owner)
+{
+	if (owner >= 0 && owner < MAX_CLIENTS)
+	{
+		return &cgs.clientinfo[owner];
+	}
+	if (owner >= MAX_CLIENTS && owner < ENTITYNUM_WORLD && cg_entities[owner].currentState.eType == ET_NPC)
+	{
+		return cg_entities[owner].npcClient;
+	}
+	return NULL;
+}
+
 static void CG_Missile(centity_t* cent)
 {
 	refEntity_t ent = { 0 };
@@ -2826,9 +2843,10 @@ static void CG_Missile(centity_t* cent)
 			}
 
 			// Add blade bolts to saber hilt model so we can draw the saber blade
-			if (cent->ghoul2 && s1->owner != ENTITYNUM_NONE)
+			clientInfo_t* saber_owner_info = s1->owner != ENTITYNUM_NONE ? CG_SaberOwnerClientInfo(s1->owner) : NULL;
+
+			if (cent->ghoul2 && saber_owner_info)
 			{
-				clientInfo_t* saber_owner_info = &cgs.clientinfo[s1->owner];
 				int m = 0;
 				int tag_bolt;
 				char* tag_name;
@@ -3168,12 +3186,13 @@ static void CG_Missile(centity_t* cent)
 	{
 		//This code lets ballistic or dropped sabers render their saber blades.
 
-		if (s1->owner != ENTITYNUM_NONE)
+		clientInfo_t* saber_own_info = s1->owner != ENTITYNUM_NONE ? CG_SaberOwnerClientInfo(s1->owner) : NULL;
+
+		if (saber_own_info)
 		{
 			vec3_t blade_angles;
 			//we have an owner associated with this player.
 			//get the our owner's information.
-			clientInfo_t* saber_own_info = &cgs.clientinfo[s1->owner];
 			centity_t* saber_own = &cg_entities[s1->owner];
 
 			VectorCopy(cent->lerpAngles, blade_angles);

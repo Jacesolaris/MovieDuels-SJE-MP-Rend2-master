@@ -37,6 +37,7 @@ USER INTERFACE MAIN
 
 #include "ghoul2/G2.h"
 #include "ui_local.h"
+#include "ui_pazaak.h"
 #include "qcommon/qfiles.h"
 #include "qcommon/game_version.h"
 #include "ui_force.h"
@@ -1649,9 +1650,9 @@ void UI_LoadMenus(const char* menuFile, const qboolean reset)
 	Com_Printf("---- Genuine MovieDuels SerenityJediEngine (Solaris Edition) ----\n");
 	Com_Printf("----------------------- MovieDuels-SJE-MP -----------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
-	Com_Printf("-------------------------- Update 8.0 ---------------------------\n");
-	Com_Printf("--------------------- Build Date 20/09/2026 ---------------------\n");// build date
-	Com_Printf("--------------------------- Build 09 ----------------------------\n");
+	Com_Printf("-------------------------- Update 9.0 ---------------------------\n");
+	Com_Printf("--------------------- Build Date 02/10/2026 ---------------------\n");// build date
+	Com_Printf("--------------------------- Build 01 ----------------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Lightsaber ---------------------------\n");
 	Com_Printf("---------- An elegant weapon for a more civilized age -----------\n");
@@ -3434,6 +3435,11 @@ static void UI_OwnerDraw(float x, float y, float w, float h, float text_x, float
 	rect.y = y + text_y;
 	rect.w = w;
 	rect.h = h;
+
+	if (UI_Pazaak_OwnerDraw(ownerDraw, x, y, w, h, shader))
+	{
+		return;
+	}
 
 	switch (ownerDraw)
 	{
@@ -6532,6 +6538,10 @@ static void UI_RunMenuScript(char** args)
 
 	if (String_Parse(args, &name))
 	{
+		if (UI_Pazaak_Script(name, args))
+		{
+			return; // pzk_*
+		}
 		char buff[1024];
 		if (Q_stricmp(name, "StartServer") == 0)
 		{
@@ -7913,8 +7923,7 @@ static void UI_RunMenuScript(char** args)
 }
 
 static void UI_GetTeamColor(vec4_t* color)
-{
-}
+{}
 static void UI_SetSiegeTeams(void)
 {
 	static char info[MAX_INFO_VALUE];
@@ -11350,8 +11359,44 @@ static void UI_Refresh(int realtime)
 UI_KeyEvent
 =================
 */
+// A game controller works the menus like a mouse and keyboard: a stick moves the pointer (IN_GamepadMenuPointer),
+// A clicks, X is the right mouse button, B and Start go back (Escape), Y is Enter, the D-pad is the arrow keys
+// and the shoulder buttons scroll like the mouse wheel.
+// Not while the controls menu waits for a key to bind: it needs the real button.
+static int UI_GamepadMenuKey(const int key)
+{
+	if (Display_KeyBindPending())
+	{
+		return key;
+	}
+
+	switch (key)
+	{
+	case A_PAD0_A: return A_MOUSE1;
+	case A_PAD0_X: return A_MOUSE2;
+	case A_PAD0_B:
+	case A_PAD0_START: return A_ESCAPE;
+	case A_PAD0_Y: return A_ENTER;
+	case A_PAD0_DPAD_UP: return A_CURSOR_UP;
+	case A_PAD0_DPAD_DOWN: return A_CURSOR_DOWN;
+	case A_PAD0_DPAD_LEFT: return A_CURSOR_LEFT;
+	case A_PAD0_DPAD_RIGHT: return A_CURSOR_RIGHT;
+	case A_PAD0_LEFTSHOULDER: return A_MWHEELUP;
+	case A_PAD0_RIGHTSHOULDER: return A_MWHEELDOWN;
+	default: return key;
+	}
+}
+
 static void UI_KeyEvent(int key, qboolean down)
 {
+	key = UI_GamepadMenuKey(key);
+
+	if (key == A_ESCAPE && down && UI_Pazaak_Active())
+	{
+		UI_Pazaak_OnEsc(); // the Pazaak board asks to forfeit or quit instead of closing
+		return;
+	}
+
 	if (Menu_Count() > 0)
 	{
 		menuDef_t* menu = Menu_GetFocused();

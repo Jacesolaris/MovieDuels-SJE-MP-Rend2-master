@@ -906,7 +906,7 @@ static void FighterDamageRoutine(Vehicle_t* p_veh, bgEntity_t* parent, const pla
 				p_veh->m_vOrientation[PITCH] -= p_veh->m_fTimeModifier;
 				if (!BG_UnrestrainedPitchRoll(rider_ps, p_veh))
 				{
-					if (p_veh->m_vOrientation[PITCH] > -60.0f)
+					if (p_veh->m_vOrientation[PITCH] < -60.0f) // clamp the downward pitch (">" snapped any angle to -60)
 					{
 						p_veh->m_vOrientation[PITCH] = -60.0f;
 					}
@@ -954,7 +954,7 @@ static void FighterDamageRoutine(Vehicle_t* p_veh, bgEntity_t* parent, const pla
 				p_veh->m_vOrientation[PITCH] -= p_veh->m_fTimeModifier;
 				if (!BG_UnrestrainedPitchRoll(rider_ps, p_veh))
 				{
-					if (p_veh->m_vOrientation[PITCH] > -60.0f)
+					if (p_veh->m_vOrientation[PITCH] < -60.0f) // clamp the downward pitch (">" snapped any angle to -60)
 					{
 						p_veh->m_vOrientation[PITCH] = -60.0f;
 					}
@@ -1779,8 +1779,7 @@ static void AnimateVehicle(Vehicle_t* p_veh)
 
 // This function makes sure that the rider's in this vehicle are properly animated.
 static void AnimateRiders(Vehicle_t* p_veh)
-{
-}
+{}
 
 #endif //game-only
 

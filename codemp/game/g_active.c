@@ -35,6 +35,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "g_local.h"
 #include "bg_saga.h"
+#include "g_pazaak.h"
 #include <qcommon/q_shared.h>
 #include "bg_public.h"
 #include <assert.h>
@@ -1289,8 +1290,6 @@ ClientTimerActions
 Actions that happen once a second
 ==================
 */
-extern void WP_SaberFatigueRegenerate(int override_amt);
-extern void WP_BlasterFatigueRegenerate(int override_amt);
 extern void G_Rename_Player(gentity_t* player, const char* newname);
 extern char* PickName(void);
 
@@ -1360,9 +1359,9 @@ static void ClientTimerActions(gentity_t* ent, const int msec)
 			ps->weaponTime < 1)
 		{
 			if (ps->BlasterAttackChainCount > BLASTERMISHAPLEVEL_ELEVEN)
-				WP_BlasterFatigueRegenerate(4);
+				WP_BlasterFatigueRegenerate(&client->ps, 4);
 			else
-				WP_BlasterFatigueRegenerate(1);
+				WP_BlasterFatigueRegenerate(&client->ps, 1);
 		}
 
 		// -----------------------------------------------------
@@ -1389,15 +1388,15 @@ static void ClientTimerActions(gentity_t* ent, const int msec)
 			{
 				if (!((ps->ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0))
 					if (ps->saberFatigueChainCount > MISHAPLEVEL_HUDFLASH)
-						WP_SaberFatigueRegenerate(2);
+						WP_SaberFatigueRegenerate(&client->ps, 2);
 					else
-						WP_SaberFatigueRegenerate(1);
+						WP_SaberFatigueRegenerate(&client->ps, 1);
 			}
 			else if (isBot)
 			{
 				if ((level.time & 1) == 0)  // even frame → regen
 				{
-					WP_SaberFatigueRegenerate(1);
+					WP_SaberFatigueRegenerate(&client->ps, 1);
 				}
 			}
 		}
@@ -4497,6 +4496,14 @@ static void ClientThink_real(gentity_t* ent)
 		return;
 	}
 
+	if (!isNPC && G_Pazaak_IsPlaying(ent->s.number))
+	{
+		// he sits at a Pazaak board (g_pazaak.c): no moving, fighting or using anything until the match is over
+		ucmd->forwardmove = ucmd->rightmove = ucmd->upmove = 0;
+		ucmd->buttons = 0;
+		ucmd->generic_cmd = 0;
+	}
+
 	if (ent->client->ps.ManualMBlockingTime <= level.time && ent->client->ps.ManualMBlockingTime > 0)
 	{
 		ent->client->ps.userInt3 &= ~(1 << FLAG_BLOCKING);
@@ -4518,25 +4525,33 @@ static void ClientThink_real(gentity_t* ent)
 		ent->forceFieldThink = 0;
 	}
 
+	// The bot pending flags live in client->botPendingFlags, not ps.userInt1 (whose bits are the
+	// LOCK_* movement/view locks: any bit there froze the bot).
+	if (ent->client->ps.weapon != WP_SABER)
+	{
+		// Pending saber actions are meaningless without a saber; don't let them linger.
+		client->botPendingFlags = 0;
+	}
+
 	// Delayed BOTH_STAND1TO2 animation
-	if (ps->userInt1 & BOT_PENDING_STAND_ANIM && ent->client->ps.weapon == WP_SABER)
+	if (client->botPendingFlags & BOT_PENDING_STAND_ANIM)
 	{
 		if (level.time >= ps->botPendingStandTime)
 		{
 			G_SetAnim(ent, NULL, SETANIM_TORSO, BOTH_STAND1TO2,
 				SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
 
-			ps->userInt1 &= ~BOT_PENDING_STAND_ANIM;
+			client->botPendingFlags &= ~BOT_PENDING_STAND_ANIM;
 		}
 	}
 
 	// Delayed saber-style switch
-	if (ps->userInt1 & BOT_SABER_PENDING_MASK && ent->client->ps.weapon == WP_SABER)
+	if (client->botPendingFlags & BOT_SABER_PENDING_MASK)
 	{
 		if (level.time >= ps->botPendingStyleTime)
 		{
 			Cmd_SaberAttackCycle_f(ent);
-			ps->userInt1 &= ~BOT_SABER_PENDING_MASK;
+			client->botPendingFlags &= ~BOT_SABER_PENDING_MASK;
 		}
 	}
 

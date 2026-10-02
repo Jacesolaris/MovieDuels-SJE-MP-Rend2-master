@@ -1760,8 +1760,7 @@ static int SV_CM_RegisterTerrain(const char* config)
 }
 
 static void SV_RMG_Init(void)
-{
-}
+{}
 
 static void SV_G2API_ListModelSurfaces(void* ghlInfo)
 {

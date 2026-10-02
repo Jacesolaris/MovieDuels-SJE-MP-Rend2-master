@@ -47,6 +47,8 @@ enum
 	//flechette
 	HLR_DISRUPTOR,
 	//disruptor
+	HLR_Z6,
+	//Z6 rotary cannon
 	MAX_HOLSTER //max possible holster weapon positions
 };
 

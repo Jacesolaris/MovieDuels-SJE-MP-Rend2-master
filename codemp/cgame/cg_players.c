@@ -5122,14 +5122,15 @@ CG_PlayerPowerups
 static void CG_PlayerPowerups(centity_t* cent)
 {
 	const int powerups = cent->currentState.powerups;
-	const int health = cg.snap->ps.stats[STAT_HEALTH];
 
 	if (!powerups)
 	{
 		return;
 	}
 
-	if (health < 1)
+	// no effects on a dead player - test this entity, not the viewer (cg.snap->ps is the local
+	// player: while he was dead, the flags and force effects of all other players disappeared)
+	if (cent->currentState.eFlags & EF_DEAD)
 	{
 		return;
 	}
@@ -6307,18 +6308,30 @@ void CG_ParseScriptedSaber(char* script, clientInfo_t* ci, const int snum)
 	char* p = script;
 
 	const int l = strlen(p);
+	if (l == 0)
+	{
+		ci->ScriptedNum[snum] = 0;
+		return;
+	}
 	p++; //skip the 1st ':'
 
-	while (p[0] && p - script < l && n < 10)
+	// Never step past the terminator: check the length before reading p[0]
+	while (p - script < l && p[0] && n < 10)
 	{
 		ParseRGBSaber(p, ci->ScriptedColors[n][snum]);
-		while (p[0] != ':')
+		while (p[0] && p[0] != ':')
 			p++;
+		if (!p[0])
+		{
+			//colour without a time (end of the string): ignore it, don't read past the end
+			break;
+		}
 		p++; //skipped 1st point
 
 		ci->ScriptedTimes[n][snum] = getint(&p);
 
-		p++;
+		if (p[0] == ':')
+			p++;
 		n++;
 	}
 	ci->ScriptedNum[snum] = n;
@@ -6327,6 +6340,14 @@ void CG_ParseScriptedSaber(char* script, clientInfo_t* ci, const int snum)
 static void rgb_adjust_scipted_saber_color(clientInfo_t* ci, vec3_t color, const int n)
 {
 	int actual;
+
+	if (ci->ScriptedNum[n] <= 0)
+	{
+		//empty or broken script (e.g. rgb_script1 ":"): the "% ScriptedNum" below would divide by zero.
+		//Use the same fallback colour as an invalid RGB saber (0.2, 0.4, 1.0 after the caller's / 255).
+		VectorSet(color, 51.0f, 102.0f, 255.0f);
+		return;
+	}
 
 	if (!ci->ScriptedStartTime[n])
 	{
@@ -13077,7 +13098,7 @@ void CG_AddSaberBlade(centity_t* cent, centity_t* scent, int renderfx, int saber
 						}
 						else
 						{
-							if (trace.contents & CONTENTS_WATER | CONTENTS_SLIME)
+							if (trace.contents & (CONTENTS_WATER | CONTENTS_SLIME))
 							{
 								if (Q_irand(1, client->saber[saberNum].numBlades) == 1)
 								{
@@ -13163,6 +13184,9 @@ void CG_AddSaberBlade(centity_t* cent, centity_t* scent, int renderfx, int saber
 	}
 CheckTrail:
 
+	// Set before any goto JustDoIt: the blade code after JustDoIt reads saber_trail->inAction.
+	saber_trail = &client->saber[saberNum].blade[bladeNum].trail;
+
 	if (!cg_saberTrail.integer)
 	{
 		//don't do the trail in this case
@@ -13179,8 +13203,6 @@ CheckTrail:
 	}
 
 	//FIXME: if trailStyle is 1, use the motion blur instead
-
-	saber_trail = &client->saber[saberNum].blade[bladeNum].trail;
 
 	if (cg_SFXSabers.integer == 0 || cg_SFXSabers.integer == 9 || cg_SFXSabers.integer == 10 || cg_SFXSabers.integer == 11)
 	{
@@ -14529,96 +14551,262 @@ extern playerState_t* cgSendPS[MAX_GENTITIES];
 
 static void CG_G2AnimEntModelLoad(centity_t* cent)
 {
-	clientInfo_t* ci = cent->npcClient;
-	if (!ci)
+	const char* cModelName = CG_ConfigString(CS_MODELS + cent->currentState.modelIndex);
+
+	if (!cent->npcClient)
 	{
+		//have not init'd client yet
 		return;
 	}
 
-	// ------------------------------------------------------------
-	// HUMANOID DETECTION USING PREFIX LIST
-	// ------------------------------------------------------------
-	qboolean isHumanoid = qfalse;
-
-	if (ci->glaName[0] && R_IsHumanoidPath(ci->glaName))
+	if (cModelName && cModelName[0])
 	{
-		isHumanoid = qtrue;
-	}
+		char modelName[MAX_QPATH];
+		int skinID;
 
-	// ------------------------------------------------------------
-	// NON-HUMANOID: load its own animation.cfg
-	// ------------------------------------------------------------
-	if (!isHumanoid)
-	{
-		char animPath[MAX_QPATH];
-		Q_strncpyz(animPath, ci->glaName, sizeof(animPath));
+		Q_strncpyz(modelName, cModelName, sizeof modelName);
 
-		char* slash = Q_strrchr(animPath, '/');
-		if (slash)
+		if (cent->currentState.NPC_class == CLASS_VEHICLE && modelName[0] == '$')
 		{
-			strcpy(slash, "/animation.cfg");
-			cent->localAnimIndex = bg_parse_animation_file(animPath, NULL, qfalse);
+			//vehicles pass their veh names over as model names, then we get the model name from the veh type
+			//create a vehicle object clientside for this type
+			const char* vehType = &modelName[1];
+			const int iVehIndex = BG_VehicleGetIndex(vehType);
+
+			if (iVehIndex == VEHICLE_NONE)
+			{
+				return;
+			}
+
+			switch (g_vehicleInfo[iVehIndex].type)
+			{
+			case VH_ANIMAL:
+				G_CreateAnimalNPC(&cent->m_pVehicle, vehType);
+				break;
+			case VH_SPEEDER:
+				G_CreateSpeederNPC(&cent->m_pVehicle, vehType);
+				break;
+			case VH_FIGHTER:
+				G_CreateFighterNPC(&cent->m_pVehicle, vehType);
+				break;
+			case VH_WALKER:
+				G_CreateWalkerNPC(&cent->m_pVehicle, vehType);
+				break;
+			default:
+				assert(!"vehicle with an unknown type - couldn't create vehicle_t");
+				return;
+			}
+
+			//set up my happy prediction hack
+			cent->m_pVehicle->m_vOrientation = &cgSendPS[cent->currentState.number]->vehOrientation[0];
+
+			cent->m_pVehicle->m_pParentEntity = (bgEntity_t*)cent;
+
+			//attach the handles for fx cgame-side
+			CG_RegisterVehicleAssets(cent->m_pVehicle);
+
+			BG_GetVehicleModelName(modelName, modelName, sizeof modelName);
+			if (cent->m_pVehicle->m_pVehicleInfo->skin &&
+				cent->m_pVehicle->m_pVehicleInfo->skin[0])
+			{
+				//use a custom skin
+				skinID = trap->R_RegisterSkin(va("models/players/%s/model_%s.skin", modelName, cent->m_pVehicle->m_pVehicleInfo->skin));
+			}
+			else
+			{
+				skinID = trap->R_RegisterSkin(va("models/players/%s/model_default.skin", modelName));
+			}
+			Q_strncpyz(modelName, va("models/players/%s/model.glm", modelName), sizeof modelName);
+
+			//this sound is *only* used for vehicles now
+			cgs.media.noAmmoSound = trap->S_RegisterSound("sound/weapons/noammo.wav");
+		}
+		else
+		{
+			skinID = CG_HandleAppendedSkin(modelName); //get the skin if there is one.
 		}
 
-		return;
-	}
-
-	// ------------------------------------------------------------
-	// HUMANOID: add humanoid bolts and set anim index
-	// ------------------------------------------------------------
-	trap->G2API_AddBolt(cent->ghoul2, 0, "*r_hand");
-	trap->G2API_AddBolt(cent->ghoul2, 0, "*l_hand");
-	trap->G2API_AddBolt(cent->ghoul2, 0, "*chestg");
-	trap->G2API_AddBolt(cent->ghoul2, 0, "*r_hand_cap_r_arm");
-	trap->G2API_AddBolt(cent->ghoul2, 0, "*l_hand_cap_l_arm");
-
-	// Rocket trooper exception
-	if (strstr(ci->modelName, "rockettrooper"))
-	{
-		cent->localAnimIndex = 1;
-	}
-	else
-	{
-		cent->localAnimIndex = 0;
-	}
-
-	if (trap->G2API_AddBolt(cent->ghoul2, 0, "*head_top") == -1)
-	{
-		trap->G2API_AddBolt(cent->ghoul2, 0, "ceyebrow");
-	}
-
-	trap->G2API_AddBolt(cent->ghoul2, 0, "Motion");
-
-	// ------------------------------------------------------------
-	// LUMBAR / FACE BONE CHECKS
-	// ------------------------------------------------------------
-	if (trap->G2API_AddBolt(cent->ghoul2, 0, "lower_lumbar") == -1)
-	{
-		cent->noLumbar = qtrue;
-	}
-
-	if (trap->G2API_AddBolt(cent->ghoul2, 0, "face") == -1)
-	{
-		cent->noFace = qtrue;
-	}
-
-	// ------------------------------------------------------------
-	// EVENT FILE PARSING
-	// ------------------------------------------------------------
-	if (cent->localAnimIndex != -1)
-	{
-		char basePath[MAX_QPATH];
-		Q_strncpyz(basePath, ci->animName, sizeof(basePath));
-
-		char* slash = Q_strrchr(basePath, '/');
-		if (slash)
+		if (cent->ghoul2)
 		{
-			slash++;
-			*slash = 0;
+			//clean it first!
+			trap->G2API_CleanGhoul2Models(&cent->ghoul2);
 		}
 
-		cent->eventAnimIndex =
-			BG_ParseAnimationEvtFile(basePath, cent->localAnimIndex, bgNumAnimEvents);
+		trap->G2API_InitGhoul2Model(&cent->ghoul2, modelName, 0, skinID, 0, 0, 0);
+
+		if (cent->ghoul2)
+		{
+			char GLAName[MAX_QPATH];
+			char originalModelName[MAX_QPATH];
+			const char* saber;
+			int j = 0;
+
+			if (cent->currentState.NPC_class == CLASS_VEHICLE &&
+				cent->m_pVehicle)
+			{
+				//do special vehicle stuff
+				char strTemp[128];
+				int i;
+
+				// Setup the default first bolt
+				trap->G2API_AddBolt(cent->ghoul2, 0, "model_root");
+
+				// Setup the droid unit.
+				cent->m_pVehicle->m_iDroidUnitTag = trap->G2API_AddBolt(cent->ghoul2, 0, "*droidunit");
+
+				// Setup the Exhausts.
+				for (i = 0; i < MAX_VEHICLE_EXHAUSTS; i++)
+				{
+					Com_sprintf(strTemp, sizeof strTemp, "*exhaust%i", i + 1);
+					cent->m_pVehicle->m_iExhaustTag[i] = trap->G2API_AddBolt(cent->ghoul2, 0, strTemp);
+				}
+
+				// Setup the Muzzles.
+				for (i = 0; i < MAX_VEHICLE_MUZZLES; i++)
+				{
+					Com_sprintf(strTemp, sizeof strTemp, "*muzzle%i", i + 1);
+					cent->m_pVehicle->m_iMuzzleTag[i] = trap->G2API_AddBolt(cent->ghoul2, 0, strTemp);
+					if (cent->m_pVehicle->m_iMuzzleTag[i] == -1)
+					{
+						//ergh, try *flash?
+						Com_sprintf(strTemp, sizeof strTemp, "*flash%i", i + 1);
+						cent->m_pVehicle->m_iMuzzleTag[i] = trap->G2API_AddBolt(cent->ghoul2, 0, strTemp);
+					}
+				}
+
+				// Setup the Turrets.
+				for (i = 0; i < MAX_VEHICLE_TURRETS; i++)
+				{
+					if (cent->m_pVehicle->m_pVehicleInfo->turret[i].gunnerViewTag)
+					{
+						cent->m_pVehicle->m_iGunnerViewTag[i] = trap->G2API_AddBolt(cent->ghoul2, 0, cent->m_pVehicle->m_pVehicleInfo->turret[i].gunnerViewTag);
+					}
+					else
+					{
+						cent->m_pVehicle->m_iGunnerViewTag[i] = -1;
+					}
+				}
+			}
+
+			//valid saber names always start with '@' for NPCs
+			if (cent->currentState.npcSaber1)
+			{
+				saber = CG_ConfigString(CS_MODELS + cent->currentState.npcSaber1);
+				if (saber && saber[0] == '@')
+				{
+					WP_SetSaber(cent->currentState.number, cent->npcClient->saber, 0, saber + 1);
+				}
+			}
+			if (cent->currentState.npcSaber2)
+			{
+				saber = CG_ConfigString(CS_MODELS + cent->currentState.npcSaber2);
+				if (saber && saber[0] == '@')
+				{
+					WP_SetSaber(cent->currentState.number, cent->npcClient->saber, 1, saber + 1);
+				}
+			}
+
+			// If this is a not vehicle, give it saber stuff...
+			if (cent->currentState.NPC_class != CLASS_VEHICLE)
+			{
+				while (j < MAX_SABERS)
+				{
+					if (cent->npcClient->saber[j].model[0])
+					{
+						if (cent->npcClient->ghoul2Weapons[j])
+						{
+							//free the old instance(s)
+							trap->G2API_CleanGhoul2Models(&cent->npcClient->ghoul2Weapons[j]);
+							cent->npcClient->ghoul2Weapons[j] = 0;
+						}
+
+						CG_InitG2SaberData(j, cent->npcClient);
+					}
+					j++;
+				}
+			}
+
+			trap->G2API_SetSkin(cent->ghoul2, 0, skinID, skinID);
+
+			cent->localAnimIndex = -1;
+
+			GLAName[0] = 0;
+			trap->G2API_GetGLAName(cent->ghoul2, 0, GLAName);
+
+			Q_strncpyz(originalModelName, modelName, sizeof originalModelName);
+
+			// ------------------------------------------------------------
+			// HUMANOID DETECTION USING PREFIX LIST
+			// (same rule as the server in g_client.c, SetupGameGhoul2Model)
+			// ------------------------------------------------------------
+			if (!R_IsHumanoidPath(GLAName))
+			{
+				//it doesn't use humanoid anims.
+				char* slash = Q_strrchr(GLAName, '/');
+				if (slash)
+				{
+					strcpy(slash, "/animation.cfg");
+
+					cent->localAnimIndex = bg_parse_animation_file(GLAName, NULL, qfalse);
+				}
+			}
+			else
+			{
+				//humanoid index.
+				trap->G2API_AddBolt(cent->ghoul2, 0, "*r_hand");
+				trap->G2API_AddBolt(cent->ghoul2, 0, "*l_hand");
+
+				//rhand must always be first bolt. lhand always second. Whichever you want the
+				//jetpack bolted to must always be third.
+				trap->G2API_AddBolt(cent->ghoul2, 0, "*chestg");
+
+				//claw bolts
+				trap->G2API_AddBolt(cent->ghoul2, 0, "*r_hand_cap_r_arm");
+				trap->G2API_AddBolt(cent->ghoul2, 0, "*l_hand_cap_l_arm");
+
+				//all humanoid-prefix models share index 0 (_humanoid_mp), as on the server
+				cent->localAnimIndex = 0;
+
+				if (trap->G2API_AddBolt(cent->ghoul2, 0, "*head_top") == -1)
+				{
+					trap->G2API_AddBolt(cent->ghoul2, 0, "ceyebrow");
+				}
+				trap->G2API_AddBolt(cent->ghoul2, 0, "Motion");
+			}
+
+			// If this is a not vehicle...
+			if (cent->currentState.NPC_class != CLASS_VEHICLE)
+			{
+				if (trap->G2API_AddBolt(cent->ghoul2, 0, "lower_lumbar") == -1)
+				{
+					//check now to see if we have this bone for setting anims and such
+					cent->noLumbar = qtrue;
+				}
+
+				if (trap->G2API_AddBolt(cent->ghoul2, 0, "face") == -1)
+				{
+					//check now to see if we have this bone for setting anims and such
+					cent->noFace = qtrue;
+				}
+			}
+			else
+			{
+				cent->noLumbar = qtrue;
+				cent->noFace = qtrue;
+			}
+
+			if (cent->localAnimIndex != -1)
+			{
+				char* slash = Q_strrchr(originalModelName, '/');
+				if (slash)
+				{
+					slash++;
+					*slash = 0;
+				}
+
+				cent->eventAnimIndex = BG_ParseAnimationEvtFile(originalModelName, cent->localAnimIndex, bgNumAnimEvents);
+			}
+		}
 	}
 
 	// ------------------------------------------------------------
@@ -16338,7 +16526,7 @@ static void ApplyAxisRotation(vec3_t axis[3], const int rot_type, const float va
 	AxisCopy(result, axis);
 }extern stringID_table_t holsterTypeTable[];
 
-static void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, const int holster_type)
+static void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, const int holster_type, const int weapon)
 {
 	refEntity_t ent;
 	vec3_t axis[3] = { 0 };
@@ -16369,6 +16557,7 @@ static void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, co
 	// Debug override for editing holster positions
 	if (cg_holsterdebug.integer == holster_type)
 	{
+		boneIndex = cg_holsterdebug_boneindex.integer;
 		int parsedPos = 0;
 		int parsedAng = 0;
 
@@ -16436,62 +16625,14 @@ static void CG_HolsteredWeaponRender(centity_t* cent, const clientInfo_t* ci, co
 		weapon_type = WP_SABER;
 		break;
 
-	case HLR_PISTOL_L:
-	case HLR_PISTOL_R:
-		weapon_type = WP_BRYAR_PISTOL;
-		weapon_type = WP_REY;
-		weapon_type = WP_JANGO;
-		weapon_type = WP_BOBA;
-		weapon_type = WP_CLONEPISTOL;
-		weapon_type = WP_REBELBLASTER;
-		break;
-
-	case HLR_BLASTER_L:
-	case HLR_BLASTER_R:
-		weapon_type = WP_BLASTER;
-		weapon_type = WP_BATTLEDROID;
-		weapon_type = WP_THEFIRSTORDER;
-		weapon_type = WP_CLONECARBINE;
-		weapon_type = WP_CLONERIFLE;
-		weapon_type = WP_CLONECOMMANDO;
-		weapon_type = WP_REBELRIFLE;
-		break;
-
-	case HLR_BRYARPISTOL_L:
-	case HLR_BRYARPISTOL_R:
-		weapon_type = WP_BRYAR_OLD;
-		break;
-
-	case HLR_BOWCASTER:
-		weapon_type = WP_BOWCASTER;
-		break;
-
-	case HLR_ROCKET_LAUNCHER:
-		weapon_type = WP_ROCKET_LAUNCHER;
-		break;
-
-	case HLR_DEMP2:
-		weapon_type = WP_DEMP2;
-		break;
-
-	case HLR_CONCUSSION:
-		weapon_type = WP_CONCUSSION;
-		break;
-
-	case HLR_REPEATER:
-		weapon_type = WP_REPEATER;
-		weapon_type = WP_Z6_ROTARY_CANNON;
-		break;
-
-	case HLR_FLECHETTE:
-		weapon_type = WP_FLECHETTE;
-		break;
-
-	case HLR_DISRUPTOR:
-		weapon_type = WP_DISRUPTOR;
-		break;
-
 	default:
+		// the guns: several share a holster type, the caller says which one
+		weapon_type = weapon;
+		break;
+	}
+
+	if (weapon_type <= WP_NONE || weapon_type >= WP_NUM_WEAPONS)
+	{
 		Com_Printf("Unknown weaponType for holsterType %i in CG_HolsteredWeaponRender.\n", holster_type);
 		return;
 	}
@@ -16662,7 +16803,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 						else
 						{
 							//use offset method
-							CG_HolsteredWeaponRender(cent, ci, HLR_SINGLESABER_1);
+							CG_HolsteredWeaponRender(cent, ci, HLR_SINGLESABER_1, WP_SABER);
 						}
 					}
 
@@ -16681,7 +16822,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 						else
 						{
 							//use offset method
-							CG_HolsteredWeaponRender(cent, ci, HLR_SINGLESABER_2);
+							CG_HolsteredWeaponRender(cent, ci, HLR_SINGLESABER_2, WP_SABER);
 						}
 					}
 				}
@@ -16709,7 +16850,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 							else
 							{
 								//use offset method
-								CG_HolsteredWeaponRender(cent, ci, HLR_STAFFSABER);
+								CG_HolsteredWeaponRender(cent, ci, HLR_STAFFSABER, WP_SABER);
 							}
 							//let the system know that we're using the back holster position at the moment.
 							back_in_use = qtrue;
@@ -16786,7 +16927,8 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 		}
 
 		//Handle Blaster Holster on right hip
-		if (!(weap_inv & 1 << WP_BLASTER) //don't have blaster
+		if (right_hip_in_use //hip in use already
+			|| !(weap_inv & 1 << WP_BLASTER) //don't have blaster
 			|| cent->currentState.weapon == WP_BLASTER) //or are currently using blaster
 		{
 			//don't need holstered blaster rendered
@@ -16828,7 +16970,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R, WP_BLASTER);
 			}
 			right_hip_in_use = WP_BLASTER;
 		}
@@ -16836,7 +16978,8 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 		//new weapons
 
 		//Handle Blaster Holster on right hip
-		if (!(weap_inv & 1 << WP_BATTLEDROID) //don't have blaster
+		if (right_hip_in_use //hip in use already
+			|| !(weap_inv & 1 << WP_BATTLEDROID) //don't have blaster
 			|| cent->currentState.weapon == WP_BATTLEDROID) //or are currently using blaster
 		{
 			//don't need holstered blaster rendered
@@ -16878,13 +17021,14 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R, WP_BATTLEDROID);
 			}
 			right_hip_in_use = WP_BATTLEDROID;
 		}
 
 		//Handle Blaster Holster on right hip
-		if (!(weap_inv & 1 << WP_THEFIRSTORDER) //don't have blaster
+		if (right_hip_in_use //hip in use already
+			|| !(weap_inv & 1 << WP_THEFIRSTORDER) //don't have blaster
 			|| cent->currentState.weapon == WP_THEFIRSTORDER) //or are currently using blaster
 		{
 			//don't need holstered blaster rendered
@@ -16926,13 +17070,14 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R, WP_THEFIRSTORDER);
 			}
 			right_hip_in_use = WP_THEFIRSTORDER;
 		}
 
 		//Handle Blaster Holster on right hip
-		if (!(weap_inv & 1 << WP_CLONECARBINE) //don't have blaster
+		if (right_hip_in_use //hip in use already
+			|| !(weap_inv & 1 << WP_CLONECARBINE) //don't have blaster
 			|| cent->currentState.weapon == WP_CLONECARBINE) //or are currently using blaster
 		{
 			//don't need holstered blaster rendered
@@ -16974,13 +17119,14 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R, WP_CLONECARBINE);
 			}
 			right_hip_in_use = WP_CLONECARBINE;
 		}
 
 		//Handle Blaster Holster on right hip
-		if (!(weap_inv & 1 << WP_REBELBLASTER) //don't have blaster
+		if (right_hip_in_use //hip in use already
+			|| !(weap_inv & 1 << WP_REBELBLASTER) //don't have blaster
 			|| cent->currentState.weapon == WP_REBELBLASTER) //or are currently using blaster
 		{
 			//don't need holstered blaster rendered
@@ -17022,153 +17168,9 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R, WP_REBELBLASTER);
 			}
 			right_hip_in_use = WP_REBELBLASTER;
-		}
-
-		//Handle Blaster Holster on right hip
-		if (!(weap_inv & 1 << WP_CLONERIFLE) //don't have blaster
-			|| cent->currentState.weapon == WP_CLONERIFLE) //or are currently using blaster
-		{
-			//don't need holstered blaster rendered
-			if (ci->holster_blaster != -1 && ci->blaster_holstered == WP_CLONERIFLE)
-			{
-				if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED))
-				{
-					trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED);
-				}
-				ci->blaster_holstered = 0;
-			}
-		}
-		else
-		{
-			//need holstered blaster to be rendered
-			if (ci->holster_blaster != -1)
-			{
-				//have specialized bolt
-				if (ci->blaster_holstered != WP_CLONERIFLE)
-				{
-					//don't already have the blaster bolted.
-					if (ci->blaster_holstered != 0)
-					{
-						//we have something else bolted there, remove it first.
-						if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED))
-						{
-							trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED);
-						}
-						ci->blaster_holstered = 0;
-					}
-
-					//now add the blaster
-					trap->G2API_CopySpecificGhoul2Model(CG_G2WeaponInstance(cent, WP_CLONERIFLE), 0, cent->ghoul2,
-						G2MODEL_BLASTER_HOLSTERED);
-					trap->G2API_SetBoltInfo(cent->ghoul2, G2MODEL_BLASTER_HOLSTERED, ci->holster_blaster);
-					ci->blaster_holstered = WP_CLONERIFLE;
-				}
-			}
-			else
-			{
-				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R);
-			}
-			right_hip_in_use = WP_CLONERIFLE;
-		}
-
-		//Handle Blaster Holster on right hip
-		if (!(weap_inv & 1 << WP_CLONECOMMANDO) //don't have blaster
-			|| cent->currentState.weapon == WP_CLONECOMMANDO) //or are currently using blaster
-		{
-			//don't need holstered blaster rendered
-			if (ci->holster_blaster != -1 && ci->blaster_holstered == WP_CLONECOMMANDO)
-			{
-				if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED))
-				{
-					trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED);
-				}
-				ci->blaster_holstered = 0;
-			}
-		}
-		else
-		{
-			//need holstered blaster to be rendered
-			if (ci->holster_blaster != -1)
-			{
-				//have specialized bolt
-				if (ci->blaster_holstered != WP_CLONECOMMANDO)
-				{
-					//don't already have the blaster bolted.
-					if (ci->blaster_holstered != 0)
-					{
-						//we have something else bolted there, remove it first.
-						if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED))
-						{
-							trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED);
-						}
-						ci->blaster_holstered = 0;
-					}
-
-					//now add the blaster
-					trap->G2API_CopySpecificGhoul2Model(CG_G2WeaponInstance(cent, WP_CLONECOMMANDO), 0, cent->ghoul2,
-						G2MODEL_BLASTER_HOLSTERED);
-					trap->G2API_SetBoltInfo(cent->ghoul2, G2MODEL_BLASTER_HOLSTERED, ci->holster_blaster);
-					ci->blaster_holstered = WP_CLONECOMMANDO;
-				}
-			}
-			else
-			{
-				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R);
-			}
-			right_hip_in_use = WP_CLONECOMMANDO;
-		}
-
-		//Handle Blaster Holster on right hip
-		if (!(weap_inv & 1 << WP_REBELRIFLE) //don't have blaster
-			|| cent->currentState.weapon == WP_REBELRIFLE) //or are currently using blaster
-		{
-			//don't need holstered blaster rendered
-			if (ci->holster_blaster != -1 && ci->blaster_holstered == WP_REBELRIFLE)
-			{
-				if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED))
-				{
-					trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED);
-				}
-				ci->blaster_holstered = 0;
-			}
-		}
-		else
-		{
-			//need holstered blaster to be rendered
-			if (ci->holster_blaster != -1)
-			{
-				//have specialized bolt
-				if (ci->blaster_holstered != WP_REBELRIFLE)
-				{
-					//don't already have the blaster bolted.
-					if (ci->blaster_holstered != 0)
-					{
-						//we have something else bolted there, remove it first.
-						if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED))
-						{
-							trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER_HOLSTERED);
-						}
-						ci->blaster_holstered = 0;
-					}
-
-					//now add the blaster
-					trap->G2API_CopySpecificGhoul2Model(CG_G2WeaponInstance(cent, WP_REBELRIFLE), 0, cent->ghoul2,
-						G2MODEL_BLASTER_HOLSTERED);
-					trap->G2API_SetBoltInfo(cent->ghoul2, G2MODEL_BLASTER_HOLSTERED, ci->holster_blaster);
-					ci->blaster_holstered = WP_REBELRIFLE;
-				}
-			}
-			else
-			{
-				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_R);
-			}
-			right_hip_in_use = WP_REBELRIFLE;
 		}
 
 		//handle rendering WP_BRYAR_PISTOL on right hip holster
@@ -17215,7 +17217,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_R, WP_BRYAR_PISTOL);
 			}
 			right_hip_in_use = WP_BRYAR_PISTOL;
 		}
@@ -17264,7 +17266,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_R, WP_REY);
 			}
 			right_hip_in_use = WP_REY;
 		}
@@ -17313,7 +17315,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_R, WP_JANGO);
 			}
 			right_hip_in_use = WP_JANGO;
 		}
@@ -17362,7 +17364,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_R, WP_BOBA);
 			}
 			right_hip_in_use = WP_BOBA;
 		}
@@ -17411,7 +17413,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_R, WP_CLONEPISTOL);
 			}
 			right_hip_in_use = WP_CLONEPISTOL;
 		}
@@ -17460,7 +17462,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_BRYARPISTOL_R);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BRYARPISTOL_R, WP_BRYAR_OLD);
 			}
 			right_hip_in_use = WP_BRYAR_OLD;
 		}
@@ -17470,7 +17472,8 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 		*============================
 		*/
 		//Handle Blaster Holster on left hip
-		if (!(weap_inv & 1 << WP_BLASTER) //don't have blaster
+		if (left_hip_in_use //hip in use already
+			|| !(weap_inv & 1 << WP_BLASTER) //don't have blaster
 			|| cent->currentState.weapon == WP_BLASTER //or are currently using blaster
 			|| right_hip_in_use == WP_BLASTER) //or the blaster is already on the right hip.
 
@@ -17515,12 +17518,13 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L, WP_BLASTER);
 			}
 			left_hip_in_use = WP_BLASTER;
 		}
 		//Handle Blaster Holster on left hip
-		if (!(weap_inv & 1 << WP_BATTLEDROID) //don't have blaster
+		if (left_hip_in_use //hip in use already
+			|| !(weap_inv & 1 << WP_BATTLEDROID) //don't have blaster
 			|| cent->currentState.weapon == WP_BATTLEDROID //or are currently using blaster
 			|| right_hip_in_use == WP_BATTLEDROID) //or the blaster is already on the right hip.
 
@@ -17565,12 +17569,13 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L, WP_BATTLEDROID);
 			}
 			left_hip_in_use = WP_BATTLEDROID;
 		}
 		//Handle Blaster Holster on left hip
-		if (!(weap_inv & 1 << WP_THEFIRSTORDER) //don't have blaster
+		if (left_hip_in_use //hip in use already
+			|| !(weap_inv & 1 << WP_THEFIRSTORDER) //don't have blaster
 			|| cent->currentState.weapon == WP_THEFIRSTORDER //or are currently using blaster
 			|| right_hip_in_use == WP_THEFIRSTORDER) //or the blaster is already on the right hip.
 
@@ -17615,12 +17620,13 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L, WP_THEFIRSTORDER);
 			}
 			left_hip_in_use = WP_THEFIRSTORDER;
 		}
 		//Handle Blaster Holster on left hip
-		if (!(weap_inv & 1 << WP_CLONECARBINE) //don't have blaster
+		if (left_hip_in_use //hip in use already
+			|| !(weap_inv & 1 << WP_CLONECARBINE) //don't have blaster
 			|| cent->currentState.weapon == WP_CLONECARBINE //or are currently using blaster
 			|| right_hip_in_use == WP_CLONECARBINE) //or the blaster is already on the right hip.
 
@@ -17665,12 +17671,13 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L, WP_CLONECARBINE);
 			}
 			left_hip_in_use = WP_CLONECARBINE;
 		}
 		//Handle Blaster Holster on left hip
-		if (!(weap_inv & 1 << WP_REBELBLASTER) //don't have blaster
+		if (left_hip_in_use //hip in use already
+			|| !(weap_inv & 1 << WP_REBELBLASTER) //don't have blaster
 			|| cent->currentState.weapon == WP_REBELBLASTER //or are currently using blaster
 			|| right_hip_in_use == WP_REBELBLASTER) //or the blaster is already on the right hip.
 
@@ -17715,161 +17722,10 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L, WP_REBELBLASTER);
 			}
 			left_hip_in_use = WP_REBELBLASTER;
 		}
-		//Handle Blaster Holster on left hip
-		if (!(weap_inv & 1 << WP_CLONERIFLE) //don't have blaster
-			|| cent->currentState.weapon == WP_CLONERIFLE //or are currently using blaster
-			|| right_hip_in_use == WP_CLONERIFLE) //or the blaster is already on the right hip.
-
-		{
-			//don't need holstered blaster on left hip rendered
-			if (ci->holster_blaster2 != -1 && ci->blaster2_holstered == WP_CLONERIFLE)
-			{
-				//remove bolted holster instance.
-				if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED))
-				{
-					trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED);
-				}
-				ci->blaster2_holstered = 0;
-			}
-		}
-		else
-		{
-			//need holstered blaster to be rendered
-			if (ci->holster_blaster2 != -1)
-			{
-				//have specialized bolt
-				if (ci->blaster2_holstered != WP_CLONERIFLE)
-				{
-					//don't already have the blaster bolted.
-					if (ci->blaster2_holstered != 0)
-					{
-						//we have something else bolted there, remove it first.
-						if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED))
-						{
-							trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED);
-						}
-						ci->blaster2_holstered = 0;
-					}
-
-					//now add the blaster
-					trap->G2API_CopySpecificGhoul2Model(CG_G2WeaponInstance(cent, WP_CLONERIFLE), 0, cent->ghoul2,
-						G2MODEL_BLASTER2_HOLSTERED);
-					trap->G2API_SetBoltInfo(cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED, ci->holster_blaster2);
-					ci->blaster2_holstered = WP_CLONERIFLE;
-				}
-			}
-			else
-			{
-				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L);
-			}
-			left_hip_in_use = WP_CLONERIFLE;
-		}
-		//Handle Blaster Holster on left hip
-		if (!(weap_inv & 1 << WP_CLONECOMMANDO) //don't have blaster
-			|| cent->currentState.weapon == WP_CLONECOMMANDO //or are currently using blaster
-			|| right_hip_in_use == WP_CLONECOMMANDO) //or the blaster is already on the right hip.
-
-		{
-			//don't need holstered blaster on left hip rendered
-			if (ci->holster_blaster2 != -1 && ci->blaster2_holstered == WP_CLONECOMMANDO)
-			{
-				//remove bolted holster instance.
-				if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED))
-				{
-					trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED);
-				}
-				ci->blaster2_holstered = 0;
-			}
-		}
-		else
-		{
-			//need holstered blaster to be rendered
-			if (ci->holster_blaster2 != -1)
-			{
-				//have specialized bolt
-				if (ci->blaster2_holstered != WP_CLONECOMMANDO)
-				{
-					//don't already have the blaster bolted.
-					if (ci->blaster2_holstered != 0)
-					{
-						//we have something else bolted there, remove it first.
-						if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED))
-						{
-							trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED);
-						}
-						ci->blaster2_holstered = 0;
-					}
-
-					//now add the blaster
-					trap->G2API_CopySpecificGhoul2Model(CG_G2WeaponInstance(cent, WP_CLONECOMMANDO), 0, cent->ghoul2,
-						G2MODEL_BLASTER2_HOLSTERED);
-					trap->G2API_SetBoltInfo(cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED, ci->holster_blaster2);
-					ci->blaster2_holstered = WP_CLONECOMMANDO;
-				}
-			}
-			else
-			{
-				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L);
-			}
-			left_hip_in_use = WP_CLONECOMMANDO;
-		}
-		//Handle Blaster Holster on left hip
-		if (!(weap_inv & 1 << WP_REBELRIFLE) //don't have blaster
-			|| cent->currentState.weapon == WP_REBELRIFLE //or are currently using blaster
-			|| right_hip_in_use == WP_REBELRIFLE) //or the blaster is already on the right hip.
-
-		{
-			//don't need holstered blaster on left hip rendered
-			if (ci->holster_blaster2 != -1 && ci->blaster2_holstered == WP_REBELRIFLE)
-			{
-				//remove bolted holster instance.
-				if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED))
-				{
-					trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED);
-				}
-				ci->blaster2_holstered = 0;
-			}
-		}
-		else
-		{
-			//need holstered blaster to be rendered
-			if (ci->holster_blaster2 != -1)
-			{
-				//have specialized bolt
-				if (ci->blaster2_holstered != WP_REBELRIFLE)
-				{
-					//don't already have the blaster bolted.
-					if (ci->blaster2_holstered != 0)
-					{
-						//we have something else bolted there, remove it first.
-						if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED))
-						{
-							trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED);
-						}
-						ci->blaster2_holstered = 0;
-					}
-
-					//now add the blaster
-					trap->G2API_CopySpecificGhoul2Model(CG_G2WeaponInstance(cent, WP_REBELRIFLE), 0, cent->ghoul2,
-						G2MODEL_BLASTER2_HOLSTERED);
-					trap->G2API_SetBoltInfo(cent->ghoul2, G2MODEL_BLASTER2_HOLSTERED, ci->holster_blaster2);
-					ci->blaster2_holstered = WP_REBELRIFLE;
-				}
-			}
-			else
-			{
-				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_BLASTER_L);
-			}
-			left_hip_in_use = WP_REBELRIFLE;
-		}
-
 		//Handle pistol Holster on left hip
 		if (left_hip_in_use
 			|| !(weap_inv & 1 << WP_BRYAR_PISTOL) //don't have pistol
@@ -17916,7 +17772,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_L, WP_BRYAR_PISTOL);
 			}
 			left_hip_in_use = WP_BRYAR_PISTOL;
 		}
@@ -17967,7 +17823,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_L, WP_REY);
 			}
 			left_hip_in_use = WP_REY;
 		}
@@ -18018,7 +17874,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_L, WP_JANGO);
 			}
 			left_hip_in_use = WP_JANGO;
 		}
@@ -18069,7 +17925,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_L, WP_BOBA);
 			}
 			left_hip_in_use = WP_BOBA;
 		}
@@ -18120,7 +17976,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_PISTOL_L, WP_CLONEPISTOL);
 			}
 			left_hip_in_use = WP_CLONEPISTOL;
 		}
@@ -18171,14 +18027,21 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the pistol
-				CG_HolsteredWeaponRender(cent, ci, HLR_BRYARPISTOL_L);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BRYARPISTOL_L, WP_BRYAR_OLD);
 			}
+			left_hip_in_use = WP_BRYAR_OLD;
 		}
 
 		/*============================
 		* End Left Hip Holster code
 		*============================
 		*/
+
+		//at most 2 holstered guns: a gun on the back only while a hip is free
+		if (right_hip_in_use && left_hip_in_use)
+		{
+			back_in_use = qtrue;
+		}
 
 		/*============================
 		* Start Back Gun Holster code
@@ -18203,7 +18066,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 				else
 				{
 					//manual offset method
-					CG_HolsteredWeaponRender(cent, ci, HLR_ROCKET_LAUNCHER);
+					CG_HolsteredWeaponRender(cent, ci, HLR_ROCKET_LAUNCHER, WP_ROCKET_LAUNCHER);
 				}
 				back_in_use = qtrue;
 			}
@@ -18271,7 +18134,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_CONCUSSION);
+				CG_HolsteredWeaponRender(cent, ci, HLR_CONCUSSION, WP_CONCUSSION);
 			}
 			back_in_use = qtrue;
 		}
@@ -18320,7 +18183,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the weapon
-				CG_HolsteredWeaponRender(cent, ci, HLR_REPEATER);
+				CG_HolsteredWeaponRender(cent, ci, HLR_REPEATER, WP_REPEATER);
 			}
 			back_in_use = qtrue;
 		}
@@ -18369,7 +18232,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the weapon
-				CG_HolsteredWeaponRender(cent, ci, HLR_FLECHETTE);
+				CG_HolsteredWeaponRender(cent, ci, HLR_FLECHETTE, WP_FLECHETTE);
 			}
 			back_in_use = qtrue;
 		}
@@ -18418,7 +18281,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the weapon
-				CG_HolsteredWeaponRender(cent, ci, HLR_DISRUPTOR);
+				CG_HolsteredWeaponRender(cent, ci, HLR_DISRUPTOR, WP_DISRUPTOR);
 			}
 			back_in_use = qtrue;
 		}
@@ -18467,7 +18330,7 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the weapon
-				CG_HolsteredWeaponRender(cent, ci, HLR_BOWCASTER);
+				CG_HolsteredWeaponRender(cent, ci, HLR_BOWCASTER, WP_BOWCASTER);
 			}
 			back_in_use = qtrue;
 		}
@@ -18516,8 +18379,9 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the blaster
-				CG_HolsteredWeaponRender(cent, ci, HLR_DEMP2);
+				CG_HolsteredWeaponRender(cent, ci, HLR_DEMP2, WP_DEMP2);
 			}
+			back_in_use = qtrue;
 		}
 
 		//handle repeater on back
@@ -18564,7 +18428,154 @@ static void CG_VisualWeaponsUpdate(centity_t* cent, clientInfo_t* ci)
 			else
 			{
 				//manually render the weapon
-				CG_HolsteredWeaponRender(cent, ci, HLR_REPEATER);
+				CG_HolsteredWeaponRender(cent, ci, HLR_Z6, WP_Z6_ROTARY_CANNON);
+			}
+			back_in_use = qtrue;
+		}
+
+		//handle the DC-17m on back (too long for a hip)
+		if (back_in_use //back in use already
+			|| !(weap_inv & 1 << WP_CLONECOMMANDO) //don't have weapon
+			|| cent->currentState.weapon == WP_CLONECOMMANDO) //currently using weapon
+		{
+			//don't render weapon on back
+			if (ci->holster_launcher != -1 && ci->launcher_holstered == WP_CLONECOMMANDO)
+			{
+				if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED))
+				{
+					trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED);
+				}
+				ci->launcher_holstered = 0;
+			}
+		}
+		else
+		{
+			//render weapon on back
+			if (ci->holster_launcher != -1)
+			{
+				//have specialized bolt
+				if (ci->launcher_holstered != WP_CLONECOMMANDO)
+				{
+					//don't already have the concussion bolted.
+					if (ci->launcher_holstered != 0)
+					{
+						//we have something else bolted there, remove it first.
+						if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED))
+						{
+							trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED);
+						}
+						ci->launcher_holstered = 0;
+					}
+
+					//now bolt the weapon
+					trap->G2API_CopySpecificGhoul2Model(CG_G2WeaponInstance(cent, WP_CLONECOMMANDO), 0, cent->ghoul2,
+						G2MODEL_LAUNCHER_HOLSTERED);
+					trap->G2API_SetBoltInfo(cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED, ci->holster_launcher);
+					ci->launcher_holstered = WP_CLONECOMMANDO;
+				}
+			}
+			else
+			{
+				//manually render the weapon
+				CG_HolsteredWeaponRender(cent, ci, HLR_REPEATER, WP_CLONECOMMANDO);
+			}
+			back_in_use = qtrue;
+		}
+
+		//handle the DC-15A on back (too long for a hip)
+		if (back_in_use //back in use already
+			|| !(weap_inv & 1 << WP_CLONERIFLE) //don't have weapon
+			|| cent->currentState.weapon == WP_CLONERIFLE) //currently using weapon
+		{
+			//don't render weapon on back
+			if (ci->holster_launcher != -1 && ci->launcher_holstered == WP_CLONERIFLE)
+			{
+				if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED))
+				{
+					trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED);
+				}
+				ci->launcher_holstered = 0;
+			}
+		}
+		else
+		{
+			//render weapon on back
+			if (ci->holster_launcher != -1)
+			{
+				//have specialized bolt
+				if (ci->launcher_holstered != WP_CLONERIFLE)
+				{
+					//don't already have the concussion bolted.
+					if (ci->launcher_holstered != 0)
+					{
+						//we have something else bolted there, remove it first.
+						if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED))
+						{
+							trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED);
+						}
+						ci->launcher_holstered = 0;
+					}
+
+					//now bolt the weapon
+					trap->G2API_CopySpecificGhoul2Model(CG_G2WeaponInstance(cent, WP_CLONERIFLE), 0, cent->ghoul2,
+						G2MODEL_LAUNCHER_HOLSTERED);
+					trap->G2API_SetBoltInfo(cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED, ci->holster_launcher);
+					ci->launcher_holstered = WP_CLONERIFLE;
+				}
+			}
+			else
+			{
+				//manually render the weapon
+				CG_HolsteredWeaponRender(cent, ci, HLR_DISRUPTOR, WP_CLONERIFLE);
+			}
+			back_in_use = qtrue;
+		}
+
+		//handle the A280 on back (too long for a hip)
+		if (back_in_use //back in use already
+			|| !(weap_inv & 1 << WP_REBELRIFLE) //don't have weapon
+			|| cent->currentState.weapon == WP_REBELRIFLE) //currently using weapon
+		{
+			//don't render weapon on back
+			if (ci->holster_launcher != -1 && ci->launcher_holstered == WP_REBELRIFLE)
+			{
+				if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED))
+				{
+					trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED);
+				}
+				ci->launcher_holstered = 0;
+			}
+		}
+		else
+		{
+			//render weapon on back
+			if (ci->holster_launcher != -1)
+			{
+				//have specialized bolt
+				if (ci->launcher_holstered != WP_REBELRIFLE)
+				{
+					//don't already have the concussion bolted.
+					if (ci->launcher_holstered != 0)
+					{
+						//we have something else bolted there, remove it first.
+						if (trap->G2API_HasGhoul2ModelOnIndex(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED))
+						{
+							trap->G2API_RemoveGhoul2Model(&cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED);
+						}
+						ci->launcher_holstered = 0;
+					}
+
+					//now bolt the weapon
+					trap->G2API_CopySpecificGhoul2Model(CG_G2WeaponInstance(cent, WP_REBELRIFLE), 0, cent->ghoul2,
+						G2MODEL_LAUNCHER_HOLSTERED);
+					trap->G2API_SetBoltInfo(cent->ghoul2, G2MODEL_LAUNCHER_HOLSTERED, ci->holster_launcher);
+					ci->launcher_holstered = WP_REBELRIFLE;
+				}
+			}
+			else
+			{
+				//manually render the weapon
+				CG_HolsteredWeaponRender(cent, ci, HLR_DISRUPTOR, WP_REBELRIFLE);
 			}
 			back_in_use = qtrue;
 		}
@@ -21345,10 +21356,10 @@ stillDoSaber:
 	if (cent->currentState.weapon != WP_EMPLACED_GUN)
 	{
 		if ((cent->currentState.eFlags & EF3_DUAL_WEAPONS) &&
-			cent->currentState.weapon == WP_BRYAR_PISTOL ||
-			cent->currentState.weapon == WP_REY ||
-			cent->currentState.weapon == WP_JANGO ||
-			cent->currentState.weapon == WP_CLONEPISTOL)
+			(cent->currentState.weapon == WP_BRYAR_PISTOL ||
+				cent->currentState.weapon == WP_REY ||
+				cent->currentState.weapon == WP_JANGO ||
+				cent->currentState.weapon == WP_CLONEPISTOL))
 		{
 			// Right-hand world weapon (Ghoul2 index 1)
 			CG_AddViewWeaponDuals(
@@ -21421,7 +21432,7 @@ stillDoSaber:
 
 	// Local player: saber damage coloring (blue = partial, red = full)
 	if (cent->currentState.number == cg.snap->ps.clientNum)
-	{	
+	{
 		if (g_IsSaberDoingAttackDamage.integer == 1)
 		{
 			qboolean doTint = qfalse;

@@ -2681,8 +2681,7 @@ static void CL_SetModel_f(void)
 }
 
 static void CL_SetForcePowers_f(void)
-{
-}
+{}
 
 /*
 ==================
@@ -2776,7 +2775,9 @@ static void CL_AddFavorite_f(void)
 	}
 }
 
-constexpr auto G2_VERT_SPACE_CLIENT_SIZE = 256;
+// MovieDuels player models need up to ~560 KB of transform space each (5 floats per vertex, up to
+// ~28k vertexes), so the client heap uses the same size as G2_VERT_SPACE_SERVER_SIZE
+constexpr auto G2_VERT_SPACE_CLIENT_SIZE = 2048;
 
 /*
 ===============

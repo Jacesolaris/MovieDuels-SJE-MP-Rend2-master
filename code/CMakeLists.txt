@@ -79,13 +79,13 @@ if(BuildSPEngine OR BuildJK2SPEngine)
 			set(SPEngineLibraries
 				${SPEngineLibraries}
 				${SerenityJediEngine2026LibDir}/SDL2/lib/x86/SDL2main.lib
-				${SerenityJediEngine2026LibDir}/SDL2/lib/x86/SDL2.lib
+				${SerenityJediEngine2026LibDir}/SDL2/lib/x86/MovieDuels-SDL2.lib
 				)
 		else()
 			set(SPEngineLibraries
 				${SPEngineLibraries}
 				${SerenityJediEngine2026LibDir}/SDL2/lib/x64/SDL2main.lib
-				${SerenityJediEngine2026LibDir}/SDL2/lib/x64/SDL2.lib
+				${SerenityJediEngine2026LibDir}/SDL2/lib/x64/MovieDuels-SDL2.lib
 				)
 		endif()
 
@@ -392,11 +392,11 @@ if(BuildSPEngine OR BuildJK2SPEngine)
 			if(UseInternalSDL2)
 				if(CMAKE_SIZEOF_VOID_P EQUAL 4)
 					set(SPEngineExtraInstallFiles
-						${SerenityJediEngine2026LibDir}/SDL2/bin/x86/SDL2.dll
+						${SerenityJediEngine2026LibDir}/SDL2/bin/x86/MovieDuels-SDL2.dll
 						)
 				else()
 					set(SPEngineExtraInstallFiles
-						${SerenityJediEngine2026LibDir}/SDL2/bin/x64/SDL2.dll
+						${SerenityJediEngine2026LibDir}/SDL2/bin/x64/MovieDuels-SDL2.dll
 						)
 				endif()
 			endif()

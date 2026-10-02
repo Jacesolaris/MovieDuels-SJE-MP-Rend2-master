@@ -162,8 +162,7 @@ public:
 		rootSList(initrootSList),
 		currentModel(initcurrentModel),
 		boneList(initboneList)
-	{
-	}
+	{}
 };
 
 class CTransformBone
@@ -202,8 +201,7 @@ void G2_TransformBone(int index, CBoneCache& cb);
 class CBoneCache
 {
 	static void SetRenderMatrix(CTransformBone* bone)
-	{
-	}
+	{}
 
 	void EvalLow(const int index)
 	{
@@ -1038,8 +1036,7 @@ public:
 #else
 		boltList(initboltList)
 #endif
-	{
-	}
+	{}
 };
 
 #ifdef _G2_GORE
@@ -3339,8 +3336,7 @@ R_AddGHOULSurfaces
 ==============
 */
 void R_AddGhoulSurfaces(trRefEntity_t* ent)
-{
-}
+{}
 
 #ifdef _G2_LISTEN_SERVER_OPT
 qboolean G2API_OverrideServerWithClientData(CGhoul2Info_v& ghoul2, int modelIndex);
@@ -3657,7 +3653,19 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 				"R_LoadMDXM: required MP humanoid GLA missing: %s.gla", forcedHumanoid);
 		}
 
-		animNameToUse = forcedHumanoid;
+		// A mesh with more bones than the MP humanoid skeleton (e.g. the protocol droid, 54 bones) was
+		// built for its own skeleton: its bone references would index past the humanoid bone cache and
+		// corrupt memory. Keep its own GLA in that case (old 72-bone models are remapped further down).
+		const model_t* humanoidGLA = R_GetModelByHandle(animIndex);
+		if (mdxm->numBones != 72 && humanoidGLA && humanoidGLA->type == MOD_MDXA && humanoidGLA->mdxa &&
+			mdxm->numBones > humanoidGLA->mdxa->numBones)
+		{
+			animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
+		}
+		else
+		{
+			animNameToUse = forcedHumanoid;
+		}
 	}
 	else
 	{
@@ -3697,7 +3705,7 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 		LL(surfInfo->parentIndex);
 
 		Q_strlwr(surfInfo->name); //just in case
-		if (strcmp(&surfInfo->name[strlen(surfInfo->name) - 4], "_off") == 0)
+		if (strlen(surfInfo->name) >= 4 && strcmp(&surfInfo->name[strlen(surfInfo->name) - 4], "_off") == 0)
 		{
 			surfInfo->name[strlen(surfInfo->name) - 4] = 0; //remove "_off" from name
 		}

@@ -1163,8 +1163,7 @@ NPC_SpawnEffect
 */
 
 static void NPC_SpawnEffect(gentity_t* ent)
-{
-}
+{}
 
 //--------------------------------------------------------------
 // NPC_SetFX_SpawnStates
@@ -1195,8 +1194,10 @@ static qboolean NPC_SpotWouldTelefrag(const gentity_t* npc)
 		return qfalse;
 	}
 
-	// Allocate large array on heap to avoid C6262 stack warning
-	int* touch = (int*)BG_Alloc(MAX_GENTITIES * sizeof(int));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int touch_buf[MAX_GENTITIES] = { 0 };
+	int* touch = touch_buf;
 	if (touch == NULL)
 	{
 		return qfalse;

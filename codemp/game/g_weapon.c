@@ -320,8 +320,7 @@ static void WP_FireEmplaced(gentity_t* ent, qboolean alt_fire);
 void laserTrapStick(gentity_t* ent, vec3_t endpos, vec3_t normal);
 
 static void touch_NULL(gentity_t* ent, gentity_t* other, trace_t* trace)
-{
-}
+{}
 
 void laserTrapExplode(gentity_t* self);
 void RocketDie(gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, int mod);
@@ -2546,9 +2545,12 @@ static void DEMP2_AltRadiusDamage(gentity_t* ent)
 {
 	float frac = (level.time - ent->genericValue5) / 800.0f;
 
-	// FIX: move large arrays off stack (C6262)
-	int* iEntityList = (int*)BG_Alloc(MAX_GENTITIES * sizeof(int));
-	gentity_t** entity_list = (gentity_t**)BG_Alloc(MAX_GENTITIES * sizeof(gentity_t*));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int iEntityList_buf[MAX_GENTITIES] = { 0 };
+	int* iEntityList = iEntityList_buf;
+	gentity_t* entity_list_buf[MAX_GENTITIES] = { 0 };
+	gentity_t** entity_list = entity_list_buf;
 
 	if (!iEntityList || !entity_list)
 	{
@@ -4182,8 +4184,10 @@ static void WP_PlaceLaserTrap(gentity_t* ent, const qboolean alt_fire)
 	vec3_t dir = { 0 }, start = { 0 };
 	int trapcount = 0;
 
-	// FIX: move large array off stack (C6262)
-	int* found_laser_traps = (int*)BG_Alloc(MAX_GENTITIES * sizeof(int));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int found_laser_traps_buf[MAX_GENTITIES] = { 0 };
+	int* found_laser_traps = found_laser_traps_buf;
 	if (!found_laser_traps)
 	{
 		Com_Printf(S_COLOR_RED "WP_PlaceLaserTrap: BG_Alloc failed\n");
@@ -4621,8 +4625,10 @@ static void WP_DropDetPack(gentity_t* ent, const qboolean alt_fire)
 		return;
 	}
 
-	// FIX: move large array off stack (C6262) and initialize safely
-	int* found_det_packs = (int*)BG_Alloc(MAX_GENTITIES * sizeof(int));
+	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
+	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
+	int found_det_packs_buf[MAX_GENTITIES] = { 0 };
+	int* found_det_packs = found_det_packs_buf;
 	if (!found_det_packs)
 	{
 		Com_Printf(S_COLOR_RED "WP_DropDetPack: BG_Alloc failed\n");
@@ -6485,6 +6491,8 @@ extern void FireOverheatFail(gentity_t* ent);
 extern qboolean PM_ReloadAnim(int anim);
 extern qboolean PM_WeponRestAnim(int anim);
 extern qboolean PM_PainAnim(int anim);
+extern void NPC_SetAnim(gentity_t* ent, int setAnimParts, int anim, int setAnimFlags);
+extern void G_SoundOnEnt(gentity_t* ent, soundChannel_t channel, const char* sound_path);
 
 void FireWeapon(gentity_t* ent, const qboolean alt_fire)
 {

@@ -1210,9 +1210,9 @@ static qboolean Script_SetItemColor(itemDef_t* item, char** args)
 	if (String_Parse(args, &itemname) && String_Parse(args, &name))
 	{
 		// Is is specifying a cvar to get the item name from?
+		char buff[1024]; // outside the if: itemname may point into it below
 		if (itemname[0] == '*')
 		{
-			char buff[1024];
 			itemname += 1;
 			DC->getCVarString(itemname, buff, sizeof buff);
 			itemname = buff;
@@ -1272,9 +1272,9 @@ static qboolean Script_SetItemColorCvar(itemDef_t* item, char** args)
 		char cvarBuf[1024];
 
 		// Is is specifying a cvar to get the item name from?
+		char buff[1024]; // outside the if: itemname may point into it below
 		if (itemname[0] == '*')
 		{
-			char buff[1024];
 			itemname += 1;
 			DC->getCVarString(itemname, buff, sizeof buff);
 			itemname = buff;
@@ -1796,9 +1796,9 @@ static qboolean Script_Disable(itemDef_t* item, char** args)
 	if (String_Parse(args, &name))
 	{
 		// Is is specifying a cvar to get the item name from?
+		char buff[1024]; // outside the if: name may point into it below
 		if (name[0] == '*')
 		{
-			char buff[1024];
 			name += 1;
 			DC->getCVarString(name, buff, sizeof buff);
 			name = buff;
@@ -1824,9 +1824,9 @@ static qboolean Script_Scale(itemDef_t* item, char** args)
 	if (String_Parse(args, &name))
 	{
 		// Is is specifying a cvar to get the item name from?
+		char buff[1024]; // outside the if: name may point into it below
 		if (name[0] == '*')
 		{
-			char buff[1024];
 			name += 1;
 			DC->getCVarString(name, buff, sizeof buff);
 			name = buff;
@@ -4227,8 +4227,7 @@ static void Item_StartCapture(itemDef_t* item, const int key)
 }
 
 static void Item_StopCapture(itemDef_t* item)
-{
-}
+{}
 
 static qboolean Item_Slider_HandleKey(itemDef_t* item, const int key, qboolean down)
 {
@@ -4297,7 +4296,7 @@ static qboolean Item_Slider_HandleKey_Rotate(itemDef_t* item, int key, qboolean 
 			if (editDef)
 			{
 				int intValue;
-				float angleDiff;
+				float angleDiff = 0.0f;
 				float curAngle = DC->getCVarValue(item->cvar);
 				if (key == A_MWHEELDOWN)
 					angleDiff = -editDef->range / 18.0f; //seems a decent step?
@@ -5403,7 +5402,8 @@ static const char* g_bindCommands[] = {
 	"emote",
 	"r_weather",
 	"use_barrier",
-	"use_decca"
+	"use_decca",
+	"pazaak"
 };
 
 #define g_bindCount ARRAY_LEN(g_bindCommands)
@@ -6088,7 +6088,8 @@ static void Item_TextScroll_Paint(itemDef_t* item)
 	{
 		char cvartext[1024];
 		DC->getCVarString(item->cvar, cvartext, sizeof cvartext);
-		item->text = cvartext;
+		// Pooled copy: item->text is kept after this block returns.
+		item->text = (char*)String_Alloc(cvartext);
 		Item_TextScroll_BuildLines(item);
 	}
 
@@ -6412,9 +6413,9 @@ static void Item_ListBox_Paint(itemDef_t* item)
 							continue;
 						}
 
+						char temp[MAX_STRING_CHARS]; // outside the if: text may point into it below
 						if (text[0] == '@')
 						{
-							char temp[MAX_STRING_CHARS];
 							trap->SE_GetStringTextString(&text[1], temp, sizeof temp);
 							text = temp;
 						}
@@ -7827,7 +7828,7 @@ qboolean ItemParse_asset_model_go(itemDef_t* item, const char* name, int* runTim
 	const modelDef_t* modelPtr = item->typeData.model;
 	*runTimeLength = 0.0f;
 
-	if (!Q_stricmp(&name[strlen(name) - 4], ".glm"))
+	if (strlen(name) >= 4 && !Q_stricmp(&name[strlen(name) - 4], ".glm"))
 	{ //it's a ghoul2 model then
 		if (item->ghoul2)
 		{
@@ -9521,9 +9522,9 @@ static void Item_TextScroll_BuildLines(itemDef_t* item)
 		return;
 	}
 
+	char text[2048]; // outside the if: psText may point into it below
 	if (*psText == '@') // string reference
 	{
-		char text[2048];
 		trap->SE_GetStringTextString(&psText[1], text, sizeof text);
 		psText = text;
 	}

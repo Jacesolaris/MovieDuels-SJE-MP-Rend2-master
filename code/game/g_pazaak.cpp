@@ -2,7 +2,7 @@
 // Basic Pazaak core scaffolding and client command handler
 // This file provides an initial C++ representation of the Pazaak game state
 // and a small set of commands the client UI/menu can call. The full game
-// rules/AI from JKGalaxies' `pazaak.lua` should be ported incrementally.
+// rules/AI from the Jedi Knight Galaxies `pazaak.lua` should be ported incrementally.
 
 #include "g_local.h"
 #include <vector>

@@ -618,8 +618,7 @@ void ItemUse_Shield(gentity_t* ent)
 #define PAS_DAMAGE	2
 
 static void SentryTouch(gentity_t* ent, gentity_t* other, trace_t* trace)
-{
-}
+{}
 
 extern qboolean PM_CrouchAnim(const int anim);
 extern qboolean PM_InKnockDown(const playerState_t* ps);
@@ -1594,6 +1593,8 @@ void Jetpack_On(gentity_t* ent)
 // - Applies low, continuous damage and burn/throw reactions.
 // - Uses static buffers to avoid excessive stack usage.
 //-----------------------------------------------------------------------------
+extern void QDECL G_Printf(const char* msg, ...);
+
 void Flamethrower_Fire(gentity_t* self)
 {
 	static int        s_entityIndexList[MAX_GENTITIES];
@@ -3923,6 +3924,9 @@ void FinishSpawningItem(gentity_t* ent)
 		G_SetOrigin(ent, tr.endpos);
 	}
 
+	// remember where the item rests: RespawnItem and ResetItem (g_pushitems) put it back here
+	VectorCopy(ent->r.currentOrigin, ent->origOrigin);
+
 	if (ent->spawnflags & ITMSF_VERTICAL)
 	{
 		ent->s.angles[PITCH] += 75;
@@ -4431,5 +4435,17 @@ void IT_LoadWeatherParms(void)
 
 	trap->Cvar_Register(&mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM);
 
-	trap->SendConsoleCommand(EXEC_INSERT, va("execq Weather/%s", mapname.string, mapname.string, mapname.string));
+	// most maps have no weather file: only exec one that is there (exec prints "couldn't exec" otherwise)
+	fileHandle_t f = 0;
+	const int len = trap->FS_Open(va("Weather/%s.cfg", mapname.string), &f, FS_READ);
+	if (f)
+	{
+		trap->FS_Close(f);
+	}
+	if (len <= 0)
+	{
+		return;
+	}
+
+	trap->SendConsoleCommand(EXEC_INSERT, va("execq Weather/%s", mapname.string));
 }

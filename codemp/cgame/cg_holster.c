@@ -28,6 +28,7 @@ stringID_table_t holsterTypeTable[] =
 	ENUM2STRING(HLR_REPEATER), //repeater
 	ENUM2STRING(HLR_FLECHETTE), //flechette
 	ENUM2STRING(HLR_DISRUPTOR), //disruptor
+	ENUM2STRING(HLR_Z6), //Z6 rotary cannon
 	ENUM2STRING(MAX_HOLSTER),
 
 	{ NULL, 0 }   // <-- REQUIRED TERMINATOR
@@ -39,7 +40,8 @@ stringID_table_t holsterBoneTable[] =
 	ENUM2STRING(HOLSTER_UPPERBACK),
 	ENUM2STRING(HOLSTER_LOWERBACK),
 	ENUM2STRING(HOLSTER_LEFTHIP),
-	ENUM2STRING(HOLSTER_RIGHTHIP)
+	ENUM2STRING(HOLSTER_RIGHTHIP),
+	{ NULL, -1 }
 };
 
 static void InitHolsterData(clientInfo_t* ci)
@@ -59,7 +61,8 @@ extern char* BG_GetNextValueGroup(char* inbuf, char* outbuf);
 ==============================
 CG_LoadHolsterData
 
-Loads holster offset data from holster_mp.cfg or holster_mp<skin>.cfg
+Loads holster offset data from holster_<skin>.cfg or holster.cfg (kyle's when the model has none),
+the same files singleplayer uses
 and applies it to the clientInfo_t structure.
 
 - Moves large buffers off the stack
@@ -81,26 +84,26 @@ void CG_LoadHolsterData(clientInfo_t* ci)
 	/* Determine which holster file to load */
 	if (ci->skinName == NULL || !Q_stricmp("default", ci->skinName))
 	{
-		f_len = trap->FS_Open(va("models/players/%s/holster_mp.cfg", ci->modelName), &f, FS_READ);
+		f_len = trap->FS_Open(va("models/players/%s/holster.cfg", ci->modelName), &f, FS_READ);
 
 		if (!f)
 		{
-			f_len = trap->FS_Open("models/players/kyle/holster_mp.cfg", &f, FS_READ);
+			f_len = trap->FS_Open("models/players/kyle/holster.cfg", &f, FS_READ);
 		}
 	}
 	else
 	{
-		f_len = trap->FS_Open(va("models/players/%s/holster_mp%s.cfg",
+		f_len = trap->FS_Open(va("models/players/%s/holster_%s.cfg",
 			ci->modelName, ci->skinName), &f, FS_READ);
 
 		if (!f)
 		{
-			f_len = trap->FS_Open(va("models/players/%s/holster_mp.cfg", ci->modelName), &f, FS_READ);
+			f_len = trap->FS_Open(va("models/players/%s/holster.cfg", ci->modelName), &f, FS_READ);
 		}
 
 		if (!f)
 		{
-			f_len = trap->FS_Open("models/players/kyle/holster_mp.cfg", &f, FS_READ);
+			f_len = trap->FS_Open("models/players/kyle/holster.cfg", &f, FS_READ);
 		}
 	}
 

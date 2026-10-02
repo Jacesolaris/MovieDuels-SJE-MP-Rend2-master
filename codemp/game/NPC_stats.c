@@ -807,8 +807,7 @@ void NPC_Precache(gentity_t* spawner)
 }
 
 static void NPC_BuildRandom()
-{
-}
+{}
 
 #define TURN_ON				0x00000000
 #define TURN_OFF			0x00000100
@@ -3509,12 +3508,8 @@ void NPC_LoadParms(void)
 	fileHandle_t f;
 	int len = 0;
 
-	// Allocate large buffer on heap to avoid C6262 stack warning
-	char* npcExtensionListBuf = (char*)BG_Alloc(16384);
-	if (npcExtensionListBuf == NULL)
-	{
-		return;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static char npcExtensionListBuf[16384];
 
 	// Remember where to store the next one
 	int totallen = 0;
