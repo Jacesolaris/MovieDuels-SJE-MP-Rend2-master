@@ -1361,7 +1361,7 @@ static int Icarus_SoundTime(char soundName[MAX_QPATH])
 	int time = GetIDForString(SubtitleTimeTable, va("%s_%s", temp, sound));
 	if (time < 0)
 	{
-		//couldn't find it in the original file.  Try looking into OJP's supplimental file.
+		//couldn't find it in the original file.  Try looking into COOP's supplimental file.
 		time = GetIDForString(SubtitleTimeTable, va("MD_MP_COOP_%s", sound));
 	}
 	if (time < 0)

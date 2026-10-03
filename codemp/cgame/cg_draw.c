@@ -11237,6 +11237,10 @@ static void CG_DrawGenericTimerBar(void)
 	{
 		return;
 	}
+	if (cg.predictedPlayerState.m_iVehicleNum)
+	{
+		return;
+	}
 	if (percent < 0.1f)
 	{
 		percent = 0.1f;
@@ -11303,6 +11307,10 @@ static void CG_DrawDashTimerBar(void)
 	{
 		return;
 	}
+	if (cg.predictedPlayerState.m_iVehicleNum)
+	{
+		return;
+	}
 	if (percent > CGDASHTIMERBAR_H)
 	{
 		return;
@@ -11363,6 +11371,10 @@ static void CG_DrawSlamTimerBar(void)
 		return;
 	}
 	if (g_DrawCoolDown.integer == 0)
+	{
+		return;
+	}
+	if (cg.predictedPlayerState.m_iVehicleNum)
 	{
 		return;
 	}
