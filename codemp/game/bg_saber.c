@@ -499,9 +499,9 @@ saberMoveData_t saberMoveData[LS_MOVE_MAX] = {
 	{"Parry Top", BOTH_P1_S1_T_, Q_R, Q_T, AFLAG_ACTIVE, 50, BLK_WIDE, LS_R_BL2TR, LS_A_T2B, 150}, // LS_PARRY_UP,
 	{"Parry Front", BOTH_P1_S1_T1_, Q_R, Q_T, AFLAG_ACTIVE, 50, BLK_WIDE, LS_R_BL2TR, LS_A_T2B, 150}, // LS_PARRY_FRONT,
 	{"Parry Walk", BOTH_PARRY_WALK, Q_R, Q_T, AFLAG_ACTIVE, 50, BLK_WIDE, LS_R_BL2TR, LS_A_T2B, 150}, // LS_PARRY_WALK,
-	{"Parry Walk_dual", BOTH_PARRY_WALK_DUAL, Q_R, Q_T, AFLAG_ACTIVE, 50, BLK_WIDE, LS_R_BL2TR, LS_A_T2B, 150},
+	{"Parry Walk_dual", BOTH_PARRY_WALK, Q_R, Q_T, AFLAG_ACTIVE, 50, BLK_WIDE, LS_R_BL2TR, LS_A_T2B, 150},
 	// LS_PARRY_WALK_DUAL,
-	{"Parry Walk_staff", BOTH_PARRY_WALK_STAFF, Q_R, Q_T, AFLAG_ACTIVE, 50, BLK_WIDE, LS_R_BL2TR, LS_A_T2B, 150},
+	{"Parry Walk_staff", BOTH_PARRY_WALK, Q_R, Q_T, AFLAG_ACTIVE, 50, BLK_WIDE, LS_R_BL2TR, LS_A_T2B, 150},
 	// LS_PARRY_WALK_STAFF,
 	{"Parry UR", BOTH_P1_S1_TR, Q_R, Q_TL, AFLAG_ACTIVE, 50, BLK_WIDE, LS_R_BL2TR, LS_A_TR2BL, 150}, // LS_PARRY_UR,
 	{"Parry UL", BOTH_P1_S1_TL, Q_R, Q_TR, AFLAG_ACTIVE, 50, BLK_WIDE, LS_R_BR2TL, LS_A_TL2BR, 150}, // LS_PARRY_UL,
@@ -4025,7 +4025,9 @@ static qboolean PM_CanDoKata(void)
 
 	const qboolean is_holding_block_button = ((pm->ps->ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
 	const qboolean is_holding_block_button_and_attack = ((pm->ps->ManualBlockingFlags & (1 << MBF_HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
-	const qboolean is_walking_and_blocking = ((pm->cmd.buttons & BUTTON_WALKING) && (is_holding_block_button)) ? qtrue : qfalse;
+	// SP: holding block shows the blocking poses (walking or standing); while the legs run / sprint the torso
+	// follows the legs instead (SP PM_TorsoAnimLightsaber), so not then
+	const qboolean is_walking_and_blocking = (is_holding_block_button && (pm->cmd.buttons & BUTTON_WALKING || !PM_RunningAnim(pm->ps->legsAnim))) ? qtrue : qfalse;
 
 	if (is_holding_block_button || is_holding_block_button_and_attack || is_walking_and_blocking)
 	{
@@ -4353,7 +4355,7 @@ void PM_SetMeleeBlock(void)
 			}
 			else
 			{
-				PM_SetAnim(SETANIM_LEGS, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				PM_SetAnim(SETANIM_LEGS, anim, SETANIM_FLAG_NORMAL); // as SP: in the air
 				pm->cmd.forwardmove = 0;
 				pm->cmd.rightmove = 0;
 				pm->cmd.upmove = 0;
@@ -5602,7 +5604,9 @@ void PM_WeaponLightsaber(void)
 
 	const qboolean is_holding_block_button = ((pm->ps->ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
 	const qboolean is_holding_block_button_and_attack = ((pm->ps->ManualBlockingFlags & (1 << MBF_HOLDINGBLOCKANDATTACK)) != 0) ? qtrue : qfalse;
-	const qboolean is_walking_and_blocking = ((pm->cmd.buttons & BUTTON_WALKING) && (is_holding_block_button)) ? qtrue : qfalse;
+	// SP: holding block shows the blocking poses (walking or standing); while the legs run / sprint the torso
+	// follows the legs instead (SP PM_TorsoAnimLightsaber), so not then
+	const qboolean is_walking_and_blocking = (is_holding_block_button && (pm->cmd.buttons & BUTTON_WALKING || !PM_RunningAnim(pm->ps->legsAnim))) ? qtrue : qfalse;
 
 	qboolean isPlayer = (pm->ps->clientNum < MAX_CLIENTS) ? qtrue : qfalse;
 
@@ -6152,7 +6156,7 @@ weapChecks:
 				case BOTH_RUN1:
 				case BOTH_RUN2:
 				case BOTH_RUN3:
-				case BOTH_RUN3_MP:
+				case BOTH_SPRINT_BLASTER:
 				case BOTH_RUN4:
 				case BOTH_RUN5:
 				case BOTH_RUN6:
@@ -6161,8 +6165,7 @@ weapChecks:
 				case BOTH_RUN9:
 				case BOTH_RUN10:
 				case BOTH_SPRINT:
-				case BOTH_SPRINT_SABER:
-				case BOTH_SPRINT_SABER_MP:
+				case BOTH_SPRINT_SINGLE_LIGHTSABER:
 				case BOTH_RUN_STAFF:
 				case BOTH_RUN_DUAL:
 				case BOTH_RUNBACK1:
@@ -6179,8 +6182,6 @@ weapChecks:
 				case BOTH_VADERRUN2:
 				case BOTH_MENUIDLE1:
 				case BOTH_PARRY_WALK:
-				case BOTH_PARRY_WALK_DUAL:
-				case BOTH_PARRY_WALK_STAFF:
 					PM_SetAnim(SETANIM_TORSO, pm->ps->legsAnim, SETANIM_FLAG_NORMAL);
 					break;
 				default:;
@@ -6596,30 +6597,19 @@ weapChecks:
 				return;
 			}
 
-			// Special MP leap attack: ATTACK pressed during FORCELONGLEAP_START.
-			if ((pm->cmd.buttons & BUTTON_ATTACK) &&
-				pm->ps->torsoAnim == BOTH_FORCELONGLEAP_START)
-			{
-				// Only one attack you can do from this anim.
-				if (pm->ps->saberHolstered == 2)
-				{
-					pm->ps->saberHolstered = 0;
-					PM_AddEvent(EV_SABER_UNHOLSTER);
-				}
-
-				// Use the MP-specific leap attack variant.
-				PM_SetSaberMove(LS_LEAP_ATTACK2);
-				return;
-			}
-
-			// Generic leap attack timing from FORCELONGLEAP_START.
+			// Leap attack from FORCELONGLEAP_START, the same as SP.
 			if (pm->ps->torsoAnim == BOTH_FORCELONGLEAP_START)
 			{
-				// Only one attack you can do from this anim.
+				// Only one attack you can do from this anim, and only if timed correctly.
 				if (pm->ps->torsoTimer >= 200 &&
 					(pm->cmd.buttons & BUTTON_ATTACK))
 				{
-					// Hit it early enough to do the attack.
+					// Hit it early enough to do the leap attack.
+					if (pm->ps->saberHolstered == 2)
+					{
+						pm->ps->saberHolstered = 0;
+						PM_AddEvent(EV_SABER_UNHOLSTER);
+					}
 					PM_SetSaberMove(LS_LEAP_ATTACK);
 				}
 				return;
@@ -6859,12 +6849,11 @@ weapChecks:
 					case BOTH_VADERWALK1:
 					case BOTH_VADERWALK2:
 					case BOTH_SPRINT:
-					case BOTH_SPRINT_SABER:
-					case BOTH_SPRINT_SABER_MP:
+					case BOTH_SPRINT_SINGLE_LIGHTSABER:
 					case BOTH_RUN1:
 					case BOTH_RUN2:
 					case BOTH_RUN3:
-					case BOTH_RUN3_MP:
+					case BOTH_SPRINT_BLASTER:
 					case BOTH_RUN4:
 					case BOTH_RUN5:
 					case BOTH_RUN6:
@@ -6889,8 +6878,6 @@ weapChecks:
 					case BOTH_VADERRUN2:
 					case BOTH_MENUIDLE1:
 					case BOTH_PARRY_WALK:
-					case BOTH_PARRY_WALK_DUAL:
-					case BOTH_PARRY_WALK_STAFF:
 						// Use the current legs anim as the attack anim.
 						anim = pm->ps->legsAnim;
 						break;
@@ -7250,7 +7237,9 @@ void PM_SetSaberMove(saberMoveName_t new_move)
 	const saberInfo_t* saber2 = BG_MySaber(pm->ps->clientNum, 1);
 
 	const qboolean is_holding_block_button = ((pm->ps->ManualBlockingFlags & (1 << MBF_HOLDINGBLOCK)) != 0) ? qtrue : qfalse;
-	const qboolean is_walking_and_blocking = ((pm->cmd.buttons & BUTTON_WALKING) && (is_holding_block_button)) ? qtrue : qfalse;
+	// SP: holding block shows the blocking poses (walking or standing); while the legs run / sprint the torso
+	// follows the legs instead (SP PM_TorsoAnimLightsaber), so not then
+	const qboolean is_walking_and_blocking = (is_holding_block_button && (pm->cmd.buttons & BUTTON_WALKING || !PM_RunningAnim(pm->ps->legsAnim))) ? qtrue : qfalse;
 
 	if (new_move == LS_READY || new_move == LS_A_FLIP_STAB || new_move == LS_A_FLIP_SLASH)
 	{

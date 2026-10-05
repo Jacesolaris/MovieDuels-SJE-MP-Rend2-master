@@ -343,7 +343,7 @@ extern saber_colors_t TranslateSaberColor(const char* name);
 #ifdef CONVENIENT_ANIMATION_FILE_DEBUG_THING
 void SpewDebugStuffToFile(animation_t* anims)
 {
-	char BGPAFtext[40000];
+	static char BGPAFtext[65536]; // one line per animation (MAX_ANIMATIONS lines)
 	fileHandle_t f;
 	int i = 0;
 

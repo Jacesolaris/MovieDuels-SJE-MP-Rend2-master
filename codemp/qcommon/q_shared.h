@@ -1403,6 +1403,7 @@ typedef struct playerState_s {
 
 	bclass_t    botclass;
 	bclass_t    nextbotclass;
+	int			animStyle; // SP animation style (CS_*, bg_public.h ANIMSTYLE): the style anims replace the base ones (BG_SetAnim)
 	int		    ManualBlockingFlags; //Blockingflag on OK
 	int			localAnimIndex; //index locally (game/cgame) to anim data for this skel
 	int  		PlayerEffectFlags;

@@ -1352,6 +1352,16 @@ static void CG_LMSLose_f(void)
 	trap->S_StartLocalSound(cgs.media.loserSound, CHAN_ANNOUNCER);
 }
 
+// MovieDuels character menu: the selected character is a saber class (Jedi/Sith, the server's class system),
+// so he picks his force powers next (ui/MD_MP/ingame_charforce.menu: the force menu, its APPLY joins the game).
+// His sabers came with the character. A gunner gets no menu, he just respawns.
+static void CG_MDCharForce_f(void) {
+	if (!cg.demoPlayback) {
+		trap->OpenUIMenu(UIMENU_INGAME); // the in-game menu system...
+		trap->SendConsoleCommand("ui_openmenu ingame_charforce\n"); // ...on the character force page
+	}
+}
+
 static void CG_SiegeProfileMenu_f(void) {
 	if (!cg.demoPlayback) {
 		trap->Cvar_Set("ui_myteam", "3");
@@ -1652,6 +1662,7 @@ static serverCommand_t	commands[] = {
 	{ "loaddefered",		CG_LoadDeferredPlayers }, // FIXME: spelled wrong, but not changing for demo
 	{ "ltchat",				CG_Chat_f },
 	{ "map_restart",		CG_MapRestart },
+	{ "md_charforce",		CG_MDCharForce_f },
 	{ "nfr",				CG_NewForceRank_f },
 	{ "print",				CG_Print_f },
 	{ "rcg",				CG_RestoreClientGhoul_f },

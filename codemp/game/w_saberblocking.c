@@ -72,6 +72,10 @@ extern qboolean PM_SaberInnonblockableAttack(int anim);
 extern qboolean PM_SaberInSpecialAttack(int anim);
 extern int G_GetParryForBlock(int block);
 extern qboolean WP_SaberMBlockDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
+extern qboolean WP_SaberMBlockDirectionNPC(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
+extern qboolean WP_SaberFatigueDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
+extern qboolean WP_SaberBlockNonRandom_MD(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
+extern qboolean WP_SaberBlockBolt_MD(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 extern qboolean WP_SaberBlockNonRandom(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 extern qboolean WP_SaberBouncedSaberDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 extern qboolean WP_SaberFatiguedParryDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
@@ -1258,7 +1262,7 @@ qboolean sab_beh_block_vs_attack(
 					}
 					else
 					{
-						WP_SaberBlockNonRandom(blocker, hit_loc, qfalse);
+						WP_SaberBlockNonRandom_MD(blocker, hit_loc, qfalse); // SP WP_SaberParry (MD modes)
 					}
 
 					if (attacker->r.svFlags & SVF_BOT)
@@ -1301,7 +1305,7 @@ qboolean sab_beh_block_vs_attack(
 				}
 				else
 				{
-					WP_SaberBouncedSaberDirection(blocker, hit_loc, qfalse);
+					WP_SaberBlockBolt_MD(blocker, hit_loc, qfalse); // SP WP_SaberBlockedBounceBlock
 				}
 
 				if (!(blocker->r.svFlags & SVF_BOT))
@@ -1354,7 +1358,7 @@ qboolean sab_beh_block_vs_attack(
 				{
 					if (blocker->client->ps.fd.blockPoints <= BLOCKPOINTS_FOURTY)
 					{
-						WP_SaberFatiguedParryDirection(blocker, hit_loc, qfalse);
+						WP_SaberFatigueDirection(blocker, hit_loc, qfalse); // SP WP_SaberNPCFatiguedParry
 
 						if ((d_blockinfo.integer || g_DebugSaberCombat.integer) &&
 							!(blocker->r.svFlags & SVF_BOT))
@@ -1366,7 +1370,7 @@ qboolean sab_beh_block_vs_attack(
 					}
 					else
 					{
-						WP_SaberBlockNonRandom(blocker, hit_loc, qfalse);
+						WP_SaberBlockNonRandom_MD(blocker, hit_loc, qfalse); // SP WP_SaberNPCParry
 
 						if ((d_blockinfo.integer || g_DebugSaberCombat.integer) &&
 							!(blocker->r.svFlags & SVF_BOT))
@@ -1379,7 +1383,7 @@ qboolean sab_beh_block_vs_attack(
 				}
 				else
 				{
-					WP_SaberMBlockDirection(blocker, hit_loc, qfalse);
+					WP_SaberMBlockDirectionNPC(blocker, hit_loc, qfalse); // SP WP_SaberNPCMBlock
 
 					if (blocker->r.svFlags & SVF_BOT)
 					{

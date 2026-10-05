@@ -210,9 +210,66 @@ int G_BSPIndex(const char* name)
 //=====================================================================
 
 //see if we can or should allow this guy to use a custom skeleton -rww
+// MovieDuels: a player model built for another skeleton than the master _humanoid (53 bones; old 72-bone models are
+// remapped onto it) - super battle droid, droideka, protocol droid... - gets its own ghoul2 instance on the server, so
+// its anims (timers, bolts, collision) come from its own GLA and animation.cfg, as on the client and in SP.
 qboolean G_PlayerHasCustomSkeleton(gentity_t* ent)
 {
-	return qfalse;
+	static char cachedModel[64][MAX_QPATH];
+	static qboolean cachedResult[64];
+	static int numCached = 0;
+	char userinfo[MAX_INFO_STRING], model[MAX_QPATH];
+
+	if (!ent || !ent->client || ent->s.number >= MAX_CLIENTS)
+	{
+		return qfalse;
+	}
+
+	trap->GetUserinfo(ent->s.number, userinfo, sizeof userinfo);
+	Q_strncpyz(model, Info_ValueForKey(userinfo, "model"), sizeof model);
+	{
+		char* slash = strchr(model, '/');
+		if (slash)
+		{
+			*slash = 0; // "sbd/default" -> "sbd"
+		}
+	}
+	if (!model[0])
+	{
+		return qfalse;
+	}
+
+	for (int i = 0; i < numCached; i++)
+	{
+		if (!Q_stricmp(cachedModel[i], model))
+		{
+			return cachedResult[i];
+		}
+	}
+
+	qboolean custom = qfalse;
+	fileHandle_t f;
+	const int len = trap->FS_Open(va("models/players/%s/model.glm", model), &f, FS_READ);
+	if (f)
+	{
+		// mdxmHeader_t: ident, version, name[64], animName[64], animIndex, numBones
+		byte header[144];
+		if (len >= (int)sizeof header)
+		{
+			trap->FS_Read(header, sizeof header, f);
+			const int numBones = LittleLong(*(int*)(header + 140));
+			custom = (qboolean)(numBones > 0 && numBones != 53 && numBones != 72);
+		}
+		trap->FS_Close(f);
+	}
+
+	if (numCached < 64)
+	{
+		Q_strncpyz(cachedModel[numCached], model, sizeof cachedModel[numCached]);
+		cachedResult[numCached] = custom;
+		numCached++;
+	}
+	return custom;
 }
 
 /*

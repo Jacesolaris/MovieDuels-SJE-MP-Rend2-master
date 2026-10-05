@@ -69,6 +69,26 @@ qboolean NPC_IsTrooper(const gentity_t* self)
 	return self && self->NPC && self->s.weapon && !!(self->NPC->scriptFlags & SCF_NO_GROUPS);
 }
 
+// SP NPC.cpp: the big classes (their parries use the K1 poses in SP's WP_SaberBlockNonRandom_MD)
+qboolean NPC_IsOversized(const gentity_t* self)
+{
+	switch (self->client->NPC_class)
+	{
+	case CLASS_WOOKIE:
+	case CLASS_SBD:
+	case CLASS_ASSASSIN_DROID:
+	case CLASS_HAZARD_TROOPER:
+	case CLASS_ROCKETTROOPER:
+	case CLASS_SABER_DROID:
+	case CLASS_VADER:
+		return qtrue;
+	default:
+		break;
+	}
+
+	return qfalse;
+}
+
 static void CorpsePhysics(gentity_t* self)
 {
 	// run the bot through the server like it was a real client

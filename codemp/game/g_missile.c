@@ -80,6 +80,8 @@ extern qboolean G_ControlledByPlayer(const gentity_t* self);
 extern float manual_npc_saberblocking(const gentity_t* defender);
 extern qboolean WP_BrokenBoltBlockKnockBack(gentity_t* victim);
 extern qboolean WP_SaberBlockBolt(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
+extern qboolean WP_SaberBlockBolt_MD(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
+extern qboolean WP_SaberBouncedSaberDirection(gentity_t* self, vec3_t hitloc, qboolean missileBlock);
 void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec3_t fwd);
 extern int WP_SaberBlockCost(gentity_t* defender, const gentity_t* attacker, vec3_t hit_locs);
 extern void WP_BlockPointsDrain(const gentity_t* self, int fatigue);
@@ -2400,12 +2402,16 @@ void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec
 				}
 				else
 				{
-					WP_SaberFatiguedParryDirection(blocker, bolt->r.currentOrigin, qtrue);
+					WP_SaberBouncedSaberDirection(blocker, bolt->r.currentOrigin, qtrue); // SP WP_SaberBounceDirection
 				}
+			}
+			else if (saber_block_reflection)
+			{
+				WP_SaberBlockBolt(blocker, bolt->r.currentOrigin, qtrue); // SP: saber block poses
 			}
 			else
 			{
-				WP_SaberBlockBolt(blocker, bolt->r.currentOrigin, qtrue);
+				WP_SaberBlockBolt_MD(blocker, bolt->r.currentOrigin, qtrue); // SP: bolt block / NPC poses
 			}
 
 			// Block point cost
@@ -2443,12 +2449,12 @@ void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec
 				}
 				else
 				{
-					WP_SaberFatiguedParryDirection(blocker, bolt->r.currentOrigin, qtrue);
+					WP_SaberBouncedSaberDirection(blocker, bolt->r.currentOrigin, qtrue); // SP WP_SaberBounceDirection
 				}
 			}
 			else
 			{
-				WP_SaberBlockBolt(blocker, bolt->r.currentOrigin, qtrue);
+				WP_SaberBlockBolt_MD(blocker, bolt->r.currentOrigin, qtrue); // SP: bolt block / NPC poses
 			}
 
 			if (accurate_missile_block)
@@ -2515,12 +2521,12 @@ void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec
 				}
 				else
 				{
-					WP_SaberFatiguedParryDirection(blocker, bolt->r.currentOrigin, qtrue);
+					WP_SaberBouncedSaberDirection(blocker, bolt->r.currentOrigin, qtrue); // SP WP_SaberBounceDirection
 				}
 			}
 			else
 			{
-				wp_saber_block_non_random_missile(blocker, bolt->r.currentOrigin, qtrue);
+				WP_SaberBlockBolt(blocker, bolt->r.currentOrigin, qtrue); // SP: saber block poses
 			}
 
 			// Block point cost
@@ -2606,7 +2612,7 @@ void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec
 				}
 				else
 				{
-					WP_SaberFatiguedParryDirection(blocker, bolt->r.currentOrigin, qtrue);
+					WP_SaberBouncedSaberDirection(blocker, bolt->r.currentOrigin, qtrue); // SP WP_SaberBounceDirection
 				}
 			}
 			else

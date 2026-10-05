@@ -112,7 +112,8 @@ typedef enum
 	TAUNT_FLOURISH,
 	TAUNT_GLOAT,
 	TAUNT_SURRENDER,
-	TAUNT_RELOAD
+	TAUNT_RELOAD,
+	TAUNT_STANCE // SP "combatstance"
 } tauntTypes_t;
 
 /*
@@ -2456,6 +2457,16 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 				break;
 			case TAUNT_RELOAD:
 				break;
+			case TAUNT_STANCE: // SP G_TauntSound: a taunt with the saber, else a gloat
+				if (es->weapon == WP_SABER)
+				{
+					sound_index = CG_CustomSound(es->number, va("*taunt%d", Q_irand(1, 5)));
+				}
+				else
+				{
+					sound_index = CG_CustomSound(es->number, va("*gloat%d", Q_irand(1, 3)));
+				}
+				break;
 			default:;
 				break;
 			}
@@ -2521,6 +2532,16 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 				}
 				break;
 			case TAUNT_RELOAD:
+				break;
+			case TAUNT_STANCE:
+				if (es->weapon == WP_SABER)
+				{
+					sound_index = CG_CustomSound(es->number, va("*taunt%d.wav", Q_irand(1, 5)));
+				}
+				else
+				{
+					sound_index = CG_CustomSound(es->number, va("*gloat%d.wav", Q_irand(1, 3)));
+				}
 				break;
 			}
 		}

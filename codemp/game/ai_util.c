@@ -1023,7 +1023,8 @@ void BotUtilizePersonality(bot_state_t* bs)
 
 	bs->lovednum = 0;
 
-	if (GetValueGroup(buf, "EmotionalAttachments", group))
+	if (GetValueGroup(buf, "EmotionalAttachments", group)
+		|| GetValueGroup(buf, "EmotionalAttachment", group)) // 36 MovieDuels personalities spell it without the s
 	{
 		ParseEmotionalAttachments(bs, group);
 	}

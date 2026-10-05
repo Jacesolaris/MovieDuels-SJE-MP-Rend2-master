@@ -565,7 +565,7 @@ static qboolean PlaceShield(gentity_t* playerent)
 
 			// Play placing sound...
 			G_AddEvent(shield, EV_GENERAL_SOUND, shieldAttachSound);
-			NPC_SetAnim(playerent, SETANIM_TORSO, BOTH_INV_USE, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			NPC_SetAnim(playerent, SETANIM_TORSO, BOTH_ATTACK11, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 
 			return qtrue;
 		}
@@ -1324,7 +1324,7 @@ void ItemUse_Sentry(gentity_t* ent)
 	{
 		sentry->s.teamowner = 16;
 	}
-	NPC_SetAnim(ent, SETANIM_TORSO, BOTH_INV_USE, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+	NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ATTACK11, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 
 	SP_PAS(sentry);
 }
@@ -1455,7 +1455,7 @@ void ItemUse_ATST(gentity_t* ent)
 
 	if (decca && decca->client)
 	{
-		NPC_SetAnim(ent, SETANIM_TORSO, BOTH_INV_USE, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+		NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ATTACK11, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 		G_Sound(ent, CHAN_BODY, G_SoundIndex("sound/chars/atst/atst_hatch_open.mp3"));
 	}
 }
@@ -1466,7 +1466,7 @@ void ItemUse_Decca(gentity_t* ent)
 
 	if (decca && decca->client)
 	{
-		NPC_SetAnim(ent, SETANIM_TORSO, BOTH_INV_USE, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+		NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ATTACK11, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 		G_Sound(ent, CHAN_BODY, G_SoundIndex("sound/chars/droideka/foldout.mp3"));
 	}
 }
@@ -1477,7 +1477,7 @@ void ItemUse_Swoop(gentity_t* ent)
 
 	if (swoop && swoop->client)
 	{
-		NPC_SetAnim(ent, SETANIM_TORSO, BOTH_INV_USE, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+		NPC_SetAnim(ent, SETANIM_TORSO, BOTH_ATTACK11, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 		G_Sound(ent, CHAN_BODY, G_SoundIndex("sound/vehicles/swoop/on.mp3"));
 	}
 }

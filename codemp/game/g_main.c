@@ -327,6 +327,12 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 
 	G_RegisterCvars();
 
+	// Realistic blocking (SP's g_RealisticBlockingMode) changes saber anim speeds, so the server and every client must
+	// use the same value: on a live (dedicated) server it is always on, in a local game it is the host's menu choice.
+	// bg_realisticBlocking is a systeminfo cvar, so the clients get it before their animations load.
+	trap->Cvar_Set("bg_realisticBlocking",
+		trap->Cvar_VariableIntegerValue("dedicated") || g_RealisticBlockingMode.integer ? "1" : "0");
+
 	G_ProcessIPBans();
 
 	G_InitMemory();
@@ -4677,6 +4683,11 @@ void G_RunFrame(const int levelTime)
 		}
 
 		G_CheckSpecialPersistentEvents(ent);
+
+		if (ent->corpsePushUntil > level.time)
+		{// ragdoll: walking into the body pushes it
+			G_CorpseTouchPush(ent);
+		}
 
 		if (ent->s.eType == ET_MISSILE)
 		{

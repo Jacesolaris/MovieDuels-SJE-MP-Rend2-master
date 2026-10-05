@@ -516,6 +516,47 @@ static char* UI_GetBotInfoByName(const char* name) {
 	return NULL;
 }
 
+/*
+===============
+UI_GetBotInfoByModel
+
+The bot (botfiles/*.bot) that uses this player model ("model" or "model/skin"): the exact model first, then
+one with the same model folder. The MovieDuels character menu takes the character's sabers / weapon from it.
+===============
+*/
+const char* UI_GetBotInfoByModel(const char* model) {
+	char base[MAX_QPATH];
+	const char* slash;
+	const char* found = NULL;
+
+	if (!model || !model[0]) {
+		return NULL;
+	}
+	for (int n = 0; n < ui_numBots; n++) {
+		if (!Q_stricmp(Info_ValueForKey(ui_botInfos[n], "model"), model)) {
+			return ui_botInfos[n];
+		}
+	}
+
+	Q_strncpyz(base, model, sizeof base);
+	slash = strchr(base, '/');
+	if (slash) {
+		base[slash - base] = 0;
+	}
+	for (int n = 0; n < ui_numBots && !found; n++) {
+		char botBase[MAX_QPATH];
+		Q_strncpyz(botBase, Info_ValueForKey(ui_botInfos[n], "model"), sizeof botBase);
+		slash = strchr(botBase, '/');
+		if (slash) {
+			botBase[slash - botBase] = 0;
+		}
+		if (!Q_stricmp(botBase, base)) {
+			found = ui_botInfos[n];
+		}
+	}
+	return found;
+}
+
 int UI_GetNumBots() {
 	return ui_numBots;
 }
@@ -525,5 +566,5 @@ char* UI_GetBotNameByNumber(int num) {
 	if (info) {
 		return Info_ValueForKey(info, "name");
 	}
-	return "_humanoid_mp";
+	return "_humanoid";
 }

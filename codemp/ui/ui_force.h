@@ -39,6 +39,7 @@ extern int uiMaxRank;
 extern int uiForceUsed;
 extern int uiForceAvailable;
 extern qboolean gTouchedForce;
+void UI_ForceMenusShowItem(const char* itemName, qboolean show); // both force menus (ui_force.c)
 extern qboolean uiForcePowersDisabled[NUM_FORCE_POWERS];
 extern int uiForcePowersRank[NUM_FORCE_POWERS];
 extern int uiForcePowerDarkLight[NUM_FORCE_POWERS];

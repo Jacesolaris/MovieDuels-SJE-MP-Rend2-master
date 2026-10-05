@@ -59,8 +59,714 @@ USER INTERFACE MAIN
 #include <qcommon/q_math.h>
 #include "menudef.h"
 #include <search.h>
+#include "ui_mdchars.h"
 
 extern void UI_SaberAttachToChar(itemDef_t* item);
+
+/*
+==================
+MovieDuels character menu ("ingamecharacter")
+
+Ported from the SP character menu (code/ui/ui_main.cpp, NEW_FEEDER): faction tabs, portrait grid, variants,
+description and a 3D preview with the character's own sabers. It looks like SP, but works like the old MP
+character menus: SELECT CHARACTER ("md_player") sets the player model (the class system picks the class from
+the model name) and the menu then opens the saber menu.
+==================
+*/
+static int uiEra = 0;
+static int uiModelIndex = 0;   // table row of the selected character (the main row, not a variant)
+static int uiVariantIndex = 0; // table row of the selected variant (the character itself or one of its variants)
+static qboolean mdCharMenuOpened = qfalse; // SP: firstTimeLoad
+static int mdAnimSelected = -1; // the variant whose select animation is playing on the preview
+
+// The menu's table: the characters of charMDAll that MP can play (MD_BG_FilterCharacters).
+static charMD_t charMD[NO_OF_MD_MODELS_ALL];
+static int mdNumModels = 0;
+#define NO_OF_MD_MODELS mdNumModels
+
+// MP plays every player model on the standard humanoid skeleton (the master _humanoid). Models whose .glm
+// uses a skeleton of its own that isn't an external humanoid (gonk, R2-D2, protocol droid, hazard/rocket trooper...) can't be
+// played yet, so the menu leaves them out. The skeleton is read from the files: model.glm names its .gla,
+// the .gla header has the bone count.
+#define MD_HUMANOID_BONES 53
+
+static qboolean MD_CharModelSupported(const char* model)
+{
+	static char glaNames[64][MAX_QPATH];
+	static qboolean glaOk[64];
+	static int numGlas = 0;
+	fileHandle_t f;
+	char glmHeader[136];
+	char glaName[MAX_QPATH];
+	int glaHeader[22];
+
+	if (!model[0])
+	{
+		return qtrue;
+	}
+
+	// mdxmHeader_t: ident, version, name[64], animName[64]
+	if (trap->FS_Open(va("models/players/%s/model.glm", model), &f, FS_READ) < (int)sizeof glmHeader)
+	{
+		if (f)
+		{
+			trap->FS_Close(f);
+		}
+		return qfalse;
+	}
+	trap->FS_Read(glmHeader, sizeof glmHeader, f);
+	trap->FS_Close(f);
+	Q_strncpyz(glaName, &glmHeader[72], sizeof glaName);
+
+	for (int i = 0; i < numGlas; i++)
+	{
+		if (!Q_stricmp(glaNames[i], glaName))
+		{
+			return glaOk[i];
+		}
+	}
+
+	// mdxaHeader_t: ident, version, name[64], fScale, numFrames, ofsFrames, numBones (int 21)
+	qboolean ok = qfalse;
+	if (trap->FS_Open(va("%s.gla", glaName), &f, FS_READ) >= (int)sizeof glaHeader)
+	{
+		trap->FS_Read(glaHeader, sizeof glaHeader, f);
+		ok = glaHeader[21] == MD_HUMANOID_BONES ? qtrue : qfalse;
+	}
+	if (f)
+	{
+		trap->FS_Close(f);
+	}
+
+	// An external humanoid skeleton (models/players/_humanoid_sbd, _humanoid_deka...) with its own animation.cfg:
+	// the game now loads its own GLA and animations for it (as SP), so it can be played.
+	if (!ok && !Q_stricmpn(glaName, "models/players/_humanoid_", 25) && !strstr(glaName, "_deka")) // the server blocks the droideka (rolling droid)
+	{
+		char animCfg[MAX_QPATH];
+		Q_strncpyz(animCfg, glaName, sizeof animCfg);
+		char* slash = Q_strrchr(animCfg, '/');
+		if (slash)
+		{
+			strcpy(slash, "/animation.cfg");
+			if (trap->FS_Open(animCfg, &f, FS_READ) > 0)
+			{
+				ok = qtrue;
+			}
+			if (f)
+			{
+				trap->FS_Close(f);
+			}
+		}
+	}
+
+	if (numGlas < 64)
+	{
+		Q_strncpyz(glaNames[numGlas], glaName, sizeof glaNames[0]);
+		glaOk[numGlas++] = ok;
+	}
+	return ok;
+}
+
+// charMD = the playable rows of charMDAll. When a character's main row goes, its first playable variant
+// takes its place.
+static void MD_BG_FilterCharacters(void)
+{
+	qboolean mainDropped = qfalse;
+
+	mdNumModels = 0;
+	for (int i = 0; i < NO_OF_MD_MODELS_ALL; i++)
+	{
+		const charMD_t* c = &charMDAll[i];
+
+		if (c->era != TOTAL_ERAS && !MD_CharModelSupported(c->model))
+		{
+			if (!c->isSubDiv)
+			{
+				mainDropped = qtrue;
+			}
+			continue;
+		}
+		charMD[mdNumModels] = *c;
+		if (!c->isSubDiv)
+		{
+			mainDropped = qfalse;
+		}
+		else if (mainDropped)
+		{
+			charMD[mdNumModels].isSubDiv = qfalse;
+			mainDropped = qfalse;
+		}
+		mdNumModels++;
+	}
+}
+static qhandle_t mdHeadIcons[NO_OF_MD_MODELS_ALL];
+static int eraIndex[TOTAL_ERAS + 1];
+
+extern qhandle_t mdBorder;
+extern qhandle_t mdBorderSel;
+extern qhandle_t mdBackground;
+extern char uiMDPreviewSaber[2][MAX_QPATH];
+extern char uiMDPreviewColor[2][MAX_QPATH];
+extern void UI_MDSaberAttachToChar(itemDef_t* item);
+extern qboolean ItemParse_model_g2skin_go(itemDef_t* item, const char* skinName);
+
+// First table row of each faction (the table is sorted by faction and ends with a TOTAL_ERAS row).
+static void MD_BG_GenerateEraIndexes(void)
+{
+	int era = 0;
+
+	eraIndex[0] = 0;
+	for (int i = 0; i < NO_OF_MD_MODELS; i++)
+	{
+		while (era < TOTAL_ERAS && (int)charMD[i].era > era)
+		{
+			era++;
+			eraIndex[era] = i;
+		}
+	}
+}
+
+// Table row of entry "index" of the faction, counting every row (the variants list).
+static const char* MD_UI_SelectedTeamHead(const int index, int* actual)
+{
+	int c = 0;
+	for (int i = eraIndex[uiEra]; i < eraIndex[uiEra + 1]; i++)
+	{
+		if (c == index)
+		{
+			*actual = i;
+			return charMD[i].model;
+		}
+		c++;
+	}
+	return "";
+}
+
+// Table row of portrait "index" of the faction, where a character and its variants are one portrait.
+static const char* MD_UI_SelectedTeamHead_SubDivs(const int index, int* actual)
+{
+	int c = 0;
+	for (int i = eraIndex[uiEra]; i < eraIndex[uiEra + 1]; i++)
+	{
+		if (!charMD[i].isSubDiv)
+		{
+			for (int k = 1; k < NO_OF_MD_MODELS; k++)
+			{
+				if (charMD[i + k].isSubDiv)
+				{
+					c--;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+		if (c == index)
+		{
+			while (charMD[i].isSubDiv)
+			{
+				i--;
+			}
+			*actual = i;
+			return charMD[i].model;
+		}
+		c++;
+	}
+	return "";
+}
+
+// Number of variants of the selected character, the character itself included.
+static int MD_VariantCount(void)
+{
+	for (int i = 1; uiModelIndex + i < NO_OF_MD_MODELS; i++)
+	{
+		if (!charMD[uiModelIndex + i].isSubDiv)
+		{
+			return i;
+		}
+	}
+	return 1;
+}
+
+static void MD_SetCharacterCvars(const int index)
+{
+	trap->Cvar_Set("ui_char_model", charMD[index].model);
+	trap->Cvar_Set("ui_char_skin", charMD[index].skin);
+}
+
+static void MD_SetListCursor(const menuDef_t* menu, const char* itemName, const int pos)
+{
+	itemDef_t* item = menu ? Menu_FindItemByName(menu, itemName) : NULL;
+	if (item)
+	{
+		if (item->typeData.listbox)
+		{
+			item->typeData.listbox->cursorPos = pos;
+		}
+		item->cursorPos = pos;
+	}
+}
+
+static void MD_SetCharacterDesc(const menuDef_t* menu)
+{
+	if (menu)
+	{
+		Item_TextScroll_SetText(Menu_FindItemByName(menu, "char_desc"), charMD[uiVariantIndex].desc);
+	}
+}
+
+// The player model for a character: "model" for the default skin, "model/skin" for model_<skin>.skin and
+// "model/head|torso|lower" for a multipart skin (the same strings the old MP character menus used).
+static void MD_PlayerModelForCharacter(const charMD_t* c, char* model, const size_t modelSize)
+{
+	if (!Q_stricmp(c->skin, "model_default") || !c->skin[0])
+	{
+		Q_strncpyz(model, c->model, (int)modelSize);
+	}
+	else if (!Q_strncmp(c->skin, "model_", 6))
+	{
+		Com_sprintf(model, (int)modelSize, "%s/%s", c->model, &c->skin[6]);
+	}
+	else if (c->skin[0] == '|')
+	{
+		Com_sprintf(model, (int)modelSize, "%s/%s", c->model, &c->skin[1]);
+	}
+	else
+	{
+		Com_sprintf(model, (int)modelSize, "%s/%s", c->model, c->skin);
+	}
+}
+
+static int MD_FeederCount(const int feederID)
+{
+	if (feederID == FEEDER_MD_FACTION)
+	{
+		return TOTAL_ERAS;
+	}
+	if (feederID == FEEDER_MD_MODELS)
+	{
+		int count = 0;
+		for (int i = eraIndex[uiEra]; i < eraIndex[uiEra + 1]; i++)
+		{
+			if (!charMD[i].isSubDiv)
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+	return MD_VariantCount(); // FEEDER_MD_VARIANTS
+}
+
+static qhandle_t MD_FeederItemImage(const int feederID, int index)
+{
+	int actual = 0;
+	int start = eraIndex[uiEra];
+	int end = eraIndex[uiEra + 1];
+
+	if (feederID == FEEDER_MD_MODELS)
+	{
+		MD_UI_SelectedTeamHead_SubDivs(index, &actual);
+		index = actual;
+	}
+	else
+	{
+		// the variants of the selected character
+		start = uiModelIndex;
+		end = uiModelIndex + MD_VariantCount();
+		index += uiModelIndex;
+	}
+
+	if (index >= start && index < end)
+	{
+		if (!mdHeadIcons[index])
+		{
+			mdHeadIcons[index] = trap->R_RegisterShaderNoMip(va("gfx/menus/charactermenuicons/%s",
+				charMD[index].icon[0] ? charMD[index].icon : charMD[index].npc));
+		}
+		return mdHeadIcons[index];
+	}
+	return 0;
+}
+
+static void MD_FeederSelection(const int feederID, int index)
+{
+	const menuDef_t* menu = Menus_FindByName("ingamecharacter");
+
+	if (feederID == FEEDER_MD_FACTION)
+	{
+		uiEra = index;
+		return;
+	}
+	if (feederID == FEEDER_MD_VARIANTS)
+	{
+		index = uiModelIndex + index;
+		uiVariantIndex = index;
+	}
+	else
+	{
+		int actual = 0;
+		MD_UI_SelectedTeamHead_SubDivs(index, &actual);
+		uiModelIndex = actual;
+		uiVariantIndex = actual;
+		index = actual;
+		MD_SetListCursor(menu, "variantlist", 0);
+	}
+
+	MD_SetCharacterDesc(menu);
+
+	if (index >= eraIndex[uiEra] && index < eraIndex[uiEra + 1])
+	{
+		MD_SetCharacterCvars(index);
+	}
+}
+
+// "md_char_init" (menu opened) and the faction tabs ("ERA_OLD_REPUBLIC"...). Returns qfalse for other scripts.
+static qboolean MD_RunEraScript(const char* name)
+{
+	int era = -1;
+
+	if (!Q_stricmp(name, "md_char_init"))
+	{
+		mdAnimSelected = -1; // play the select animation again
+		if (mdCharMenuOpened)
+		{
+			return qtrue; // the menu remembers where it was
+		}
+		era = uiEra;
+	}
+	else
+	{
+		for (int i = 0; i < TOTAL_ERAS; i++)
+		{
+			if (!Q_stricmp(name, era_table[i].name))
+			{
+				era = i;
+				break;
+			}
+		}
+		if (era < 0)
+		{
+			return qfalse;
+		}
+	}
+
+	uiEra = era;
+	{
+		const menuDef_t* menu = Menus_FindByName("ingamecharacter");
+		int select = eraIndex[uiEra];
+		int positionM = 0;
+		int positionV = 0;
+
+		if (!mdCharMenuOpened)
+		{
+			// first time: show the remembered character
+			int subDivs = 0;
+			for (int j = eraIndex[uiEra]; j < uiModelIndex; j++)
+			{
+				if (charMD[j].isSubDiv)
+				{
+					subDivs++;
+				}
+			}
+			positionM = uiModelIndex - eraIndex[uiEra] - subDivs;
+			positionV = uiVariantIndex - uiModelIndex;
+			select = uiVariantIndex;
+		}
+		else
+		{
+			// a faction tab: the first character of the faction
+			uiModelIndex = eraIndex[uiEra];
+			uiVariantIndex = eraIndex[uiEra];
+		}
+
+		MD_SetCharacterCvars(select);
+		mdCharMenuOpened = qtrue;
+
+		MD_SetListCursor(menu, "modellist", positionM);
+		MD_SetListCursor(menu, "variantlist", positionV);
+		MD_SetCharacterDesc(menu);
+	}
+	return qtrue;
+}
+
+extern qboolean UI_SaberModelForSaber(const char* saber_name, char* saberModel);
+static void UI_UpdateSaberCvars(void);
+
+// The MP name of a saber of the character table (SP names): MP's sabers (ext_data/MD_MP_SABERS) are mostly the
+// SP saber with "_mp" on the end. "" when MP has no such saber (then the preview shows none, instead of a blade
+// without a hilt).
+static void MD_MPSaberName(const char* sp_name, char* mp_name, const size_t size)
+{
+	char model_path[MAX_QPATH];
+
+	mp_name[0] = 0;
+	if (!sp_name[0])
+	{
+		return;
+	}
+	if (UI_SaberModelForSaber(sp_name, model_path))
+	{
+		Q_strncpyz(mp_name, sp_name, (int)size);
+	}
+	else if (UI_SaberModelForSaber(va("%s_mp", sp_name), model_path))
+	{
+		Com_sprintf(mp_name, (int)size, "%s_mp", sp_name);
+	}
+}
+
+extern const char* UI_GetBotInfoByModel(const char* model);
+extern stringID_table_t WPTable[];
+extern char uiMDPreviewWeaponModel[MAX_QPATH];
+
+// The bot (botfiles/*.bot) that uses the character's model, looked up once per character.
+static const char* MD_CharBotInfo(const int index)
+{
+	static const char* bot_info[NO_OF_MD_MODELS_ALL];
+	static qboolean looked_up[NO_OF_MD_MODELS_ALL];
+
+	if (!looked_up[index])
+	{
+		char model[MAX_QPATH];
+		MD_PlayerModelForCharacter(&charMD[index], model, sizeof model);
+		bot_info[index] = UI_GetBotInfoByModel(model);
+		looked_up[index] = qtrue;
+	}
+	return bot_info[index];
+}
+
+// The character's sabers in MP: the ones his bot uses (botfiles, MP saber names); none when his bot has no
+// saber (a gunner). Characters without a bot: the table's sabers as their "_mp" versions.
+static void MD_CharSabers(const int index, char* saber1, char* saber2, const size_t size)
+{
+	const char* info = MD_CharBotInfo(index);
+	char model_path[MAX_QPATH];
+
+	saber1[0] = saber2[0] = 0;
+	if (info)
+	{
+		char s1[MAX_QPATH];
+		char s2[MAX_QPATH];
+		Q_strncpyz(s1, Info_ValueForKey(info, "saber1"), sizeof s1);
+		Q_strncpyz(s2, Info_ValueForKey(info, "saber2"), sizeof s2);
+
+		if (!Q_stricmp(s1, "none"))
+		{
+			return; // his bot is a gunner
+		}
+		if (s1[0] && UI_SaberModelForSaber(s1, model_path))
+		{
+			Q_strncpyz(saber1, s1, (int)size);
+			if (s2[0] && Q_stricmp(s2, "none") && UI_SaberModelForSaber(s2, model_path))
+			{
+				Q_strncpyz(saber2, s2, (int)size);
+			}
+			return;
+		}
+	}
+	MD_MPSaberName(charMD[index].saber1, saber1, size);
+	MD_MPSaberName(saber1[0] ? charMD[index].saber2 : "", saber2, size);
+}
+
+// A gunner's weapon: the weapon his bot's personality (botfiles/*.jkb) weighs highest, not counting the saber,
+// melee and the stun baton. WP_NONE when there is no bot or no such weapon.
+static int MD_CharWeapon(const int index)
+{
+	static int weapon[NO_OF_MD_MODELS_ALL];
+	static qboolean looked_up[NO_OF_MD_MODELS_ALL];
+	static char buf[16384];
+	const char* info;
+
+	if (looked_up[index])
+	{
+		return weapon[index];
+	}
+	looked_up[index] = qtrue;
+	weapon[index] = WP_NONE;
+
+	info = MD_CharBotInfo(index);
+	if (info)
+	{
+		char path[MAX_QPATH];
+		fileHandle_t f;
+		const char* personality = Info_ValueForKey(info, "personality");
+
+		while (*personality == '/' || *personality == '\\')
+		{
+			personality++;
+		}
+		Q_strncpyz(path, personality, sizeof path);
+
+		const int len = path[0] ? trap->FS_Open(path, &f, FS_READ) : 0;
+		if (path[0] && f)
+		{
+			if (len > 0 && len < (int)sizeof buf)
+			{
+				const char* p;
+				trap->FS_Read(buf, len, f);
+				buf[len] = 0;
+
+				p = strstr(buf, "BotWeaponWeights");
+				p = p ? strchr(p, '{') : NULL;
+				if (p)
+				{
+					int best = 0;
+					p++;
+					while (1)
+					{
+						char name[MAX_QPATH];
+						const char* token = COM_ParseExt(&p, qtrue);
+						if (!token[0] || !strcmp(token, "}"))
+						{
+							break;
+						}
+						Q_strncpyz(name, token, sizeof name);
+						token = COM_ParseExt(&p, qtrue);
+						if (!token[0])
+						{
+							break;
+						}
+						const int wp = GetIDForString(WPTable, name);
+						const int w = atoi(token);
+						if (wp > WP_NONE && wp != WP_SABER && wp != WP_MELEE && wp != WP_STUN_BATON && w > best)
+						{
+							best = w;
+							weapon[index] = wp;
+						}
+					}
+				}
+			}
+			trap->FS_Close(f);
+		}
+	}
+
+	if (weapon[index] == WP_NONE && !Q_strncmp(charMD[index].saber1, "menu_wp_", 8))
+	{
+		// no bot: the weapon the table shows in the SP menu (menu_wp_<weapon>[_kotor] -> WP_<WEAPON>)
+		char name[MAX_QPATH];
+		char* kotor;
+
+		Q_strncpyz(name, &charMD[index].saber1[8], sizeof name);
+		kotor = strstr(name, "_kotor");
+		if (kotor)
+		{
+			*kotor = 0;
+		}
+		if (!Q_stricmp(name, "blaster_pistol"))
+		{
+			Q_strncpyz(name, "bryar_pistol", sizeof name);
+		}
+		else if (!Q_stricmp(name, "firstorder"))
+		{
+			Q_strncpyz(name, "thefirstorder", sizeof name);
+		}
+		const int wp = GetIDForString(WPTable, va("WP_%s", Q_strupr(name)));
+		if (wp > WP_NONE && wp != WP_SABER)
+		{
+			weapon[index] = wp;
+		}
+	}
+	return weapon[index];
+}
+
+// The preview: skin, size (fov), the character's sabers and blade colours.
+static void MD_UpdateCharacterSkin(itemDef_t* item)
+{
+	const charMD_t* c = &charMD[uiVariantIndex];
+	char skin[MAX_QPATH];
+	char saber1[MAX_QPATH];
+	char saber2[MAX_QPATH];
+
+	if (c->skin[0] == '|')
+	{
+		// multipart: models/players/<model>/|head|torso|lower
+		Com_sprintf(skin, sizeof skin, "models/players/%s/%s", c->model, c->skin);
+	}
+	else
+	{
+		Com_sprintf(skin, sizeof skin, "models/players/%s/%s.skin", c->model, c->skin);
+	}
+	ItemParse_model_g2skin_go(item, skin);
+
+	if (item->typeData.model && c->fov > 0.0f)
+	{
+		item->typeData.model->fov_x = 32.0f / c->fov;
+		item->typeData.model->fov_y = 32.0f / c->fov;
+	}
+
+	MD_CharSabers(uiVariantIndex, saber1, saber2, sizeof saber1);
+
+	// a gunner holds his weapon (his bot's personality)
+	uiMDPreviewWeaponModel[0] = 0;
+	if (!saber1[0])
+	{
+		const int wp = MD_CharWeapon(uiVariantIndex);
+		const gitem_t* weapon_item = wp > WP_NONE ? BG_FindItemForWeapon((weapon_t)wp) : NULL;
+		if (weapon_item && weapon_item->world_model[0])
+		{
+			Q_strncpyz(uiMDPreviewWeaponModel, weapon_item->world_model[0], sizeof uiMDPreviewWeaponModel);
+		}
+	}
+
+	if (trap->Cvar_VariableValue("developer"))
+	{
+		trap->Print("MD character menu: %s %s, model %s/%s, bot %s, sabers \"%s\" \"%s\", weapon model \"%s\"\n",
+			c->name, c->title, c->model, c->skin, MD_CharBotInfo(uiVariantIndex) ? "yes" : "no", saber1, saber2,
+			uiMDPreviewWeaponModel);
+	}
+
+	Q_strncpyz(uiMDPreviewSaber[0], saber1, sizeof uiMDPreviewSaber[0]);
+	Q_strncpyz(uiMDPreviewSaber[1], saber2, sizeof uiMDPreviewSaber[1]);
+	Q_strncpyz(uiMDPreviewColor[0], c->color1, sizeof uiMDPreviewColor[0]);
+	Q_strncpyz(uiMDPreviewColor[1], c->color2[0] ? c->color2 : c->color1, sizeof uiMDPreviewColor[1]);
+
+	item->flags &= ~(ITF_ISSABER | ITF_ISSABER2);
+	if (uiMDPreviewSaber[0][0])
+	{
+		item->flags |= ITF_ISSABER;
+		if (uiMDPreviewSaber[1][0])
+		{
+			item->flags |= ITF_ISSABER2;
+		}
+
+		// A real saber (not a menu_wp_ weapon) is also the starting choice of the saber menu opened next.
+		if (Q_strncmp(saber1, "menu_wp_", 8))
+		{
+			trap->Cvar_Set("ui_saber", saber1);
+			trap->Cvar_Set("ui_saber2", saber2[0] && Q_strncmp(saber2, "menu_wp_", 8) ? saber2 : "none");
+			if (c->color1[0])
+			{
+				trap->Cvar_Set("ui_saber_color", c->color1);
+			}
+			if (c->color2[0])
+			{
+				trap->Cvar_Set("ui_saber2_color", c->color2);
+			}
+		}
+	}
+	UI_MDSaberAttachToChar(item);
+}
+
+// The character's select animation (the same as SP: MP uses the master _humanoid with the SP animations).
+// Animations an animation set lacks are replaced in ItemParse_asset_model_go (UI_MPFallbackAnim).
+static int MD_SelectAnimation(const int index)
+{
+	return charMD[index].selectAnimation;
+}
+
+// The preview's animation: the character's select animation, started again when another variant is picked.
+static void MD_UpdateCharacterAnim(itemDef_t* item)
+{
+	if (uiVariantIndex != mdAnimSelected)
+	{
+		mdAnimSelected = uiVariantIndex;
+		uiInfo.movesBaseAnim = animTable[MD_SelectAnimation(uiVariantIndex)].name;
+		uiInfo.moveAnimTime = 0;
+	}
+	ItemParse_model_g2anim_go(item, animTable[MD_SelectAnimation(uiVariantIndex)].name);
+}
 
 const char* forcepowerDesc[NUM_FORCE_POWERS] =
 {
@@ -408,7 +1114,7 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 
 	if (is_humanoid)
 	{
-		animFileName = "models/players/_humanoid_mp/animation.cfg";
+		animFileName = "models/players/_humanoid/animation.cfg";
 	}
 
 	// ------------------------------------------------------------
@@ -671,6 +1377,14 @@ static void AssetCache(void)
 	//if (Assets.textFont == NULL) {
 	//}
 	//Com_Printf("Menu Size: %i bytes\n", sizeof(Menus));
+	// MovieDuels character menu portrait frames (the same art as SP)
+	memset(mdHeadIcons, 0, sizeof mdHeadIcons);
+	MD_BG_FilterCharacters();
+	MD_BG_GenerateEraIndexes();
+	mdBorder = trap->R_RegisterShaderNoMip("gfx/menus/charactermenuicons/icon_border.tga");
+	mdBorderSel = trap->R_RegisterShaderNoMip("gfx/menus/charactermenuicons/icon_border_gold.tga");
+	mdBackground = trap->R_RegisterShaderNoMip("gfx/menus/charactermenuicons/icon_background.tga");
+
 	uiInfo.uiDC.Assets.gradientBar = trap->R_RegisterShaderNoMip(ASSET_GRADIENTBAR);
 	uiInfo.uiDC.Assets.fxBasePic = trap->R_RegisterShaderNoMip(ART_FX_BASE);
 	uiInfo.uiDC.Assets.fxPic[0] = trap->R_RegisterShaderNoMip(ART_FX_RED);
@@ -1651,8 +2365,8 @@ void UI_LoadMenus(const char* menuFile, const qboolean reset)
 	Com_Printf("----------------------- MovieDuels-SJE-MP -----------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Update 9.0 ---------------------------\n");
-	Com_Printf("--------------------- Build Date 03/10/2026 ---------------------\n");// build date
-	Com_Printf("--------------------------- Build 03 ----------------------------\n");
+	Com_Printf("--------------------- Build Date 04/10/2026 ---------------------\n");// build date
+	Com_Printf("--------------------------- Build 04 ----------------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Lightsaber ---------------------------\n");
 	Com_Printf("---------- An elegant weapon for a more civilized age -----------\n");
@@ -2090,15 +2804,11 @@ static void UI_DrawForceSide(rectDef_t* rect, float scale, vec4_t color, int tex
 
 			Menu_ShowItemByName(menu, "lightpowers_team", qtrue); //(ui_gameType.integer >= GT_TEAM));
 		}
-		menu = Menus_FindByName("ingame_playerforce");
-		if (menu)
-		{
-			Menu_ShowItemByName(menu, "lightpowers", qtrue);
-			Menu_ShowItemByName(menu, "darkpowers", qfalse);
-			Menu_ShowItemByName(menu, "darkpowers_team", qfalse);
-
-			Menu_ShowItemByName(menu, "lightpowers_team", qtrue); //(ui_gameType.integer >= GT_TEAM));
-		}
+		// both force menus (the normal one and the MovieDuels character force menu)
+		UI_ForceMenusShowItem("lightpowers", qtrue);
+		UI_ForceMenusShowItem("darkpowers", qfalse);
+		UI_ForceMenusShowItem("darkpowers_team", qfalse);
+		UI_ForceMenusShowItem("lightpowers_team", qtrue); //(ui_gameType.integer >= GT_TEAM));
 	}
 	else
 	{
@@ -2112,15 +2822,11 @@ static void UI_DrawForceSide(rectDef_t* rect, float scale, vec4_t color, int tex
 
 			Menu_ShowItemByName(menu, "darkpowers_team", qtrue); //(ui_gameType.integer >= GT_TEAM));
 		}
-		menu = Menus_FindByName("ingame_playerforce");
-		if (menu)
-		{
-			Menu_ShowItemByName(menu, "lightpowers", qfalse);
-			Menu_ShowItemByName(menu, "lightpowers_team", qfalse);
-			Menu_ShowItemByName(menu, "darkpowers", qtrue);
-
-			Menu_ShowItemByName(menu, "darkpowers_team", qtrue); //(ui_gameType.integer >= GT_TEAM));
-		}
+		// both force menus (the normal one and the MovieDuels character force menu)
+		UI_ForceMenusShowItem("lightpowers", qfalse);
+		UI_ForceMenusShowItem("lightpowers_team", qfalse);
+		UI_ForceMenusShowItem("darkpowers", qtrue);
+		UI_ForceMenusShowItem("darkpowers_team", qtrue); //(ui_gameType.integer >= GT_TEAM));
 	}
 
 	Text_Paint(rect->x, rect->y, scale, color, s, 0, 0, textStyle, i_menu_font);
@@ -2783,7 +3489,7 @@ static const char* UI_AIFromName(const char* name)
 			return uiInfo.aliasList[j].ai;
 		}
 	}
-	return "_humanoid_mp";
+	return "_humanoid";
 }
 
 static void UI_NextOpponent()
@@ -6081,6 +6787,12 @@ void UI_UpdateCharacterSkin(void)
 		Com_Error(ERR_FATAL, "UI_UpdateCharacterSkin: Could not find item (character) in menu (%s)", menu->window.name);
 	}
 
+	if (!Q_stricmp(menu->window.name, "ingamecharacter"))
+	{
+		MD_UpdateCharacterSkin(item);
+		return;
+	}
+
 	trap->Cvar_VariableStringBuffer("ui_char_model", model, sizeof model);
 	trap->Cvar_VariableStringBuffer("ui_char_skin_head", head, sizeof head);
 	trap->Cvar_VariableStringBuffer("ui_char_skin_torso", torso, sizeof torso);
@@ -6174,13 +6886,20 @@ static void UI_UpdateCharacter(qboolean changedModel)
 		Com_Error(ERR_FATAL, "UI_UpdateCharacter: Could not find item (character) in menu (%s)", menu->window.name);
 	}
 
-	ItemParse_model_g2anim_go(item, ui_char_anim.string);
+	if (!Q_stricmp(menu->window.name, "ingamecharacter"))
+	{
+		MD_UpdateCharacterAnim(item);
+	}
+	else
+	{
+		ItemParse_model_g2anim_go(item, ui_char_anim.string);
+	}
 
 	Com_sprintf(modelPath, sizeof modelPath, "models/players/%s/model.glm",
 		UI_Cvar_VariableString("ui_char_model"));
 	ItemParse_asset_model_go(item, modelPath, &animRunLength);
 
-	if (changedModel)
+	if (changedModel && Q_stricmp(menu->window.name, "ingamecharacter"))
 	{
 		//set all skins to first skin since we don't know you always have all skins
 		//FIXME: could try to keep the same spot in each list as you swtich models
@@ -7276,6 +7995,74 @@ static void UI_RunMenuScript(char** args)
 		else if (Q_stricmp(name, "character") == 0)
 		{
 			UI_UpdateCharacter(qfalse);
+		}
+		else if (MD_RunEraScript(name))
+		{
+			// "md_char_init" and the faction tabs of the character menu
+		}
+		else if (Q_stricmp(name, "md_char") == 0)
+		{
+			// character menu: name and [title] of the selected character
+			const menuDef_t* menu = Menu_GetFocused();
+			if (menu && !Q_stricmp(menu->window.name, "ingamecharacter"))
+			{
+				itemDef_t* item = Menu_FindItemByName(menu, "char_name");
+				if (item)
+				{
+					item->text = (char*)charMD[uiVariantIndex].name;
+				}
+				item = Menu_FindItemByName(menu, "char_title");
+				if (item)
+				{
+					item->text = (char*)charMD[uiVariantIndex].title;
+				}
+			}
+		}
+		else if (Q_stricmp(name, "md_charforce_init") == 0)
+		{
+			// the character force menu (ingame_charforce.menu) opens like the normal force menu (UIMENU_PLAYERFORCE)
+			trap->Key_SetCatcher(KEYCATCH_UI);
+			UI_BuildPlayerList();
+			UpdateForceUsed();
+		}
+		else if (Q_stricmp(name, "md_player") == 0)
+		{
+			// character menu SELECT CHARACTER: like the old MP character menus, set the player model (the class
+			// system picks the class from it), with the character's own sabers. md_charsel goes to the server in
+			// the same userinfo: for a saber class (Jedi/Sith) it opens the character force menu (md_charforce,
+			// cg_servercmds.c), a gunner just respawns.
+			char model[MAX_QPATH];
+			char saber1[MAX_QPATH];
+			char saber2[MAX_QPATH];
+			const charMD_t* c = &charMD[uiVariantIndex];
+
+			MD_PlayerModelForCharacter(c, model, sizeof model);
+			trap->Cvar_Set("model", model);
+
+			// the character's sabers (his bot's, or the table's as "_mp"), the same as choosing them in the saber
+			// menu; never the menu_wp_ weapons of the gunners
+			MD_CharSabers(uiVariantIndex, saber1, saber2, sizeof saber1);
+			if (saber1[0] && Q_strncmp(saber1, "menu_wp_", 8))
+			{
+				trap->Cvar_Set("ui_saber", saber1);
+				trap->Cvar_Set("ui_saber2", saber2[0] && Q_strncmp(saber2, "menu_wp_", 8) ? saber2 : "none");
+				if (c->color1[0])
+				{
+					trap->Cvar_Set("ui_saber_color", c->color1);
+				}
+				if (c->color2[0] || c->color1[0])
+				{
+					trap->Cvar_Set("ui_saber2_color", c->color2[0] ? c->color2 : c->color1);
+				}
+				UI_UpdateSaberCvars();
+			}
+
+			trap->Cvar_Set("md_charsel", va("%i", (int)trap->Cvar_VariableValue("md_charsel") + 1));
+
+			if (c->plySelectSound[0] && !ui_char_mute_voice_line.integer)
+			{
+				trap->S_StartLocalSound(trap->S_RegisterSound(c->plySelectSound), CHAN_VOICE);
+			}
 		}
 		else if (Q_stricmp(name, "characterchanged") == 0)
 		{
@@ -8789,6 +9576,10 @@ static int UI_FeederCount(float feederID)
 
 	switch ((int)feederID)
 	{
+	case FEEDER_MD_FACTION:
+	case FEEDER_MD_MODELS:
+	case FEEDER_MD_VARIANTS:
+		return MD_FeederCount((int)feederID);
 	case FEEDER_SABER_SINGLE_INFO:
 
 		for (i = 0; i < MAX_SABER_HILTS; i++)
@@ -9081,6 +9872,10 @@ static const char* UI_FeederItemText(float feederID, int index, int column,
 	static int lastColumn = -1;
 	*handle1 = *handle2 = *handle3 = -1;
 
+	if (feederID == FEEDER_MD_FACTION)
+	{
+		return index >= 0 && index < TOTAL_ERAS ? eraNames[index] : "";
+	}
 	if (feederID == FEEDER_SABER_SINGLE_INFO)
 	{
 		//char *saberProperName=0;
@@ -9472,6 +10267,11 @@ static qhandle_t UI_FeederItemImage(float feederID, int index)
 	int validCnt, i;
 	static char info[MAX_STRING_CHARS];
 
+	if (feederID == FEEDER_MD_MODELS || feederID == FEEDER_MD_VARIANTS)
+	{
+		return MD_FeederItemImage((int)feederID, index);
+	}
+
 	if (feederID == FEEDER_SABER_SINGLE_INFO)
 	{
 		return 0;
@@ -9742,7 +10542,11 @@ qboolean UI_FeederSelection(float feederFloat, int index, itemDef_t* item)
 	static char info[MAX_STRING_CHARS];
 	const int feederID = feederFloat;
 
-	if (feederID == FEEDER_Q3HEADS)
+	if (feederID == FEEDER_MD_FACTION || feederID == FEEDER_MD_MODELS || feederID == FEEDER_MD_VARIANTS)
+	{
+		MD_FeederSelection(feederID, index);
+	}
+	else if (feederID == FEEDER_Q3HEADS)
 	{
 		int actual = 0;
 		UI_SelectedTeamHead(index, &actual);
@@ -10501,6 +11305,16 @@ PlayerModel_BuildList
 
 		if (strcmp(dirptr, ".") == 0 || strcmp(dirptr, "..") == 0)
 			continue;
+
+		if (dirptr[0] == '_')
+		{// _humanoid, _humanoid_*: the shared skeletons / animation sets, not characters
+			continue;
+		}
+
+		if (!MD_CharModelSupported(dirptr))
+		{// not on the standard humanoid skeleton: MP can't play it yet (see MD_CharModelSupported)
+			continue;
+		}
 
 		const int numfiles = trap->FS_GetFileList(va("models/players/%s", dirptr), "skin", filelist, 16384);
 		char* fileptr = filelist;

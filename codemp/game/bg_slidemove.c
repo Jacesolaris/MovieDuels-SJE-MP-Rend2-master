@@ -51,6 +51,7 @@ output: origin, velocity, impacts, stairup boolean
 #ifdef _GAME
 extern void G_FlyVehicleSurfaceDestruction(gentity_t* veh, trace_t* trace, int magnitude, qboolean force); //g_vehicle.c
 extern qboolean G_CanBeEnemy(gentity_t* self, gentity_t* enemy); //w_saber.c
+extern void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, float strength, const qboolean breakSaberLock); //g_combat.c
 #endif
 
 extern qboolean BG_UnrestrainedPitchRoll(const playerState_t* ps, Vehicle_t* p_veh);
@@ -505,13 +506,15 @@ static void PM_VehicleImpact(bgEntity_t* pEnt, trace_t* trace)
 						BG_KnockDownable(&hit_ent->client->ps) &&
 						G_CanBeEnemy((gentity_t*)pEnt, hit_ent))
 					{
-						//smash!
-						if (hit_ent->client->ps.forceHandExtend != HANDEXTEND_KNOCKDOWN)
+						//smash! The same as SP (DoImpact, g_active.cpp): throw them along the impact direction
+						//and play the SP knockdown and getup.
+						vec3_t push_dir;
+						float push = VectorNormalize2(pm->ps->velocity, push_dir) / 50.0f;
+
+						if (hit_ent->s.number < MAX_CLIENTS)
 						{
-							hit_ent->client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
-							hit_ent->client->ps.forceHandExtendTime = pm->cmd.serverTime + 1100;
-							hit_ent->client->ps.forceDodgeAnim = 0;
-							//this toggles between 1 and 0, when it's 1 we should play the get up anim
+							// If a player was hit don't make it so bad...
+							push *= 0.5f;
 						}
 
 						hit_ent->client->ps.otherKiller = pEnt->s.number;
@@ -521,10 +524,11 @@ static void PM_VehicleImpact(bgEntity_t* pEnt, trace_t* trace)
 						hit_ent->client->otherKillerVehWeapon = 0;
 						hit_ent->client->otherKillerWeaponType = WP_NONE;
 
-						//add my velocity into his to force him along in the correct direction from impact
-						VectorAdd(hit_ent->client->ps.velocity, pm->ps->velocity, hit_ent->client->ps.velocity);
-						//upward thrust
-						hit_ent->client->ps.velocity[2] += 200.0f;
+						if (!(hit_ent->flags & FL_NO_KNOCKBACK))
+						{
+							G_Throw(hit_ent, push_dir, push);
+						}
+						G_Knockdown(hit_ent, (gentity_t*)pEnt, push_dir, push, qtrue);
 					}
 				}
 

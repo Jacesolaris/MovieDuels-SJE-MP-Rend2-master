@@ -611,7 +611,7 @@ void SP_misc_crystal_crate(gentity_t* ent)
 void SP_misc_G2model(gentity_t* ent)
 {
 #if 0
-	char name1[200] = "models/players/_humanoid_mp/model.glm";
+	char name1[200] = "models/players/_humanoid/model.glm";
 
 	trap->G2API_InitGhoul2Model(
 		&ent->s,

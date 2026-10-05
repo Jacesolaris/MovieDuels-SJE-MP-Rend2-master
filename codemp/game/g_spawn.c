@@ -1816,7 +1816,7 @@ static void SP_worldspawn(void)
 	{
 		// Always load the MP humanoid animation set
 		bg_parse_animation_file(
-			"models/players/_humanoid_mp/animation.cfg",
+			"models/players/_humanoid/animation.cfg",
 			bgHumanoidAnimations,
 			qtrue
 		);

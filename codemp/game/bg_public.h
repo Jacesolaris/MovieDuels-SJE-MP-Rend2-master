@@ -53,18 +53,101 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #define	GAME_VERSION		"MovieDuels"
 
+// SP's animation styles (code/game/teams.h Animationstyles_t, same numbers; ext_data/npcs "animationstyle CS_*"):
+// playerState_t.animStyle. BG_SetAnim plays a style's own version of an anim (BOTH_JUMP1 -> BOTH_JUMP1_GALEN) when the
+// animation set has it, as SP does with g_ActivateAnimationStyle 1.
+typedef enum
+{
+	ANIMSTYLE_DEFAULT,		// CS_DEFAULT
+	ANIMSTYLE_ANAKIN,		// CS_ANAKIN
+	ANIMSTYLE_BATTLEDROID,	// CS_BATTLEDROID
+	ANIMSTYLE_BENKENOBI,	// CS_BENKENOBI
+	ANIMSTYLE_CAL_KESTIS,	// CS_CAL_KESTIS
+	ANIMSTYLE_CLONETROOPER,	// CS_CLONETROOPER
+	ANIMSTYLE_DARKFORCES2,	// CS_DARKFORCES2
+	ANIMSTYLE_COUNT_DOOKU,	// CS_COUNT_DOOKU
+	ANIMSTYLE_GALEN_MAREK,	// CS_GALEN_MAREK
+	ANIMSTYLE_QUI_GON_JINN,	// CS_QUI_GON_JINN
+	ANIMSTYLE_GRIEVOUS,		// CS_GRIEVOUS
+	ANIMSTYLE_JANGO,		// CS_JANGO
+	ANIMSTYLE_KOTOR,		// CS_KOTOR
+	ANIMSTYLE_LUKE_SKYWALKER, // CS_LUKE_SKYWALKER
+	ANIMSTYLE_MACE_WINDU,	// CS_MACE_WINDU
+	ANIMSTYLE_MAUL,			// CS_MAUL
+	ANIMSTYLE_MOVIEDUELS,	// CS_MOVIEDUELS
+	ANIMSTYLE_OBIWAN,		// CS_OBIWAN
+	ANIMSTYLE_OBIWAN_EP3,	// CS_OBIWAN_EP3
+	ANIMSTYLE_PALPATINE,	// CS_PALPATINE
+	ANIMSTYLE_REBELS,		// CS_REBELS
+	ANIMSTYLE_KYLO_REN,		// CS_KYLO_REN
+	ANIMSTYLE_REY,			// CS_REY
+	ANIMSTYLE_VADER,		// CS_VADER
+	ANIMSTYLE_YODA,			// CS_YODA
+	ANIMSTYLE_COUNT
+} animStyle_t;
+
+// SP's animation-style flags (SP bg_pmove.cpp / g_cmds.cpp animFlags_t, PM_Animationstyletable): one per ANIMSTYLE_*,
+// so SP's style code can be ported as it is. BG_AnimStyleFlags builds them from a ps->animStyle value.
+typedef struct
+{
+	qboolean isDefault;
+	qboolean isAnakin;
+	qboolean isBattleDroid;
+	qboolean isBenKenobi;
+	qboolean isCalKestis;
+	qboolean isCloneTrooper;
+	qboolean isDarkForces2;
+	qboolean isCountDooku;
+	qboolean isGalenMarek;
+	qboolean isQuiGonJinn;
+	qboolean isGrievous;
+	qboolean isJango;
+	qboolean isKotor;
+	qboolean isLukeSkywalker;
+	qboolean isMaceWindu;
+	qboolean isMaul;
+	qboolean isMovieDuels;
+	qboolean isObiWan;
+	qboolean isObiWanEP3;
+	qboolean isPalpatine;
+	qboolean isRebels;
+	qboolean isKyloRen;
+	qboolean isRey;
+	qboolean isVader;
+	qboolean isYoda;
+} animFlags_t;
+
+animFlags_t BG_AnimStyleFlags(int animStyle);
+
+
+// Wall-run (Fallen Order style): the run lasts as long as its animation, which plays at this speed (slower = longer)
+#define WALL_RUN_ANIM_SCALE	0.75f
+#define LONG_LEAP_START_ANIM_SCALE	4.0f	// force long leap start anim speed: SP plays it under force speed 3 (timescale 0.25) - see PM_SaberStartTransAnim
+#define WALL_RUN_SINK_TIME	600		// ms before the end of the run: from here the player sinks slowly
+#define WALL_RUN_SINK_SPEED	60.0f		// (units per second)
+#define WALL_RUN_CHAIN_DIST	40.0f		// wall-to-wall jump: a wall this close on the far side starts a new wall-run
+#define WALL_RUN_FLIP_PUSH	250.0f		// jumping off a wall-run: sideways push (was 150)
+#define WALL_RUN_FLIP_LIFT	120.0f		// and at least this upward speed
+#define DOUBLE_JUMP_VELOCITY	300.0f		// double jump (Fallen Order style): upward speed of the second jump
+#define DOUBLE_JUMP_MAX_RISE	(JUMP_VELOCITY * 0.5f)	// double jump: only while rising slower than this (second half of the rise, never falling)
+#define AIR_DASH_SPEED			600.0f		// air dash (Jedi Survivor style): horizontal speed of the dash
+#define AIR_DASH_TIME			350			// air dash: ms it holds that speed and the height (then falls normally)
+#define AIR_WALL_RUN_REACH		28.0f		// wall-run from the air: a wall this close to the side catches the player
+#define AIR_WALL_RUN_MIN_SPEED	150.0f		// wall-run from the air: horizontal speed needed
+#define AIR_WALL_RUN_MAX_FALL	300.0f		// wall-run from the air: not when falling faster than this
+
 #define DEFAULT_SABER			"Kyle"
 #define DEFAULT_SABER_NAME		"lightsaber"
 #define DEFAULT_SABER_STAFF		"dual_1"
 #define DEFAULT_SABER_MODEL		"models/weapons2/saber/saber_w.glm"
-#define	DEFAULT_MODEL			"_humanoid_mp"
+#define	DEFAULT_MODEL			"_humanoid"
 #define DEFAULT_MODEL_FEMALE	"jan"
 #define DEFAULT_BACKHANDSABER_MODEL		"models/weapons2/saber_B/saber_B.glm"
 
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-03,Month-10,Year-26,BuildNum-03" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-04,Month-10,Year-26,BuildNum-04" // build date
 
 #define	STEPSIZE		18
 
@@ -371,13 +454,17 @@ typedef struct animation_s {
 	//initialLerp is abs(frameLerp)
 	signed char			loopFrames;			// 0 to numFrames
 } animation_t;
+
+// the animation style's own version of an anim (bg_panimate.c; animStyle_t above)
+int BG_StyleAnim(int animStyle, const animation_t* animations, int anim);
+void BG_KeepStyleAnim(int anim); // an anim chosen by ported SP style code: BG_StyleAnim leaves it alone this pmove (-1 clears)
 #pragma pack(pop)
 
 extern qboolean			bgpa_ftext_loaded;
 extern animation_t		bgHumanoidAnimations[MAX_TOTALANIMATIONS];
 
 #define MAX_ANIM_FILES	32
-#define MAX_ANIM_EVENTS 600
+#define MAX_ANIM_EVENTS 1000 // per block (UPPEREVENTS / LOWEREVENTS), the same as SP: the master _humanoid animevents.cfg has over 600 LOWEREVENTS
 
 typedef enum
 {
@@ -549,6 +636,9 @@ extern int bgForcePowerCost[NUM_FORCE_POWERS][NUM_FORCE_POWER_LEVELS];
 #define	PMF_KICK_HELD		33554432
 #define	PMF_ACCURATE_MISSILE_BLOCK_HELD		67108864
 #define	PMF_WALKING_HELD		134217728
+#define	PMF_DOUBLE_JUMPED	268435456	// used the double jump (Fallen Order style) in this jump; cleared on landing
+#define	PMF_AIR_DASHED		536870912	// used the air dash (Jedi Survivor style) in this jump; cleared on landing
+#define	PMF_AIR_WALL_RAN	1073741824	// started a wall-run from the air (Fallen Order style) in this jump; cleared on landing
 
 #define	PMF_ALL_TIMES	(PMF_TIME_WATERJUMP|PMF_TIME_LAND|PMF_TIME_KNOCKBACK)
 
@@ -1973,6 +2063,7 @@ typedef struct saberInfo_s {
 	int				flourishAnim;							// -1 - anim to use when hit "flourish"
 	int				gloatAnim;								// -1 - anim to use when hit "gloat"
 	int	            surrenderAnim;			                // -1 - anim to use when hit "surrender"
+	int				combatstanceAnim;						// -1 - anim to use when hit "combatstance" (SP)
 
 	//***NOTE: you can only have a maximum of 2 "styles" of blades, so this next value, "bladeStyle2Start" is the number of the first blade to use these value on... all blades before this use the normal values above, all blades at and after this number use the secondary values below***
 	int				bladeStyle2Start;						// 0 - if set, blades from this number and higher use the following values (otherwise, they use the normal values already set)

@@ -114,6 +114,7 @@ qboolean PM_RestAnim(const int anim)
 	{
 	case BOTH_MEDITATE: // default taunt
 	case BOTH_MEDITATE1: // default taunt
+	case BOTH_MEDITATE_SABER: // saber meditate (SP)
 		return qtrue;
 	default:;
 	}
@@ -346,6 +347,7 @@ qboolean PM_InLedgeMove(const int anim)
 	case BOTH_LEDGE_LEFT:
 	case BOTH_LEDGE_RIGHT:
 	case BOTH_LEDGE_MERCPULL:
+	case BOTH_LEDGE_JEDIPULL:
 		return qtrue;
 	default:;
 	}
@@ -2980,8 +2982,6 @@ static qboolean BG_InWalk(const int anim)
 	case BOTH_WALKBACK_STAFF:
 	case BOTH_MENUIDLE1:
 	case BOTH_PARRY_WALK:
-	case BOTH_PARRY_WALK_DUAL:
-	case BOTH_PARRY_WALK_STAFF:
 		return qtrue;
 
 	default:
@@ -4632,6 +4632,7 @@ qboolean BG_FullBodyTauntAnim(const int anim)
 	case BOTH_BOW:
 	case BOTH_MEDITATE:
 	case BOTH_MEDITATE1:
+	case BOTH_MEDITATE_SABER:
 	case BOTH_SHOWOFF_FAST:
 	case BOTH_SHOWOFF_MEDIUM:
 	case BOTH_SHOWOFF_STRONG:
@@ -4882,6 +4883,11 @@ static animation_t* BG_AnimsetAlloc(void)
 
 static void BG_AnimsetFree()
 {}
+
+// The master _humanoid files SP and MP share are big (animation.cfg ~128 KB, animevents.cfg ~96 KB);
+// SP reads them into growing buffers, MP uses fixed ones (bgAnimEvtTextBuffer, bgpa_ftext): keep them
+// well above the file sizes.
+#define BG_ANIM_TEXT_BUFFER_SIZE 524288
 
 #ifdef _CGAME //none of this is actually needed server side. Could just be moved to cgame code but it's here since it used to tie in a lot with the anim loading stuff.
 
@@ -5485,7 +5491,7 @@ static int bg_animParseIncluding = 0;
 
 // Single shared text buffer for animation event parsing.
 // Replaces the old 80 KB stack allocation.
-static char bgAnimEvtTextBuffer[80000];
+static char bgAnimEvtTextBuffer[BG_ANIM_TEXT_BUFFER_SIZE];
 
 int BG_ParseAnimationEvtFile(const char* as_filename, const int animFileIndex, const int eventFileIndex)
 {
@@ -5566,7 +5572,17 @@ int BG_ParseAnimationEvtFile(const char* as_filename, const int animFileIndex, c
 	}
 
 	// Load file
-	const int len = trap->FS_Open(sfilename, &f, FS_READ);
+	int len = trap->FS_Open(sfilename, &f, FS_READ);
+	if (len <= 0 && as_filename && strstr(sfilename, "mpanimevents.cfg"))
+	{
+		// no MP events file here: use the animevents.cfg SP and MP share (the MovieDuels master _humanoid)
+		if (f)
+		{
+			trap->FS_Close(f);
+		}
+		Com_sprintf(sfilename, sizeof(sfilename), "%sanimevents.cfg", as_filename);
+		len = trap->FS_Open(sfilename, &f, FS_READ);
+	}
 	if (len <= 0)
 		goto finish;
 
@@ -5717,7 +5733,7 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 	int used_index;
 	int next_index = bgNumAllAnims;
 	qboolean dyn_alloc = qfalse;
-	static char bgpa_ftext[120000];
+	static char bgpa_ftext[BG_ANIM_TEXT_BUFFER_SIZE];
 	fileHandle_t f;
 
 	bgpa_ftext[0] = '\0';
@@ -5727,7 +5743,7 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 	// ------------------------------------------------------------
 	if (R_IsHumanoidPath(filename))
 	{
-		filename = "models/players/_humanoid_mp/animation.cfg";
+		filename = "models/players/_humanoid/animation.cfg";
 	}
 
 	// ------------------------------------------------------------
@@ -5835,6 +5851,10 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		anim_set[i].frameLerp = 100;
 	}
 
+	char realisticBlockingBuf[16];
+	trap->Cvar_VariableStringBuffer("bg_realisticBlocking", realisticBlockingBuf, sizeof realisticBlockingBuf); // set by the server (g_main.c)
+	const qboolean realisticBlocking = atoi(realisticBlockingBuf) ? qtrue : qfalse;
+
 	while (1)
 	{
 		char* token = COM_Parse(&text_p);
@@ -5879,6 +5899,27 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		else
 		{
 			anim_set[anim_num].frameLerp = (int)ceil(1000.0f / fps);
+		}
+
+		// as SP (NPC_stats.cpp G_ParseAnimationFile, AMD mode + MD attack speed, which MD MP always is): realistic
+		// blocking slows the Tavion, dual and staff saber attacks down. The server's bg_realisticBlocking
+		// (systeminfo) reaches the clients, so the server and the clients' prediction load the same speeds.
+		if (realisticBlocking)
+		{
+			for (int x = 4; x < LS_MOVE_MAX; x++)
+			{
+				if (saberMoveData[x].animToUse + SABER_ANIM_GROUP_SIZE * 4 == anim_num)
+				{
+					anim_set[anim_num].frameLerp = (short)(anim_set[anim_num].frameLerp * 1.2f);
+					break;
+				}
+				if (saberMoveData[x].animToUse + SABER_ANIM_GROUP_SIZE * 5 == anim_num ||
+					saberMoveData[x].animToUse + SABER_ANIM_GROUP_SIZE * 6 == anim_num)
+				{
+					anim_set[anim_num].frameLerp = (short)(anim_set[anim_num].frameLerp * 1.1f);
+					break;
+				}
+			}
 		}
 	}
 
@@ -6109,6 +6150,20 @@ void BG_SetTorsoAnimTimer(playerState_t* ps, const int time)
 //==============================================================
 void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const int weapon, const int anim, float* animSpeed, const int fatigued)
 {
+	// Wall-run (Fallen Order style): the run lasts as long as its animation, so it plays slower and longer (in MP the
+	// server timers and every client's playback both come through here, so they stay the same)
+	if (anim == BOTH_WALL_RUN_LEFT || anim == BOTH_WALL_RUN_RIGHT)
+	{
+		*animSpeed *= WALL_RUN_ANIM_SCALE;
+		return;
+	}
+	// Force long leap: SP starts it under force speed 3 (timescale 0.25) and its PM_SetAnimFinal times the start anim
+	// with that speed-up (1 / 0.25), so the leap (held while this anim runs) lasts 2.65 s / 4. MP has no timescale.
+	if (anim == BOTH_FORCELONGLEAP_START)
+	{
+		*animSpeed *= LONG_LEAP_START_ANIM_SCALE;
+		return;
+	}
 	char	buf[128];
 
 	// Read global saber animation speed multiplier
@@ -6380,6 +6435,10 @@ static void BG_SetAnimFinal(playerState_t* ps, const animation_t* animations, co
 			else
 			{
 				ps->torsoTimer = (int)((animations[anim].numFrames) * fabs((float)animations[anim].frameLerp));
+				if (anim == BOTH_FORCELONGLEAP_START && editAnimSpeed > 0.0f)
+				{// the long leap start anim is timed at its played speed (SP: under force speed)
+					ps->torsoTimer = (int)(ps->torsoTimer / editAnimSpeed);
+				}
 			}
 		}
 	}
@@ -6433,6 +6492,10 @@ setAnimLegs:
 			else
 			{
 				ps->legsTimer = (int)((animations[anim].numFrames) * fabs((float)animations[anim].frameLerp));
+				if (anim == BOTH_FORCELONGLEAP_START && editAnimSpeed > 0.0f)
+				{// the long leap start anim is timed at its played speed (SP: under force speed)
+					ps->legsTimer = (int)(ps->legsTimer / editAnimSpeed);
+				}
 			}
 
 			// Running/walking anims get shortened under Force Speed
@@ -6502,12 +6565,234 @@ int PM_PickAnim(const int anim_index, const int min_anim, const int max_anim)
 //of a pmove too so I have ported it to true BGishness.
 //Please do not reference pm in this function or any functions that it calls,
 //or I will cry. -rww
+// ---------------------------------------------------------------------------------------------------------------------
+// Animation styles (SP's per-character animations): a style has its own version of many anims, named with its suffix
+// (BOTH_JUMP1 -> BOTH_JUMP1_GALEN, BOTH_RUN1 -> BOTH_RUN1_VADER...); SP's style code picks them in place of the base
+// anim. Here the same happens for every anim set through BG_SetAnim, for the kinds of anims SP's style code covers:
+// stands / idles, walking, running, sprinting, jumping, landing, flips, dashes, ledge moves, saber stances, weapon poses
+// and force gestures. Saber attacks, parries, blocks and kicks keep the base anim (the saber code knows those by number).
+// ---------------------------------------------------------------------------------------------------------------------
+static const char* const bgAnimStyleSuffix[ANIMSTYLE_COUNT] =
+{
+	NULL,		// DEFAULT
+	"ANI",		// ANAKIN
+	"BDROID",	// BATTLEDROID
+	"BEN",		// BENKENOBI
+	"CAL",		// CAL_KESTIS
+	NULL,		// CLONETROOPER (no anims of its own)
+	"DF2",		// DARKFORCES2
+	"DOOKU",	// COUNT_DOOKU
+	"GALEN",	// GALEN_MAREK
+	NULL,		// QUI_GON_JINN (no anims of its own)
+	"GRIEV",	// GRIEVOUS
+	"JANGO",	// JANGO
+	"KOTOR",	// KOTOR
+	"LUKE",		// LUKE_SKYWALKER
+	"MACE",		// MACE_WINDU
+	"MAUL",		// MAUL
+	"MD",		// MOVIEDUELS
+	"OBI",		// OBIWAN
+	"OBI3",		// OBIWAN_EP3
+	"PAL",		// PALPATINE
+	"REB",		// REBELS
+	"REN",		// KYLO_REN
+	"REY",		// REY
+	"VADER",	// VADER
+	"YODA"		// YODA
+};
+
+static const char* const bgAnimStyleFamilies[] =
+{
+	"BOTH_STAND", "BOTH_WALK", "BOTH_RUN", "BOTH_JOG", "BOTH_SPRINT", "BOTH_JUMP", "BOTH_INAIR", "BOTH_LAND",
+	"BOTH_FLIP", "BOTH_DASH", "BOTH_LEDGE", "BOTH_CROUCH", "BOTH_TURN", "BOTH_MEDITATE", "BOTH_SHOWOFF", "BOTH_MENUIDLE",
+	"BOTH_SABERFAST_STANCE", "BOTH_SABERSLOW_STANCE", "BOTH_SABERDESANN_STANCE", "BOTH_SABERTAVION_STANCE",
+	"BOTH_SABERDUAL_STANCE", "BOTH_SABERSTAFF_STANCE", "BOTH_SABERSINGLECROUCH", "BOTH_STANCE",
+	"TORSO_WEAPON", "BOTH_WEAPON", "BOTH_FORCE", "BOTH_MINDTRICK", "BOTH_GRAPPLE"
+};
+
+static short bgStyleAnim[ANIMSTYLE_COUNT][MAX_ANIMATIONS];
+static qboolean bgStyleAnimsBuilt = qfalse;
+
+static int BG_AnimNameCompare(const void* a, const void* b)
+{
+	return Q_stricmp((*(const stringID_table_t* const*)a)->name, (*(const stringID_table_t* const*)b)->name);
+}
+
+static void BG_BuildStyleAnims(void)
+{
+	static const stringID_table_t* sorted[MAX_ANIMATIONS];
+	int numAnims = 0;
+
+	for (int s = 0; s < ANIMSTYLE_COUNT; s++)
+	{
+		for (int a = 0; a < MAX_ANIMATIONS; a++)
+		{
+			bgStyleAnim[s][a] = -1;
+		}
+	}
+
+	while (numAnims < MAX_ANIMATIONS && animTable[numAnims].name)
+	{
+		sorted[numAnims] = &animTable[numAnims];
+		numAnims++;
+	}
+	qsort((void*)sorted, numAnims, sizeof sorted[0], BG_AnimNameCompare); // (void*): the array holds pointers to const entries
+
+	for (int i = 0; i < numAnims; i++)
+	{
+		const char* base = animTable[i].name;
+		const int baseId = animTable[i].id;
+		qboolean family = qfalse;
+
+		if (baseId < 0 || baseId >= MAX_ANIMATIONS)
+		{
+			continue;
+		}
+		for (int f = 0; f < (int)ARRAY_LEN(bgAnimStyleFamilies); f++)
+		{
+			if (!Q_stricmpn(base, bgAnimStyleFamilies[f], (int)strlen(bgAnimStyleFamilies[f])))
+			{
+				family = qtrue;
+				break;
+			}
+		}
+		if (!family)
+		{
+			continue;
+		}
+
+		for (int s = 0; s < ANIMSTYLE_COUNT; s++)
+		{
+			char name[128];
+			stringID_table_t key;
+			const stringID_table_t* keyPtr = &key;
+
+			if (!bgAnimStyleSuffix[s])
+			{
+				continue;
+			}
+			Com_sprintf(name, sizeof name, "%s_%s", base, bgAnimStyleSuffix[s]);
+			key.name = name;
+			key.id = -1;
+			const stringID_table_t* const* found = bsearch(&keyPtr, sorted, numAnims, sizeof sorted[0], BG_AnimNameCompare);
+			if (found)
+			{
+				bgStyleAnim[s][baseId] = (short)(*found)->id;
+			}
+		}
+	}
+	bgStyleAnimsBuilt = qtrue;
+}
+
+// Anims picked by ported SP style code during this pmove (see PM_KeepStyleAnim): played as they are.
+// A few slots, as the legs and the torso can both get a pick before they are set. -1 clears them.
+#define BG_KEEP_STYLE_ANIMS 4
+static int bgKeepStyleAnims[BG_KEEP_STYLE_ANIMS] = { -1, -1, -1, -1 };
+static int bgKeepStyleAnimNext = 0;
+
+void BG_KeepStyleAnim(const int anim)
+{
+	if (anim < 0)
+	{
+		for (int i = 0; i < BG_KEEP_STYLE_ANIMS; i++)
+		{
+			bgKeepStyleAnims[i] = -1;
+		}
+		bgKeepStyleAnimNext = 0;
+		return;
+	}
+	for (int i = 0; i < BG_KEEP_STYLE_ANIMS; i++)
+	{
+		if (bgKeepStyleAnims[i] == anim)
+		{
+			return;
+		}
+	}
+	bgKeepStyleAnims[bgKeepStyleAnimNext] = anim;
+	bgKeepStyleAnimNext = (bgKeepStyleAnimNext + 1) % BG_KEEP_STYLE_ANIMS;
+}
+
+static qboolean BG_StyleAnimKept(const int anim)
+{
+	for (int i = 0; i < BG_KEEP_STYLE_ANIMS; i++)
+	{
+		if (bgKeepStyleAnims[i] == anim)
+		{
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+// The anim this style plays for anim (anim itself when the style has no version of it, or the set lacks the frames)
+int BG_StyleAnim(const int animStyle, const animation_t* animations, const int anim)
+{
+	if (animStyle <= ANIMSTYLE_DEFAULT || animStyle >= ANIMSTYLE_COUNT || anim < 0 || anim >= MAX_ANIMATIONS || BG_StyleAnimKept(anim))
+	{
+		return anim;
+	}
+	if (!bgStyleAnimsBuilt)
+	{
+		BG_BuildStyleAnims();
+	}
+
+	const int styled = bgStyleAnim[animStyle][anim];
+	if (styled < 0 || !animations || animations[styled].numFrames <= 0)
+	{
+		return anim;
+	}
+	return styled;
+}
+
+// SP PM_Animationstyletable / CMD_Animationstyletable: the style flags of an ANIMSTYLE_* value (the server sets
+// ANIMSTYLE_DEFAULT for everybody when g_ActivateAnimationStyle is 0, so SP's "g_ActivateAnimationStyle == 1" checks
+// are covered by these flags)
+animFlags_t BG_AnimStyleFlags(const int animStyle)
+{
+	animFlags_t flags;
+
+	memset(&flags, 0, sizeof flags);
+
+	switch (animStyle)
+	{
+	case ANIMSTYLE_ANAKIN: flags.isAnakin = qtrue; break;
+	case ANIMSTYLE_BATTLEDROID: flags.isBattleDroid = qtrue; break;
+	case ANIMSTYLE_BENKENOBI: flags.isBenKenobi = qtrue; break;
+	case ANIMSTYLE_CAL_KESTIS: flags.isCalKestis = qtrue; break;
+	case ANIMSTYLE_CLONETROOPER: flags.isCloneTrooper = qtrue; break;
+	case ANIMSTYLE_DARKFORCES2: flags.isDarkForces2 = qtrue; break;
+	case ANIMSTYLE_COUNT_DOOKU: flags.isCountDooku = qtrue; break;
+	case ANIMSTYLE_GALEN_MAREK: flags.isGalenMarek = qtrue; break;
+	case ANIMSTYLE_QUI_GON_JINN: flags.isQuiGonJinn = qtrue; break;
+	case ANIMSTYLE_GRIEVOUS: flags.isGrievous = qtrue; break;
+	case ANIMSTYLE_JANGO: flags.isJango = qtrue; break;
+	case ANIMSTYLE_KOTOR: flags.isKotor = qtrue; break;
+	case ANIMSTYLE_LUKE_SKYWALKER: flags.isLukeSkywalker = qtrue; break;
+	case ANIMSTYLE_MACE_WINDU: flags.isMaceWindu = qtrue; break;
+	case ANIMSTYLE_MAUL: flags.isMaul = qtrue; break;
+	case ANIMSTYLE_MOVIEDUELS: flags.isMovieDuels = qtrue; break;
+	case ANIMSTYLE_OBIWAN: flags.isObiWan = qtrue; break;
+	case ANIMSTYLE_OBIWAN_EP3: flags.isObiWanEP3 = qtrue; break;
+	case ANIMSTYLE_PALPATINE: flags.isPalpatine = qtrue; break;
+	case ANIMSTYLE_REBELS: flags.isRebels = qtrue; break;
+	case ANIMSTYLE_KYLO_REN: flags.isKyloRen = qtrue; break;
+	case ANIMSTYLE_REY: flags.isRey = qtrue; break;
+	case ANIMSTYLE_VADER: flags.isVader = qtrue; break;
+	case ANIMSTYLE_YODA: flags.isYoda = qtrue; break;
+	default: flags.isDefault = qtrue; break;
+	}
+	return flags;
+}
+
 void BG_SetAnim(playerState_t* ps, const animation_t* animations, int setAnimParts, int anim, const int setAnimFlags)
 {
 	if (!animations)
 	{
 		animations = bgAllAnims[0].anims;
 	}
+
+	// the character's animation style (SP): its own version of this anim, if it has one
+	anim = BG_StyleAnim(ps->animStyle, animations, anim);
 
 	if (animations[anim].firstFrame == 0 && animations[anim].numFrames == 0)
 	{
@@ -6771,12 +7056,20 @@ qboolean PM_BounceAnim(const int anim)
 	return qfalse;
 }
 
+// The same lists as SP (code/game/bg_panimate.cpp)
 qboolean BG_SprintAnim(const int anim)
 {
 	switch (anim)
 	{
 	case BOTH_SPRINT:
-	case BOTH_SPRINT_MP:
+	case BOTH_SPRINT_BEN:
+	case BOTH_SPRINT_YODA:
+	case BOTH_SPRINT_VADER:
+	case BOTH_SPRINT_GALEN:
+	case BOTH_SPRINT_BDROID:
+	case BOTH_SPRINT_GRIEV:
+	case BOTH_SPRINT_PAL:
+	case BOTH_SPRINT_MAUL:
 		return qtrue;
 	default:;
 	}
@@ -6787,10 +7080,34 @@ qboolean BG_SaberSprintAnim(const int anim)
 {
 	switch (anim)
 	{
-	case BOTH_SPRINT_SABER:
-	case BOTH_SPRINT_SABER_MP:
-	case BOTH_RUN_DUAL:
-	case BOTH_RUN_STAFF:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER:
+	case BOTH_SPRINT_STAFF_LIGHTSABER:
+	case BOTH_SPRINT_DUAL_LIGHTSABER:
+	case BOTH_SPRINT_DUAL_LIGHTSABER_BEN:
+	case BOTH_SPRINT_DUAL_LIGHTSABER_GALEN:
+	case BOTH_SPRINT_DUAL_LIGHTSABER_BDROID:
+	case BOTH_SPRINT_DUAL_LIGHTSABER_PAL:
+	case BOTH_SPRINT_DUAL_LIGHTSABER_MAUL:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_ANI:
+	case BOTH_SPRINT_STAFF_LIGHTSABER_ANI:
+	case BOTH_SPRINT_STAFF_LIGHTSABER_GALEN:
+	case BOTH_SPRINT_STAFF_LIGHTSABER_BDROID:
+	case BOTH_SPRINT_STAFF_LIGHTSABER_CAL:
+	case BOTH_SPRINT_STAFF_LIGHTSABER_PAL:
+	case BOTH_SPRINT_STAFF_LIGHTSABER_MAUL:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_BEN:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_YODA:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_VADER:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_GALEN:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_OBI3:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_REN:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_REY:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_BDROID:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_CAL:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_GRIEV:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_PAL:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_DOOKU:
+	case BOTH_SPRINT_SINGLE_LIGHTSABER_MAUL:
 		return qtrue;
 	default:;
 	}
@@ -6801,8 +7118,20 @@ qboolean BG_WeaponSprintAnim(const int anim)
 {
 	switch (anim)
 	{
-	case BOTH_SPRINT:
-	case BOTH_SPRINT_MP:
+	case BOTH_SPRINT_BAZOOKA:
+	case BOTH_SPRINT_BAZOOKA_BDROID:
+	case BOTH_SPRINT_BLASTER:
+	case BOTH_SPRINT_BLASTER_BDROID:
+	case BOTH_SPRINT_DOUBLE_PISTOL:
+	case BOTH_SPRINT_DOUBLE_PISTOL_BDROID:
+	case BOTH_SPRINT_GRENADE:
+	case BOTH_SPRINT_GRENADE_BDROID:
+	case BOTH_SPRINT_HEAVY:
+	case BOTH_SPRINT_HEAVY_BDROID:
+	case BOTH_SPRINT_MINIGUN:
+	case BOTH_SPRINT_MINIGUN_BDROID:
+	case BOTH_SPRINT_PISTOL:
+	case BOTH_SPRINT_PISTOL_BDROID:
 		return qtrue;
 	default:;
 	}

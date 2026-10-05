@@ -245,6 +245,14 @@ static void CG_DebugBoxLines(vec3_t mins, vec3_t maxs, const int duration)
 	CG_TestLine(start, mins, duration, 0x00000ff, 1);
 }
 
+// the server's saber combat debug cvar (the debug renderer's ragdoll boxes and lines only show with it on)
+static qboolean CG_SaberCombatDebug(void)
+{
+	char buf[8];
+	trap->Cvar_VariableStringBuffer("g_DebugSaberCombat", buf, sizeof buf);
+	return atoi(buf) ? qtrue : qfalse;
+}
+
 //handle ragdoll callbacks, for events and debugging -rww
 static int CG_RagCallback(const int callType)
 {
@@ -254,14 +262,21 @@ static int CG_RagCallback(const int callType)
 	{
 		ragCallbackDebugBox_t* callData = &cg.sharedBuffer.rcbDebugBox;
 
-		CG_DebugBoxLines(callData->mins, callData->maxs, callData->duration);
+		// the debug renderer's ragdoll boxes (a bone stuck in solid): only with the saber combat debug on
+		if (CG_SaberCombatDebug())
+		{
+			CG_DebugBoxLines(callData->mins, callData->maxs, callData->duration);
+		}
 	}
 	break;
 	case RAG_CALLBACK_DEBUGLINE:
 	{
 		ragCallbackDebugLine_t* callData = &cg.sharedBuffer.rcbDebugLine;
 
-		CG_TestLine(callData->start, callData->end, callData->time, callData->color, callData->radius);
+		if (CG_SaberCombatDebug())
+		{
+			CG_TestLine(callData->start, callData->end, callData->time, callData->color, callData->radius);
+		}
 	}
 	break;
 	case RAG_CALLBACK_BONESNAP:
@@ -697,8 +712,8 @@ static void CG_RegisterSounds(void)
 	cgs.media.blackSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers/black_line");
 	cgs.media.blackSaberBlurShader = trap->R_RegisterShader("gfx/effects/sabers/blackSaberBlur");
 	//Unstable Blades
-	cgs.media.unstableRedSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_tfa/unstable_line");//rend2 only
-	cgs.media.unstableRedSaberCoreShader2 = trap->R_RegisterShader("gfx/effects/TFASabers/blade_TFA"); //vanilla version
+	cgs.media.unstableRedSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_tfa/red_unstable_line"); // as SP
+	cgs.media.unstableRedSaberCoreShader2 = trap->R_RegisterShader("gfx/effects/sabers_tfa/unstable_line"); // as SP: the same core for every renderer (blade_TFA drew a flat bar)
 	cgs.media.unstableSaberCoreShader = trap->R_RegisterShader("gfx/effects/sabers_tfa/unstable_line");
 
 	cgs.media.rgbSaberGlowShader = trap->R_RegisterShader("gfx/effects/sabers/rgb_glow");

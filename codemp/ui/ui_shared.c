@@ -640,6 +640,28 @@ qboolean PC_Script_Parse(const int handle, const char** out)
 			return qtrue;
 		}
 
+		// the precompiler reads "-204" as "-" and "204": put negative numbers back together (as SP reads them),
+		// else e.g. "transition2 character -204 114 900 1000" runs as "0 204 114 900"
+		if (token.string[0] == '-' && token.string[1] == '\0')
+		{
+			if (!trap->PC_ReadToken(handle, &token))
+				return qfalse;
+
+			if (token.type == TT_NUMBER)
+			{
+				Q_strcat(script, 2048, va("\"-%s\" ", token.string));
+				continue;
+			}
+
+			Q_strcat(script, 2048, "- ");
+
+			if (Q_stricmp(token.string, "}") == 0)
+			{
+				*out = String_Alloc(script);
+				return qtrue;
+			}
+		}
+
 		if (token.string[1] != '\0')
 		{
 			Q_strcat(script, 2048, va("\"%s\"", token.string));
@@ -2684,7 +2706,12 @@ int Item_ListBox_MaxScroll(itemDef_t* item)
 	const int count = DC->feederCount(item->special);
 	int max;
 
-	if (item->window.flags & WINDOW_HORIZONTAL)
+	if (item->special == FEEDER_MD_MODELS)
+	{
+		// the character portrait grid scrolls by portraits (SP)
+		max = count - item->window.rect.w / listPtr->elementWidth;
+	}
+	else if (item->window.flags & WINDOW_HORIZONTAL)
 	{
 		max = count - item->window.rect.w / listPtr->elementWidth + 1;
 	}
@@ -2938,6 +2965,47 @@ static void Item_ListBox_MouseEnter(itemDef_t* item, const float x, const float 
 	item->window.flags &= ~(WINDOW_LB_LEFTARROW | WINDOW_LB_RIGHTARROW | WINDOW_LB_THUMB | WINDOW_LB_PGUP |
 		WINDOW_LB_PGDN);
 	item->window.flags |= Item_ListBox_OverLB(item, x, y);
+
+	if (item->special == FEEDER_MD_MODELS || item->special == FEEDER_MD_VARIANTS)
+	{
+		// The character portraits (SP): pointing at an empty cell keeps the current portrait
+		if (item->window.flags & (WINDOW_LB_LEFTARROW | WINDOW_LB_RIGHTARROW | WINDOW_LB_THUMB | WINDOW_LB_PGUP |
+			WINDOW_LB_PGDN))
+		{
+			return;
+		}
+		r.x = item->window.rect.x;
+		r.y = item->window.rect.y;
+		r.w = item->window.rect.w - (item->window.flags & WINDOW_HORIZONTAL ? listPtr->drawPadding : SCROLLBAR_SIZE);
+		r.h = item->window.rect.h - (item->window.flags & WINDOW_HORIZONTAL ? SCROLLBAR_SIZE : listPtr->drawPadding);
+		if (!Rect_ContainsPoint(&r, x, y))
+		{
+			return;
+		}
+		if (listPtr->elementStyle == LISTBOX_IMAGE &&
+			item->window.rect.w > listPtr->elementWidth * 2 &&
+			item->window.rect.h > listPtr->elementHeight * 2)
+		{
+			// multiple rows and columns
+			const int row = (int)((y - r.y) / listPtr->elementHeight);
+			const int col = (int)((x - r.x) / listPtr->elementWidth);
+			const int rowLength = (int)(r.w / listPtr->elementWidth);
+			listPtr->cursorPos = row * rowLength + col + listPtr->startPos;
+		}
+		else if (item->window.flags & WINDOW_HORIZONTAL)
+		{
+			listPtr->cursorPos = (int)((x - r.x) / listPtr->elementWidth) + listPtr->startPos;
+		}
+		else
+		{
+			listPtr->cursorPos = (int)((y - r.y) / listPtr->elementHeight) + listPtr->startPos;
+		}
+		if (listPtr->cursorPos >= listPtr->endPos)
+		{
+			listPtr->cursorPos = item->cursorPos;
+		}
+		return;
+	}
 
 	if (item->window.flags & WINDOW_HORIZONTAL)
 	{
@@ -3302,10 +3370,34 @@ static qboolean Item_ListBox_HandleKey(itemDef_t* item, const int key, qboolean 
 			if (key == A_MWHEELUP)
 			{
 				int countup = trap->Key_IsDown(A_CTRL) ? 5 : 1;
-				listPtr->startPos -= (int)item->special == FEEDER_Q3HEADS ? viewmax : countup;
+				listPtr->startPos -= (int)item->special == FEEDER_Q3HEADS || (int)item->special == FEEDER_MD_MODELS
+					? viewmax : countup;
 				if (listPtr->startPos < 0)
 				{
 					listPtr->startPos = 0;
+					Display_MouseMove(NULL, DC->cursorx, DC->cursory);
+					return qfalse;
+				}
+				Display_MouseMove(NULL, DC->cursorx, DC->cursory);
+				return qtrue;
+			}
+			if (key == A_MWHEELDOWN && (int)item->special == FEEDER_MD_MODELS)
+			{
+				// The character portrait grid pages by one row and stops at the last full page (SP)
+				const int lengthMax = item->window.rect.h / listPtr->elementHeight;
+				const int viewChunkSize = lengthMax * viewmax;
+				const int removeRemaining = viewmax ? count % viewmax : 0;
+				const int maxStartPos = count > viewmax ? count - viewmax : 0;
+
+				if (count <= viewChunkSize)
+				{
+					// the whole list fits, no scrolling
+					return qfalse;
+				}
+				listPtr->startPos += viewmax;
+				if (listPtr->startPos > maxStartPos - removeRemaining)
+				{
+					listPtr->startPos = maxStartPos - removeRemaining;
 					Display_MouseMove(NULL, DC->cursorx, DC->cursory);
 					return qfalse;
 				}
@@ -4506,6 +4598,8 @@ static void Display_CloseCinematics()
 void Menus_Activate(menuDef_t* menu)
 {
 	menu->window.flags |= WINDOW_HASFOCUS | WINDOW_VISIBLE;
+	// every page opens with the character preview facing the front (the model_angle 180 of the menus)
+	DC->setCVar("ui_char_model_angle", "180");
 	if (menu->onOpen)
 	{
 		itemDef_t item;
@@ -4536,6 +4630,28 @@ int Display_VisibleMenuCount()
 	return count;
 }
 
+// Close a popup clicked outside of: as Menus_CloseByName, give the focus back to the menu below it. Only hiding it
+// left no menu with the focus (e.g. password popup -> New Favorite -> Add Favorite), and the next key event then
+// dropped the UI key catcher: the menus went "crazy".
+static void Menus_CloseOOB(menuDef_t* menu)
+{
+	if (!(menu->window.flags & WINDOW_VISIBLE))
+	{
+		return;
+	}
+
+	Menu_RunCloseScript(menu);
+
+	if (menu->window.flags & WINDOW_HASFOCUS && openMenuCount)
+	{
+		openMenuCount -= 1;
+		menuStack[openMenuCount]->window.flags |= WINDOW_HASFOCUS;
+		menuStack[openMenuCount] = NULL;
+	}
+
+	menu->window.flags &= ~(WINDOW_HASFOCUS | WINDOW_VISIBLE);
+}
+
 static void Menus_HandleOOBClick(menuDef_t* menu, const int key, const qboolean down)
 {
 	if (menu)
@@ -4545,16 +4661,14 @@ static void Menus_HandleOOBClick(menuDef_t* menu, const int key, const qboolean 
 		// key on.. force a mouse move to activate focus and script stuff
 		if (down && menu->window.flags & WINDOW_OOB_CLICK)
 		{
-			Menu_RunCloseScript(menu);
-			menu->window.flags &= ~(WINDOW_HASFOCUS | WINDOW_VISIBLE);
+			Menus_CloseOOB(menu);
 		}
 
 		for (int i = 0; i < menuCount; i++)
 		{
 			if (Menu_OverActiveItem(&Menus[i], DC->cursorx, DC->cursory))
 			{
-				Menu_RunCloseScript(menu);
-				menu->window.flags &= ~(WINDOW_HASFOCUS | WINDOW_VISIBLE);
+				Menus_CloseOOB(menu);
 				//	Menus_Activate(&Menus[i]);
 				Menu_HandleMouseMove(&Menus[i], DC->cursorx, DC->cursory);
 				Menu_HandleKey(&Menus[i], key, down);
@@ -5389,6 +5503,7 @@ static const char* g_bindCommands[] = {
 	"headshake",
 	"headnod",
 	"surrender",
+	"combatstance",
 	"reload",
 	"atease",
 	"punch",
@@ -5403,7 +5518,9 @@ static const char* g_bindCommands[] = {
 	"r_weather",
 	"use_barrier",
 	"use_decca",
-	"pazaak"
+	"pazaak",
+	"recorddemo",	// controls menu "Record Demo" (the engine command is recorddemo, there is no "record")
+	"stoprecord"	// controls menu "Stop Recording"
 };
 
 #define g_bindCount ARRAY_LEN(g_bindCommands)
@@ -5556,10 +5673,10 @@ static void Item_Slider_Paint(itemDef_t* item)
 		x = item->window.rect.x;
 	}
 	DC->setColor(newColor);
-	DC->drawHandlePic(x, y, SLIDER_WIDTH, SLIDER_HEIGHT, DC->Assets.sliderBar);
+	DC->drawHandlePic(x, y + 2, SLIDER_WIDTH, SLIDER_HEIGHT, DC->Assets.sliderBar); // as SP (y + 2)
 
 	x = Item_Slider_ThumbPosition(item);
-	DC->drawHandlePic(x - SLIDER_THUMB_WIDTH / 2, y - 2, SLIDER_THUMB_WIDTH, SLIDER_THUMB_HEIGHT,
+	DC->drawHandlePic(x - SLIDER_THUMB_WIDTH / 2, y + 2, SLIDER_THUMB_WIDTH, SLIDER_THUMB_HEIGHT,
 		DC->Assets.sliderThumb);
 }
 
@@ -5918,25 +6035,24 @@ static void Item_Model_Paint(itemDef_t* item)
 	memset(&ent, 0, sizeof ent);
 
 	// use item storage to track
+	// as SP: the yaw comes from the item's cvar (set by the ITEM_TYPE_SLIDER_ROTATE item when the player drags the model)
+	float curYaw = modelPtr->angle;
+	if (item->cvar)
+	{
+		curYaw = DC->getCVarValue(item->cvar);
+	}
+	if (modelPtr->rotationSpeed)
+	{
+		curYaw += (float)refdef.time / modelPtr->rotationSpeed;
+	}
 	if (item->flags & ITF_ISANYSABER && !(item->flags & ITF_ISCHARACTER))
 	{
 		//hack to put saber on it's side
-		if (modelPtr->rotationSpeed)
-		{
-			VectorSet(angles, modelPtr->angle + (float)refdef.time / modelPtr->rotationSpeed, 0, 90); // rotate saber
-		}
-		else
-		{
-			VectorSet(angles, modelPtr->angle, 0, 90);
-		}
-	}
-	else if (modelPtr->rotationSpeed)
-	{
-		VectorSet(angles, 0, modelPtr->angle + (float)refdef.time / modelPtr->rotationSpeed, 0);
+		VectorSet(angles, curYaw, 0, 90);
 	}
 	else
 	{
-		VectorSet(angles, 0, modelPtr->angle, 0);
+		VectorSet(angles, 0, curYaw, 0);
 	}
 
 	AnglesToAxis(angles, ent.axis);
@@ -5952,9 +6068,18 @@ static void Item_Model_Paint(itemDef_t* item)
 #ifndef _CGAME
 		if (item->flags & ITF_ISCHARACTER)
 		{
-			ent.shaderRGBA[0] = ui_char_color_red.integer;
-			ent.shaderRGBA[1] = ui_char_color_green.integer;
-			ent.shaderRGBA[2] = ui_char_color_blue.integer;
+			const menuDef_t* parentMenu = (const menuDef_t*)item->parent;
+			if (parentMenu && parentMenu->window.name && !Q_stricmp(parentMenu->window.name, "ingamecharacter"))
+			{
+				// MovieDuels character menu: the characters as they are, not tinted with the JKA character colours
+				ent.shaderRGBA[0] = ent.shaderRGBA[1] = ent.shaderRGBA[2] = 255;
+			}
+			else
+			{
+				ent.shaderRGBA[0] = ui_char_color_red.integer;
+				ent.shaderRGBA[1] = ui_char_color_green.integer;
+				ent.shaderRGBA[2] = ui_char_color_blue.integer;
+			}
 			ent.shaderRGBA[3] = 255;
 			//			UI_TalkingHead(item);
 		}
@@ -6058,31 +6183,50 @@ static void Item_Image_Paint(itemDef_t* item)
 	DC->drawHandlePic(item->window.rect.x + 1, item->window.rect.y + 1, item->window.rect.w - 2, item->window.rect.h - 2, item->asset);
 }
 
+// Give a text scroll item new text (a "@" string reference is fine) and wrap it into lines again, from the top.
+// Without a cvar the lines are otherwise only built when the menu is loaded.
+void Item_TextScroll_SetText(itemDef_t* item, const char* text)
+{
+	if (!item || item->type != ITEM_TYPE_TEXTSCROLL || !item->typeData.textscroll)
+	{
+		return;
+	}
+	item->text = (char*)String_Alloc(text ? text : "");
+	item->typeData.textscroll->startPos = 0;
+	Item_TextScroll_BuildLines(item);
+}
+
 static void Item_TextScroll_Paint(itemDef_t* item)
 {
 	textScrollDef_t* scrollPtr = item->typeData.textscroll;
 
 	const float count = scrollPtr->iLineCount;
-
-	// draw scrollbar to right side of the window
-	float x = item->window.rect.x + item->window.rect.w - SCROLLBAR_SIZE - 1;
-	float y = item->window.rect.y + 1;
-	DC->drawHandlePic(x, y, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarArrowUp);
-	y += SCROLLBAR_SIZE - 1;
+	float x, y;
+	float size;
 
 	scrollPtr->endPos = scrollPtr->startPos;
-	float size = item->window.rect.h - SCROLLBAR_SIZE * 2;
-	DC->drawHandlePic(x, y, SCROLLBAR_SIZE, size + 1, DC->Assets.scrollBar);
-	y += size - 1;
-	DC->drawHandlePic(x, y, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarArrowDown);
 
-	// thumb
-	float thumb = Item_TextScroll_ThumbDrawPosition(item);
-	if (thumb > y - SCROLLBAR_SIZE - 1)
+	// draw scrollbar to right side of the window (not for the character description of the character menu, SP)
+	if (Q_stricmp(item->window.name, "char_desc"))
 	{
-		thumb = y - SCROLLBAR_SIZE - 1;
+		x = item->window.rect.x + item->window.rect.w - SCROLLBAR_SIZE - 1;
+		y = item->window.rect.y + 1;
+		DC->drawHandlePic(x, y, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarArrowUp);
+		y += SCROLLBAR_SIZE - 1;
+
+		size = item->window.rect.h - SCROLLBAR_SIZE * 2;
+		DC->drawHandlePic(x, y, SCROLLBAR_SIZE, size + 1, DC->Assets.scrollBar);
+		y += size - 1;
+		DC->drawHandlePic(x, y, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarArrowDown);
+
+		// thumb
+		float thumb = Item_TextScroll_ThumbDrawPosition(item);
+		if (thumb > y - SCROLLBAR_SIZE - 1)
+		{
+			thumb = y - SCROLLBAR_SIZE - 1;
+		}
+		DC->drawHandlePic(x, thumb, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarThumb);
 	}
-	DC->drawHandlePic(x, thumb, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarThumb);
 
 	if (item->cvar)
 	{
@@ -6122,9 +6266,159 @@ static void Item_TextScroll_Paint(itemDef_t* item)
 
 #define COLOR_MAX 255.0f
 
+// MovieDuels character menu ("ingamecharacter", the same as SP): portrait frame art, registered in AssetCache.
+qhandle_t mdBorder;
+qhandle_t mdBorderSel;
+qhandle_t mdBackground;
+
+// The character portrait grid (FEEDER_MD_MODELS) and the variant row (FEEDER_MD_VARIANTS), ported from the SP
+// Item_ListBox_Paint: one page of portraits, each drawn on the background art with the (selected) frame on top.
+static void Item_ListBox_PaintMDGrid(itemDef_t* item)
+{
+	float x, y;
+	const int count = DC->feederCount(item->special);
+	listBoxDef_t* listPtr = item->typeData.listbox;
+
+	// Clamp startPos and cursorPos (the list changes size with the faction)
+	if (listPtr->startPos > (count > 0 ? count - 1 : 0))
+	{
+		listPtr->startPos = 0;
+	}
+	if (item->cursorPos > (count > 0 ? count - 1 : 0))
+	{
+		item->cursorPos = count > 0 ? count - 1 : 0;
+		DC->feederSelection(item->special, item->cursorPos, NULL);
+	}
+
+	// Draw scrollbar if needed
+	if (!listPtr->scrollhidden && Item_ListBox_MaxScroll(item) > 0)
+	{
+		float thumb;
+		if (item->window.flags & WINDOW_HORIZONTAL)
+		{
+			x = item->window.rect.x + 1;
+			y = item->window.rect.y + item->window.rect.h - SCROLLBAR_SIZE - 1;
+			DC->drawHandlePic(x, y, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarArrowLeft);
+			x += SCROLLBAR_SIZE - 1;
+			const float sizeWidth = item->window.rect.w - SCROLLBAR_SIZE * 2;
+			DC->drawHandlePic(x, y, sizeWidth + 1, SCROLLBAR_SIZE, DC->Assets.scrollBar);
+			x += sizeWidth - 1;
+			DC->drawHandlePic(x, y, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarArrowRight);
+			thumb = Item_ListBox_ThumbDrawPosition(item);
+			if (thumb > x - SCROLLBAR_SIZE - 1)
+			{
+				thumb = x - SCROLLBAR_SIZE - 1;
+			}
+			DC->drawHandlePic(thumb, y, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarThumb);
+		}
+		else
+		{
+			x = item->window.rect.x + item->window.rect.w - SCROLLBAR_SIZE - 1;
+			y = item->window.rect.y + 1;
+			DC->drawHandlePic(x, y, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarArrowUp);
+			y += SCROLLBAR_SIZE - 1;
+			const float sizeHeight = item->window.rect.h - SCROLLBAR_SIZE * 2;
+			DC->drawHandlePic(x, y, SCROLLBAR_SIZE, sizeHeight + 1, DC->Assets.scrollBar);
+			y += sizeHeight - 1;
+			DC->drawHandlePic(x, y, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarArrowDown);
+			thumb = Item_ListBox_ThumbDrawPosition(item);
+			if (thumb > y - SCROLLBAR_SIZE - 1)
+			{
+				thumb = y - SCROLLBAR_SIZE - 1;
+			}
+			DC->drawHandlePic(x, thumb, SCROLLBAR_SIZE, SCROLLBAR_SIZE, DC->Assets.scrollBarThumb);
+		}
+	}
+
+	// Available area for the portraits
+	float availW = item->window.rect.w - 2;
+	float availH = item->window.rect.h - 2;
+	if (!(item->window.flags & WINDOW_HORIZONTAL))
+	{
+		availW -= SCROLLBAR_SIZE;
+	}
+	else
+	{
+		availH -= SCROLLBAR_SIZE;
+	}
+
+	// How many columns and rows fit
+	int cols = 1, rows = 1;
+	if (listPtr->elementStyle == LISTBOX_IMAGE)
+	{
+		cols = (int)(availW / listPtr->elementWidth);
+		rows = (int)(availH / listPtr->elementHeight);
+		if (cols < 1)
+		{
+			cols = 1;
+		}
+		if (rows < 1)
+		{
+			rows = 1;
+		}
+	}
+
+	// Paint one page
+	listPtr->endPos = listPtr->startPos;
+	x = item->window.rect.x + 1;
+	y = item->window.rect.y + 1;
+	{
+		int idx = listPtr->startPos;
+		float curY = y;
+		for (int r = 0; r < rows && idx < count; ++r)
+		{
+			float curX = x;
+			for (int c = 0; c < cols && idx < count; ++c, ++idx)
+			{
+				const qhandle_t image = DC->feederItemImage(item->special, idx);
+
+				DC->setColor(colorWhite);
+				DC->drawHandlePic(curX + 1, curY + 1, listPtr->elementWidth - 2, listPtr->elementHeight - 2, mdBackground);
+				if (image)
+				{
+					DC->drawHandlePic(curX + 1, curY + 1, listPtr->elementWidth - 2, listPtr->elementHeight - 2, image);
+				}
+				DC->drawHandlePic(curX + 1, curY + 1, listPtr->elementWidth - 2, listPtr->elementHeight - 2,
+					idx == item->cursorPos ? mdBorderSel : mdBorder);
+				if (idx == item->cursorPos)
+				{
+					DC->drawRect(curX, curY, listPtr->elementWidth - 1, listPtr->elementHeight - 1, item->window.borderSize,
+						item->window.borderColor);
+				}
+				curX += listPtr->elementWidth;
+				listPtr->endPos++;
+			}
+			curY += listPtr->elementHeight;
+		}
+	}
+
+	// drawPadding for the last row/column
+	if (listPtr->elementStyle == LISTBOX_IMAGE)
+	{
+		if (item->window.flags & WINDOW_HORIZONTAL)
+		{
+			const int left = count - listPtr->startPos;
+			const int itemsInRow = cols < left ? cols : left;
+			listPtr->drawPadding = availW - itemsInRow * listPtr->elementWidth;
+		}
+		else
+		{
+			const int left = count - listPtr->startPos;
+			const int itemsInCol = rows < left ? rows : left;
+			listPtr->drawPadding = availH - itemsInCol * listPtr->elementHeight;
+		}
+	}
+}
+
 // Draw routine for list boxes
 static void Item_ListBox_Paint(itemDef_t* item)
 {
+	if (item->special == FEEDER_MD_MODELS || item->special == FEEDER_MD_VARIANTS)
+	{
+		Item_ListBox_PaintMDGrid(item);
+		return;
+	}
+
 	float x, y, sizeWidth, i, thumb;
 	qhandle_t image;
 	qhandle_t optionalImage1, optionalImage2, optionalImage3;
@@ -6240,16 +6534,6 @@ static void Item_ListBox_Paint(itemDef_t* item)
 		{
 			//
 		}
-
-#ifdef	_DEBUG
-		// Show pic name
-		text = DC->feederItemText(item->special, item->cursorPos, 0, &optionalImage1, &optionalImage2, &optionalImage3);
-		if (text)
-		{
-			DC->drawText(item->window.rect.x, item->window.rect.y + item->window.rect.h, item->textscale,
-				item->window.foreColor, text, 0, 0, item->textStyle, item->i_menu_font);
-		}
-#endif
 	}
 	// A vertical list box
 	else
@@ -7821,6 +8105,30 @@ ItemParse_asset_model
 	asset_model <string>
 ===============
 */
+#ifdef UI_BUILD
+// A menu model asks for an animation that the animation set doesn't have, it would stand in
+// the T-pose: use the nearest MP one. These are SP animations used by the character menu (ui_mdchars.h).
+static int UI_MPFallbackAnim(const int anim)
+{
+	switch (anim)
+	{
+	case TORSO_WEAPONREST3:
+		return TORSO_WEAPONIDLE3; // rifle at rest -> blaster idle
+	case TORSO_WEAPONREST2:
+	case BOTH_WEAPONREST2P:
+		return TORSO_WEAPONIDLE2; // pistol(s) at rest -> pistol idle
+	case BOTH_STAND_BLOCKING_ON:
+		return BOTH_SABERFAST_STANCE;
+	case BOTH_STAND_BLOCKING_ON_STAFF:
+		return BOTH_SABERSTAFF_STANCE;
+	case BOTH_STAND_BLOCKING_ON_DUAL:
+		return BOTH_SABERDUAL_STANCE;
+	default:
+		return BOTH_STAND1;
+	}
+}
+#endif
+
 qboolean ItemParse_asset_model_go(itemDef_t* item, const char* name, int* runTimeLength)
 {
 #ifdef UI_BUILD
@@ -7864,6 +8172,12 @@ qboolean ItemParse_asset_model_go(itemDef_t* item, const char* name, int* runTim
 						if (animIndex != -1)
 						{ //We parsed out the animation info for whatever model this is
 							const animation_t* anim = &bgAllAnims[animIndex].anims[modelPtr->g2anim];
+
+							if (anim->numFrames <= 0)
+							{
+								// not in this animation set (an SP animation): the nearest MP one
+								anim = &bgAllAnims[animIndex].anims[UI_MPFallbackAnim(modelPtr->g2anim)];
+							}
 
 							const int sFrame = anim->firstFrame;
 							const int eFrame = anim->firstFrame + anim->numFrames;

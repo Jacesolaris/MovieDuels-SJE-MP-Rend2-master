@@ -426,6 +426,7 @@ static const char* gcmds[] = {
 	"headshake",
 	"headnod",
 	"surrender",
+	"combatstance",
 	"reload",
 	"atease",
 	"punch",

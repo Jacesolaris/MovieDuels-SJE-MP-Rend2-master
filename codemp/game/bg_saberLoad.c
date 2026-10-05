@@ -1108,6 +1108,7 @@ static void wp_saber_set_defaults(saberInfo_t* saber)
 	saber->flourishAnim = -1; // -1 - anim to use when hit "flourish"
 	saber->gloatAnim = -1; // -1 - anim to use when hit "gloat"
 	saber->surrenderAnim = -1; // -1 - anim to use when hit "gloat"
+	saber->combatstanceAnim = -1; // -1 - anim to use when hit "combatstance"
 
 	//***NOTE: you can only have a maximum of 2 "styles" of blades, so this next value, "bladeStyle2Start" is the number of the first blade to use these value on... all blades before this use the normal values above, all blades at and after this number use the secondary values below***
 	saber->bladeStyle2Start = 0;
@@ -2010,6 +2011,16 @@ static void Saber_ParseSurrenderAnim(saberInfo_t* saber, const char** p)
 	const int anim = GetIDForString(animTable, value);
 	if (anim >= 0 && anim < MAX_ANIMATIONS)
 		saber->surrenderAnim = anim;
+}
+
+static void Saber_ParsecombatstanceAnim(saberInfo_t* saber, const char** p)
+{
+	const char* value;
+	if (COM_ParseString(p, &value))
+		return;
+	const int anim = GetIDForString(animTable, value);
+	if (anim >= 0 && anim < MAX_ANIMATIONS)
+		saber->combatstanceAnim = anim;
 }
 
 static void Saber_ParseNoRollStab(saberInfo_t* saber, const char** p)
@@ -3059,6 +3070,7 @@ static keywordHash_t saberParseKeywords[] = {
 	{"noClashFlare", Saber_ParseNoClashFlare, NULL},
 	{"noClashFlare2", Saber_ParseNoClashFlare2, NULL},
 	{"surrenderAnim", Saber_ParseSurrenderAnim, NULL},
+	{"combatstanceAnim", Saber_ParsecombatstanceAnim, NULL},
 
 	{NULL, NULL, NULL}
 };

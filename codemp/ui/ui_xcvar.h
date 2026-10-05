@@ -177,6 +177,9 @@ XCVAR_DEF(cg_SFXSabersCoreSizeMaul, "1.0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_SerenityJediEngineMode, "1", NULL, CVAR_ARCHIVE)
 
 XCVAR_DEF(ui_char_model_angle, "180", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(ui_char_skin, "model_default", NULL, CVAR_INTERNAL) // MovieDuels character menu: skin of the preview
+XCVAR_DEF(ui_char_mute_voice_line, "0", NULL, CVAR_ARCHIVE) // MovieDuels character menu: no voice line on select
+XCVAR_DEF(md_charsel, "0", NULL, CVAR_USERINFO) // MovieDuels character menu: counts selections, the server opens the saber menu for a saber class
 XCVAR_DEF(com_rend2, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(g_cursor, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(ui_selectedHolocron, "", NULL, CVAR_ARCHIVE | CVAR_INTERNAL)

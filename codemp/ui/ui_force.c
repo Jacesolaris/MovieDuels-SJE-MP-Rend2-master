@@ -313,6 +313,22 @@ void UI_SaveForceTemplate()
 
 extern qboolean UI_TrueJediEnabled(void);
 
+// Show/hide an item of the force menus: the normal one and the one after the MovieDuels character menu
+// (ingame_charforce.menu, a copy with the same items).
+void UI_ForceMenusShowItem(const char* itemName, const qboolean show)
+{
+	menuDef_t* menu = Menus_FindByName("ingame_playerforce");
+	if (menu)
+	{
+		Menu_ShowItemByName(menu, itemName, show);
+	}
+	menu = Menus_FindByName("ingame_charforce");
+	if (menu)
+	{
+		Menu_ShowItemByName(menu, itemName, show);
+	}
+}
+
 void UpdateForceUsed()
 {
 	// Always use max rank for point calculations
@@ -418,11 +434,11 @@ void UpdateForceUsed()
 
 		if (menu)
 		{
-			Menu_ShowItemByName(menu, "setFP_SABER_DEFENSE", qtrue);
-			Menu_ShowItemByName(menu, "setfp_saberthrow", qtrue);
-			Menu_ShowItemByName(menu, "effectentry", qtrue);
-			Menu_ShowItemByName(menu, "effectfield", qtrue);
-			Menu_ShowItemByName(menu, "nosaber", qfalse);
+			UI_ForceMenusShowItem("setFP_SABER_DEFENSE", qtrue);
+			UI_ForceMenusShowItem("setfp_saberthrow", qtrue);
+			UI_ForceMenusShowItem("effectentry", qtrue);
+			UI_ForceMenusShowItem("effectfield", qtrue);
+			UI_ForceMenusShowItem("nosaber", qfalse);
 		}
 	}
 	else
@@ -438,22 +454,22 @@ void UpdateForceUsed()
 
 			if (menu)
 			{
-				Menu_ShowItemByName(menu, "setfp_saberdefend", qfalse);
-				Menu_ShowItemByName(menu, "setfp_saberthrow", qfalse);
-				Menu_ShowItemByName(menu, "effectentry", qfalse);
-				Menu_ShowItemByName(menu, "effectfield", qfalse);
-				Menu_ShowItemByName(menu, "nosaber", qtrue);
+				UI_ForceMenusShowItem("setfp_saberdefend", qfalse);
+				UI_ForceMenusShowItem("setfp_saberthrow", qfalse);
+				UI_ForceMenusShowItem("effectentry", qfalse);
+				UI_ForceMenusShowItem("effectfield", qfalse);
+				UI_ForceMenusShowItem("nosaber", qtrue);
 			}
 		}
 		else
 		{
 			if (menu)
 			{
-				Menu_ShowItemByName(menu, "setfp_saberdefend", qtrue);
-				Menu_ShowItemByName(menu, "setfp_saberthrow", qtrue);
-				Menu_ShowItemByName(menu, "effectentry", qtrue);
-				Menu_ShowItemByName(menu, "effectfield", qtrue);
-				Menu_ShowItemByName(menu, "nosaber", qfalse);
+				UI_ForceMenusShowItem("setfp_saberdefend", qtrue);
+				UI_ForceMenusShowItem("setfp_saberthrow", qtrue);
+				UI_ForceMenusShowItem("effectentry", qtrue);
+				UI_ForceMenusShowItem("effectfield", qtrue);
+				UI_ForceMenusShowItem("nosaber", qfalse);
 			}
 		}
 	}

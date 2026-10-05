@@ -99,10 +99,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define ASSET_SLIDER_BAR			"menu/new/slider"
 #define ASSET_SLIDER_THUMB			"menu/new/sliderthumb"
 #define SCROLLBAR_SIZE 16.0
-#define SLIDER_WIDTH 128.0
+#define SLIDER_WIDTH 96.0 // as SP (MD's menus are laid out for it; 128 ran past the frames)
 #define SLIDER_HEIGHT 16.0
 #define SLIDER_THUMB_WIDTH 12.0
-#define SLIDER_THUMB_HEIGHT 20.0
+#define SLIDER_THUMB_HEIGHT 16.0 // as SP
 #define	NUM_CROSSHAIRS			9
 //
 #define ASSET_ANAKIN               "gfx/menus/cursor_anakin.tga"
@@ -558,6 +558,7 @@ void Menu_Reset(void);
 qboolean Menus_AnyFullScreenVisible(void);
 void  Menus_Activate(menuDef_t* menu);
 itemDef_t* Menu_FindItemByName(const menuDef_t* menu, const char* p);
+void Item_TextScroll_SetText(itemDef_t* item, const char* text);
 void Menu_ShowGroup(menuDef_t* menu, const char* groupName, qboolean showFlag);
 void Menu_ItemDisable(menuDef_t* menu, const char* name, qboolean disableFlag);
 int Menu_ItemsMatchingGroup(const menuDef_t* menu, const char* name);

@@ -136,6 +136,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define FEEDER_SABER_SINGLE_INFO			0x2b			// saber single
 #define FEEDER_SABER_STAFF_INFO				0x2c			// saber staff
 #define FEEDER_HOLOCRON_LIST                0x2d
+// MovieDuels character menu ("ingamecharacter"), the same ids as SP
+#define FEEDER_MD_FACTION					0x54	// 84
+#define FEEDER_MD_MODELS					0x55	// 85
+#define FEEDER_MD_VARIANTS				    0x56	// 86
 
 // Xbox specific, hope no one minds
 #define FEEDER_XBL_ACCOUNTS					0xA0			// list of available XBL accounts

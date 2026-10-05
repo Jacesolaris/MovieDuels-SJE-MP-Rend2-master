@@ -871,7 +871,7 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 	// --------------------------------------------------------------------
 	// Decide which animation GLA to use.
 	// Rule:
-	//  - Any humanoid-family animName (by prefix) is forced to _humanoid_mp/_humanoid.gla
+	//  - Any humanoid-family animName (by prefix) is forced to the master _humanoid/_humanoid.gla
 	//  - Non-humanoids keep their own animName
 	// --------------------------------------------------------------------
 	const char* animNameToUse = mdxm->animName;
@@ -879,7 +879,7 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 
 	if (R_IsHumanoidPath(mdxm->animName))
 	{
-		const char* forcedHumanoid = "models/players/_humanoid_mp/_humanoid";
+		const char* forcedHumanoid = "models/players/_humanoid/_humanoid"; // the MovieDuels master _humanoid (SP + MP animations, shared with SP)
 
 		animIndex = RE_RegisterModel(va("%s.gla", forcedHumanoid));
 		if (!animIndex)
@@ -889,12 +889,12 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 				"ServerLoadMDXM: required MP humanoid GLA missing: %s.gla", forcedHumanoid);
 		}
 
-		// A mesh with more bones than the MP humanoid skeleton (e.g. the protocol droid, 54 bones) was
-		// built for its own skeleton: its bone references would index past the humanoid bone cache and
+		// A mesh with another bone count than the master humanoid skeleton (super battle droid, droideka, protocol...) was
+		// built for its own skeleton: on the master its bones would be wrong (or index past the bone cache and
 		// corrupt memory. Keep its own GLA in that case (old 72-bone models are remapped further down).
 		const model_t* humanoidGLA = R_GetModelByHandle(animIndex);
 		if (mdxm->numBones != 72 && humanoidGLA && humanoidGLA->type == MOD_MDXA && humanoidGLA->mdxa &&
-			mdxm->numBones > humanoidGLA->mdxa->numBones)
+			mdxm->numBones != humanoidGLA->mdxa->numBones) // another skeleton (sbd 43, deka 59, protocol 54...): its own GLA, as SP
 		{
 			animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
 		}
@@ -927,7 +927,7 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 	}
 
 	bool isAnOldModelFile = false;
-	if (mdxm->numBones == 72 && strstr(mdxm->animName, "_humanoid_mp"))
+	if (mdxm->numBones == 72 && strstr(mdxm->animName, "_humanoid"))
 	{
 		isAnOldModelFile = true;
 	}

@@ -210,7 +210,7 @@ void UI_CacheSaberGlowGraphics(void)
 	purpleSaberCoreShader = trap->R_RegisterShaderNoMip("gfx/effects/sabers/purple_line");
 
 	unstableRedSaberCoreShader = trap->R_RegisterShaderNoMip("gfx/effects/sabers_tfa/unstable_line"); //rend2 version
-	unstableRedSaberCoreShader2 = trap->R_RegisterShaderNoMip("gfx/effects/TFASabers/blade_TFA"); //vanilla version
+	unstableRedSaberCoreShader2 = trap->R_RegisterShaderNoMip("gfx/effects/sabers_tfa/unstable_line"); // as SP: the same core for every renderer (blade_TFA drew a flat bar)
 
 	unstableRedSaberGlowCoreShader = trap->R_RegisterShaderNoMip("gfx/effects/sabers_tfa/red_unstable_line");
 
@@ -1830,124 +1830,47 @@ static void UI_DoTFASaber(vec3_t origin, vec3_t dir, float length, float lengthM
 	{
 	case SABER_RED:
 		glow = redEp7GlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = ep7redSaberCoreShader;
-		}
-		else
-		{
-			blade = ep3redSaberCoreShader;
-		}
+		blade = ep7redSaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	case SABER_ORANGE:
 		glow = orangeEp7GlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = ep7orangeSaberCoreShader;
-		}
-		else
-		{
-			blade = ep3orangeSaberCoreShader;
-		}
+		blade = ep7orangeSaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	case SABER_YELLOW:
 		glow = yellowEp7GlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = ep7yellowSaberCoreShader;
-		}
-		else
-		{
-			blade = ep3yellowSaberCoreShader;
-		}
+		blade = ep7yellowSaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	case SABER_GREEN:
 		glow = greenEp7GlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = ep7greenSaberCoreShader;
-		}
-		else
-		{
-			blade = ep3greenSaberCoreShader;
-		}
+		blade = ep7greenSaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	case SABER_BLUE:
 		glow = blueEp7GlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = ep7blueSaberCoreShader;
-		}
-		else
-		{
-			blade = ep3blueSaberCoreShader;
-		}
+		blade = ep7blueSaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	case SABER_PURPLE:
 		glow = purpleEp7GlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = ep7purpleSaberCoreShader;
-		}
-		else
-		{
-			blade = ep3purpleSaberCoreShader;
-		}
+		blade = ep7purpleSaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	case SABER_RGB:
 		glow = rgbSaberGlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = ep7SaberCoreShader;
-		}
-		else
-		{
-			blade = ep3SaberCoreShader;
-		}
+		blade = ep7SaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	case SABER_WHITE:
 		glow = rgbSaberGlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = ep7SaberCoreShader;
-		}
-		else
-		{
-			blade = ep3SaberCoreShader;
-		}
+		blade = ep7SaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	case SABER_BLACK:
 		glow = blackSaberGlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = ep7blackSaberCoreShader;
-		}
-		else
-		{
-			blade = ep3blackSaberCoreShader;
-		}
+		blade = ep7blackSaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	case SABER_UNSTABLE_RED:
 		glow = redEp7GlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = unstableRedSaberCoreShader;
-		}
-		else
-		{
-			blade = rgbTFASaberCoreShader;
-		}
+		blade = unstableRedSaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	default:
 		glow = rgbSaberGlowShader;
-		if (com_rend2.integer == 1) //rend2 is on
-		{
-			blade = ep7SaberCoreShader;
-		}
-		else
-		{
-			blade = ep3SaberCoreShader;
-		}
+		blade = ep7SaberCoreShader; // as SP: the same TFA blade with every renderer
 		break;
 	}
 
@@ -2723,6 +2646,19 @@ static void UI_DoMaulSaber(vec3_t origin, vec3_t dir, float length, float length
 	trap->R_AddRefEntityToScene(&saber);
 }
 
+// MovieDuels character menu ("ingamecharacter"): the sabers and blade colours of the character on show, set by
+// ui_main.c from the character table. Its preview model uses them instead of the ui_saber cvars and the moves menu.
+char uiMDPreviewSaber[2][MAX_QPATH];
+char uiMDPreviewColor[2][MAX_QPATH];
+char uiMDPreviewWeaponModel[MAX_QPATH]; // a gunner's weapon (world model) for the preview's right hand
+
+static qboolean UI_IsMDCharacterPreview(const itemDef_t* item)
+{
+	const menuDef_t* menu = (const menuDef_t*)item->parent;
+	return (item->flags & ITF_ISCHARACTER) && menu && menu->window.name && !Q_stricmp(menu->window.name, "ingamecharacter")
+		? qtrue : qfalse;
+}
+
 static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saberModel, saberType_t saberType, vec3_t origin, vec3_t angles, int bladeNum)
 {
 	char bladeColorString[MAX_QPATH];
@@ -2743,6 +2679,12 @@ static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saber
 	{
 		snum = 1;
 		trap->Cvar_VariableStringBuffer("ui_saber2_color", bladeColorString, sizeof bladeColorString);
+	}
+	if (UI_IsMDCharacterPreview(item))
+	{
+		// the character menu shows the character's own blade colours (saberModel 1 = first saber, 2 = second)
+		snum = saberModel > 1 ? 1 : 0;
+		Q_strncpyz(bladeColorString, uiMDPreviewColor[snum], sizeof bladeColorString);
 	}
 
 	if (!trap->G2API_HasGhoul2ModelOnIndex(&item->ghoul2, saberModel))
@@ -3224,10 +3166,21 @@ void UI_SaberDrawBlades(itemDef_t* item, vec3_t origin, vec3_t angles)
 		numSabers = 2;
 	}
 
+	if (UI_IsMDCharacterPreview(item))
+	{
+		// the character menu: the character's own sabers (none, one or two)
+		numSabers = uiMDPreviewSaber[1][0] ? 2 : uiMDPreviewSaber[0][0] ? 1 : 0;
+	}
+
 	for (int saberNum = 0; saberNum < numSabers; saberNum++)
 	{
 		char saber[MAX_QPATH];
-		if (item->flags & ITF_ISCHARACTER)//hacked sabermoves sabers in character's hand
+		if (UI_IsMDCharacterPreview(item))
+		{
+			Q_strncpyz(saber, uiMDPreviewSaber[saberNum], sizeof saber);
+			saberModel = saberNum + 1;
+		}
+		else if (item->flags & ITF_ISCHARACTER)//hacked sabermoves sabers in character's hand
 		{
 			UI_GetSaberForMenu(saber, saberNum);
 			saberModel = saberNum + 1;
@@ -3271,6 +3224,63 @@ void UI_SaberDrawBlades(itemDef_t* item, vec3_t origin, vec3_t angles)
 						UI_SaberDrawBlade(item, saber, saberModel, saberType, origin, angles, curBlade);
 					}
 				}
+			}
+		}
+	}
+}
+
+// The character menu preview: put the character's own sabers (uiMDPreviewSaber) in its hands, like SP.
+void UI_MDSaberAttachToChar(itemDef_t* item)
+{
+	if (trap->G2API_HasGhoul2ModelOnIndex(&item->ghoul2, 2))
+	{//remove any extra models
+		trap->G2API_RemoveGhoul2Model(&item->ghoul2, 2);
+	}
+	if (trap->G2API_HasGhoul2ModelOnIndex(&item->ghoul2, 1))
+	{//remove any extra models
+		trap->G2API_RemoveGhoul2Model(&item->ghoul2, 1);
+	}
+
+	if (!uiMDPreviewSaber[0][0] && uiMDPreviewWeaponModel[0])
+	{
+		// a gunner: his weapon in his right hand
+		const int g2Weapon = trap->G2API_InitGhoul2Model(&item->ghoul2, uiMDPreviewWeaponModel, 0, 0, 0, 0, 0);
+		if (g2Weapon)
+		{
+			trap->G2API_SetSkin(item->ghoul2, g2Weapon, 0, 0);
+			trap->G2API_AttachG2Model(item->ghoul2, g2Weapon, item->ghoul2,
+				trap->G2API_AddBolt(item->ghoul2, 0, "*r_hand"), 0);
+		}
+		return;
+	}
+
+	for (int saberNum = 0; saberNum < 2; saberNum++)
+	{
+		char modelPath[MAX_QPATH];
+		const char* saber = uiMDPreviewSaber[saberNum];
+
+		if (!saber[0])
+		{
+			break;
+		}
+		if (UI_SaberModelForSaber(saber, modelPath))
+		{//successfully found a model
+			const int g2Saber = trap->G2API_InitGhoul2Model(&item->ghoul2, modelPath, 0, 0, 0, 0, 0); //add the model
+			if (g2Saber)
+			{
+				char skin_path[MAX_QPATH];
+				//get the customSkin, if any
+				if (UI_SaberSkinForSaber(saber, skin_path))
+				{
+					const int g2skin = trap->R_RegisterSkin(skin_path);
+					trap->G2API_SetSkin(item->ghoul2, g2Saber, 0, g2skin);
+				}
+				else
+				{
+					trap->G2API_SetSkin(item->ghoul2, g2Saber, 0, 0);//turn off custom skin
+				}
+				const int boltNum = trap->G2API_AddBolt(item->ghoul2, 0, saberNum ? "*l_hand" : "*r_hand");
+				trap->G2API_AttachG2Model(item->ghoul2, g2Saber, item->ghoul2, boltNum, 0);
 			}
 		}
 	}

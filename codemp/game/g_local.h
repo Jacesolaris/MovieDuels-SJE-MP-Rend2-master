@@ -542,6 +542,8 @@ struct gentity_s
 	int TimeOfWeaponDrop;
 	qboolean exPhysWarned;
 	int weaponfiredelaytime;
+	int corpsePushUntil; // ragdoll: until when this body can be pushed (G_PushCorpse)
+	int corpseTouchTime; // ragdoll: walking into it pushes again after this (G_CorpseTouchPush)
 };
 
 #define DAMAGEREDIRECT_HEAD		1
@@ -660,6 +662,7 @@ typedef struct clientPersistant_s
 	bclass_t accountclass;
 	bclass_t nextaccountclass;
 	int botmodelscale; // was qboolean, needs to store BOTZIZE_* integer values
+	int animStyle; // SP animation style of the model (animStyle_t), copied into ps.animStyle at spawn
 
 	qboolean MovieDuels_Clientplugin;
 
@@ -913,6 +916,8 @@ struct gclient_s
 	int lastSaberStorageTime;
 	//server time that the above two values were updated (for making sure they aren't out of date)
 
+	int dashBoostTime; // ps.dashstartTime of the dash that already got its speed boost (one boost per dash, as SP)
+
 	qboolean hasCurrentPosition; //are lastSaberTip and lastSaberBase valid?
 
 	int dangerTime; // level.time when last attack occured
@@ -1112,8 +1117,8 @@ typedef struct
 	animation_t animations[MAX_ANIMATIONS];
 	animevent_t torsoAnimEvents[MAX_ANIM_EVENTS];
 	animevent_t legsAnimEvents[MAX_ANIM_EVENTS];
-	unsigned char torsoAnimEventCount;
-	unsigned char legsAnimEventCount;
+	int torsoAnimEventCount;
+	int legsAnimEventCount;
 } animFileSet_t;
 
 //Interest points
@@ -1668,6 +1673,10 @@ void BeginIntermission(void);
 void InitBodyQue(void);
 void ClientSpawn(gentity_t* ent);
 void player_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker, const int damage, const int means_of_death);
+qboolean G_CorpsePushable(const gentity_t* ent);
+void G_PushCorpse(gentity_t* ent, const vec3_t push);
+void G_CorpseTouchPush(gentity_t* corpse);
+void G_ForceThrowCorpses(gentity_t* self, qboolean pull, int radius, float arc);
 void AddScore(const gentity_t* ent, const int score);
 void CalculateRanks(void);
 qboolean SpotWouldTelefrag(const gentity_t* spot);

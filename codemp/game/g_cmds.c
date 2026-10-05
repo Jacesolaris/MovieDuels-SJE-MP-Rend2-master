@@ -80,7 +80,8 @@ typedef enum
 	TAUNT_FLOURISH,
 	TAUNT_GLOAT,
 	TAUNT_SURRENDER,
-	TAUNT_RELOAD
+	TAUNT_RELOAD,
+	TAUNT_STANCE // SP "combatstance"
 } tauntTypes_t;
 
 const gbuyable_t bg_buylist[] =
@@ -4875,6 +4876,10 @@ void ClientCommand(const int clientNum)
 	else if (Q_stricmp(cmd, "reload") == 0)
 	{
 		G_SetTauntAnim(ent, TAUNT_RELOAD);
+	}
+	else if (Q_stricmp(cmd, "combatstance") == 0)
+	{
+		G_SetTauntAnim(ent, TAUNT_STANCE);
 	}
 	else if ((Q_stricmp(cmd, "weather") == 0) || (Q_stricmp(cmd, "r_weather") == 0))
 	{
