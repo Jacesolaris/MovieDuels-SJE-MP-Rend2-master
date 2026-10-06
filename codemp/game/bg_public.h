@@ -147,7 +147,7 @@ animFlags_t BG_AnimStyleFlags(int animStyle);
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-04,Month-10,Year-26,BuildNum-04" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-06,Month-10,Year-26,BuildNum-05" // build date
 
 #define	STEPSIZE		18
 
@@ -639,6 +639,7 @@ extern int bgForcePowerCost[NUM_FORCE_POWERS][NUM_FORCE_POWER_LEVELS];
 #define	PMF_DOUBLE_JUMPED	268435456	// used the double jump (Fallen Order style) in this jump; cleared on landing
 #define	PMF_AIR_DASHED		536870912	// used the air dash (Jedi Survivor style) in this jump; cleared on landing
 #define	PMF_AIR_WALL_RAN	1073741824	// started a wall-run from the air (Fallen Order style) in this jump; cleared on landing
+#define	PMF_LEAP_CANCELLED	((int)0x80000000)	// the long leap / air dash was cancelled with +back: only falls until landing (the last free bit)
 
 #define	PMF_ALL_TIMES	(PMF_TIME_WATERJUMP|PMF_TIME_LAND|PMF_TIME_KNOCKBACK)
 
