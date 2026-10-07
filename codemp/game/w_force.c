@@ -2949,14 +2949,14 @@ void ForceRage(gentity_t* self)
 
 static qboolean ForceLightningCheckattack(const gentity_t* self)
 {
-	if (self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING
+	if (BG_UnstyleAnim(self->client->ps.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING
 		|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_OLD
 		|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_NEW
-		|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_START
-		|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
+		|| BG_UnstyleAnim(self->client->ps.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_START
+		|| BG_UnstyleAnim(self->client->ps.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
 		|| self->client->ps.torsoAnim == BOTH_FORCELIGHTNING_START
-		|| self->client->ps.torsoAnim == BOTH_FORCELIGHTNING_HOLD
-		|| self->client->ps.torsoAnim == BOTH_FORCELIGHTNING)
+		|| BG_UnstyleAnim(self->client->ps.torsoAnim) == BOTH_FORCELIGHTNING_HOLD
+		|| BG_UnstyleAnim(self->client->ps.torsoAnim) == BOTH_FORCELIGHTNING)
 	{
 		return qtrue;
 	}
@@ -3224,12 +3224,12 @@ static void force_lightning_damage(gentity_t* self, gentity_t* traceEnt, vec3_t 
 					}
 				}
 
-				if (self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING
+				if (BG_UnstyleAnim(self->client->ps.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING
 					|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_OLD
 					|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_NEW
-					|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_START
-					|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
-					|| self->client->ps.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
+					|| BG_UnstyleAnim(self->client->ps.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_START
+					|| BG_UnstyleAnim(self->client->ps.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
+					|| BG_UnstyleAnim(self->client->ps.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
 				{
 					if (self->client->pers.botclass == BCLASS_FORCE_DARK_NO_SABER)
 					{

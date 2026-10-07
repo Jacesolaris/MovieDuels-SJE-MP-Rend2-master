@@ -172,9 +172,9 @@ XCVAR_DEF(g_dodgeRegenTime, "1000", NULL, CVAR_SERVERINFO | CVAR_ARCHIVE, qtrue)
 XCVAR_DEF(g_mishapRegenTime, "3000", NULL, CVAR_ARCHIVE, qtrue)
 XCVAR_DEF(g_debugviewlock, "0", NULL, CVAR_NONE, qfalse)
 XCVAR_DEF(g_saberAnimSpeed, "1.0", NULL, CVAR_ARCHIVE, qtrue)
-XCVAR_DEF(g_RealisticBlockingMode, "0", NULL, CVAR_ARCHIVE | CVAR_LATCH, qtrue) // as SP: the player's menu choice (used when hosting a local game)
+XCVAR_DEF(g_RealisticBlockingMode, "1", NULL, CVAR_ARCHIVE | CVAR_LATCH, qtrue) // as SP: the player's menu choice (used when hosting a local game)
 XCVAR_DEF(g_ActivateAnimationStyle, "1", NULL, CVAR_ARCHIVE, qtrue) // as SP: the characters play their own animation styles (CS_*) - 0 = everybody the base anims
-XCVAR_DEF(bg_realisticBlocking, "0", NULL, CVAR_SYSTEMINFO, qfalse) // the value in force, set by the server at map start (G_InitGame) and sent to every client
+XCVAR_DEF(bg_realisticBlocking, "1", NULL, CVAR_SYSTEMINFO, qfalse) // the value in force, set by the server at map start (G_InitGame) and sent to every client
 XCVAR_DEF(bot_thinklevel, "3", NULL, CVAR_ARCHIVE, qtrue)
 XCVAR_DEF(m_nerf, "0", NULL, CVAR_INTERNAL | CVAR_SERVERINFO, qtrue)
 XCVAR_DEF(g_vehAutoAimLead, "0", NULL, CVAR_ARCHIVE, qtrue)

@@ -2670,7 +2670,7 @@ static void UI_SaberDrawBlade(itemDef_t* item, const char* saber_name, int saber
 
 	memset(axis, 0, sizeof axis);
 
-	if (item->flags & ITF_ISSABER && saberModel < 2)
+	if (item->flags& ITF_ISSABER&& saberModel < 2)
 	{
 		snum = 0;
 		trap->Cvar_VariableStringBuffer("ui_saber_color", bladeColorString, sizeof bladeColorString);

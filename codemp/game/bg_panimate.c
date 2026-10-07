@@ -80,7 +80,7 @@ BEGIN: Animation utility functions (sequence checking)
 
 qboolean PM_SaberStanceAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_STAND1: //not really a saberstance anim, actually... "saber off" stance
 	case BOTH_STAND2: //single-saber, medium style
@@ -136,7 +136,7 @@ qboolean PM_ReloadAnim(const int anim)
 
 qboolean PM_WeponRestAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_STAND1IDLE1:
 	case BOTH_STAND9IDLE1:
@@ -228,8 +228,93 @@ qboolean PM_CrouchingAnim(const int anim)
 	return qfalse;
 }
 
-qboolean PM_InSpecialJump(const int anim)
+// ---------------------------------------------------------------------------------------------------------------------
+// Character saber-move anims (SP PM_StyleSaberAnimToBase): the anims PM_SetSaberMove swaps in for a character (see
+// PM_ApplySaberAnimOverride in bg_saber.c) -> the base anim they replace, so the saber move checks, which work on the
+// base anims, still recognise them. saberAnimLevel picks Dooku's base (his two attacks stand in for the desann or
+// tavion swing, whichever style he is in).
+// ---------------------------------------------------------------------------------------------------------------------
+static int BG_StyleFamilyBase(int anim);
+
+int BG_StyleSaberAnimToBase(const int anim, const int saberAnimLevel)
 {
+	switch (anim)
+	{
+		// Yoda
+	case BOTH_A5__L__R_YODA: return BOTH_A5__L__R;
+	case BOTH_A5__R__L_YODA: return BOTH_A5__R__L;
+	case BOTH_A5_BL_TR_YODA: return BOTH_A5_BL_TR;
+	case BOTH_A5_BR_TL_YODA: return BOTH_A5_BR_TL;
+	case BOTH_A5_T__B__YODA: return BOTH_A5_T__B_;
+	case BOTH_A5_TL_BR_YODA: return BOTH_A5_TL_BR;
+	case BOTH_A5_TR_BL_YODA: return BOTH_A5_TR_BL;
+	case BOTH_T5__L__R_YODA: return BOTH_T5__L__R;
+	case BOTH_T5__R__L_YODA: return BOTH_T5__R__L;
+	case BOTH_T5_BL__R_YODA: return BOTH_T5_BL__R;
+	case BOTH_T5_BL_TR_YODA: return BOTH_T5_BL_TR;
+	case BOTH_T5_BR_TL_YODA: return BOTH_T5_BR_TL;
+	case BOTH_T5_TL_BR_YODA: return BOTH_T5_TL_BR;
+	case BOTH_A1_SPECIAL_YODA: return BOTH_A1_SPECIAL;
+		// Anakin
+	case BOTH_A2_SPECIAL_ANI: return BOTH_A2_SPECIAL;
+		// Mace Windu (his kata stands in for the single-saber smashdown)
+	case BOTH_STABDOWN_WINDU: return BOTH_SMASHDOWN_SINGLE;
+		// Galen
+	case BOTH_A7_BL_TR_GALEN: return BOTH_A7_BL_TR;
+	case BOTH_A7_BR_TL_GALEN: return BOTH_A7_BR_TL;
+	case BOTH_A7_SLAP_L_GALEN: return BOTH_A7_SLAP_L;
+	case BOTH_A7_SLAP_R_GALEN: return BOTH_A7_SLAP_R;
+	case BOTH_A7_TL_BR_GALEN: return BOTH_A7_TL_BR;
+	case BOTH_A7_TR_BL_GALEN: return BOTH_A7_TR_BL;
+	case BOTH_A7_T__B__GALEN: return BOTH_A7_T__B_;
+	case BOTH_A7__L__R_GALEN: return BOTH_A7__L__R;
+	case BOTH_A7__R__L_GALEN: return BOTH_A7__R__L;
+	case BOTH_S7_S7_BL_GALEN: return BOTH_S7_S7_BL;
+	case BOTH_S7_S7_BR_GALEN: return BOTH_S7_S7_BR;
+	case BOTH_S7_S7_TL_GALEN: return BOTH_S7_S7_TL;
+	case BOTH_S7_S7_TR_GALEN: return BOTH_S7_S7_TR;
+	case BOTH_S7_S7_T__GALEN: return BOTH_S7_S7_T_;
+	case BOTH_S7_S7__L_GALEN: return BOTH_S7_S7__L;
+	case BOTH_S7_S7__R_GALEN: return BOTH_S7_S7__R;
+	case BOTH_R7_BL_S7_GALEN: return BOTH_R7_BL_S7;
+	case BOTH_R7_BR_S7_GALEN: return BOTH_R7_BR_S7;
+	case BOTH_R7_B__S7_GALEN: return BOTH_R7_B__S7;
+	case BOTH_R7_TL_S7_GALEN: return BOTH_R7_TL_S7;
+	case BOTH_R7_TR_S7_GALEN: return BOTH_R7_TR_S7;
+	case BOTH_R7__L_S7_GALEN: return BOTH_R7__L_S7;
+	case BOTH_R7__R_S7_GALEN: return BOTH_R7__R_S7;
+	case BOTH_P1_S1_B__GALEN: return BOTH_P1_S1_B_;
+	case BOTH_P6_S1_B__GALEN: return BOTH_P6_S1_B_;
+	case BOTH_P7_S1_B__GALEN: return BOTH_P7_S1_B_;
+	case BOTH_P7_S7_BL_MD_GALEN: return BOTH_P7_S7_BL_MD;
+	case BOTH_P7_S7_BR_MD_GALEN: return BOTH_P7_S7_BR_MD;
+	case BOTH_P7_S7_TL_MD_GALEN: return BOTH_P7_S7_TL_MD;
+	case BOTH_P7_S7_TR_MD_GALEN: return BOTH_P7_S7_TR_MD;
+	case BOTH_P7_S7_T__MD_GALEN: return BOTH_P7_S7_T__MD;
+	case BOTH_K1_S1_TL_MD_GALEN: return BOTH_K1_S1_TL_MD;
+	case BOTH_K1_S1_TR_MD_GALEN: return BOTH_K1_S1_TR_MD;
+	case BOTH_KICK_F_MD_GALEN: return BOTH_KICK_F_MD;
+	case BOTH_SWEEP_KICK_GALEN: return BOTH_SWEEP_KICK;
+	case BOTH_FLYING_KICK_GALEN: return BOTH_FLYING_KICK;
+	case BOTH_GRAPPLE_FIRE_GALEN: return BOTH_GRAPPLE_FIRE;
+		// Palpatine
+	case BOTH_FORCELEAP2_T__B__PAL: return BOTH_FORCELEAP2_T__B_;
+		// Grievous
+	case BOTH_JUMPATTACK6_GRIEV: return BOTH_JUMPATTACK6;
+	case BOTH_SPINATTACK6_GRIEV: return BOTH_SPINATTACK6;
+	case BOTH_A6_SABERPROTECT_GRIEV: return BOTH_A6_SABERPROTECT;
+		// Dooku
+	case BOTH_ATTACK_MIDDLE_RIGHT_TO_MIDDLE_LEFT_DOOKU:
+		return saberAnimLevel == SS_TAVION ? BOTH_A5__R__L : BOTH_A4__R__L;
+	case BOTH_TOP_LEFT_BOTTOM_RIGHT_DOOKU:
+		return saberAnimLevel == SS_TAVION ? BOTH_A5_TL_BR : BOTH_A4_TL_BR;
+	default: return BG_StyleFamilyBase(anim); // the style versions of the remapped anims (BG_StyleAnim)
+	}
+}
+
+qboolean PM_InSpecialJump(const int anim_in)
+{
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 	case BOTH_WALL_RUN_RIGHT:
@@ -265,6 +350,8 @@ qboolean PM_InSpecialJump(const int anim)
 	case BOTH_FORCELONGLEAP_START:
 	case BOTH_FORCELONGLEAP_ATTACK:
 	case BOTH_FORCELONGLEAP_ATTACK2:
+	case BOTH_FORCEJUMPDASH_START:
+	case BOTH_FORCEJUMPDASH_ATTACK:
 	case BOTH_FORCEWALLRUNFLIP_START:
 	case BOTH_FORCEWALLRUNFLIP_END:
 	case BOTH_FORCEWALLRUNFLIP_ALT:
@@ -296,7 +383,7 @@ qboolean PM_InSpecialJump(const int anim)
 
 qboolean PM_InSaberStandAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_STAND1: //not really a saber stance anim, actually... "saber off" stance
 	case BOTH_STAND2: //single-saber, medium style
@@ -340,10 +427,11 @@ qboolean PM_InWallHoldMove(const int anim)
 
 qboolean PM_InLedgeMove(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_LEDGE_GRAB:
 	case BOTH_LEDGE_HOLD:
+	case BOTH_LEDGE_HOLD_IDLE: // (Galen's hold loop, BOTH_LEDGE_HOLD_IDLE_GALEN)
 	case BOTH_LEDGE_LEFT:
 	case BOTH_LEDGE_RIGHT:
 	case BOTH_LEDGE_MERCPULL:
@@ -367,10 +455,11 @@ qboolean PM_InAmputateMove(const int anim)
 
 qboolean In_LedgeIdle(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_LEDGE_GRAB:
 	case BOTH_LEDGE_HOLD:
+	case BOTH_LEDGE_HOLD_IDLE: // (Galen's hold loop, BOTH_LEDGE_HOLD_IDLE_GALEN)
 		return qtrue;
 	default:;
 	}
@@ -379,7 +468,7 @@ qboolean In_LedgeIdle(const int anim)
 
 qboolean BG_DirectFlippingAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_FLIP_F: //# Flip forward
 	case BOTH_FLIP_B: //# Flip backwards
@@ -457,6 +546,7 @@ qboolean PM_SaberInAttack(const int move)
 	case LS_SPINATTACK:
 	case LS_LEAP_ATTACK:
 	case LS_LEAP_ATTACK2:
+	case LS_JUMPDASH_ATTACK:
 	case LS_SWOOP_ATTACK_RIGHT:
 	case LS_SWOOP_ATTACK_LEFT:
 	case LS_TAUNTAUN_ATTACK_RIGHT:
@@ -483,6 +573,7 @@ qboolean PM_SaberInAttack(const int move)
 	case LS_STABDOWN_STAFF:
 	case LS_STABDOWN_DUAL:
 	case LS_SMASHDOWN_SINGLE:
+	case LS_STABDOWN_WINDU:
 	case LS_SMASHDOWN_STAFF:
 	case LS_SMASHDOWN_DUAL:
 	case LS_DUAL_SPIN_PROTECT:
@@ -535,8 +626,8 @@ qboolean PM_SaberInSmashdown(const saberMoveName_t saberMove)
 {
 	switch (saberMove)
 	{
-		//case LS_STABDOWN_WINDU:
-			///////////////////////////////////////////
+	case LS_STABDOWN_WINDU:
+		///////////////////////////////////////////
 	case LS_SMASHDOWN_DUAL:
 	case LS_SMASHDOWN_SINGLE:
 	case LS_SMASHDOWN_STAFF:
@@ -615,8 +706,9 @@ qboolean PM_FaceProtectAnim(const int anim)
 	return qfalse;
 }
 
-static int PM_AnimLevelForSaberAnim(const int anim)
+static int PM_AnimLevelForSaberAnim(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_D1_B____)
 	{
 		return FORCE_LEVEL_1;
@@ -654,7 +746,7 @@ static int PM_AnimLevelForSaberAnim(const int anim)
 
 qboolean PM_SaberDrawPutawayAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_STAND1TO2:
 	case BOTH_STAND2TO1:
@@ -677,6 +769,7 @@ qboolean PM_SaberDrawPutawayAnim(const int anim)
 
 qboolean PM_InAnimForSaberMove(int anim, const int saberMove)
 {
+	anim = BG_StyleSaberAnimToBase(anim, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 		//special case anims
@@ -708,6 +801,7 @@ qboolean PM_InAnimForSaberMove(int anim, const int saberMove)
 	case BOTH_VT_ATL_S:
 	case BOTH_FORCELONGLEAP_ATTACK:
 	case BOTH_FORCELONGLEAP_ATTACK2:
+	case BOTH_FORCEJUMPDASH_ATTACK:
 	case BOTH_A7_KICK_F:
 	case BOTH_A7_KICK_F2:
 	case BOTH_A7_KICK_B:
@@ -869,6 +963,7 @@ qboolean PM_SaberInDamageMove(const int move)
 	case LS_SPINATTACK:
 	case LS_LEAP_ATTACK:
 	case LS_LEAP_ATTACK2:
+	case LS_JUMPDASH_ATTACK:
 	case LS_SWOOP_ATTACK_RIGHT:
 	case LS_SWOOP_ATTACK_LEFT:
 	case LS_TAUNTAUN_ATTACK_RIGHT:
@@ -878,6 +973,7 @@ qboolean PM_SaberInDamageMove(const int move)
 	case LS_STABDOWN_STAFF:
 	case LS_STABDOWN_DUAL:
 	case LS_SMASHDOWN_SINGLE:
+	case LS_STABDOWN_WINDU:
 	case LS_SMASHDOWN_STAFF:
 	case LS_SMASHDOWN_DUAL:
 	case LS_DUAL_SPIN_PROTECT:
@@ -905,8 +1001,9 @@ qboolean PM_SaberInDamageMove(const int move)
 	return qfalse;
 }
 
-qboolean PM_SaberDoDamageAnim(const int anim)
+qboolean PM_SaberDoDamageAnim(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 	case BOTH_A2_STABBACK1:
@@ -933,6 +1030,7 @@ qboolean PM_SaberDoDamageAnim(const int anim)
 	case BOTH_SPINATTACKGRIEVOUS:
 	case BOTH_FORCELONGLEAP_ATTACK:
 	case BOTH_FORCELONGLEAP_ATTACK2:
+	case BOTH_FORCEJUMPDASH_ATTACK:
 	case BOTH_VS_ATR_S:
 	case BOTH_VS_ATL_S:
 	case BOTH_VT_ATR_S:
@@ -1083,8 +1181,9 @@ qboolean PM_BoltBlockingAnim(const int anim)
 	return qfalse;
 }
 
-qboolean PM_InKataAnim(const int anim)
+qboolean PM_InKataAnim(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 	case BOTH_A6_SABERPROTECT:
@@ -1118,7 +1217,7 @@ qboolean G_DrawSaberTrailForAnimation(const int anim)
 	}
 
 	// Taunts
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_ENGAGETAUNT:
 	case BOTH_DUAL_TAUNT:
@@ -1145,8 +1244,9 @@ qboolean G_DrawSaberTrailForAnimation(const int anim)
 	return qfalse;
 }
 
-qboolean PM_InKataBotDashDodgeAnim(const int anim)
+qboolean PM_InKataBotDashDodgeAnim(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 	case BOTH_A6_SABERPROTECT:
@@ -1219,11 +1319,13 @@ qboolean PM_SaberInKillMove(const int move)
 	case LS_A_FLIP_SLASH:
 	case LS_LEAP_ATTACK:
 	case LS_LEAP_ATTACK2:
+	case LS_JUMPDASH_ATTACK:
 	case LS_STABDOWN:
 	case LS_STABDOWN_BACKHAND:
 	case LS_STABDOWN_STAFF:
 	case LS_STABDOWN_DUAL:
 	case LS_SMASHDOWN_SINGLE:
+	case LS_STABDOWN_WINDU:
 	case LS_SMASHDOWN_STAFF:
 	case LS_SMASHDOWN_DUAL:
 	case LS_A1_SPECIAL:
@@ -1272,6 +1374,7 @@ qboolean PM_SaberInSpecial(const int move)
 	case LS_SPINATTACK:
 	case LS_LEAP_ATTACK:
 	case LS_LEAP_ATTACK2:
+	case LS_JUMPDASH_ATTACK:
 	case LS_SWOOP_ATTACK_RIGHT:
 	case LS_SWOOP_ATTACK_LEFT:
 	case LS_TAUNTAUN_ATTACK_RIGHT:
@@ -1294,6 +1397,7 @@ qboolean PM_SaberInSpecial(const int move)
 	case LS_KICK_R_AIR:
 	case LS_KICK_L_AIR:
 	case LS_SMASHDOWN_SINGLE:
+	case LS_STABDOWN_WINDU:
 	case LS_SMASHDOWN_STAFF:
 	case LS_SMASHDOWN_DUAL:
 	case LS_STABDOWN:
@@ -1396,8 +1500,9 @@ qboolean BG_InExtraDefenseSaberMove(const int move)
 	return qfalse;
 }
 
-qboolean PM_FlippingAnim(const int anim)
+qboolean PM_FlippingAnim(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 	case BOTH_FLIP_F: //# Flip forward
@@ -1448,8 +1553,9 @@ qboolean PM_FlippingAnim(const int anim)
 	return qfalse;
 }
 
-qboolean PM_SpinningSaberAnim(const int anim)
+qboolean PM_SpinningSaberAnim(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 		//level 1 - FIXME: level 1 will have *no* spins
@@ -1555,8 +1661,9 @@ qboolean PM_SpinningSaberAnim(const int anim)
 	return qfalse;
 }
 
-qboolean PM_SaberInSpecialAttack(const int anim)
+qboolean PM_SaberInSpecialAttack(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 	case BOTH_A2_STABBACK1:
@@ -1583,6 +1690,7 @@ qboolean PM_SaberInSpecialAttack(const int anim)
 	case BOTH_SPINATTACKGRIEVOUS:
 	case BOTH_FORCELONGLEAP_ATTACK:
 	case BOTH_FORCELONGLEAP_ATTACK2:
+	case BOTH_FORCEJUMPDASH_ATTACK:
 	case BOTH_VS_ATR_S:
 	case BOTH_VS_ATL_S:
 	case BOTH_VT_ATR_S:
@@ -1637,8 +1745,9 @@ qboolean PM_SaberInSpecialAttack(const int anim)
 	return qfalse;
 }
 
-qboolean PM_SaberInnonblockableAttack(const int anim)
+qboolean PM_SaberInnonblockableAttack(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 	case BOTH_ATTACK_BACK:
@@ -1663,6 +1772,7 @@ qboolean PM_SaberInnonblockableAttack(const int anim)
 	case BOTH_SPINATTACKGRIEVOUS:
 	case BOTH_FORCELONGLEAP_ATTACK:
 	case BOTH_FORCELONGLEAP_ATTACK2:
+	case BOTH_FORCEJUMPDASH_ATTACK:
 	case BOTH_STABDOWN:
 	case BOTH_STABDOWN_BACKHAND:
 	case BOTH_STABDOWN_STAFF:
@@ -1728,8 +1838,9 @@ qboolean PM_PunchAnim(const int anim)
 	return qfalse;
 }
 
-qboolean PM_KickingAnim(const int anim)
+qboolean PM_KickingAnim(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 	case BOTH_A7_KICK_F:
@@ -1820,6 +1931,7 @@ qboolean PM_SaberCanInterruptMove(const int move, const int anim)
 		case LS_SPINATTACK:
 		case LS_LEAP_ATTACK:
 		case LS_LEAP_ATTACK2:
+		case LS_JUMPDASH_ATTACK:
 		case LS_SWOOP_ATTACK_RIGHT:
 		case LS_SWOOP_ATTACK_LEFT:
 		case LS_TAUNTAUN_ATTACK_RIGHT:
@@ -1832,6 +1944,7 @@ qboolean PM_SaberCanInterruptMove(const int move, const int anim)
 		case LS_STABDOWN_STAFF:
 		case LS_STABDOWN_DUAL:
 		case LS_SMASHDOWN_SINGLE:
+		case LS_STABDOWN_WINDU:
 		case LS_SMASHDOWN_STAFF:
 		case LS_SMASHDOWN_DUAL:
 		case LS_DUAL_SPIN_PROTECT:
@@ -1894,7 +2007,7 @@ qboolean PM_SaberCanInterruptMove(const int move, const int anim)
 			return qfalse;
 		}
 	}
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_A2_STABBACK1:
 	case BOTH_A2_STABBACK1B:
@@ -1920,6 +2033,7 @@ qboolean PM_SaberCanInterruptMove(const int move, const int anim)
 	case BOTH_SPINATTACKGRIEVOUS:
 	case BOTH_FORCELONGLEAP_ATTACK:
 	case BOTH_FORCELONGLEAP_ATTACK2:
+	case BOTH_FORCEJUMPDASH_ATTACK:
 	case BOTH_VS_ATR_S:
 	case BOTH_VS_ATL_S:
 	case BOTH_VT_ATR_S:
@@ -2416,7 +2530,7 @@ qboolean PM_InButterfly(const int anim)
 qboolean PM_StandingAnim(const int anim)
 {
 	//NOTE: does not check idles or special (cinematic) stands
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_STANDMELEE:
 	case BOTH_SABERFAST_STANCE: //single-saber, fast style
@@ -2452,7 +2566,7 @@ qboolean PM_StandingAnim(const int anim)
 
 qboolean PM_StandingAtReadyAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_STANDMELEE:
 	case BOTH_SABERFAST_STANCE: //single-saber, fast style
@@ -2561,8 +2675,9 @@ qboolean BG_InKnockDownOnGround(const playerState_t* ps)
 	return qfalse;
 }
 
-qboolean BG_StabDownAnim(const int anim)
+qboolean BG_StabDownAnim(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	switch (anim)
 	{
 	case BOTH_STABDOWN:
@@ -2775,8 +2890,9 @@ qboolean PM_IsInBlockingAnim(const int move)
 	return qfalse;
 }
 
-qboolean PM_InSaberAnim(const int anim)
+qboolean PM_InSaberAnim(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_H1_S1_BR)
 	{
 		return qtrue;
@@ -2966,7 +3082,7 @@ qboolean PM_SaberInBashedAnim(const int anim)
 
 static qboolean BG_InWalk(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_WALK1:
 	case BOTH_WALK1TALKCOMM1:
@@ -3263,9 +3379,14 @@ qboolean PM_InSlapDown(const playerState_t* ps)
 
 int pm_power_level_for_saber_anims(const playerState_t* ps)
 {
-	const int anim = ps->torsoAnim;
+	if (ps->torsoAnim == BOTH_A5_T__B__YODA)
+	{
+		//YODA: his top-down swing hits harder than Tavion's (SP: checked before the anim is mapped to BOTH_A5_T__B_)
+		return FORCE_LEVEL_5;
+	}
+	const int anim = BG_StyleSaberAnimToBase(ps->torsoAnim, ps->fd.saberAnimLevel); // character saber anims count as the base anim
 	const int anim_timer = ps->torsoAnim;
-	const int anim_time_elapsed = BG_AnimLength(0, anim) - anim_timer;
+	const int anim_time_elapsed = BG_AnimLength(0, ps->torsoAnim) - anim_timer;
 
 	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_D1_B____)
 	{
@@ -3509,6 +3630,7 @@ int pm_power_level_for_saber_anims(const playerState_t* ps)
 	return FORCE_LEVEL_3;
 	case BOTH_FORCELONGLEAP_ATTACK:
 	case BOTH_FORCELONGLEAP_ATTACK2:
+	case BOTH_FORCEJUMPDASH_ATTACK:
 		if (anim_time_elapsed <= 200)
 		{
 			//1st four frames of anim
@@ -3966,7 +4088,7 @@ qboolean PM_BlockHoldAnim(const int anim)
 
 qboolean PM_BlockAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_BLOCK_FL:
 	case BOTH_BLOCK_FR:
@@ -4024,7 +4146,7 @@ qboolean PM_BlockHoldStaffAnim(const int anim)
 
 qboolean PM_BlockStaffAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_BLOCK_L_STAFF:
 	case BOTH_BLOCK_R_STAFF:
@@ -4069,7 +4191,7 @@ qboolean PM_MeleeblockAnim(const int anim)
 
 qboolean PM_ForceJumpingAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_FORCEJUMP1: //# Jump - wind-up and leave ground
 	case BOTH_FORCEJUMP2: //# Jump - wind-up and leave ground
@@ -4092,7 +4214,7 @@ qboolean PM_ForceJumpingAnim(const int anim)
 
 qboolean PM_JumpingAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_JUMP1: //# Jump - wind-up and leave ground
 	case BOTH_JUMP2: //# Jump - wind-up and leave ground
@@ -4120,7 +4242,7 @@ qboolean PM_JumpingAnim(const int anim)
 
 qboolean PM_LandingAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_LAND1: //# Landing (from in air loop)
 	case BOTH_LAND2: //# Landing Hard (from a great height)
@@ -4132,6 +4254,7 @@ qboolean PM_LandingAnim(const int anim)
 	case BOTH_FORCELANDLEFT1: //# Landing left(from in air loop)
 	case BOTH_FORCELANDRIGHT1: //# Landing right(from in air loop)
 	case BOTH_FORCELONGLEAP_LAND: //# Landing right(from in air loop)
+	case BOTH_FORCEJUMPDASH_LAND:
 		return qtrue;
 	default:;
 	}
@@ -4140,7 +4263,7 @@ qboolean PM_LandingAnim(const int anim)
 
 qboolean PM_ForceAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_CHOKE1: //being choked...???
 	case BOTH_GESTURE1: //taunting...
@@ -4189,8 +4312,9 @@ qboolean PM_ForceAnim(const int anim)
 
 qboolean PM_BounceAnim(int anim);
 
-qboolean PM_SaberReturnAnim(const int anim)
+qboolean PM_SaberReturnAnim(const int anim_in)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, SS_DESANN); // character saber anims count as the base anim
 	if (anim >= BOTH_R1_B__S1 && anim <= BOTH_R1_TR_S1
 		|| anim >= BOTH_R2_B__S1 && anim <= BOTH_R2_TR_S1
 		|| anim >= BOTH_R3_B__S1 && anim <= BOTH_R3_TR_S1
@@ -4624,7 +4748,7 @@ qboolean PM_DeathCinAnim(const int anim)
 
 qboolean BG_FullBodyTauntAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_GESTURE1:
 	case BOTH_DUAL_TAUNT:
@@ -4697,7 +4821,7 @@ qboolean BG_FullBodyCowerAnim(const int anim)
 
 qboolean BG_IsAlreadyinTauntAnim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_GESTURE1:
 	case BOTH_DUAL_TAUNT:
@@ -4734,7 +4858,7 @@ qboolean BG_IsAlreadyinTauntAnim(const int anim)
 
 qboolean PM_Bobaspecialanim(const int anim)
 {
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 	case BOTH_GESTURE1:
 	case BOTH_TUSKENTAUNT1:
@@ -6148,8 +6272,9 @@ void BG_SetTorsoAnimTimer(playerState_t* ps, const int time)
 // 1) The invalid bitwise-OR anim exclusion check
 // 2) Parentheses around fatigue flag tests
 //==============================================================
-void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const int weapon, const int anim, float* animSpeed, const int fatigued)
+void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const int weapon, const int anim_in, float* animSpeed, const int fatigued)
 {
+	const int anim = BG_StyleSaberAnimToBase(anim_in, saberAnimLevel); // character saber anims get the base anim's speed
 	// Wall-run (Fallen Order style): the run lasts as long as its animation, so it plays slower and longer (in MP the
 	// server timers and every client's playback both come through here, so they stay the same)
 	if (anim == BOTH_WALL_RUN_LEFT || anim == BOTH_WALL_RUN_RIGHT)
@@ -6159,7 +6284,7 @@ void PM_SaberStartTransAnim(const int clientNum, const int saberAnimLevel, const
 	}
 	// Force long leap: SP starts it under force speed 3 (timescale 0.25) and its PM_SetAnimFinal times the start anim
 	// with that speed-up (1 / 0.25), so the leap (held while this anim runs) lasts 2.65 s / 4. MP has no timescale.
-	if (anim == BOTH_FORCELONGLEAP_START)
+	if (anim == BOTH_FORCELONGLEAP_START || anim == BOTH_FORCEJUMPDASH_START) // the jump dash pose plays as the leap's
 	{
 		*animSpeed *= LONG_LEAP_START_ANIM_SCALE;
 		return;
@@ -6435,7 +6560,7 @@ static void BG_SetAnimFinal(playerState_t* ps, const animation_t* animations, co
 			else
 			{
 				ps->torsoTimer = (int)((animations[anim].numFrames) * fabs((float)animations[anim].frameLerp));
-				if (anim == BOTH_FORCELONGLEAP_START && editAnimSpeed > 0.0f)
+				if ((anim == BOTH_FORCELONGLEAP_START || anim == BOTH_FORCEJUMPDASH_START) && editAnimSpeed > 0.0f)
 				{// the long leap start anim is timed at its played speed (SP: under force speed)
 					ps->torsoTimer = (int)(ps->torsoTimer / editAnimSpeed);
 				}
@@ -6492,7 +6617,7 @@ setAnimLegs:
 			else
 			{
 				ps->legsTimer = (int)((animations[anim].numFrames) * fabs((float)animations[anim].frameLerp));
-				if (anim == BOTH_FORCELONGLEAP_START && editAnimSpeed > 0.0f)
+				if ((anim == BOTH_FORCELONGLEAP_START || anim == BOTH_FORCEJUMPDASH_START) && editAnimSpeed > 0.0f)
 				{// the long leap start anim is timed at its played speed (SP: under force speed)
 					ps->legsTimer = (int)(ps->legsTimer / editAnimSpeed);
 				}
@@ -6570,7 +6695,8 @@ int PM_PickAnim(const int anim_index, const int min_anim, const int max_anim)
 // (BOTH_JUMP1 -> BOTH_JUMP1_GALEN, BOTH_RUN1 -> BOTH_RUN1_VADER...); SP's style code picks them in place of the base
 // anim. Here the same happens for every anim set through BG_SetAnim, for the kinds of anims SP's style code covers:
 // stands / idles, walking, running, sprinting, jumping, landing, flips, dashes, ledge moves, saber stances, weapon poses
-// and force gestures. Saber attacks, parries, blocks and kicks keep the base anim (the saber code knows those by number).
+// and force gestures (plus the single anims in bgAnimStyleExact). Saber attacks, parries and kicks are swapped in
+// PM_SetSaberMove instead (PM_ApplySaberAnimOverride in bg_saber.c), as SP does.
 // ---------------------------------------------------------------------------------------------------------------------
 static const char* const bgAnimStyleSuffix[ANIMSTYLE_COUNT] =
 {
@@ -6579,7 +6705,7 @@ static const char* const bgAnimStyleSuffix[ANIMSTYLE_COUNT] =
 	"BDROID",	// BATTLEDROID
 	"BEN",		// BENKENOBI
 	"CAL",		// CAL_KESTIS
-	NULL,		// CLONETROOPER (no anims of its own)
+	"CLO",		// CLONETROOPER (SP: TORSO_WEAPONIDLE2_CLO, BOTH_ATTACK2_CLO...)
 	"DF2",		// DARKFORCES2
 	"DOOKU",	// COUNT_DOOKU
 	"GALEN",	// GALEN_MAREK
@@ -6610,7 +6736,17 @@ static const char* const bgAnimStyleFamilies[] =
 	"TORSO_WEAPON", "BOTH_WEAPON", "BOTH_FORCE", "BOTH_MINDTRICK", "BOTH_GRAPPLE"
 };
 
+// Single anims (exact names) SP's style code also swaps for the character's own version: gun shots (SP PM_Weapon),
+// the saber pull (catching a thrown saber), the jetpack flamethrower, the ceiling drop (NPC ambush) and the staff
+// blocks (SP PM_UpdateViewAngles)
+static const char* const bgAnimStyleExact[] =
+{
+	"BOTH_ATTACK2", "BOTH_ATTACK3", "BOTH_ATTACK4", "BOTH_ATTACK_DUAL", "BOTH_ATTACK_FP",
+	"BOTH_SABERPULL", "BOTH_FLAMETHROWER", "BOTH_CEILING_DROP", "BOTH_BLOCK_L_STAFF", "BOTH_BLOCK_R_STAFF"
+};
+
 static short bgStyleAnim[ANIMSTYLE_COUNT][MAX_ANIMATIONS];
+static short bgStyleBase[MAX_ANIMATIONS]; // a style's own anim -> the base anim it stands for (-1: not a style anim)
 static qboolean bgStyleAnimsBuilt = qfalse;
 
 static int BG_AnimNameCompare(const void* a, const void* b)
@@ -6629,6 +6765,10 @@ static void BG_BuildStyleAnims(void)
 		{
 			bgStyleAnim[s][a] = -1;
 		}
+	}
+	for (int a = 0; a < MAX_ANIMATIONS; a++)
+	{
+		bgStyleBase[a] = -1;
 	}
 
 	while (numAnims < MAX_ANIMATIONS && animTable[numAnims].name)
@@ -6656,6 +6796,13 @@ static void BG_BuildStyleAnims(void)
 				break;
 			}
 		}
+		for (int f = 0; !family && f < (int)ARRAY_LEN(bgAnimStyleExact); f++)
+		{
+			if (!Q_stricmp(base, bgAnimStyleExact[f]))
+			{
+				family = qtrue;
+			}
+		}
 		if (!family)
 		{
 			continue;
@@ -6678,10 +6825,35 @@ static void BG_BuildStyleAnims(void)
 			if (found)
 			{
 				bgStyleAnim[s][baseId] = (short)(*found)->id;
+				if ((*found)->id >= 0 && (*found)->id < MAX_ANIMATIONS)
+				{
+					bgStyleBase[(*found)->id] = (short)baseId;
+				}
 			}
 		}
 	}
 	bgStyleAnimsBuilt = qtrue;
+}
+
+// The base anim a style's own anim stands for (BOTH_RUN1_VADER -> BOTH_RUN1, BOTH_A5_T__B__YODA -> BOTH_A5_T__B_...),
+// the anim itself otherwise. MP's anim checks (PM_JumpingAnim, the ledge moves, idle / lightning / weapon checks...)
+// know the base anims; SP lists the style versions next to them, here they go through this.
+int BG_UnstyleAnim(const int anim)
+{
+	return BG_StyleSaberAnimToBase(anim, SS_DESANN);
+}
+
+static int BG_StyleFamilyBase(const int anim)
+{
+	if (anim < 0 || anim >= MAX_ANIMATIONS)
+	{
+		return anim;
+	}
+	if (!bgStyleAnimsBuilt)
+	{
+		BG_BuildStyleAnims();
+	}
+	return bgStyleBase[anim] >= 0 ? bgStyleBase[anim] : anim;
 }
 
 // Anims picked by ported SP style code during this pmove (see PM_KeepStyleAnim): played as they are.
@@ -7141,7 +7313,7 @@ qboolean BG_WeaponSprintAnim(const int anim)
 qboolean manual_saberreadyanim(const int anim)
 {
 	//check for saber block animation
-	switch (anim)
+	switch (BG_UnstyleAnim(anim))
 	{
 		//special case anims
 	case BOTH_STAND1: //not really a saberstance anim, actually... "saber off" stance

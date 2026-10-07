@@ -119,7 +119,6 @@ typedef struct
 
 animFlags_t BG_AnimStyleFlags(int animStyle);
 
-
 // Wall-run (Fallen Order style): the run lasts as long as its animation, which plays at this speed (slower = longer)
 #define WALL_RUN_ANIM_SCALE	0.75f
 #define LONG_LEAP_START_ANIM_SCALE	4.0f	// force long leap start anim speed: SP plays it under force speed 3 (timescale 0.25) - see PM_SaberStartTransAnim
@@ -147,7 +146,7 @@ animFlags_t BG_AnimStyleFlags(int animStyle);
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-06,Month-10,Year-26,BuildNum-05" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-07,Month-10,Year-26,BuildNum-05" // build date
 
 #define	STEPSIZE		18
 
@@ -458,6 +457,8 @@ typedef struct animation_s {
 // the animation style's own version of an anim (bg_panimate.c; animStyle_t above)
 int BG_StyleAnim(int animStyle, const animation_t* animations, int anim);
 void BG_KeepStyleAnim(int anim); // an anim chosen by ported SP style code: BG_StyleAnim leaves it alone this pmove (-1 clears)
+int BG_StyleSaberAnimToBase(int anim, int saberAnimLevel); // a character's own anim -> the base anim it replaces (SP PM_StyleSaberAnimToBase + BG_StyleAnim's)
+int BG_UnstyleAnim(int anim); // the same, for checks that don't care about Dooku's style
 #pragma pack(pop)
 
 extern qboolean			bgpa_ftext_loaded;
@@ -640,6 +641,12 @@ extern int bgForcePowerCost[NUM_FORCE_POWERS][NUM_FORCE_POWER_LEVELS];
 #define	PMF_AIR_DASHED		536870912	// used the air dash (Jedi Survivor style) in this jump; cleared on landing
 #define	PMF_AIR_WALL_RAN	1073741824	// started a wall-run from the air (Fallen Order style) in this jump; cleared on landing
 #define	PMF_LEAP_CANCELLED	((int)0x80000000)	// the long leap / air dash was cancelled with +back: only falls until landing (the last free bit)
+
+// Kata or smashdown (bots and NPCs, bg_saber.c PM_CanDoSmashdown, ai_main.c): distances between the two origins,
+// horizontally. A kata only hits an enemy within PM_KATA_REACH; beyond that, up to PM_SMASHDOWN_REACH, the
+// smashdown is used instead (tune here).
+#define PM_KATA_REACH		100.0f
+#define PM_SMASHDOWN_REACH	240.0f
 
 #define	PMF_ALL_TIMES	(PMF_TIME_WATERJUMP|PMF_TIME_LAND|PMF_TIME_KNOCKBACK)
 
@@ -1759,6 +1766,10 @@ typedef enum {
 
 	LS_KNOCK_RIGHT,
 	LS_KNOCK_LEFT,
+
+	LS_STABDOWN_WINDU, // MD SP: Mace Windu's own smashdown kata (animation style), in place of LS_SMASHDOWN_SINGLE
+
+	LS_JUMPDASH_ATTACK, // the force jump dash's attack (BOTH_FORCEJUMPDASH_ATTACK)
 
 	LS_MOVE_MAX
 } saberMoveName_t;

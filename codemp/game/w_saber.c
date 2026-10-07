@@ -6569,7 +6569,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 	int cvarBounce = (g_SaberBounceOnWalls.integer != 0) ? 1 : 0;
 	int inAttackPure = PM_SaberInAttackPure(self->client->ps.saberMove) ? 1 : 0;
 	int isJumpMove = (self->client->ps.saberMove == LS_A_JUMP_T__B_ || self->client->ps.saberMove == LS_A_JUMP_PALP_) ? 1 : 0;
-	int isSmashTorso = (self->client->ps.torsoAnim == BOTH_SMASHDOWN_SINGLE ||
+	int isSmashTorso = (BG_StyleSaberAnimToBase(self->client->ps.torsoAnim, SS_DESANN) == BOTH_SMASHDOWN_SINGLE ||
 		self->client->ps.torsoAnim == BOTH_SMASHDOWN_STAFF ||
 		self->client->ps.torsoAnim == BOTH_SMASHDOWN_DUAL) ? 1 : 0;
 	int partialDamage = BG_SaberInPartialDamageMove(&self->client->ps, self->client->ps.torsoAnim) ? 1 : 0;
@@ -9607,6 +9607,39 @@ void WP_thrownSaberTouch(gentity_t* saberent, gentity_t* other, const trace_t* t
 
 #define SABER_MAX_THROW_DISTANCE 1000
 
+// The saber throw release rule, as SP (WP_SaberReleaseThrow): letting go of the throw button while the saber is still
+// flying free (hits are handled by the impact code), saber throw level 1 always comes back (its throw is so short it's
+// past the drop distance almost at once); at levels 2 and 3 it falls to the ground if it has flown more than
+// SABER_THROW_DROP_FRACTION (85%) of SP's max throw distance (400, so 340) from where it left the hand, otherwise it
+// comes back. Bots keep their own retrieve rules.
+#define SABER_THROW_DROP_FRACTION	0.85f
+#define SABER_THROW_SP_DIST			400.0f	// SP saberThrowDist at saber throw levels 2 and 3
+
+static vec3_t s_saberThrowOrigin[MAX_GENTITIES]; // where each thrown saber left its owner's hand
+
+static qboolean WP_SaberThrowShouldDrop(const gentity_t* saberent, const gentity_t* saber_own)
+{
+	if (saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW] <= FORCE_LEVEL_1)
+	{
+		return qfalse;
+	}
+	return Distance(saberent->r.currentOrigin, s_saberThrowOrigin[saber_own->s.number])
+		> SABER_THROW_SP_DIST * SABER_THROW_DROP_FRACTION ? qtrue : qfalse;
+}
+
+// Send the thrown saber back to its owner's hand (as the bots' release below, without their retrieve delay).
+static void WP_SaberThrowComeBack(gentity_t* saberent, gentity_t* saber_own)
+{
+	saberent->s.eFlags &= ~EF_MISSILE_STICK;
+	WP_saberReactivate(saberent, saber_own);
+	saberent->touch = WP_SaberGotHit;
+	saberent->think = WP_saberBackToOwner;
+	saberent->speed = 0;
+	saberent->genericValue5 = 0;
+	saberent->nextthink = level.time;
+	saberent->r.contents = CONTENTS_LIGHTSABER;
+}
+
 static void WP_saberFirstThrown(gentity_t* saberent)
 {
 	vec3_t v_sub;
@@ -9680,6 +9713,12 @@ static void WP_saberFirstThrown(gentity_t* saberent)
 
 	if (v_len >= 300 && saber_own->client->ps.fd.forcePowerLevel[FP_SABERTHROW] == FORCE_LEVEL_1)
 	{
+		if (!(saber_own->r.svFlags & SVF_BOT))
+		{
+			// saber throw level 1 at its full distance: it comes back (as SP)
+			WP_SaberThrowComeBack(saberent, saber_own);
+			goto runMin;
+		}
 		thrownSaberBallistics(saberent, saber_own, qfalse);
 		goto runMin;
 	}
@@ -9716,10 +9755,16 @@ static void WP_saberFirstThrown(gentity_t* saberent)
 
 			saberent->r.contents = CONTENTS_LIGHTSABER;
 		}
-		else
+		else if (WP_SaberThrowShouldDrop(saberent, saber_own))
 		{
+			// let go past 85% of the max throw distance: it falls to the ground
 			G_RunObject(saberent);
 			thrownSaberBallistics(saberent, saber_own, qfalse);
+		}
+		else
+		{
+			// let go closer than that (or saber throw level 1): it comes back
+			WP_SaberThrowComeBack(saberent, saber_own);
 		}
 	}
 
@@ -10255,7 +10300,7 @@ static qboolean WP_AbsorbKick(gentity_t* hit_ent, gentity_t* pusher, vec3_t push
 	}
 
 	// Right slap
-	if (pusher->client->ps.torsoAnim == BOTH_A7_SLAP_R ||
+	if (BG_StyleSaberAnimToBase(pusher->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_R ||
 		pusher->client->ps.torsoAnim == BOTH_SMACK_R)
 	{
 		WP_KnockdownAndDrain(hit_ent, pusher, BOTH_SLAPDOWNRIGHT, BOTH_SLAPDOWNRIGHT, qtrue, qfalse);
@@ -10264,7 +10309,7 @@ static qboolean WP_AbsorbKick(gentity_t* hit_ent, gentity_t* pusher, vec3_t push
 	}
 
 	// Left slap
-	if (pusher->client->ps.torsoAnim == BOTH_A7_SLAP_L ||
+	if (BG_StyleSaberAnimToBase(pusher->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_L ||
 		pusher->client->ps.torsoAnim == BOTH_SMACK_L)
 	{
 		WP_KnockdownAndDrain(hit_ent, pusher, BOTH_SLAPDOWNLEFT, BOTH_SLAPDOWNLEFT, qtrue, qfalse);
@@ -10420,8 +10465,8 @@ static gentity_t* G_KickTrace(gentity_t* ent, vec3_t kick_dir, const float kick_
 					if (ent->client->ps.torsoAnim == BOTH_A7_HILT ||
 						ent->client->ps.torsoAnim == BOTH_SMACK_L ||
 						ent->client->ps.torsoAnim == BOTH_SMACK_R ||
-						ent->client->ps.torsoAnim == BOTH_A7_SLAP_R ||
-						ent->client->ps.torsoAnim == BOTH_A7_SLAP_L)
+						BG_StyleSaberAnimToBase(ent->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_R ||
+						BG_StyleSaberAnimToBase(ent->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_L)
 					{
 						//hit in head
 						if (hit_ent->health > 0)
@@ -10775,7 +10820,8 @@ static void G_KickSomeMofos(gentity_t* ent)
 	}
 	else
 	{
-		switch (ent->client->ps.legsAnim)
+		// a character's own kick / slap anims (SP animation styles) count as the base anim
+		switch (BG_StyleSaberAnimToBase(ent->client->ps.legsAnim, ent->client->ps.fd.saberAnimLevel))
 		{
 		case BOTH_A7_SOULCAL:
 			kick_push = flrand(150.0f, 250.0f);
@@ -11232,7 +11278,7 @@ static void G_KickSomeMofos(gentity_t* ent)
 			if (level.framenum & 1)
 			{
 				//back
-				int handBolt = ent->client->ps.legsAnim == BOTH_A7_SLAP_R ? ri->handRBolt : ri->handLBolt;
+				int handBolt = BG_StyleSaberAnimToBase(ent->client->ps.legsAnim, ent->client->ps.fd.saberAnimLevel) == BOTH_A7_SLAP_R ? ri->handRBolt : ri->handLBolt;
 				//mirrored anims
 				do_kick = qtrue;
 				kick_dist = 80;
@@ -11399,7 +11445,7 @@ static void G_KickSomeMofos(gentity_t* ent)
 			if (level.framenum & 1)
 			{
 				//back
-				int handBolt = ent->client->ps.legsAnim == BOTH_A7_SLAP_L ? ri->handLBolt : ri->handRBolt;
+				int handBolt = BG_StyleSaberAnimToBase(ent->client->ps.legsAnim, ent->client->ps.fd.saberAnimLevel) == BOTH_A7_SLAP_L ? ri->handLBolt : ri->handRBolt;
 				//mirrored anims
 				do_kick = qtrue;
 				kick_dist = 80;
@@ -12459,6 +12505,7 @@ nextStep:
 				saberent->r.svFlags &= ~SVF_NOCLIENT;
 				VectorCopy(startorg, saberent->s.pos.trBase);
 				VectorCopy(startang, saberent->s.apos.trBase);
+				VectorCopy(startorg, s_saberThrowOrigin[self->s.number]); // where the throw started
 
 				VectorCopy(startorg, saberent->s.origin);
 				VectorCopy(startang, saberent->s.angles);
@@ -14634,7 +14681,6 @@ static void WP_SaberPoseAnim_NonRandom(gentity_t* self, const float zdiff, const
 			}
 		}
 	}
-
 }
 
 // SP WP_SaberBlockNonRandom_MD (wp_saber.cpp): the pose by where the hit comes from (behind, then top / middle / bottom and right /
@@ -16561,7 +16607,6 @@ static void WP_SaberBoltBlockAnim_MD(gentity_t* self, const float zdiff, const f
 			self->client->ps.weaponTime = Q_irand(300, 600);
 		}
 	}
-
 }
 
 // SP WP_SaberBlockBolt_AMD (wp_saber.cpp): the bolt (blaster) block pose by where the shot comes from (behind, then
@@ -17811,7 +17856,6 @@ static void WP_SaberBoltBlockAnim(gentity_t* self, const float zdiff, const floa
 			self->client->ps.weaponTime = Q_irand(300, 600);
 		}
 	}
-
 }
 
 // mdPose: SP's WP_SaberBlockBolt_MD poses (parries / deflects) instead of WP_SaberBlockBolt_AMD's bolt block poses
@@ -18357,7 +18401,7 @@ static qboolean WP_SaberTryStickInBodyDmg(gentity_t* owner, gentity_t* victim, c
 static qboolean WP_SaberBodyRespawned(const gentity_t* saberEnt, const gentity_t* body)
 {
 	const int n = saberEnt->s.number;
-	if (body->s.number < MAX_CLIENTS && body->client->ps.persistant[PERS_SPAWN_COUNT] != s_saberBodySpawnCount[n])
+	if (body->s.number < MAX_CLIENTS&& body->client->ps.persistant[PERS_SPAWN_COUNT] != s_saberBodySpawnCount[n])
 	{
 		return qtrue;
 	}

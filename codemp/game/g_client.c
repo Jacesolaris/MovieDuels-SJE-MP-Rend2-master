@@ -4748,7 +4748,7 @@ tryTorso:
 					self->client->ps.torsoAnim != BOTH_MELEE_R &&
 					self->client->ps.torsoAnim != BOTH_MELEEUP &&
 					self->client->ps.torsoAnim != BOTH_WOOKIE_SLAP &&
-					(self->client->ps.torsoAnim == TORSO_WEAPONREADY2 || self->client->ps.torsoAnim == BOTH_ATTACK2 || self->client->ps.weapon < WP_BRYAR_PISTOL))
+					(BG_UnstyleAnim(self->client->ps.torsoAnim) == TORSO_WEAPONREADY2 || BG_UnstyleAnim(self->client->ps.torsoAnim) == BOTH_ATTACK2 || self->client->ps.weapon < WP_BRYAR_PISTOL))
 				{
 					//Now set the left arm to "support" the right one
 					armAnim = &bgAllAnims[self->localAnimIndex].anims[BOTH_STAND2];

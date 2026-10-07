@@ -3247,7 +3247,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 	if (enemy_dist < 128
 		&& NPCS.NPC->enemy
 		&& NPCS.NPC->enemy->client
-		&& (NPCS.NPC->enemy->client->ps.torsoAnim == BOTH_SPINATTACK6
+		&& (BG_StyleSaberAnimToBase(NPCS.NPC->enemy->client->ps.torsoAnim, SS_DESANN) == BOTH_SPINATTACK6
 			|| NPCS.NPC->enemy->client->ps.torsoAnim == BOTH_SPINATTACK7
 			|| NPCS.NPC->enemy->client->ps.torsoAnim == BOTH_SPINATTACKGRIEVOUS))
 	{
@@ -3387,8 +3387,8 @@ static void Jedi_CombatDistance(const int enemy_dist)
 			BUTTON_BLOCK))
 		&& !PM_InKnockDown(&NPCS.NPC->client->ps))
 	{
-		if (NPCS.NPC->client->ps.torsoAnim == BOTH_A7_SLAP_R ||
-			NPCS.NPC->client->ps.torsoAnim == BOTH_A7_SLAP_L ||
+		if (BG_StyleSaberAnimToBase(NPCS.NPC->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_R ||
+			BG_StyleSaberAnimToBase(NPCS.NPC->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_L ||
 			NPCS.NPC->client->ps.torsoAnim == BOTH_A7_KICK_B2 ||
 			NPCS.NPC->client->ps.torsoAnim == BOTH_A7_KICK_B3)
 		{
@@ -3411,7 +3411,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 					G_Sound(NPCS.NPC, CHAN_AUTO, G_SoundIndex("sound/chars/%s/misc/pain0%d"));
 					G_Damage(NPCS.NPC->enemy, NPCS.NPC, NPCS.NPC, smack_dir, NPCS.NPC->r.currentOrigin,
 						(g_npcspskill.integer + 1) * Q_irand(2, 5), DAMAGE_NO_KNOCKBACK, MOD_MELEE);
-					if (NPCS.NPC->client->ps.torsoAnim == BOTH_A7_SLAP_L)
+					if (BG_StyleSaberAnimToBase(NPCS.NPC->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_L)
 					{
 						//smackdown
 						int knockAnim = BOTH_KNOCKDOWN1;
@@ -3427,7 +3427,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 						NPC_SetAnim(NPCS.NPC->enemy, SETANIM_BOTH, knockAnim,
 							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
-					else if (NPCS.NPC->client->ps.torsoAnim == BOTH_A7_SLAP_R)
+					else if (BG_StyleSaberAnimToBase(NPCS.NPC->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_R)
 					{
 						G_Throw(NPCS.NPC->enemy, smack_dir, 40);
 						NPC_SetAnim(NPCS.NPC->enemy, SETANIM_BOTH, BOTH_KNOCKDOWN5,
@@ -3505,8 +3505,8 @@ static void Jedi_CombatDistance(const int enemy_dist)
 		&& NPCS.NPC->client->playerTeam == NPCTEAM_ENEMY
 		&& !PM_InKnockDown(&NPCS.NPC->client->ps))
 	{
-		if (NPCS.NPC->client->ps.torsoAnim == BOTH_A7_SLAP_R ||
-			NPCS.NPC->client->ps.torsoAnim == BOTH_A7_SLAP_L ||
+		if (BG_StyleSaberAnimToBase(NPCS.NPC->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_R ||
+			BG_StyleSaberAnimToBase(NPCS.NPC->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_L ||
 			NPCS.NPC->client->ps.torsoAnim == BOTH_A7_KICK_B2 ||
 			NPCS.NPC->client->ps.torsoAnim == BOTH_A7_KICK_B)
 		{
@@ -3529,7 +3529,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 					G_Sound(NPCS.NPC, CHAN_AUTO, G_SoundIndex("sound/chars/%s/misc/pain0%d"));
 					G_Damage(NPCS.NPC->enemy, NPCS.NPC, NPCS.NPC, smack_dir, NPCS.NPC->r.currentOrigin,
 						(g_npcspskill.integer + 1) * Q_irand(2, 5), DAMAGE_NO_KNOCKBACK, MOD_MELEE);
-					if (NPCS.NPC->client->ps.torsoAnim == BOTH_A7_SLAP_L)
+					if (BG_StyleSaberAnimToBase(NPCS.NPC->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_L)
 					{
 						//smackdown
 						int knockAnim = BOTH_KNOCKDOWN1;
@@ -3545,7 +3545,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 						NPC_SetAnim(NPCS.NPC->enemy, SETANIM_BOTH, knockAnim,
 							SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					}
-					else if (NPCS.NPC->client->ps.torsoAnim == BOTH_A7_SLAP_R)
+					else if (BG_StyleSaberAnimToBase(NPCS.NPC->client->ps.torsoAnim, SS_DESANN) == BOTH_A7_SLAP_R)
 					{
 						G_Throw(NPCS.NPC->enemy, smack_dir, 40);
 						NPC_SetAnim(NPCS.NPC->enemy, SETANIM_BOTH, BOTH_KNOCKDOWN5,
@@ -4032,7 +4032,7 @@ static void Jedi_CombatDistance(const int enemy_dist)
 			{
 				if (NPCS.NPC->enemy
 					&& NPCS.NPC->enemy->client
-					&& (NPCS.NPC->enemy->client->ps.torsoAnim == BOTH_SPINATTACK6
+					&& (BG_StyleSaberAnimToBase(NPCS.NPC->enemy->client->ps.torsoAnim, SS_DESANN) == BOTH_SPINATTACK6
 						|| NPCS.NPC->enemy->client->ps.torsoAnim == BOTH_SPINATTACK7
 						|| NPCS.NPC->enemy->client->ps.torsoAnim == BOTH_SPINATTACKGRIEVOUS))
 				{
@@ -4965,7 +4965,7 @@ qboolean Jedi_InNoAIAnim(const gentity_t* self)
 		return qtrue;
 	}
 
-	switch (self->client->ps.legsAnim)
+	switch (BG_StyleSaberAnimToBase(self->client->ps.legsAnim, SS_DESANN)) // a character's own saber anims count as the base anim
 	{
 	case BOTH_BUTTERFLY_LEFT:
 	case BOTH_BUTTERFLY_RIGHT:
@@ -5836,7 +5836,7 @@ static evasionType_t Jedi_CheckEvadeSpecialAttacks(void)
 		return EVASION_NONE;
 	}
 
-	if (NPCS.NPC->enemy->client->ps.torsoAnim == BOTH_SPINATTACK6
+	if (BG_StyleSaberAnimToBase(NPCS.NPC->enemy->client->ps.torsoAnim, SS_DESANN) == BOTH_SPINATTACK6
 		|| NPCS.NPC->enemy->client->ps.torsoAnim == BOTH_SPINATTACK7
 		|| NPCS.NPC->enemy->client->ps.torsoAnim == BOTH_SPINATTACKGRIEVOUS)
 	{
@@ -10107,12 +10107,12 @@ static void Jedi_Attack(void)
 				&& !(NPCS.ucmd.buttons & BUTTON_WALKING)
 				&& !(NPCS.ucmd.buttons & BUTTON_ATTACK)
 				&& NPCS.NPC->client->ps.saberMove == LS_READY
-				&& NPCS.NPC->client->ps.legsAnim == BOTH_RUN_DUAL)
+				&& BG_UnstyleAnim(NPCS.NPC->client->ps.legsAnim) == BOTH_RUN_DUAL)
 			{
 				//running at us, not attacking
 				if (Distance(NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin) > 80)
 				{
-					if (NPCS.NPC->client->ps.legsAnim == BOTH_FLIP_F
+					if (BG_UnstyleAnim(NPCS.NPC->client->ps.legsAnim) == BOTH_FLIP_F
 						|| NPCS.NPC->client->ps.legsAnim == BOTH_ALORA_FLIP_1_MD2
 						|| NPCS.NPC->client->ps.legsAnim == BOTH_ALORA_FLIP_2_MD2
 						|| NPCS.NPC->client->ps.legsAnim == BOTH_ALORA_FLIP_3_MD2

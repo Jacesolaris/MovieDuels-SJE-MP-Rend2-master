@@ -213,7 +213,7 @@ static int CG_MapTorsoToWeaponFrame(const int frame, const int anim_num)
 	cgWeapFrameTime = 0;
 #endif
 
-	switch (anim_num)
+	switch (BG_UnstyleAnim(anim_num))
 	{
 	case TORSO_DROPWEAP1:
 		if (frame >= animations[anim_num].firstFrame && frame < animations[anim_num].firstFrame + 5)

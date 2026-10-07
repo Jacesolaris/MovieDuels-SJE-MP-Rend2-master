@@ -3590,7 +3590,7 @@ static void CG_SetLerpFrameAnimation(centity_t* cent, clientInfo_t* ci, lerpFram
 					newAnimation != BOTH_MELEE_R &&
 					newAnimation != BOTH_MELEEUP &&
 					newAnimation != BOTH_WOOKIE_SLAP &&
-					(newAnimation == TORSO_WEAPONREADY2 || newAnimation == BOTH_ATTACK2 || cent->currentState.weapon < WP_BRYAR_PISTOL))
+					(BG_UnstyleAnim(newAnimation) == TORSO_WEAPONREADY2 || BG_UnstyleAnim(newAnimation) == BOTH_ATTACK2 || cent->currentState.weapon < WP_BRYAR_PISTOL))
 				{
 					//Now set the left arm to "support" the right one
 					armAnim = &bgAllAnims[cent->localAnimIndex].anims[BOTH_STAND2];
@@ -15999,7 +15999,7 @@ static void SmoothTrueView(vec3_t eye_angles)
 		else if (cg_trueroll.integer == 1)
 		{
 			//Use simple roll for the more complicated rolls
-			if (cg.predictedPlayerState.legsAnim == BOTH_FLIP_L
+			if (BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_L
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_L)
 			{
 				//Left rolls
@@ -16009,7 +16009,7 @@ static void SmoothTrueView(vec3_t eye_angles)
 				eye_range = qfalse;
 				did_special = qtrue;
 			}
-			else if (cg.predictedPlayerState.legsAnim == BOTH_FLIP_R
+			else if (BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_R
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_R)
 			{
 				//Right rolls
@@ -16023,9 +16023,9 @@ static void SmoothTrueView(vec3_t eye_angles)
 		else
 		{
 			//You're here because you're using cg_trueroll.integer == 2
-			if (cg.predictedPlayerState.legsAnim == BOTH_FLIP_L
+			if (BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_L
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_L
-				|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_R
+				|| BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_R
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_R)
 			{
 				//Roll animation, lock the eyemovement
@@ -16042,9 +16042,9 @@ static void SmoothTrueView(vec3_t eye_angles)
 		|| cg.predictedPlayerState.legsAnim == BOTH_WALL_RUN_RIGHT_FLIP
 		|| cg.predictedPlayerState.legsAnim == BOTH_WALL_FLIP_LEFT
 		|| cg.predictedPlayerState.legsAnim == BOTH_WALL_FLIP_RIGHT
-		|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_L
+		|| BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_L
 		|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_L
-		|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_R
+		|| BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_R
 		|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_R)
 	{
 		//you don't want rolling so use cg.refdef.viewangles as the view
@@ -16063,7 +16063,7 @@ static void SmoothTrueView(vec3_t eye_angles)
 		else if (cg_trueflip.integer == 1)
 		{
 			//Use simple flip for the more complicated flips
-			if (cg.predictedPlayerState.legsAnim == BOTH_FLIP_F
+			if (BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_F
 				|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_F2
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_F
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_F1
@@ -16076,7 +16076,7 @@ static void SmoothTrueView(vec3_t eye_angles)
 				eye_range = qfalse;
 				did_special = qtrue;
 			}
-			else if (cg.predictedPlayerState.legsAnim == BOTH_FLIP_B
+			else if (BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_B
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_B
 				|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_BACK1
 				|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_BACK2
@@ -16093,12 +16093,12 @@ static void SmoothTrueView(vec3_t eye_angles)
 		else
 		{
 			//You're here because you're using cg_trueflip.integer = 2
-			if (cg.predictedPlayerState.legsAnim == BOTH_FLIP_F
+			if (BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_F
 				|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_F2
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_F
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_F1
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_F2
-				|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_B
+				|| BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_B
 				|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_B
 				|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_BACK1
 				|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_BACK2
@@ -16111,12 +16111,12 @@ static void SmoothTrueView(vec3_t eye_angles)
 		}
 	}
 	else if (cg.predictedPlayerState.legsAnim == BOTH_WALL_FLIP_BACK1
-		|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_F
+		|| BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_F
 		|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_F2
 		|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_F
 		|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_F1
 		|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_F2
-		|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_B
+		|| BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_FLIP_B
 		|| cg.predictedPlayerState.legsAnim == BOTH_ROLL_B
 		|| cg.predictedPlayerState.legsAnim == BOTH_FLIP_BACK1)
 	{
@@ -16217,7 +16217,7 @@ static void SmoothTrueView(vec3_t eye_angles)
 		//you don't want spinning so use cg.refdef.viewangles as the view
 		use_ref_def = qtrue;
 	}
-	else if (cg.predictedPlayerState.legsAnim == BOTH_JUMPATTACK6)
+	else if (BG_StyleSaberAnimToBase(cg.predictedPlayerState.legsAnim, SS_DESANN) == BOTH_JUMPATTACK6)
 	{
 		use_ref_def = qtrue;
 	}
@@ -16227,7 +16227,7 @@ static void SmoothTrueView(vec3_t eye_angles)
 	}
 
 	//Prevent camera flicker while landing.
-	if (cg.predictedPlayerState.legsAnim == BOTH_LAND1
+	if (BG_UnstyleAnim(cg.predictedPlayerState.legsAnim) == BOTH_LAND1
 		|| cg.predictedPlayerState.legsAnim == BOTH_LAND2
 		|| cg.predictedPlayerState.legsAnim == BOTH_LAND3
 		|| cg.predictedPlayerState.legsAnim == BOTH_LANDBACK1
@@ -16238,8 +16238,8 @@ static void SmoothTrueView(vec3_t eye_angles)
 	}
 
 	//Prevent the camera flicker while switching to the saber.
-	if (cg.predictedPlayerState.torsoAnim == BOTH_STAND2TO1
-		|| cg.predictedPlayerState.torsoAnim == BOTH_STAND1TO2
+	if (BG_UnstyleAnim(cg.predictedPlayerState.torsoAnim) == BOTH_STAND2TO1
+		|| BG_UnstyleAnim(cg.predictedPlayerState.torsoAnim) == BOTH_STAND1TO2
 		|| cg.predictedPlayerState.torsoAnim == BOTH_S1_S7
 		|| cg.predictedPlayerState.torsoAnim == BOTH_S7_S1
 		|| cg.predictedPlayerState.torsoAnim == BOTH_S1_S6
@@ -19549,6 +19549,9 @@ void CG_Player(centity_t* cent)
 	//Restrict True View Model changes to the player and do the True View camera view work.
 	if (cg.snap && cent->currentState.number == cg.snap->ps.clientNum && cg_truebobbing.integer)
 	{
+		// this model's eye position from trueview.cfg (looked up again when the model changes)
+		CG_TrueViewCheckModel(ci->modelName);
+
 		if (!cg.renderingThirdPerson && (cg_trueguns.integer || cent->currentState.weapon == WP_SABER
 			|| cent->currentState.weapon == WP_MELEE) && !cg.predictedPlayerState.zoomMode)
 		{
@@ -19669,7 +19672,9 @@ SkipTrueView:
 	//rww - force speed "trail" effect (also during a force long leap, the same as SP)
 	if (!(cent->currentState.powerups & 1 << PW_SPEED
 		|| cent->currentState.legsAnim == BOTH_FORCELONGLEAP_START
-		|| cent->currentState.legsAnim == BOTH_FORCELONGLEAP_ATTACK) || do_alpha || !cg_speedTrail.integer)
+		|| cent->currentState.legsAnim == BOTH_FORCELONGLEAP_ATTACK
+		|| cent->currentState.legsAnim == BOTH_FORCEJUMPDASH_START // and the force jump dash
+		|| cent->currentState.legsAnim == BOTH_FORCEJUMPDASH_ATTACK) || do_alpha || !cg_speedTrail.integer)
 	{
 		cent->frame_minus1_refreshed = 0;
 		cent->frame_minus2_refreshed = 0;
@@ -19768,7 +19773,7 @@ SkipTrueView:
 
 		AngleVectors(f_ang, fx_dir, NULL, NULL);
 
-		if ((cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
+		if ((BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
 			|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_NEW)
 			&& Q_irand(0, 1))
 		{
@@ -19821,12 +19826,12 @@ SkipTrueView:
 
 		AngleVectors(f_ang, fx_dir, NULL, NULL);
 
-		if (cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING
+		if (BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING
 			|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_NEW
 			|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_OLD
-			|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_START
-			|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
-			|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
+			|| BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_START
+			|| BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
+			|| BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
 		{
 			mdxaBone_t r_hand_matrix;
 			trap->G2API_GetBoltMatrix(cent->ghoul2, 0, ci->bolt_rhand, &r_hand_matrix, cent->turAngles,
@@ -19864,12 +19869,12 @@ SkipTrueView:
 		if (cent->currentState.activeForcePass > FORCE_LEVEL_2)
 		{
 			//arc
-			if (cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING
+			if (BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING
 				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_NEW
 				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_OLD
-				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_START
-				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
-				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
+				|| BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_START
+				|| BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
+				|| BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
 			{
 				trap->FX_PlayEntityEffectID(cgs.effects.forceLightningWide_md, ef_org_r, axis, -1, -1, -1, -1);
 				trap->FX_PlayEntityEffectID(cgs.effects.forceLightningWide_md, ef_org_l, axis, -1, -1, -1, -1);
@@ -19882,12 +19887,12 @@ SkipTrueView:
 		else
 		{
 			//arc
-			if (cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING
+			if (BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING
 				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_NEW
 				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_OLD
-				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_START
-				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
-				|| cent->currentState.torsoAnim == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
+				|| BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_START
+				|| BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_HOLD
+				|| BG_UnstyleAnim(cent->currentState.torsoAnim) == BOTH_FORCE_2HANDEDLIGHTNING_RELEASE)
 			{
 				trap->FX_PlayEntityEffectID(cgs.effects.forceLightning, ef_org_r, axis, -1, -1, -1, -1);
 				trap->FX_PlayEntityEffectID(cgs.effects.forceLightning, ef_org_l, axis, -1, -1, -1, -1);

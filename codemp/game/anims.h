@@ -5690,6 +5690,10 @@ typedef enum //# animNumber_e
 	BOTH_WALK1_STICK_YODA,
 	//////////////////////////////////////////
 
+	BOTH_FORCEJUMPDASH_START,
+	BOTH_FORCEJUMPDASH_ATTACK,
+	BOTH_FORCEJUMPDASH_LAND,
+
 	//# #eol
 	MAX_ANIMATIONS,
 	MAX_TOTALANIMATIONS,

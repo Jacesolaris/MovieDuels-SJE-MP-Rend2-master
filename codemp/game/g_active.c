@@ -2240,7 +2240,7 @@ static void G_CheckClientIdleSabers(gentity_t* ent, usercmd_t* ucmd)
 		{
 			qboolean broke_out;
 			//if in an idle, break out
-			switch (ent->client->ps.legsAnim)
+			switch (BG_UnstyleAnim(ent->client->ps.legsAnim))
 			{
 			case BOTH_STAND1IDLE1:
 			case BOTH_STAND2IDLE1:
@@ -2253,7 +2253,7 @@ static void G_CheckClientIdleSabers(gentity_t* ent, usercmd_t* ucmd)
 				break;
 			default:;
 			}
-			switch (ent->client->ps.torsoAnim)
+			switch (BG_UnstyleAnim(ent->client->ps.torsoAnim))
 			{
 			case BOTH_STAND1IDLE1:
 			case BOTH_STAND2IDLE1:
@@ -2279,7 +2279,7 @@ static void G_CheckClientIdleSabers(gentity_t* ent, usercmd_t* ucmd)
 		//been idle for 5 seconds
 		int idleAnim = -1;
 
-		switch (ent->client->ps.legsAnim)
+		switch (BG_UnstyleAnim(ent->client->ps.legsAnim))
 		{
 		case BOTH_STAND1:
 		case BOTH_STAND6:
@@ -2479,7 +2479,7 @@ static void G_CheckClientIdleGuns(gentity_t* ent, usercmd_t* ucmd)
 		{
 			qboolean broke_out;
 			//if in an idle, break out
-			switch (ent->client->ps.legsAnim)
+			switch (BG_UnstyleAnim(ent->client->ps.legsAnim))
 			{
 			case BOTH_STAND1IDLE1:
 			case BOTH_STAND2IDLE1:
@@ -2496,7 +2496,7 @@ static void G_CheckClientIdleGuns(gentity_t* ent, usercmd_t* ucmd)
 				break;
 			default:;
 			}
-			switch (ent->client->ps.torsoAnim)
+			switch (BG_UnstyleAnim(ent->client->ps.torsoAnim))
 			{
 			case BOTH_STAND1IDLE1:
 			case BOTH_STAND2IDLE1:
