@@ -6946,8 +6946,9 @@ void ForceThrow(gentity_t* self, qboolean pull)
 					}
 				}
 			}
-			else if (push_target[x]->s.eType == ET_MISSILE && push_target[x]->s.pos.trType != TR_STATIONARY && (push_target[x]
-				->s.pos.trType != TR_INTERPOLATE || push_target[x]->s.weapon != WP_THERMAL))
+			else if (push_target[x]->s.eType == ET_MISSILE && 
+				push_target[x]->s.pos.trType != TR_STATIONARY && (push_target[x]->s.pos.trType != TR_INTERPOLATE || 
+				push_target[x]->s.weapon != WP_THERMAL))
 				//rolling and stationary thermal detonators are dealt with below
 			{
 				if (pull)

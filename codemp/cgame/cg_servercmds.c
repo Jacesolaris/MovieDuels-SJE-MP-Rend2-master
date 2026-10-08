@@ -1113,6 +1113,32 @@ static void CG_RemoveChatEscapeChar(char* text) {
 
 #define MAX_STRINGED_SV_STRING 1024	// this is an quake-engine limit, not a StringEd limit
 
+// "@@@<ref>" in a server print: tried as MP_SVGAME_<ref>, then MD_MENU_MP_<ref>, SP_INGAME_<ref>, then <ref> as the whole
+// key ("OBJECTIVES_<name>" for the mission objectives, "SP_INGAME_<name>"). A missing string comes back as "??..."
+static void CG_SVStringEdLookup(const char* ref, char* out, const int outSize)
+{
+	static const char* packages[] = { "MP_SVGAME", "MD_MENU_MP", "SP_INGAME" };
+	char text[MAX_STRINGED_SV_STRING];
+
+	if (outSize <= 0)
+	{
+		return;
+	}
+
+	for (int p = 0; p < (int)ARRAY_LEN(packages); p++)
+	{
+		trap->SE_GetStringTextString(va("%s_%s", packages[p], ref), text, sizeof text);
+		if (text[0] && !(text[0] == '?' && text[1] == '?'))
+		{
+			Q_strncpyz(out, text, outSize);
+			return;
+		}
+	}
+
+	trap->SE_GetStringTextString(ref, text, sizeof text);
+	Q_strncpyz(out, text, outSize);
+}
+
 void CG_CheckSVStringEdRef(char* buf, const char* str)
 { //I don't really like doing this. But it utilizes the system that was already in place.
 	int i = 0;
@@ -1163,7 +1189,7 @@ void CG_CheckSVStringEdRef(char* buf, const char* str)
 					stringRef[r] = 0;
 
 					buf[b] = 0;
-					Q_strcat(buf, MAX_STRINGED_SV_STRING, CG_GetStringEdString("MP_SVGAME", stringRef));
+					CG_SVStringEdLookup(stringRef, &buf[b], MAX_STRINGED_SV_STRING - b);
 					b = strlen(buf);
 				}
 			}
