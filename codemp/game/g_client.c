@@ -2318,6 +2318,12 @@ static qboolean G_SaberModelSetup(const gentity_t* ent)
 	return fallbackForSaber;
 }
 
+// breakable saber staffs (w_saberblocking.c): rebuild the saber models after the staff swaps for its pieces
+void G_SaberModelSetupAll(const gentity_t* ent)
+{
+	G_SaberModelSetup(ent);
+}
+
 /*
 ===========
 SetupGameGhoul2Model

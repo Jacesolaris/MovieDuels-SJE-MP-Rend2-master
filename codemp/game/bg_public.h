@@ -767,7 +767,8 @@ typedef enum {
 	STAT_MAX_HEALTH,					// health / armor limit, changable by handicap
 	STAT_DODGE,			//number of Dodge Points the player has.  DP is used for evading/blocking attacks before they hurt you.
 	STAT_MAX_DODGE,		//maximum number of dodge points allowed.
-	STAT_AMMOPOOL
+	STAT_AMMOPOOL,
+	STAT_SABER_WEAR			//breakable saber staffs: 0-100 wear (101: broken by a heavy hit)
 } statIndex_t;
 
 // playerState_t->persistant[] indexes
@@ -2102,6 +2103,9 @@ typedef struct saberInfo_s {
 	float			splashKnockback, splashKnockback2;		// 0 - amount of splashKnockback, 100% at a distance of 0, 0% at a distance = splashRadius
 
 	int			BPregenRate;
+
+	char			brokenSaber1[SABER_NAME_LENGTH];	// "" - breakable saber staffs: when it breaks the right hand gets this saber
+	char			brokenSaber2[SABER_NAME_LENGTH];	// "" - and the left hand this one
 } saberInfo_t;
 #define MAX_SABERS 2
 

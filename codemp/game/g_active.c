@@ -4128,6 +4128,8 @@ extern qboolean player_locked;
 extern qboolean g_standard_humanoid(gentity_t* self);
 extern void Weapon_AltStun_Fire(gentity_t* ent);
 
+extern void WP_SaberWearThink(gentity_t* ent, int msec);
+
 static void ClientThink_real(gentity_t* ent)
 {
 	gclient_t* client;
@@ -7087,6 +7089,9 @@ static void ClientThink_real(gentity_t* ent)
 		}
 		return;
 	}
+
+	// breakable saber staffs: wear recovery, the cracked sparks, the break
+	WP_SaberWearThink(ent, msec);
 
 	// perform once-a-second actions
 	ClientTimerActions(ent, msec);

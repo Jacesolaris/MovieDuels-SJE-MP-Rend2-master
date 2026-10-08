@@ -1474,6 +1474,76 @@ static void CG_InitG2SaberData(const int saberNum, clientInfo_t* ci)
 	}
 }
 
+// breakable saber staffs: an NPC's staff breaks into its pieces on the server (s.npcSaber1/2 change), so load them here
+void WP_SetSaber(int entNum, saberInfo_t* sabers, int saberNum, const char* saber_name);
+static int cg_npcSaberLast[MAX_GENTITIES][2];
+static qboolean cg_npcSaberKnown[MAX_GENTITIES];
+
+static void CG_NPCSaberRecord(const centity_t* cent)
+{
+	const int num = cent->currentState.number;
+	cg_npcSaberLast[num][0] = cent->currentState.npcSaber1;
+	cg_npcSaberLast[num][1] = cent->currentState.npcSaber2;
+	cg_npcSaberKnown[num] = qtrue;
+}
+
+static void CG_NPCSaberRefresh(centity_t* cent)
+{
+	const int num = cent->currentState.number;
+	clientInfo_t* ci = cent->npcClient;
+
+	if (!ci || !cg_npcSaberKnown[num] || cent->currentState.NPC_class == CLASS_VEHICLE || !cent->currentState.npcSaber1)
+	{
+		return;
+	}
+	if (cent->currentState.npcSaber1 == cg_npcSaberLast[num][0] && cent->currentState.npcSaber2 == cg_npcSaberLast[num][1])
+	{
+		return;
+	}
+	const saber_colors_t color1 = ci->saber[0].blade[0].color;
+	const saber_colors_t color2 = ci->saber[0].numBlades > 1 ? ci->saber[0].blade[1].color : color1;
+	CG_NPCSaberRecord(cent);
+
+	for (int j = 0; j < MAX_SABERS; j++)
+	{
+		const int index = j ? cent->currentState.npcSaber2 : cent->currentState.npcSaber1;
+		const char* saber = index ? CG_ConfigString(CS_MODELS + index) : NULL;
+
+		if (saber && saber[0] == '@')
+		{
+			WP_SetSaber(num, ci->saber, j, saber + 1);
+		}
+		else if (j)
+		{
+			WP_SetSaber(num, ci->saber, j, "none");
+		}
+	}
+	for (int j = 0; j < MAX_BLADES; j++)
+	{
+		ci->saber[0].blade[j].color = color1;
+		ci->saber[1].blade[j].color = color2;
+	}
+	for (int j = 0; j < MAX_SABERS; j++)
+	{
+		if (ci->ghoul2Weapons[j])
+		{
+			trap->G2API_CleanGhoul2Models(&ci->ghoul2Weapons[j]);
+			ci->ghoul2Weapons[j] = 0;
+		}
+		if (ci->ghoul2HolsterWeapons[j])
+		{
+			trap->G2API_CleanGhoul2Models(&ci->ghoul2HolsterWeapons[j]);
+			ci->ghoul2HolsterWeapons[j] = 0;
+		}
+		if (ci->saber[j].model[0])
+		{
+			CG_InitG2SaberData(j, ci);
+		}
+	}
+	cent->weapon = 0;
+	cent->ghoul2weapon = NULL; //force a refresh
+}
+
 /*
 ======================
 CG_CopyClientInfoModel
@@ -14639,6 +14709,8 @@ static void CG_G2AnimEntModelLoad(centity_t* cent)
 				}
 			}
 
+			CG_NPCSaberRecord(cent); // breakable saber staffs
+
 			// If this is a not vehicle, give it saber stuff...
 			if (cent->currentState.NPC_class != CLASS_VEHICLE)
 			{
@@ -18732,10 +18804,13 @@ void CG_Player(centity_t* cent)
 
 			memset(cent->npcClient, 0, sizeof(clientInfo_t));
 			cent->npcClient->ghoul2Model = NULL;
+			cg_npcSaberKnown[cent->currentState.number] = qfalse;
 			cent->npcClient->gender = FindGender(CG_ConfigString(CS_MODELS + cent->currentState.modelIndex), cent);
 		}
 
 		assert(cent->npcClient);
+
+		CG_NPCSaberRefresh(cent); // breakable saber staffs: the broken pieces
 
 		if (cent->npcClient->ghoul2Model != cent->ghoul2 && cent->ghoul2)
 		{
@@ -21991,6 +22066,7 @@ void CG_ResetPlayerEntity(centity_t* cent)
 
 			memset(cent->npcClient, 0, sizeof(clientInfo_t));
 			cent->npcClient->ghoul2Model = NULL;
+			cg_npcSaberKnown[cent->currentState.number] = qfalse;
 			cent->npcClient->gender = FindGender(CG_ConfigString(CS_MODELS + cent->currentState.modelIndex), cent);
 		}
 

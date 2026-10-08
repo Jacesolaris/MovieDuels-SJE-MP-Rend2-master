@@ -1054,6 +1054,8 @@ static void wp_saber_set_defaults(saberInfo_t* saber)
 	Q_strncpyz(saber->name, DEFAULT_SABER, sizeof saber->name);
 	Q_strncpyz(saber->fullName, DEFAULT_SABER_NAME, sizeof saber->fullName);
 	Q_strncpyz(saber->model, DEFAULT_SABER_MODEL, sizeof saber->model);
+	saber->brokenSaber1[0] = 0;
+	saber->brokenSaber2[0] = 0;
 	saber->skin = 0;
 	saber->soundOn = BG_SoundIndex("sound/weapons/saber/enemy_saber_on");
 	saber->soundLoop = BG_SoundIndex("sound/weapons/saber/saberhum3");
@@ -1752,7 +1754,7 @@ static void Saber_ParseBrokenSaber1(saberInfo_t* saber, const char** p)
 	const char* value;
 	if (COM_ParseString(p, &value))
 		return;
-	//saber->brokenSaber1 = G_NewString( value );
+	Q_strncpyz(saber->brokenSaber1, Q_stricmp(value, "none") ? value : "", sizeof saber->brokenSaber1);
 }
 
 static void Saber_ParseBrokenSaber2(saberInfo_t* saber, const char** p)
@@ -1760,7 +1762,7 @@ static void Saber_ParseBrokenSaber2(saberInfo_t* saber, const char** p)
 	const char* value;
 	if (COM_ParseString(p, &value))
 		return;
-	//saber->brokenSaber2 = G_NewString( value );
+	Q_strncpyz(saber->brokenSaber2, Q_stricmp(value, "none") ? value : "", sizeof saber->brokenSaber2);
 }
 
 static void Saber_ParseReturnDamage(saberInfo_t* saber, const char** p)
@@ -3273,6 +3275,18 @@ static qboolean WP_SaberValidForPlayerInMP(const char* saber_name)
 	return qfalse;
 }
 
+// a player can't have this saber: not allowed in MP (above) unless it is notInMP 2 - hidden from the menus, but a player
+// can be given it (the pieces of a broken saber staff)
+static qboolean WP_SaberNotForPlayerInMP(const char* saber_name)
+{
+	char allowed[8] = { 0 };
+	if (WP_SaberParseParm(saber_name, "notInMP", allowed) && atoi(allowed) == 2)
+	{
+		return qfalse;
+	}
+	return WP_SaberValidForPlayerInMP(saber_name) ? qfalse : qtrue;
+}
+
 void WP_RemoveSaber(saberInfo_t* sabers, const int saberNum)
 {
 	if (!sabers)
@@ -3307,7 +3321,7 @@ void WP_SetSaber(const int entNum, saberInfo_t* sabers, const int saberNum, cons
 	}
 
 	if (entNum < MAX_CLIENTS &&
-		!WP_SaberValidForPlayerInMP(saber_name))
+		WP_SaberNotForPlayerInMP(saber_name))
 	{
 		WP_SaberParseParms(DEFAULT_SABER, &sabers[saberNum]); //get saber info
 	}

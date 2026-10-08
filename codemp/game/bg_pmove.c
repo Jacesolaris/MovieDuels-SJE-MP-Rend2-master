@@ -22193,19 +22193,27 @@ static void PM_MoveForKata(usercmd_t* ucmd)
 	else if (BG_StyleSaberAnimToBase(pm->ps->legsAnim, SS_DESANN) == BOTH_A2_SPECIAL || pm->ps->legsAnim == BOTH_GRIEVOUS_SPIN)
 	{
 		//medium kata
+		const animFlags_t flags = PM_Animationstyletable();
 		pm->cmd.rightmove = 0;
 		pm->cmd.upmove = 0;
-		if (pm->ps->legsTimer < 2700 && pm->ps->legsTimer > 2300)
-		{
-			pm->cmd.forwardmove = 127;
-		}
-		else if (pm->ps->legsTimer < 900 && pm->ps->legsTimer > 500)
-		{
-			pm->cmd.forwardmove = 127;
-		}
-		else
+		if (flags.isAnakin)
 		{
 			pm->cmd.forwardmove = 0;
+		}
+		else 
+		{
+			if (pm->ps->legsTimer < 2700 && pm->ps->legsTimer > 2300)
+			{
+				pm->cmd.forwardmove = 127;
+			}
+			else if (pm->ps->legsTimer < 900 && pm->ps->legsTimer > 500)
+			{
+				pm->cmd.forwardmove = 127;
+			}
+			else
+			{
+				pm->cmd.forwardmove = 0;
+			}
 		}
 	}
 	else if (pm->ps->legsAnim == BOTH_A3_SPECIAL)
