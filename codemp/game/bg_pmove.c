@@ -8103,6 +8103,7 @@ static qboolean PM_IsGunner(void)
 	case WP_JANGO:
 	case WP_BOBA:
 	case WP_CLONEPISTOL:
+	case WP_DROIDEKA:
 		return qtrue;
 	default:;
 	}
@@ -8780,6 +8781,88 @@ static void PM_FlyMove(void)
 	PM_StepSlideMove(qfalse);
 }
 
+// human players fly the jetpack SP style; the botclass "hold jump to jet" block in PmoveSingle is only for bots and NPCs
+static qboolean PM_HumanJetpackPilot(void)
+{
+	if (pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		return qfalse;
+	}
+#ifdef _GAME
+	if (g_entities[pm->ps->clientNum].r.svFlags & SVF_BOT)
+	{
+		return qfalse;
+	}
+#endif
+	return qtrue;
+}
+
+// SP jetpack flight, ported from SP PM_FlyMove's MT_FLYSWIM branch (Boba_FlyStart): zero gravity the whole flight,
+// SP's jetpack friction (speed * pm_waterfriction 1.0 * frametime) damps the velocity on every axis, and the thrust
+// accelerates at pm_flyaccelerate toward the move keys along the full view (look up + forward climbs); jump/crouch
+// climb/descend at the raw upmove speed. Letting go of the keys slows to a hover instead of drifting off.
+static void PM_JetpackFlyMove(void)
+{
+	vec3_t wishvel;
+	vec3_t wishdir;
+	float scale = 0.0f;
+	const float speed = VectorLength(pm->ps->velocity);
+
+	// SP jetpack friction
+	if (speed < 1.0f)
+	{
+		VectorClear(pm->ps->velocity);
+	}
+	else
+	{
+		float newspeed = speed - speed * 1.0f * pml.frametime;
+		if (newspeed < 0)
+		{
+			newspeed = 0;
+		}
+		VectorScale(pm->ps->velocity, newspeed / speed, pm->ps->velocity);
+	}
+
+	// SP PM_CmdScale (counts upmove, unlike MP's)
+	{
+		int max = abs(pm->cmd.forwardmove);
+		if (abs(pm->cmd.rightmove) > max)
+		{
+			max = abs(pm->cmd.rightmove);
+		}
+		if (abs(pm->cmd.upmove) > max)
+		{
+			max = abs(pm->cmd.upmove);
+		}
+		if (max)
+		{
+			const float total = sqrt((float)(pm->cmd.forwardmove * pm->cmd.forwardmove
+				+ pm->cmd.rightmove * pm->cmd.rightmove + pm->cmd.upmove * pm->cmd.upmove));
+			scale = pm->ps->speed * max / (127.0f * total);
+		}
+	}
+
+	if (!scale)
+	{
+		VectorClear(wishvel);
+	}
+	else
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			wishvel[i] = scale * pml.forward[i] * pm->cmd.forwardmove + scale * pml.right[i] * pm->cmd.rightmove;
+		}
+		wishvel[2] += pm->cmd.upmove;
+	}
+
+	VectorCopy(wishvel, wishdir);
+	const float wishspeed = VectorNormalize(wishdir);
+
+	PM_Accelerate(wishdir, wishspeed, pm_flyaccelerate);
+
+	PM_StepSlideMove(qtrue);
+}
+
 /*
 ===================
 PM_AirMove
@@ -8894,6 +8977,22 @@ static void PM_CheckAirWallRun(void)
 	}
 }
 
+// Air dash chain (dash / jump / dash): a jump in the dash pose flips (BOTH_FLIP_F, the force jump's forward flip) and allows one more dash, still
+// limited by Dash_Count (2, then the 2.5 s cooldown): with no dash left the flip just ends in a fall or landing. Once per
+// jump (PMF_DASH_FLIPPED, cleared on landing). A dash that ends more than AIR_DASH_HIGH above the floor drops into
+// BOTH_FORCEINAIR1 (normal landing); lower, the pose is held into BOTH_FORCEJUMPDASH_LAND and its slide. (as SP)
+#define AIR_DASH_HIGH	96.0f
+
+static qboolean PM_AirDashTooHigh(void)
+{
+	trace_t tr;
+	vec3_t end;
+	VectorCopy(pm->ps->origin, end);
+	end[2] -= AIR_DASH_HIGH;
+	pm->trace(&tr, pm->ps->origin, pm->mins, pm->maxs, end, pm->ps->clientNum, MASK_PLAYERSOLID);
+	return tr.fraction >= 1.0f && !tr.startsolid && !tr.allsolid ? qtrue : qfalse;
+}
+
 // Air dash (Jedi Survivor style): the dash button in the air dashes in the move direction (forward if none), once until
 // landing; the flying pose is the long leap start anim (attack with the saber: its leap attack). Rules: the double jump's (Force Jump 3, jump more than half
 // done (rising or falling) - so jump, double jump, air dash chain) and the floor dash's count and timer. Holds the height
@@ -8935,7 +9034,14 @@ static void PM_CheckAirDash(void)
 				PM_SetSaberMove(LS_JUMPDASH_ATTACK);
 			}
 		}
-		if (pm->ps->legsAnim == BOTH_FORCEJUMPDASH_START)
+		if (pm->ps->legsAnim == BOTH_FORCEJUMPDASH_START
+			&& pm->cmd.serverTime - pm->ps->dashlaststartTime >= AIR_DASH_TIME
+			&& PM_AirDashTooHigh())
+		{// the boost is over and the floor is far below: fall in BOTH_FORCEINAIR1 (normal landing, not the dash slide)
+			PM_SetAnim(pm->ps->torsoAnim == BOTH_FORCEJUMPDASH_START ? SETANIM_BOTH : SETANIM_LEGS, BOTH_FORCEINAIR1,
+				SETANIM_FLAG_OVERRIDE);
+		}
+		else if (pm->ps->legsAnim == BOTH_FORCEJUMPDASH_START)
 		{// the pose is held until the landing, which goes into BOTH_FORCEJUMPDASH_LAND and its slide (as the long leap)
 			if (pm->ps->legsTimer < 100)
 			{
@@ -8965,7 +9071,7 @@ static void PM_CheckAirDash(void)
 		|| pm->ps->legsAnim == BOTH_FORCELONGLEAP_LAND2
 		// the same rules as the double jump: Force Jump 3, the jump more than half done (rising or already falling)
 		|| pm->ps->fd.forcePowerLevel[FP_LEVITATION] < FORCE_LEVEL_3
-		|| pm->ps->velocity[2] > DOUBLE_JUMP_MAX_RISE
+		// (any time in the air: no "jump more than half done" rule - the dash chain)
 		// and the floor dash's count and timer (g_active.c): two dashes, then the 2.5 s cooldown
 		|| pm->ps->Dash_Count >= 2
 		|| pm->cmd.serverTime - pm->ps->dashlaststartTime < 100
@@ -9058,8 +9164,8 @@ static void PM_CheckDoubleJump(const int legsAnimBefore)
 		return;
 	}
 
-	// always the force jump pose: it ends where the jump dash's pose (BOTH_FORCEJUMPDASH_START) begins
-	const int anim = BOTH_FORCEJUMP1;
+	// the forward flip (BOTH_FLIP_F, as the jump dash's flip); the air dash can still follow it
+	const int anim = BOTH_FLIP_F;
 
 	if (pm->ps->velocity[2] < DOUBLE_JUMP_VELOCITY)
 	{
@@ -9120,6 +9226,45 @@ static void PM_CheckLeapCancel(void)
 	}
 }
 
+// The dash chain's flip (see PMF_DASH_FLIPPED): jump in the dash pose (or falling out of it, BOTH_FORCEINAIR1) before
+// landing. (as SP PM_CheckAirDashFlip)
+static void PM_CheckAirDashFlip(void)
+{
+	if (pm->ps->groundEntityNum != ENTITYNUM_NONE)
+	{
+		pm->ps->pm_flags &= ~PMF_DASH_FLIPPED;
+		return;
+	}
+	if (pm->ps->pm_flags & PMF_DASH_FLIPPED)
+	{
+		if (pm->ps->legsAnim == BOTH_FLIP_F && pm->ps->legsTimer <= 50)
+		{// the flip is over and no second dash: fall
+			PM_SetAnim(pm->ps->weaponTime ? SETANIM_LEGS : SETANIM_BOTH, BOTH_FORCEINAIR1, SETANIM_FLAG_OVERRIDE);
+		}
+		return;
+	}
+	if (!(pm->ps->pm_flags & PMF_AIR_DASHED)
+		|| pm->ps->legsAnim != BOTH_FORCEJUMPDASH_START && pm->ps->legsAnim != BOTH_FORCEINAIR1
+		|| pm->cmd.upmove <= 0
+		|| pm->ps->pm_flags & (PMF_JUMP_HELD | PMF_LEAP_CANCELLED) // cancelled with +back: only falls
+		|| pm->ps->pm_type != PM_NORMAL
+		|| pm->waterlevel > 1
+		|| PM_SaberInAttack(pm->ps->saberMove))
+	{
+		return;
+	}
+
+	pm->ps->pm_flags &= ~PMF_AIR_DASHED; // one more dash, if Dash_Count allows it
+	pm->ps->pm_flags |= PMF_DASH_FLIPPED | PMF_DOUBLE_JUMPED | PMF_JUMP_HELD | PMF_JUMPING;
+	if (pm->ps->velocity[2] < DOUBLE_JUMP_VELOCITY * 0.5f)
+	{// a small hop
+		pm->ps->velocity[2] = DOUBLE_JUMP_VELOCITY * 0.5f;
+	}
+	pm->ps->fd.forceJumpZStart = pm->ps->origin[2]; // fall damage counts from here
+	PM_SetAnim(pm->ps->weaponTime ? SETANIM_LEGS : SETANIM_BOTH, BOTH_FLIP_F, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+	PM_AddEvent(EV_JUMP);
+}
+
 static void PM_AirMove(void)
 {
 	int i;
@@ -9155,6 +9300,7 @@ static void PM_AirMove(void)
 	{
 #if METROID_JUMP
 		{
+			PM_CheckAirDashFlip(); // dash / jump (flip) / dash
 			const int legsAnimBefore = pm->ps->legsAnim;
 			pm_check_jump();
 			PM_CheckDoubleJump(legsAnimBefore);
@@ -9396,6 +9542,17 @@ static void PM_AirMove(void)
 
 extern qboolean PM_Bobaspecialanim(int anim);
 
+// Two-handed guns keep their aim pose while jetpacking (MD team, as SP): only the legs play the jetpack anims,
+// the side and back anims swung the arms around with the gun.
+static qboolean PM_JetpackGunPose(void)
+{
+	if (pm->ps->weapon <= WP_NONE || pm->ps->weapon >= WP_NUM_WEAPONS)
+	{
+		return qfalse;
+	}
+	return WeaponReadyAnim[pm->ps->weapon] == TORSO_WEAPONREADY3 ? qtrue : qfalse;
+}
+
 static void PM_JetPackAnim(void)
 {
 	int anim = BOTH_FORCEJUMP1;
@@ -9477,7 +9634,7 @@ static void PM_JetPackAnim(void)
 			}
 			else
 			{
-				anim = BOTH_INAIRBACK1;
+				anim = BOTH_FORCEJUMP1; // was BOTH_INAIRBACK1: that crouched jump-back pose looked bad flying backwards (MD team, as SP)
 			}
 		}
 		else
@@ -9500,6 +9657,42 @@ static void PM_JetPackAnim(void)
 		if (pm->ps->weaponTime)
 		{
 			parts = SETANIM_LEGS;
+		}
+
+		// aiming while jetpacking (walk + block with a gun, as on the ground): the gunner aim (aim anim, and the aim
+		// flag zooms the camera in)
+		const qboolean jet_aiming = pm->cmd.buttons & BUTTON_WALKING && pm->cmd.buttons & BUTTON_BLOCK
+			&& PM_CanAimGun() ? qtrue : qfalse;
+
+		if (jet_aiming)
+		{
+			PM_HandleGunnerAim(qtrue);
+			parts = SETANIM_LEGS; // the torso holds the aim
+		}
+		else if (pm->ps->communicatingflags & 1u << CF_AIMINGGUN)
+		{
+			PM_RemoveGunnerAimFlag(qtrue);
+		}
+
+		if (PM_JetpackGunPose())
+		{
+			// two-handed gun: legs only, the torso holds the gun's ready pose (shots and aiming play their own anim)
+			parts = SETANIM_LEGS;
+
+			if (!jet_aiming
+				&& pm->ps->weaponTime <= 0
+				&& BG_UnstyleAnim(pm->ps->torsoAnim) != BOTH_FLAMETHROWER)
+			{
+				if (BG_UnstyleAnim(pm->ps->torsoAnim) != TORSO_WEAPONREADY3
+					&& (pm->ps->torsoTimer <= 0 || pm->ps->torsoAnim == pm->ps->legsAnim))
+				{
+					PM_SetAnim(SETANIM_TORSO, TORSO_WEAPONREADY3, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				}
+				if (BG_UnstyleAnim(pm->ps->torsoAnim) == TORSO_WEAPONREADY3 && pm->ps->torsoTimer < 100)
+				{
+					pm->ps->torsoTimer = 100; // nothing else puts the flying anim back on the torso
+				}
+			}
 		}
 
 		PM_SetAnim(parts, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
@@ -13198,17 +13391,11 @@ static qboolean PM_MoveIsNPC(void)
 // SP: weaponModel[1] > 0 (a pistol in each hand); MP: the dual weapons flag
 static qboolean PM_MoveDualPistols(void)
 {
+	// the flag only: it is set for pistol level 3 on the server and kept by the cgame prediction, so both sides agree
 	if (pm->ps->eFlags & EF3_DUAL_WEAPONS)
 	{
 		return qtrue;
 	}
-#ifdef _GAME
-	if (g_entities[pm->ps->clientNum].client &&
-		g_entities[pm->ps->clientNum].client->skillLevel[SK_PISTOL] >= FORCE_LEVEL_3)
-	{// skill based dual pistols
-		return qtrue;
-	}
-#endif
 	return qfalse;
 }
 
@@ -15406,6 +15593,12 @@ void PM_BeginWeaponChange(const int weapon)
 		{
 			allowDual = qtrue;
 		}
+#else
+		// cgame can't see skill levels: keep the server's flag so the prediction doesn't strip the second pistol
+		else if (pm->ps->eFlags & EF3_DUAL_WEAPONS)
+		{
+			allowDual = qtrue;
+		}
 #endif
 
 		if (allowDual == qtrue)
@@ -15473,6 +15666,12 @@ void PM_FinishWeaponChange(void)
 #ifdef _GAME
 		// Skill-based dual pistols
 		else if (g_entities[pm->ps->clientNum].client->skillLevel[SK_PISTOL] >= FORCE_LEVEL_3)
+		{
+			allowDual = qtrue;
+		}
+#else
+		// cgame can't see skill levels: keep the server's flag so the prediction doesn't strip the second pistol
+		else if (pm->ps->eFlags & EF3_DUAL_WEAPONS)
 		{
 			allowDual = qtrue;
 		}
@@ -17719,6 +17918,12 @@ static void PM_Weapon(void)
 #ifdef _GAME
 		// Skill-based dual pistols
 		else if (g_entities[pm->ps->clientNum].client->skillLevel[SK_PISTOL] >= FORCE_LEVEL_3)
+		{
+			allowDual = qtrue;
+		}
+#else
+		// cgame can't see skill levels: keep the server's flag so the prediction doesn't strip the second pistol
+		else if (pm->ps->eFlags & EF3_DUAL_WEAPONS)
 		{
 			allowDual = qtrue;
 		}
@@ -21735,6 +21940,7 @@ static qboolean PM_WeaponOkOnVehicle(const int weapon)
 	case WP_JANGO:
 	case WP_BOBA:
 	case WP_CLONEPISTOL:
+	case WP_DROIDEKA:
 		return qtrue;
 	default:;
 	}
@@ -23057,7 +23263,7 @@ static void PmoveSingle(pmove_t* pmove)
 	if (pm->ps->groundEntityNum != ENTITYNUM_NONE)
 	{
 		// landed: the double jump, the air dash and the air wall-run can be used again
-		pm->ps->pm_flags &= ~(PMF_DOUBLE_JUMPED | PMF_AIR_DASHED | PMF_AIR_WALL_RAN | PMF_LEAP_CANCELLED);
+		pm->ps->pm_flags &= ~(PMF_DOUBLE_JUMPED | PMF_AIR_DASHED | PMF_AIR_WALL_RAN | PMF_LEAP_CANCELLED | PMF_DASH_FLIPPED);
 	}
 
 	// decide if backpedaling animations should be used
@@ -23121,14 +23327,12 @@ static void PmoveSingle(pmove_t* pmove)
 
 	// set minimum_mins, maximum_maxs, and viewheight
 	PM_CheckDuck();
+	savedGravity = pm->ps->gravity; // restored at the end whenever pm_type is PM_JETPACK, also when the bot block below sets it
 	if (pm->ps->pm_type == PM_JETPACK)
 	{
 		savedGravity = pm->ps->gravity;
-
-		if (pm->cmd.rightmove || pm->cmd.forwardmove || pm->cmd.upmove)
-		{
-			pm->ps->gravity = 0.0f;
-		}
+		// as SP (Boba_FlyStart): no gravity for the whole flight, letting go of the keys hovers
+		pm->ps->gravity = 0.0f;
 	}
 	else if (gPMDoSlowFall)
 	{
@@ -23155,18 +23359,10 @@ static void PmoveSingle(pmove_t* pmove)
 			pm->ps->velocity[1] += Q_irand(-100, 100);
 		}
 
-		if (pm->cmd.upmove || pm->cmd.rightmove || pm->cmd.forwardmove)
-		{
-			pm->ps->eFlags |= EF_JETPACK_FLAMING; //going up
-			pm->ps->eFlags |= EF_JETPACK_ACTIVE;
-			pm->ps->eFlags |= EF3_JETPACK_HOVER;
-		}
-		else
-		{
-			pm->ps->eFlags &= ~EF_JETPACK_FLAMING; //idling
-			pm->ps->eFlags |= EF_JETPACK_ACTIVE;
-			pm->ps->eFlags &= ~EF3_JETPACK_HOVER;
-		}
+		// as SP (Boba_FlyStart): the jets stay lit for the whole flight, hovering with no keys held included
+		// (EF3_JETPACK_HOVER is the same bit as EF_JETPACK_ACTIVE in eFlags, so clearing it put the jets out)
+		pm->ps->eFlags |= EF_JETPACK_FLAMING;
+		pm->ps->eFlags |= EF_JETPACK_ACTIVE;
 	}
 
 	if (pm->ps->clientNum >= MAX_CLIENTS &&
@@ -23185,11 +23381,12 @@ static void PmoveSingle(pmove_t* pmove)
 		GROUND_TIME[pm->ps->clientNum] = pm->cmd.serverTime;
 	}
 
-	if (pm_entSelf->s.botclass == BCLASS_BOBAFETT
+	// bots only: human players fly the jetpack SP style (jump in the air turns it on, landing turns it off)
+	if (!PM_HumanJetpackPilot() && (pm_entSelf->s.botclass == BCLASS_BOBAFETT
 		|| pm_entSelf->s.botclass == BCLASS_JANGO_NOJP
 		|| pm_entSelf->s.botclass == BCLASS_MANDOLORIAN
 		|| pm_entSelf->s.botclass == BCLASS_MANDOLORIAN1
-		|| pm_entSelf->s.botclass == BCLASS_MANDOLORIAN2)
+		|| pm_entSelf->s.botclass == BCLASS_MANDOLORIAN2))
 	{
 		if (pm->ps->eFlags & EF_DEAD || pm->ps->pm_type == PM_DEAD)
 		{
@@ -23231,7 +23428,7 @@ static void PmoveSingle(pmove_t* pmove)
 			pm->ps->eFlags &= ~EF_JETPACK_ACTIVE;
 			pm->ps->eFlags &= ~EF_JETPACK_FLAMING;
 			pm->ps->pm_type = PM_JETPACK;
-			pm->cmd.upmove = 150;
+			pm->cmd.upmove = 0; // zero gravity + jetpack friction hold the height (150 wrapped to -106 in the signed char)
 		}
 		else if (GROUND_TIME[pm->ps->clientNum] >= pm->cmd.serverTime)
 		{
@@ -23241,6 +23438,11 @@ static void PmoveSingle(pmove_t* pmove)
 			pm->ps->eFlags &= ~EF3_JETPACK_HOVER;
 			pm->ps->pm_type = PM_NORMAL;
 		}
+	}
+
+	if (pm->ps->pm_type == PM_JETPACK)
+	{// as SP: no gravity while flying (also for the bots the block above puts in PM_JETPACK)
+		pm->ps->gravity = 0.0f;
 	}
 
 	if (pm_flying == FLY_HOVER)
@@ -23502,6 +23704,11 @@ static void PmoveSingle(pmove_t* pmove)
 					// begin swimming
 					PM_WaterMove();
 				}
+			}
+			else if (pm->ps->pm_type == PM_JETPACK)
+			{
+				// SP jetpack flight (MT_FLYSWIM -> PM_FlyMove)
+				PM_JetpackFlyMove();
 			}
 			else if (pml.walking)
 			{

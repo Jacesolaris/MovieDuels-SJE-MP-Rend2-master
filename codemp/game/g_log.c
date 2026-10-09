@@ -145,11 +145,13 @@ char* weaponNameFromIndex[WP_NUM_WEAPONS] =
 	"RebelBlaster",
 	"CloneRifle",
 	"CloneCommando",
+	"Z6RotaryCannon",
 	"RebelRifle",
 	"Rey",
 	"Jango",
 	"Boba",
 	"ClonePistol",
+	"Droideka",
 
 	"BryarOld",
 	"EmplacedGun",

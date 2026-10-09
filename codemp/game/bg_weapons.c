@@ -69,6 +69,7 @@ vec3_t WP_muzzlePoint[WP_NUM_WEAPONS] =
 	{12,	6,		-6	},	// WP_JANGO,
 	{12,	6,		-6	},	// WP_BOBA,
 	{12,	6,		-6	},	// WP_CLONEPISTOL,
+	{12,	8,		-6	},	// WP_DROIDEKA, (right arm)
 
 	{12,    6,      -6  }, // WP_BRYAR_OLD,
 };
@@ -105,6 +106,7 @@ vec3_t WP_muzzlePoint2[WP_NUM_WEAPONS] =
 	{12,	-6,		-6	},	// WP_JANGO,
 	{12,	-6,		-6	},	// WP_BOBA,
 	{12,	-6,		-6	},	// WP_CLONEPISTOL,
+	{12,	-8,		-6	},	// WP_DROIDEKA, (left arm)
 
 	{12,    -6,     -6  }, // WP_BRYAR_OLD,
 };
@@ -603,6 +605,23 @@ weaponData_t weaponData[WP_NUM_WEAPONS] =
 	  0,//1,						//int		altChargeSub;		// above for secondary
 	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
 	  0,//1500					//	int		altMaxCharge;		// above for secondary
+	},
+	{	// WP_DROIDEKA, (from MovieDuels SP's weapons.dat)
+	//		"Droideka",			//	char	classname[32];		// Spawning name
+	  AMMO_BLASTER,				//	int		ammoIndex;			// Index to proper ammo slot
+	  15,						//	int		ammoLow;			// Count when ammo is low
+	  0,						//	int		energyPerShot;		// Amount of energy used per shot
+	  325,					//	int		fireTime;			// Amount of time between firings
+	  8192,					//	int		range;				// Range of weapon
+	  0,						//	int		altEnergyPerShot;	// Amount of energy used for alt-fire
+	  250,					//	int		altFireTime;		// Amount of time between alt-firings
+	  8192,					//	int		altRange;			// Range of alt-fire
+	  0,						//	int		chargeSubTime;		// ms interval for subtracting ammo during charge
+	  0,						//	int		altChargeSubTime;	// above for secondary
+	  0,						//	int		chargeSub;			// amount to subtract during charge on each interval
+	  0,						//int		altChargeSub;		// above for secondary
+	  0,						//	int		maxCharge;			// stop subtracting once charged for this many ms
+	  0,						//	int		altMaxCharge;		// above for secondary
 	},
 	{
 		// WP_BRYAR_OLD,

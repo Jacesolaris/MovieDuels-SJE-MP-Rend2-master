@@ -129,8 +129,8 @@ animFlags_t BG_AnimStyleFlags(int animStyle);
 #define WALL_RUN_FLIP_LIFT	120.0f		// and at least this upward speed
 #define DOUBLE_JUMP_VELOCITY	300.0f		// double jump (Fallen Order style): upward speed of the second jump
 #define DOUBLE_JUMP_MAX_RISE	(JUMP_VELOCITY * 0.5f)	// double jump: only while rising slower than this (second half of the rise, never falling)
-#define AIR_DASH_SPEED			600.0f		// air dash (Jedi Survivor style): horizontal speed of the dash
-#define AIR_DASH_TIME			350			// air dash: ms it holds that speed and the height (then falls normally)
+#define AIR_DASH_SPEED			400.0f		// air dash (Jedi Survivor style): horizontal speed of the dash
+#define AIR_DASH_TIME			250			// air dash: ms it holds that speed and the height (then falls normally)
 #define AIR_WALL_RUN_REACH		28.0f		// wall-run from the air: a wall this close to the side catches the player
 #define AIR_WALL_RUN_MIN_SPEED	150.0f		// wall-run from the air: horizontal speed needed
 #define AIR_WALL_RUN_MAX_FALL	300.0f		// wall-run from the air: not when falling faster than this
@@ -146,7 +146,7 @@ animFlags_t BG_AnimStyleFlags(int animStyle);
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-08,Month-10,Year-26,BuildNum-05" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-09,Month-10,Year-26,BuildNum-06" // build date
 
 #define	STEPSIZE		18
 
@@ -640,6 +640,7 @@ extern int bgForcePowerCost[NUM_FORCE_POWERS][NUM_FORCE_POWER_LEVELS];
 #define	PMF_DOUBLE_JUMPED	268435456	// used the double jump (Fallen Order style) in this jump; cleared on landing
 #define	PMF_AIR_DASHED		536870912	// used the air dash (Jedi Survivor style) in this jump; cleared on landing
 #define	PMF_AIR_WALL_RAN	1073741824	// started a wall-run from the air (Fallen Order style) in this jump; cleared on landing
+#define	PMF_DASH_FLIPPED	PMF_LADDER_JUMP	// the air dash chain's flip (dash / jump / dash) was used in this jump; cleared on landing (shares the unused ladder-jump bit)
 #define	PMF_LEAP_CANCELLED	((int)0x80000000)	// the long leap / air dash was cancelled with +back: only falls until landing (the last free bit)
 
 // Kata or smashdown (bots and NPCs, bg_saber.c PM_CanDoSmashdown, ai_main.c): distances between the two origins,

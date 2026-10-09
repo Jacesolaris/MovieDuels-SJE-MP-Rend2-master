@@ -60,6 +60,7 @@ typedef enum
 	WP_JANGO,            // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
 	WP_BOBA,             // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
 	WP_CLONEPISTOL,      // selectable for all classes except BCLASS_SBD AND Bot_Is_Saber_Class(ent) unless cheats are on, then it is selectable for all classes except BCLASS_SBD
+	WP_DROIDEKA,         // the droideka's twin arm blasters (from MovieDuels SP), for droideka NPCs
 	//end of new guns
 
 	WP_BRYAR_OLD,        // Only BCLASS_SBD can select this from WP_MELEE and back to WP_MELEE if cycling weapons

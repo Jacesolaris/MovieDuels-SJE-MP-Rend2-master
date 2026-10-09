@@ -3737,8 +3737,9 @@ void player_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker
 	// g_forcerespawn may force spawning at some later time
 	self->client->respawnTime = level.time + 1700;
 
-	// ragdoll (as SJE SP): the body goes limp at once and can be pushed for a while (G_PushCorpse)
-	self->client->ps.eFlags |= EF_RAG;
+	// ragdoll (as SJE SP): the body can be pushed for a while (G_PushCorpse sets EF_RAG when it is pushed).
+	// EF_RAG is not set here: a ragdoll started from the standing pose sinks into the floor, so the death anim
+	// plays first and the normal ragdoll check (CG_RagDoll) takes over once the body has dropped (as SJE MP)
 	self->corpsePushUntil = level.time + CORPSE_PUSH_TIME;
 	ScalePlayer(self, self->client->pers.botmodelscale);
 
@@ -7776,6 +7777,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 			|| inflictor->s.weapon == WP_JANGO
 			|| inflictor->s.weapon == WP_BOBA
 			|| inflictor->s.weapon == WP_CLONEPISTOL
+			|| inflictor->s.weapon == WP_DROIDEKA
 			|| inflictor->s.weapon == WP_FLECHETTE
 			|| inflictor->s.weapon == WP_BRYAR_PISTOL
 			|| inflictor->s.weapon == WP_TURRET

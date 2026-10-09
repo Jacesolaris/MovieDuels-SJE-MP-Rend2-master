@@ -111,6 +111,7 @@ const gbuyable_t bg_buylist[] =
 	{"Jango", WP_JANGO, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
 	{"Boba", WP_BOBA, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
 	{"ClonePistol", WP_CLONEPISTOL, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
+	{"Droideka", WP_DROIDEKA, IT_WEAPON, 350, 2, WC_RIFLE}, // the droideka's arm blasters
 
 	{"energy", AMMO_BLASTER, IT_AMMO, 999, 0, WC_AMMO},
 	{"powercells", AMMO_POWERCELL, IT_AMMO, 999, 0, WC_AMMO},
@@ -478,7 +479,7 @@ static void G_GiveWeaponsByClass(gentity_t* ent, qboolean give_all)
 				if (w == WP_EMPLACED_GUN || w == WP_TURRET)
 					continue;
 
-				if (w == WP_BRYAR_OLD) // SBD only
+				if (w == WP_BRYAR_OLD || w == WP_DROIDEKA) // SBD / droideka only
 					continue;
 
 				ent->client->ps.stats[STAT_WEAPONS] |= (1 << w);
@@ -512,7 +513,7 @@ static void G_GiveWeaponsByClass(gentity_t* ent, qboolean give_all)
 				if (w == WP_EMPLACED_GUN || w == WP_TURRET)
 					continue;
 
-				if (w == WP_BRYAR_OLD) // SBD only
+				if (w == WP_BRYAR_OLD || w == WP_DROIDEKA) // SBD / droideka only
 					continue;
 
 				ent->client->ps.stats[STAT_WEAPONS] |= (1 << w);
@@ -530,7 +531,7 @@ static void G_GiveWeaponsByClass(gentity_t* ent, qboolean give_all)
 		if (w == WP_EMPLACED_GUN || w == WP_TURRET)
 			continue;
 
-		if (w == WP_BRYAR_OLD) // SBD only
+		if (w == WP_BRYAR_OLD || w == WP_DROIDEKA) // SBD / droideka only
 			continue;
 
 		ent->client->ps.stats[STAT_WEAPONS] |= (1 << w);

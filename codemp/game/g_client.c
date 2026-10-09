@@ -7325,7 +7325,7 @@ spawn_done:
 		case BCLASS_BOBAFETT:
 		case BCLASS_PAZVIZSLA:
 			client->ps.fd.forcePowerLevel[FP_HEAL] = FORCE_LEVEL_0;
-			client->ps.fd.forcePowerLevel[FP_LEVITATION] = FORCE_LEVEL_3; //big jumps for the jetpack club
+			client->ps.fd.forcePowerLevel[FP_LEVITATION] = FORCE_LEVEL_0; // no Force for the jetpack club (as SP): the normal jump, the jetpack does the height
 			client->ps.fd.forcePowerLevel[FP_SPEED] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_PUSH] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_PULL] = FORCE_LEVEL_0;
@@ -7404,7 +7404,7 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SEE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] = FORCE_LEVEL_3;
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_3;
-			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_0;
+			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_3; // the saber needs all three to work right
 			break;
 		default:
 			//Read bot.txt or Player FP setup for saber users

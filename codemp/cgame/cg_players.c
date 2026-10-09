@@ -19302,10 +19302,10 @@ void CG_Player(centity_t* cent)
 			// ---------------------------------------------------------
 			void* desiredWeap = CG_G2WeaponInstance(cent, weapon);
 			void* desiredWeap2 = (dual == qtrue &&
-				weapon == WP_BRYAR_PISTOL ||
+				(weapon == WP_BRYAR_PISTOL ||
 				weapon == WP_REY ||
 				weapon == WP_JANGO ||
-				weapon == WP_CLONEPISTOL)
+				weapon == WP_CLONEPISTOL))
 				? CG_G2WeaponInstance2(cent, weapon)
 				: NULL;
 

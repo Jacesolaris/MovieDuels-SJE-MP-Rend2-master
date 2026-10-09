@@ -2395,7 +2395,8 @@ static qboolean HasValidWeaponThatUsesAmmo(const gentity_t* ent, const int ammot
 			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_THEFIRSTORDER ||
 			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_REBELBLASTER ||
 			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_REY ||
-			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_JANGO)
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_JANGO ||
+			ent->client->ps.stats[STAT_WEAPONS] & 1 << WP_DROIDEKA)
 			return qtrue;
 		break;
 	case AMMO_POWERCELL:

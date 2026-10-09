@@ -1809,6 +1809,7 @@ float botGlobalNavWeaponWeights[WP_NUM_WEAPONS] =
 	0, //WP_JANGO,
 	0, //WP_BOBA,
 	0, //WP_CLONEPISTOL,
+	3, //WP_DROIDEKA,
 
 	0, //WP_BRYAR_OLD,
 	0 ,//WP_EMPLACED_GUN,

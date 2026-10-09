@@ -292,6 +292,7 @@ int MinimumAttackDistance[WP_NUM_WEAPONS] =
 	200, //WP_JANGO
 	200, //WP_BOBA
 	200, //WP_CLONEPISTOL
+	0, //WP_DROIDEKA,
 
 	0, //WP_BRYAR_OLD,
 	0, //WP_EMPLACED_GUN,
@@ -332,6 +333,7 @@ int MaximumAttackDistance[WP_NUM_WEAPONS] =
 	9999, //WP_JANGO,
 	9999, //WP_BOBA,
 	9999, //WP_CLONEPISTOL,
+	9999, //WP_DROIDEKA,
 
 	9999, //WP_BRYAR_OLD,
 	9999, //WP_EMPLACED_GUN,
@@ -372,6 +374,7 @@ int IdealAttackDistance[WP_NUM_WEAPONS] =
 	350, //WP_JANGO,
 	350, //WP_BOBA,
 	350, //WP_CLONEPISTOL,
+	1000, //WP_DROIDEKA,
 
 	1000, //WP_BRYAR_OLD,
 	1000, //WP_EMPLACED_GUN,
@@ -2131,6 +2134,7 @@ int bot_ai_setup_client(const int client, const struct bot_settings_s* settings)
 	bs->botWeaponWeights[WP_JANGO] = 11;
 	bs->botWeaponWeights[WP_BOBA] = 11;
 	bs->botWeaponWeights[WP_CLONEPISTOL] = 11;
+	bs->botWeaponWeights[WP_DROIDEKA] = 12;
 
 	BotUtilizePersonality(bs);
 
@@ -6595,6 +6599,7 @@ int bot_get_weapon_range(const bot_state_t* bs)
 	case WP_BOBA:
 	case WP_CLONEPISTOL:
 	case WP_REBELBLASTER:
+	case WP_DROIDEKA:
 		return BWEAPONRANGE_MID;
 	case WP_BOWCASTER:
 	case WP_DEMP2:
@@ -10094,6 +10099,7 @@ float bot_weapon_can_lead(const bot_state_t* bs)
 	case WP_JANGO:
 	case WP_BOBA:
 	case WP_CLONEPISTOL:
+	case WP_DROIDEKA:
 		return 0.95f;
 	case WP_BOWCASTER:
 		return 0.95f;

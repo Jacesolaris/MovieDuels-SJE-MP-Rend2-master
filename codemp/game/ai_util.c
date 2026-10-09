@@ -926,6 +926,11 @@ void BotUtilizePersonality(bot_state_t* bs)
 		{
 			bs->botWeaponWeights[WP_CLONEPISTOL] = atoi(readbuf);
 		}
+
+		if (GetPairedValue(group, "WP_DROIDEKA", readbuf))
+		{
+			bs->botWeaponWeights[WP_DROIDEKA] = atoi(readbuf);
+		}
 	}
 	if (!bs->saberSpecialist)
 	{

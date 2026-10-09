@@ -1588,6 +1588,7 @@ static void CG_G2MarkEvent(entityState_t* es)
 	case WP_JANGO:
 	case WP_BOBA:
 	case WP_CLONEPISTOL:
+	case WP_DROIDEKA:
 	case WP_TURRET:
 		if (!size)
 		{

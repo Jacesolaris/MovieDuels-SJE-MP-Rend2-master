@@ -3635,8 +3635,7 @@ static int G_GunAnim(const gentity_t* ent, const gunAnimKind_t kind)
 	if (weapon == WP_BRYAR_PISTOL || weapon == WP_BRYAR_OLD || weapon == WP_REY || weapon == WP_JANGO
 		|| weapon == WP_REBELBLASTER || weapon == WP_CLONEPISTOL)
 	{
-		const qboolean dual = (ent->client->ps.eFlags & EF3_DUAL_WEAPONS || ent->client->skillLevel[SK_PISTOL] >= FORCE_LEVEL_3)
-			? qtrue : qfalse; // as PM_MoveDualPistols
+		const qboolean dual = (ent->client->ps.eFlags & EF3_DUAL_WEAPONS) ? qtrue : qfalse; // as PM_MoveDualPistols
 		if (dual)
 		{
 			static const int dualAnims[3] = { BOTH_2PISTOLRELOAD, BOTH_2PISTOLCHARGE, BOTH_2PISTOLFAIL };

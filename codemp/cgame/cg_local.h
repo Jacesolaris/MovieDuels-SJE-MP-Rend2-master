@@ -1794,6 +1794,7 @@ typedef struct cgEffects_s {
 	fxHandle_t  blasterWallImpactEffect;
 	fxHandle_t  blasterFleshImpactEffect;
 	fxHandle_t  blasterDroidImpactEffect;
+	fxHandle_t  droidekaShotEffect; // the droideka's bolts (WP_DROIDEKA)
 
 	// Clone
 	fxHandle_t	cloneShotEffect;
