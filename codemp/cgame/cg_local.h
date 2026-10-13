@@ -400,7 +400,7 @@ typedef struct centity_s {
 	Vehicle_t* m_pVehicle; //vehicle data
 	void* ghoul2; //g2 instance
 	int				localAnimIndex; //index locally (game/cgame) to anim data for this skel
-	void*			animIndexGhoul2; // players: the ghoul2 instance localAnimIndex was worked out for (CG_PlayerCheckAnimIndex)
+	void* animIndexGhoul2; // players: the ghoul2 instance localAnimIndex was worked out for (CG_PlayerCheckAnimIndex)
 	vec3_t			modelScale; //needed for g2 collision
 
 	//from here up must be unified with bgEntity_t -rww

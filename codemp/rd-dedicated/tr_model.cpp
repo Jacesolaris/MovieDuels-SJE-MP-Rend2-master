@@ -909,7 +909,6 @@ qhandle_t R_MD_ChooseAnimGLA(const char* meshName, const mdxmHeader_t* mdxm, con
 	return animIndex;
 }
 
-
 /*
 =================
 ServerLoadMDXM - load a Ghoul 2 Mesh file

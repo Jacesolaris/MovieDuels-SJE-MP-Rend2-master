@@ -1216,7 +1216,8 @@ static gentity_t* SelectRandomTeamSpawnPoint(const int teamstate, const team_t t
 
 #include "ai_main.h"
 // MovieDuels: a spawn waypoint nobody stands on, tried in a random order (so bots do not spawn on top of each
-// other); all taken: any of them.
+// other); all taken: -1, the caller falls back to the map's own spawn points (ClientSpawn has no KillBox, a bot
+// put on a taken point ended up inside the other player) (2026-10-13)
 static int BOT_FreeSpawnWP(const int* list, const int count)
 {
 	static int touch[MAX_GENTITIES];
@@ -1240,7 +1241,43 @@ static int BOT_FreeSpawnWP(const int* list, const int count)
 			return idx;
 		}
 	}
-	return list[start];
+	return -1;
+}
+
+// the way a bot spawned on a waypoint faces (it used to be yaw 0): team games the centre of the other team's spawn
+// waypoints, otherwise (or none) the centre of the whole route (2026-10-13)
+void BOT_WaypointSpawnAngles(const int team, const vec3_t origin, vec3_t angles)
+{
+	const int enemyFlag = team == TEAM_RED ? WPFLAG_SPAWN_TEAM_BLUE : team == TEAM_BLUE ? WPFLAG_SPAWN_TEAM_RED : 0;
+	vec3_t centre, dir;
+
+	VectorClear(angles);
+	for (int pass = enemyFlag ? 0 : 1; pass < 2; pass++)
+	{
+		int count = 0;
+		VectorClear(centre);
+		for (int i = 0; i < gWPNum; i++)
+		{
+			const wpobject_t* wp = gWPArray[i];
+			if (!wp || !wp->inuse || (pass == 0 && !(wp->flags & enemyFlag)))
+			{
+				continue;
+			}
+			VectorAdd(centre, wp->origin, centre);
+			count++;
+		}
+		if (count > 0)
+		{
+			VectorScale(centre, 1.0f / count, centre);
+			VectorSubtract(centre, origin, dir);
+			dir[2] = 0;
+			if (VectorLength(dir) > 1.0f)
+			{
+				angles[YAW] = vectoyaw(dir);
+				return;
+			}
+		}
+	}
 }
 
 qboolean BOT_FindCTFWaypointSpawnPoint_blue(gentity_t* bot, vec3_t outOrigin)
@@ -1290,8 +1327,12 @@ qboolean BOT_FindCTFWaypointSpawnPoint_blue(gentity_t* bot, vec3_t outOrigin)
 		return qfalse;
 	}
 
-	// Pick a random waypoint spawnpoint
+	// Pick a random free waypoint spawnpoint; all taken: the normal spawn points
 	const int chosen = BOT_FreeSpawnWP(spawnList, spawnCount);
+	if (chosen < 0)
+	{
+		return qfalse;
+	}
 
 	// Get pointer to the chosen waypoint and copy its origin
 	const wpobject_t* chosenWP = gWPArray[chosen];
@@ -1353,8 +1394,12 @@ qboolean BOT_FindCTFWaypointSpawnPoint_red(gentity_t* bot, vec3_t outOrigin)
 		return qfalse;
 	}
 
-	// Pick a random waypoint spawnpoint
+	// Pick a random free waypoint spawnpoint; all taken: the normal spawn points
 	const int chosen = BOT_FreeSpawnWP(spawnList, spawnCount);
+	if (chosen < 0)
+	{
+		return qfalse;
+	}
 
 	// Get pointer to the chosen waypoint and copy its origin
 	const wpobject_t* chosenWP = gWPArray[chosen];
@@ -1416,8 +1461,12 @@ qboolean BOT_FindFFAWaypointSpawnPoint(gentity_t* bot, vec3_t outOrigin)
 		return qfalse;
 	}
 
-	// Pick a random waypoint spawnpoint
+	// Pick a random free waypoint spawnpoint; all taken: the normal spawn points
 	const int chosen = BOT_FreeSpawnWP(spawnList, spawnCount);
+	if (chosen < 0)
+	{
+		return qfalse;
+	}
 
 	// Get pointer to the chosen waypoint and copy its origin
 	const wpobject_t* chosenWP = gWPArray[chosen];

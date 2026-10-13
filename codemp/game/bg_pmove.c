@@ -22719,7 +22719,7 @@ static void PM_MoveForKata(usercmd_t* ucmd)
 		{
 			pm->cmd.forwardmove = 0;
 		}
-		else 
+		else
 		{
 			if (pm->ps->legsTimer < 2700 && pm->ps->legsTimer > 2300)
 			{

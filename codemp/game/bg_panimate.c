@@ -6670,12 +6670,14 @@ static void BG_SetAnimSetSkeletonInfo(const int index, const char* filename)
 		}
 	}
 
+#ifdef _DEBUG // the skeleton each animation set uses: Debug builds only (it printed on every join)
 #ifdef _GAME
 	Com_Printf("Animation set %d (game): %s, %s%s skeleton\n", index, filename,
 		set->ownSkel ? "own " : dedicatedHumanoid ? "dedicated " : "", set->humanoidSkel ? "humanoid" : "non-humanoid");
 #else
 	Com_Printf("Animation set %d (cgame): %s, %s%s skeleton\n", index, filename,
 		set->ownSkel ? "own " : dedicatedHumanoid ? "dedicated " : "", set->humanoidSkel ? "humanoid" : "non-humanoid");
+#endif
 #endif
 }
 
@@ -7106,7 +7108,7 @@ qboolean BG_ClassCreatureSize(const int botclass, float* halfWidth, int* standhe
 		c = 80;
 		break;
 	case BCLASS_RANCOR:	// rancor.npc: width 60, height 160, crouchheight 128 - at 70% (the SP rancor does not fit MP maps;
-						// its model scale is 70 too, g_classmodels.h / BG_ClassCreatureScale)
+		// its model scale is 70 too, g_classmodels.h / BG_ClassCreatureScale)
 		w = 42;
 		h = 112;
 		c = 90;

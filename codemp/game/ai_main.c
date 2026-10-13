@@ -1812,7 +1812,6 @@ static void bot_droid_input(const bot_state_t* bs, bot_input_t* bi)
 	}
 }
 
-
 static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_time)
 {
 	bot_input_t bi;
@@ -13895,7 +13894,6 @@ void standard_bot_ai(bot_state_t* bs)
 			forceHostile = 1;
 		}
 	}
-
 
 	if (use_the_force && forceHostile)
 	{

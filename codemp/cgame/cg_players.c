@@ -677,15 +677,9 @@ retryModel:
 		skin_name = "default";
 	}
 
-	if (cgs.gametype >= GT_TEAM && !cgs.jediVmerc && cgs.gametype != GT_SIEGE)
-	{
-		BG_ValidateSkinForTeam(ci->modelName, ci->skinName, ci->team, ci->colorOverride);
-		skin_name = ci->skinName;
-	}
-	else
-	{
-		ci->colorOverride[0] = ci->colorOverride[1] = ci->colorOverride[2] = 0.0f;
-	}
+	// no team skin or team colour in team games, for anyone: everybody keeps their own model and skin (bots: DH
+	// 2026-10-13, players too after DH's test); the crosshair shows friend / enemy
+	ci->colorOverride[0] = ci->colorOverride[1] = ci->colorOverride[2] = 0.0f;
 
 	// Handle 3-part skins
 	if (strchr(skin_name, '|') &&
@@ -2447,15 +2441,9 @@ void CG_NewClientInfo(int clientNum, qboolean entities_initialized)
 	v = Info_ValueForKey(configstring, "forcepowers");
 	Q_strncpyz(new_info.forcePowers, v, sizeof new_info.forcePowers);
 
-	if (cgs.gametype >= GT_TEAM && !cgs.jediVmerc && cgs.gametype != GT_SIEGE)
-	{
-		//We won't force colors for siege.
-		BG_ValidateSkinForTeam(new_info.modelName, new_info.skinName, new_info.team, new_info.colorOverride);
-	}
-	else
-	{
-		new_info.colorOverride[0] = new_info.colorOverride[1] = new_info.colorOverride[2] = 0.0f;
-	}
+	// no team skin or team colour in team games, for anyone: everybody keeps their own model and skin (bots: DH
+	// 2026-10-13, players too after DH's test); the crosshair shows friend / enemy
+	new_info.colorOverride[0] = new_info.colorOverride[1] = new_info.colorOverride[2] = 0.0f;
 
 	// scan for an existing clientinfo that matches this modelname
 	// so we can avoid loading checks if possible
@@ -3212,55 +3200,55 @@ static void CG_PlayerAnimEventDo(centity_t* cent, animevent_t* anim_event)
 		// bolt name cleared), which is shared by every model using the same animation file, so other models got the first
 		// model's bolt index (wrong bolt or an invalid one).
 		{
-		int model_index = anim_event->eventData[AED_model_index];
-		int bolt_index = anim_event->eventData[AED_BOLTINDEX];
-		if (anim_event->stringData && anim_event->stringData[0] && cent && cent->ghoul2)
-		{
-			model_index = 0;
-			if (Q_stricmpn("*blade", anim_event->stringData, 6) == 0
-				|| Q_stricmp("*flash", anim_event->stringData) == 0)
+			int model_index = anim_event->eventData[AED_model_index];
+			int bolt_index = anim_event->eventData[AED_BOLTINDEX];
+			if (anim_event->stringData && anim_event->stringData[0] && cent && cent->ghoul2)
 			{
-				//must be a weapon, try weapon 0?
-				bolt_index = trap->G2API_AddBolt(cent->ghoul2, 1, anim_event->stringData);
-				if (bolt_index != -1)
+				model_index = 0;
+				if (Q_stricmpn("*blade", anim_event->stringData, 6) == 0
+					|| Q_stricmp("*flash", anim_event->stringData) == 0)
 				{
-					//found it!
-					model_index = 1;
+					//must be a weapon, try weapon 0?
+					bolt_index = trap->G2API_AddBolt(cent->ghoul2, 1, anim_event->stringData);
+					if (bolt_index != -1)
+					{
+						//found it!
+						model_index = 1;
+					}
+					else
+					{
+						//hmm, just try on the player model, then?
+						bolt_index = trap->G2API_AddBolt(cent->ghoul2, 0, anim_event->stringData);
+					}
 				}
 				else
 				{
-					//hmm, just try on the player model, then?
 					bolt_index = trap->G2API_AddBolt(cent->ghoul2, 0, anim_event->stringData);
 				}
 			}
+			if (bolt_index != -1)
+			{
+				vec3_t l_angles;
+				vec3_t b_point, bAngle;
+				mdxaBone_t matrix;
+
+				VectorSet(l_angles, 0, cent->lerpAngles[YAW], 0);
+
+				trap->G2API_GetBoltMatrix(cent->ghoul2, model_index,
+					bolt_index, &matrix, l_angles,
+					cent->lerpOrigin, cg.time, cgs.game_models, cent->modelScale);
+				BG_GiveMeVectorFromMatrix(&matrix, ORIGIN, b_point);
+				VectorSet(bAngle, 0, 1, 0);
+
+				trap->FX_PlayEffectID(anim_event->eventData[AED_EFFECTINDEX], b_point, bAngle, -1, -1, qfalse);
+			}
 			else
 			{
-				bolt_index = trap->G2API_AddBolt(cent->ghoul2, 0, anim_event->stringData);
+				vec3_t bAngle;
+
+				VectorSet(bAngle, 0, 1, 0);
+				trap->FX_PlayEffectID(anim_event->eventData[AED_EFFECTINDEX], cent->lerpOrigin, bAngle, -1, -1, qfalse);
 			}
-		}
-		if (bolt_index != -1)
-		{
-			vec3_t l_angles;
-			vec3_t b_point, bAngle;
-			mdxaBone_t matrix;
-
-			VectorSet(l_angles, 0, cent->lerpAngles[YAW], 0);
-
-			trap->G2API_GetBoltMatrix(cent->ghoul2, model_index,
-				bolt_index, &matrix, l_angles,
-				cent->lerpOrigin, cg.time, cgs.game_models, cent->modelScale);
-			BG_GiveMeVectorFromMatrix(&matrix, ORIGIN, b_point);
-			VectorSet(bAngle, 0, 1, 0);
-
-			trap->FX_PlayEffectID(anim_event->eventData[AED_EFFECTINDEX], b_point, bAngle, -1, -1, qfalse);
-		}
-		else
-		{
-			vec3_t bAngle;
-
-			VectorSet(bAngle, 0, 1, 0);
-			trap->FX_PlayEffectID(anim_event->eventData[AED_EFFECTINDEX], cent->lerpOrigin, bAngle, -1, -1, qfalse);
-		}
 		}
 #endif
 		break;
@@ -3812,6 +3800,14 @@ static void CG_SetLerpFrameAnimation(centity_t* cent, clientInfo_t* ci, lerpFram
 			if (first_frame > last_frame || ci->torsoAnim == new_animation)
 			{
 				//don't resume on backwards playing animations.. I guess.
+				begin_frame = -1;
+			}
+
+			// a resumed frame (read off the lumbar bone) can belong to the model's previous animation set - e.g. a bot whose own
+			// model (JK2 skeleton, fewer frames) was just loaded: only resume inside this anim's frames, as the legs do
+			// (Debug assert in G2_Set_Bone_Anim, a bad frame in Release) (2026-10-13)
+			if (begin_frame != -1 && (begin_frame < first_frame || begin_frame > last_frame))
+			{
 				begin_frame = -1;
 			}
 
@@ -19839,9 +19835,9 @@ void CG_Player(centity_t* cent)
 			void* desiredWeap = CG_G2WeaponInstance(cent, weapon);
 			void* desiredWeap2 = (dual == qtrue &&
 				(weapon == WP_BRYAR_PISTOL ||
-				weapon == WP_REY ||
-				weapon == WP_JANGO ||
-				weapon == WP_CLONEPISTOL))
+					weapon == WP_REY ||
+					weapon == WP_JANGO ||
+					weapon == WP_CLONEPISTOL))
 				? CG_G2WeaponInstance2(cent, weapon)
 				: NULL;
 
@@ -19987,18 +19983,8 @@ void CG_Player(centity_t* cent)
 					}
 				}
 			}
-			else
-			{
-				//generic teamplay
-				if (team == TEAM_RED)
-				{
-					CG_PlayerFloatSprite(cent, cgs.media.teamRedShader);
-				}
-				else // if (team == TEAM_BLUE)
-				{
-					CG_PlayerFloatSprite(cent, cgs.media.teamBlueShader);
-				}
-			}
+			// generic teamplay (TFFA / CTF / CTY): no team icon above heads any more, the crosshair already turns red on
+			// enemies (DH 2026-10-13)
 		}
 	}
 	else if (cgs.gametype == GT_POWERDUEL && cg_drawFriend.integer &&
@@ -20787,11 +20773,11 @@ SkipTrueView:
 	}
 
 	if (CG_IsMindTricked(
-			cg.snap->ps.fd.forceMindtrickTargetIndex,
-			cg.snap->ps.fd.forceMindtrickTargetIndex2,
-			cg.snap->ps.fd.forceMindtrickTargetIndex3,
-			cg.snap->ps.fd.forceMindtrickTargetIndex4,
-			cent->currentState.number))
+		cg.snap->ps.fd.forceMindtrickTargetIndex,
+		cg.snap->ps.fd.forceMindtrickTargetIndex2,
+		cg.snap->ps.fd.forceMindtrickTargetIndex3,
+		cg.snap->ps.fd.forceMindtrickTargetIndex4,
+		cent->currentState.number))
 	{
 		if (cent->ghoul2)
 		{

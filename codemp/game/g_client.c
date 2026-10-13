@@ -2518,23 +2518,8 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 						strcpy(skin, "default");
 					}
 
-					if (level.gametype >= GT_TEAM && level.gametype != GT_SIEGE && !g_jediVmerc.integer)
-					{
-						float colorOverride[3] = { 0 };
-
-						colorOverride[0] = colorOverride[1] = colorOverride[2] = 0.0f;
-
-						BG_ValidateSkinForTeam(truncModelName, skin, ent->client->sess.sessionTeam, colorOverride);
-						if (colorOverride[0] != 0.0f ||
-							colorOverride[1] != 0.0f ||
-							colorOverride[2] != 0.0f)
-						{
-							ent->client->ps.customRGBA[0] = colorOverride[0] * 255.0f;
-							ent->client->ps.customRGBA[1] = colorOverride[1] * 255.0f;
-							ent->client->ps.customRGBA[2] = colorOverride[2] * 255.0f;
-						}
-					}
-					else if (level.gametype == GT_SIEGE)
+					// no team colour tint in team games any more: everyone keeps their own colours (DH 2026-10-13)
+					if (level.gametype == GT_SIEGE)
 					{
 						//force skin for class if appropriate
 						if (ent->client->siegeClass != -1)
@@ -3881,17 +3866,7 @@ qboolean client_userinfo_changed(const int clientNum)
 	}
 
 	// update our customRGBA for team colors.
-	if (level.gametype >= GT_TEAM && level.gametype != GT_SIEGE && !g_jediVmerc.integer)
-	{
-		char skin[MAX_QPATH] = { 0 };
-		vec3_t colorOverride = { 0.0f };
-
-		VectorClear(colorOverride);
-
-		BG_ValidateSkinForTeam(model, skin, client->sess.sessionTeam, colorOverride);
-		if (colorOverride[0] != 0.0f || colorOverride[1] != 0.0f || colorOverride[2] != 0.0f)
-			VectorScaleM(colorOverride, 255.0f, client->ps.customRGBA);
-	}
+	// no team colour tint in team games any more: everyone keeps their own colours (DH 2026-10-13)
 
 	// bots set their team a few frames later
 	if (level.gametype >= GT_TEAM && g_entities[clientNum].r.svFlags & SVF_BOT)
@@ -5296,7 +5271,7 @@ void ClientSpawn(gentity_t* ent)
 				if (BOT_FindCTFWaypointSpawnPoint_red(ent, wpSpawn) == qtrue)
 				{
 					VectorCopy(wpSpawn, spawn_origin);
-					VectorClear(spawn_angles);
+					BOT_WaypointSpawnAngles(client->sess.sessionTeam, spawn_origin, spawn_angles);
 					spawnPoint = NULL;
 					goto spawn_done;
 				}
@@ -5306,7 +5281,7 @@ void ClientSpawn(gentity_t* ent)
 				if (BOT_FindCTFWaypointSpawnPoint_blue(ent, wpSpawn) == qtrue)
 				{
 					VectorCopy(wpSpawn, spawn_origin);
-					VectorClear(spawn_angles);
+					BOT_WaypointSpawnAngles(client->sess.sessionTeam, spawn_origin, spawn_angles);
 					spawnPoint = NULL;
 					goto spawn_done;
 				}
@@ -5391,7 +5366,7 @@ void ClientSpawn(gentity_t* ent)
 				if (BOT_FindCTFWaypointSpawnPoint_red(ent, wpSpawn) == qtrue)
 				{
 					VectorCopy(wpSpawn, spawn_origin);
-					VectorClear(spawn_angles);
+					BOT_WaypointSpawnAngles(client->sess.sessionTeam, spawn_origin, spawn_angles);
 					spawnPoint = NULL;
 					goto spawn_done;
 				}
@@ -5401,7 +5376,7 @@ void ClientSpawn(gentity_t* ent)
 				if (BOT_FindCTFWaypointSpawnPoint_blue(ent, wpSpawn) == qtrue)
 				{
 					VectorCopy(wpSpawn, spawn_origin);
-					VectorClear(spawn_angles);
+					BOT_WaypointSpawnAngles(client->sess.sessionTeam, spawn_origin, spawn_angles);
 					spawnPoint = NULL;
 					goto spawn_done;
 				}
@@ -5444,7 +5419,7 @@ void ClientSpawn(gentity_t* ent)
 		if (BOT_FindFFAWaypointSpawnPoint(ent, wpSpawn) == qtrue)
 		{
 			VectorCopy(wpSpawn, spawn_origin);
-			VectorClear(spawn_angles);
+			BOT_WaypointSpawnAngles(client->sess.sessionTeam, spawn_origin, spawn_angles);
 			spawnPoint = NULL;
 			goto spawn_done;
 		}
@@ -5582,18 +5557,7 @@ spawn_done:
 
 	client->ps.customRGBA[3] = 255;
 
-	if (level.gametype >= GT_TEAM && level.gametype != GT_SIEGE && !g_jediVmerc.integer)
-	{
-		char skin[MAX_QPATH] = { 0 }, model[MAX_QPATH] = { 0 };
-		vec3_t colorOverride = { 0.0f };
-
-		VectorClear(colorOverride);
-		Q_strncpyz(model, Info_ValueForKey(userinfo, "model"), sizeof model);
-
-		BG_ValidateSkinForTeam(model, skin, savedSess.sessionTeam, colorOverride);
-		if (colorOverride[0] != 0.0f || colorOverride[1] != 0.0f || colorOverride[2] != 0.0f)
-			VectorScaleM(colorOverride, 255.0f, client->ps.customRGBA);
-	}
+	// no team colour tint in team games any more: everyone keeps their own colours (DH 2026-10-13)
 
 	client->siegeClass = savedSiegeIndex;
 

@@ -7015,9 +7015,9 @@ void ForceThrow(gentity_t* self, qboolean pull)
 					}
 				}
 			}
-			else if (push_target[x]->s.eType == ET_MISSILE && 
-				push_target[x]->s.pos.trType != TR_STATIONARY && (push_target[x]->s.pos.trType != TR_INTERPOLATE || 
-				push_target[x]->s.weapon != WP_THERMAL))
+			else if (push_target[x]->s.eType == ET_MISSILE &&
+				push_target[x]->s.pos.trType != TR_STATIONARY && (push_target[x]->s.pos.trType != TR_INTERPOLATE ||
+					push_target[x]->s.weapon != WP_THERMAL))
 				//rolling and stationary thermal detonators are dealt with below
 			{
 				if (pull)
@@ -8157,7 +8157,7 @@ static void SJE_RepulseThrow(gentity_t* self, const int chargeTime)
 	const int damage = chargeFrac > 2500.0f / 3500.0f ? 50 : chargeFrac > 1250.0f / 3500.0f ? 25 : chargeFrac > 500.0f / 3500.0f ? 10 : 0;
 	const float radius = sjeRepulseRadius[lvl] * (0.6f + 0.4f * chargeFrac);
 	static int list[MAX_GENTITIES]; // static: 16 KB (C6262)
-	vec3_t mins = {0}, maxs = {0};
+	vec3_t mins = { 0 }, maxs = { 0 };
 
 	G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/repulsepush.mp3")); // MD: MD SP's sound
 	SJE_EffectDir("force/pushblur", self->client->ps.origin, sjeFxUp);

@@ -4144,8 +4144,8 @@ void CG_CheckPlayerG2Weapons(const playerState_t* ps, centity_t* cent)
 ===============================================================================
 MovieDuels weapon / force wheel (MD team request)
 
-Hold the "Weapon Wheel" key: a radial overlay of the weapons the player carries, or (mouse wheel / middle click) the
-force powers he knows. Point with the mouse (the view stays put), release the key or click to take it. Right click
+Press the "Weapon Wheel" key (or "Force Wheel"): a radial overlay of the weapons the player carries, or (mouse wheel / middle click) the
+force powers he knows. Point with the mouse (the view stays put); the key again or a click takes it, escape cancels (as MD SP). Right click
 toggles a gun's "On Person" (cg_holsterHide, as the old menu wheel; red = not on the body). No slowdown in MP.
 The key's existing bind ("ui_openmenu ingameWeaponWheelMenu") opens this wheel (CG_IncomingConsoleCommand), and
 +md_wheel can be bound too. cg_weaponWheelOld 1 brings back the old menu wheel.
@@ -4168,7 +4168,8 @@ static struct
 {
 	qboolean open;
 	int ring;		// 0 weapons, 1 force powers
-	int holdKey;	// the key holding the wheel open (-1 none: closes on a click / escape)
+	int holdKey;	// the key that opened the wheel (-1 none): pressed again it takes the pick, as MD SP
+	qboolean keyLetGo;	// that key was let go since the wheel opened (its auto-repeat must not count as the second press)
 	float px, py;	// the pointer, relative to the centre
 	int hover;		// index in items[], -1 none
 	int items[MDW_MAX_ITEMS];
@@ -4317,6 +4318,7 @@ static void CG_MDWheel_Open(const int holdKey, const int ring)
 	mdWheel.open = qtrue;
 	mdWheel.ring = ring;
 	mdWheel.holdKey = holdKey;
+	mdWheel.keyLetGo = qfalse;
 	mdWheel.px = mdWheel.py = 0.0f;
 	mdWheel.hover = -1;
 	trap->Key_SetCatcher(trap->Key_GetCatcher() | KEYCATCH_CGAME);
@@ -4324,12 +4326,17 @@ static void CG_MDWheel_Open(const int holdKey, const int ring)
 
 // "+md_wheel" / "+md_forcewheel" (the Controls rows "Weapon Wheel" / "Force Wheel"; a key's +command passes its key
 // number), their "-" commands, and "md_wheel_open" (what an old "ui_openmenu ingameWeaponWheelMenu" bind is turned into,
-// CG_IncomingConsoleCommand: held while the key bound to it is down)
+// CG_IncomingConsoleCommand). As MD SP: a press opens it, the key again, attack or escape closes it (attack / key take the pick)
 void CG_MDWheel_Down_f(void)
 {
 	if (cg_weaponWheelOld.integer)
 	{
 		trap->SendConsoleCommand("ui_openmenu ingameWeaponWheelMenu\n");
+		return;
+	}
+	if (mdWheel.open)
+	{
+		CG_MDWheel_Close(qtrue);
 		return;
 	}
 	CG_MDWheel_Open(trap->Cmd_Argc() > 1 ? atoi(CG_Argv(1)) : -1, 0);
@@ -4338,12 +4345,19 @@ void CG_MDWheel_Down_f(void)
 // the same wheel opening on the force powers
 void CG_MDWheel_ForceDown_f(void)
 {
+	if (mdWheel.open)
+	{
+		CG_MDWheel_Close(qtrue);
+		return;
+	}
 	CG_MDWheel_Open(trap->Cmd_Argc() > 1 ? atoi(CG_Argv(1)) : -1, 1);
 }
 
 void CG_MDWheel_Up_f(void)
 {
-	CG_MDWheel_Close(qtrue);
+	// as MD SP the wheel stays open when the key is let go (DH 2026-10-13: "the same as the sp system"); the second
+	// press (CG_MDWheel_KeyEvent: the open wheel takes the keys, so the bind doesn't run), attack or escape close it
+	// (the engine's made-up release when the wheel takes the keys - Key_SetCatcher / Key_ClearStates - is ignored too)
 }
 
 void CG_MDWheel_Open_f(void)
@@ -4370,14 +4384,45 @@ static void CG_MDWheel_ToggleOnPerson(const int weapon)
 	trap->S_StartLocalSound(mdWheel.clickSound, CHAN_LOCAL_SOUND);
 }
 
+// the same key (letters in either case: a bind names the capital, the key sends the small letter)
+static qboolean CG_MDWheel_SameKey(const int a, const int b)
+{
+	if (a <= 0 || b <= 0)
+	{
+		return qfalse;
+	}
+	return a == b || (a < 128 && b < 128 && tolower(a) == tolower(b)) ? qtrue : qfalse;
+}
+
 qboolean CG_MDWheel_KeyEvent(const int key, const qboolean down)
 {
 	if (!mdWheel.open)
 	{
 		return qfalse;
 	}
-	if (key & K_CHAR_FLAG || !down)
+	if (key & K_CHAR_FLAG)
 	{
+		return qtrue;
+	}
+	// a key that opens a wheel (the one that opened it, or the other wheel's) pressed again takes the pick, as MD SP's
+	// wheel keys; the opening press's auto-repeat doesn't count until that key has been let go once
+	const qboolean wheelKey = CG_MDWheel_SameKey(key, mdWheel.holdKey) || CG_MDWheel_SameKey(key, trap->Key_GetKey("+md_wheel"))
+		|| CG_MDWheel_SameKey(key, trap->Key_GetKey("+md_forcewheel"))
+		|| CG_MDWheel_SameKey(key, trap->Key_GetKey("ui_openmenu ingameWeaponWheelMenu")) ? qtrue : qfalse;
+	if (!down)
+	{
+		if (wheelKey)
+		{
+			mdWheel.keyLetGo = qtrue;
+		}
+		return qtrue;
+	}
+	if (wheelKey)
+	{
+		if (mdWheel.keyLetGo || !CG_MDWheel_SameKey(key, mdWheel.holdKey))
+		{
+			CG_MDWheel_Close(qtrue);
+		}
 		return qtrue;
 	}
 	switch (key)
@@ -4618,12 +4663,8 @@ void CG_DrawMDWheel(void)
 	{
 		return;
 	}
-	// the key let go, escape / a menu took the keys, or he died
-	if (mdWheel.holdKey > 0 && !trap->Key_IsDown(mdWheel.holdKey))
-	{
-		CG_MDWheel_Close(qtrue);
-		return;
-	}
+	// escape / a menu took the keys, or he died (letting go of the wheel key: CG_MDWheel_Up_f / CG_MDWheel_KeyEvent -
+	// not Key_IsDown, the engine cleared the key states when the wheel took the keys)
 	if (!(trap->Key_GetCatcher() & KEYCATCH_CGAME) || !CG_MDWheel_CanOpen())
 	{
 		CG_MDWheel_Close(qfalse);

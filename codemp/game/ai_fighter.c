@@ -2316,4 +2316,3 @@ void G_FighterAI_BotCmd(gentity_t* bot, usercmd_t* cmd)
 		cmd->angles[axis] = fighter_bot_cmd[n].angles[axis];
 	}
 }
-

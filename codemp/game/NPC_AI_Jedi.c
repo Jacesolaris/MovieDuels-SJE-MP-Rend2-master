@@ -4443,7 +4443,7 @@ static evasionType_t Jedi_CheckFlipEvasions(gentity_t* self, const float rightdo
 		return EVASION_NONE;
 	}
 	if ((self->client->ps.fd.forceRageRecoveryTime > level.time || self->client->ps.fd.forcePowersActive & 1 <<
-			FP_RAGE))
+		FP_RAGE))
 	{
 		//no fancy dodges when raging
 		return EVASION_NONE;

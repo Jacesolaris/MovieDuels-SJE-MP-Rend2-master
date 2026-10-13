@@ -3947,16 +3947,18 @@ static void UI_DrawRedBlue(rectDef_t* rect, float scale, vec4_t color, int textS
 	{
 		//print different team names for CoOp
 		Text_Paint(rect->x, rect->y, scale, color,
-			uiInfo.redBlue == 0
-			? UI_GetStringEdString("MD_MENU_MP", "ENEMYTEAM")
-			: UI_GetStringEdString("MD_MENU_MP", "PLAYERTEAM"), 0, 0, textStyle, i_menu_font);
+			uiInfo.redBlue == 2
+			? UI_GetStringEdString("MD_MENU_MP", "PLAYERTEAM")
+			: UI_GetStringEdString("MD_MENU_MP", "ENEMYTEAM"), 0, 0, textStyle, i_menu_font);
 	}
 	else
 	{
 		Text_Paint(rect->x, rect->y, scale, color,
-			uiInfo.redBlue == 0
+			uiInfo.redBlue == 1
 			? UI_GetStringEdString("MD_MP_INGAME", "RED")
-			: UI_GetStringEdString("MD_MP_INGAME", "BLUE"), 0, 0, textStyle, i_menu_font);
+			: uiInfo.redBlue == 2
+			? UI_GetStringEdString("MD_MP_INGAME", "BLUE")
+			: "Auto (faction)", 0, 0, textStyle, i_menu_font);
 	}
 }
 
@@ -5392,7 +5394,7 @@ static qboolean UI_RedBlue_HandleKey(int flags, float* special, int key)
 {
 	if (key == A_MOUSE1 || key == A_MOUSE2 || key == A_ENTER || key == A_KP_ENTER)
 	{
-		uiInfo.redBlue ^= 1;
+		uiInfo.redBlue = (uiInfo.redBlue + 1) % 3; // 0 Auto (the bot's faction picks the team), 1 Red, 2 Blue
 		return qtrue;
 	}
 	return qfalse;
@@ -7800,13 +7802,13 @@ static void UI_RunMenuScript(char** args)
 			{
 				trap->Cmd_ExecuteText(EXEC_APPEND,
 					va("addbot \"%s\" %i %s\n", UI_GetBotNameByNumber(uiInfo.botIndex),
-						uiInfo.skillIndex + 1, uiInfo.redBlue == 0 ? "Red" : "Blue"));
+						uiInfo.skillIndex + 1, trap->Cvar_VariableValue("g_gametype") == GT_SINGLE_PLAYER ? (uiInfo.redBlue == 2 ? "Blue" : "Red") : uiInfo.redBlue == 1 ? "Red" : uiInfo.redBlue == 2 ? "Blue" : "auto"));
 			}
 			else
 			{
 				trap->Cmd_ExecuteText(EXEC_APPEND,
 					va("addbot \"%s\" %i %s\n", UI_GetBotNameByNumber(uiInfo.botIndex),
-						uiInfo.skillIndex + 1, uiInfo.redBlue == 0 ? "Red" : "Blue"));
+						uiInfo.skillIndex + 1, trap->Cvar_VariableValue("g_gametype") == GT_SINGLE_PLAYER ? (uiInfo.redBlue == 2 ? "Blue" : "Red") : uiInfo.redBlue == 1 ? "Red" : uiInfo.redBlue == 2 ? "Blue" : "auto"));
 			}
 		}
 		else if (Q_stricmp(name, "addFavorite") == 0)
