@@ -170,7 +170,17 @@ int forcePowerNeeded[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		999, //FP_SEE,//duration
 		999, //FP_SABER_OFFENSE,
 		999, //FP_SABER_DEFENSE,
-		999 //FP_SABERTHROW,
+		999, //FP_SABERTHROW,
+		999, //FP_STASIS
+		999, //FP_DESTRUCTION
+		999, //FP_GRASP
+		999, //FP_REPULSE
+		999, //FP_LIGHTNING_STRIKE
+		999, //FP_FEAR
+		999, //FP_DEADLYSIGHT
+		999, //FP_BLAST
+		999, //FP_INSANITY
+		999 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	},
 	{
@@ -191,7 +201,17 @@ int forcePowerNeeded[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		20, //FP_SEE,//duration
 		0, //FP_SABER_OFFENSE,
 		2, //FP_SABER_DEFENSE,
-		20 //FP_SABERTHROW,
+		20, //FP_SABERTHROW,
+		35, //FP_STASIS
+		40, //FP_DESTRUCTION
+		1, //FP_GRASP
+		30, //FP_REPULSE
+		30, //FP_LIGHTNING_STRIKE
+		20, //FP_FEAR
+		90, //FP_DEADLYSIGHT
+		30, //FP_BLAST
+		50, //FP_INSANITY
+		20 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	},
 	{
@@ -212,7 +232,17 @@ int forcePowerNeeded[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		20, //FP_SEE,//duration
 		0, //FP_SABER_OFFENSE,
 		1, //FP_SABER_DEFENSE,
-		20 //FP_SABERTHROW,
+		20, //FP_SABERTHROW,
+		35, //FP_STASIS
+		40, //FP_DESTRUCTION
+		1, //FP_GRASP
+		30, //FP_REPULSE
+		30, //FP_LIGHTNING_STRIKE
+		20, //FP_FEAR
+		90, //FP_DEADLYSIGHT
+		30, //FP_BLAST
+		50, //FP_INSANITY
+		20 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	},
 	{
@@ -233,7 +263,17 @@ int forcePowerNeeded[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		20, //FP_SEE,//duration
 		0, //FP_SABER_OFFENSE,
 		0, //FP_SABER_DEFENSE,
-		20 //FP_SABERTHROW,
+		20, //FP_SABERTHROW,
+		35, //FP_STASIS
+		40, //FP_DESTRUCTION
+		1, //FP_GRASP
+		30, //FP_REPULSE
+		30, //FP_LIGHTNING_STRIKE
+		20, //FP_FEAR
+		90, //FP_DEADLYSIGHT
+		30, //FP_BLAST
+		50, //FP_INSANITY
+		20 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	}
 };
@@ -259,7 +299,17 @@ int forcePowerNeededlevel1[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		999, //FP_SEE,//duration
 		999, //FP_SABER_OFFENSE,
 		999, //FP_SABER_DEFENSE,
-		999 //FP_SABERTHROW,
+		999, //FP_SABERTHROW,
+		999, //FP_STASIS
+		999, //FP_DESTRUCTION
+		999, //FP_GRASP
+		999, //FP_REPULSE
+		999, //FP_LIGHTNING_STRIKE
+		999, //FP_FEAR
+		999, //FP_DEADLYSIGHT
+		999, //FP_BLAST
+		999, //FP_INSANITY
+		999 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	},
 	{
@@ -280,7 +330,17 @@ int forcePowerNeededlevel1[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		20, //FP_SEE,//duration
 		0, //FP_SABER_OFFENSE,
 		2, //FP_SABER_DEFENSE,
-		20 //FP_SABERTHROW,
+		20, //FP_SABERTHROW,
+		35, //FP_STASIS
+		40, //FP_DESTRUCTION
+		1, //FP_GRASP
+		30, //FP_REPULSE
+		30, //FP_LIGHTNING_STRIKE
+		20, //FP_FEAR
+		90, //FP_DEADLYSIGHT
+		30, //FP_BLAST
+		50, //FP_INSANITY
+		20 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	},
 	{
@@ -301,7 +361,17 @@ int forcePowerNeededlevel1[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		20, //FP_SEE,//duration
 		0, //FP_SABER_OFFENSE,
 		1, //FP_SABER_DEFENSE,
-		20 //FP_SABERTHROW,
+		20, //FP_SABERTHROW,
+		35, //FP_STASIS
+		40, //FP_DESTRUCTION
+		1, //FP_GRASP
+		30, //FP_REPULSE
+		30, //FP_LIGHTNING_STRIKE
+		20, //FP_FEAR
+		90, //FP_DEADLYSIGHT
+		30, //FP_BLAST
+		50, //FP_INSANITY
+		20 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	},
 	{
@@ -322,7 +392,17 @@ int forcePowerNeededlevel1[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		20, //FP_SEE,//duration
 		0, //FP_SABER_OFFENSE,
 		0, //FP_SABER_DEFENSE,
-		20 //FP_SABERTHROW,
+		20, //FP_SABERTHROW,
+		35, //FP_STASIS
+		40, //FP_DESTRUCTION
+		1, //FP_GRASP
+		30, //FP_REPULSE
+		30, //FP_LIGHTNING_STRIKE
+		20, //FP_FEAR
+		90, //FP_DEADLYSIGHT
+		30, //FP_BLAST
+		50, //FP_INSANITY
+		20 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	}
 };
@@ -348,7 +428,17 @@ int forcePowerNeededlevel2[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		999, //FP_SEE,//duration
 		999, //FP_SABER_OFFENSE,
 		999, //FP_SABER_DEFENSE,
-		999 //FP_SABERTHROW,
+		999, //FP_SABERTHROW,
+		999, //FP_STASIS
+		999, //FP_DESTRUCTION
+		999, //FP_GRASP
+		999, //FP_REPULSE
+		999, //FP_LIGHTNING_STRIKE
+		999, //FP_FEAR
+		999, //FP_DEADLYSIGHT
+		999, //FP_BLAST
+		999, //FP_INSANITY
+		999 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	},
 	{
@@ -369,7 +459,17 @@ int forcePowerNeededlevel2[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		20, //FP_SEE,//duration
 		0, //FP_SABER_OFFENSE,
 		2, //FP_SABER_DEFENSE,
-		20 //FP_SABERTHROW,
+		20, //FP_SABERTHROW,
+		35, //FP_STASIS
+		40, //FP_DESTRUCTION
+		1, //FP_GRASP
+		30, //FP_REPULSE
+		30, //FP_LIGHTNING_STRIKE
+		20, //FP_FEAR
+		90, //FP_DEADLYSIGHT
+		30, //FP_BLAST
+		50, //FP_INSANITY
+		20 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	},
 	{
@@ -390,7 +490,17 @@ int forcePowerNeededlevel2[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		20, //FP_SEE,//duration
 		0, //FP_SABER_OFFENSE,
 		1, //FP_SABER_DEFENSE,
-		20 //FP_SABERTHROW,
+		20, //FP_SABERTHROW,
+		35, //FP_STASIS
+		40, //FP_DESTRUCTION
+		1, //FP_GRASP
+		30, //FP_REPULSE
+		30, //FP_LIGHTNING_STRIKE
+		20, //FP_FEAR
+		90, //FP_DEADLYSIGHT
+		30, //FP_BLAST
+		50, //FP_INSANITY
+		20 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	},
 	{
@@ -411,7 +521,17 @@ int forcePowerNeededlevel2[NUM_FORCE_POWER_LEVELS][NUM_FORCE_POWERS] =
 		20, //FP_SEE,//duration
 		0, //FP_SABER_OFFENSE,
 		0, //FP_SABER_DEFENSE,
-		20 //FP_SABERTHROW,
+		20, //FP_SABERTHROW,
+		35, //FP_STASIS
+		40, //FP_DESTRUCTION
+		1, //FP_GRASP
+		30, //FP_REPULSE
+		30, //FP_LIGHTNING_STRIKE
+		20, //FP_FEAR
+		90, //FP_DEADLYSIGHT
+		30, //FP_BLAST
+		50, //FP_INSANITY
+		20 //FP_BLINDING
 		//NUM_FORCE_POWERS
 	}
 };
@@ -6170,6 +6290,79 @@ static qboolean PM_AdjustAngleForWallJump(playerState_t* ps, usercmd_t* ucmd, co
 //distance at which the animation grabs the ledge
 #define LEDGEHOROFFSET			22.3
 
+//ledge grab size compensation:
+//cg_players scales the model about the entity origin and then raises it by 24 * (scale - 1) so the feet stay on
+//the bbox floor (origin - 24).  A point that is h above the origin on a normal size model therefore ends up
+//(h + 24) * scale - 24 above the origin, and a point d in front of it ends up d * scale in front of it.
+//The ledge offsets above are the hand position of the normal size model, so they are converted the same way.
+//The scale is ps->iModelScale (percent, 0 = normal; bots: botclass scale, NPCs: npc file "scale"), which is in the
+//playerState so the server and the client prediction compute the same positions.
+#define LEDGEMODELFEETOFFSET	24.0f
+
+static float PM_LedgeModelScale(void)
+{
+	float scale;
+
+	if (pm->ps->iModelScale <= 0 || pm->ps->iModelScale == 100)
+	{
+		//not scaled
+		return 1.0f;
+	}
+	scale = pm->ps->iModelScale / 100.0f;
+
+	if (scale < 0.1f)
+	{
+		return 0.1f;
+	}
+	if (scale > 4.0f)
+	{
+		return 4.0f;
+	}
+	return scale;
+}
+
+//height above the origin of a point that is height above the origin on a normal size model
+static float PM_LedgeScaledHeight(const float height)
+{
+	const float scale = PM_LedgeModelScale();
+
+	if (scale == 1.0f)
+	{
+		return height;
+	}
+	return (height + LEDGEMODELFEETOFFSET) * scale - LEDGEMODELFEETOFFSET;
+}
+
+//horizontal distance from the wall at which the scaled model's hands are on the ledge (never inside the bbox)
+static float PM_LedgeScaledHorOffset(void)
+{
+	const float scale = PM_LedgeModelScale();
+	float min_offset, offset;
+
+	if (scale == 1.0f)
+	{
+		return LEDGEHOROFFSET;
+	}
+	min_offset = pm->maxs[0] + 1.0f;
+	offset = LEDGEHOROFFSET * scale;
+	return offset < min_offset ? min_offset : offset;
+}
+
+//how far in front of us the ledge may be (bigger models reach further)
+static float PM_LedgeScaledDistance(void)
+{
+	const float scale = PM_LedgeModelScale();
+	return scale > 1.0f ? LEDGEGRABDISTANCE * scale : LEDGEGRABDISTANCE;
+}
+
+//vertical climb speed factor for the pull up (bigger models have further to climb; smaller ones keep the normal
+//speed so they also get up when the old, unscaled hang position had to be used)
+static float PM_LedgeClimbScale(void)
+{
+	const float scale = PM_LedgeModelScale();
+	return scale > 1.0f ? scale : 1.0f;
+}
+
 //lets go of a ledge
 static void BG_LetGoofLedge(playerState_t* ps)
 {
@@ -6223,7 +6416,7 @@ static void PM_SetVelocityforLedgeMove(playerState_t* ps, const int anim)
 		{
 			VectorSet(fwdAngles, 0, pm->ps->viewangles[YAW], 0);
 			AngleVectors(fwdAngles, NULL, NULL, moveDir);
-			VectorScale(moveDir, 90, moveDir);
+			VectorScale(moveDir, 90 * PM_LedgeClimbScale(), moveDir); //scaled models climb further
 			VectorCopy(moveDir, ps->velocity);
 		}
 		else if (animationpoint > .8 && animationpoint < .925)
@@ -6278,9 +6471,14 @@ static void PM_AdjustAngleForWallGrab(playerState_t* ps, usercmd_t* ucmd)
 			VectorNormalize(fwd);
 
 			VectorCopy(ps->origin, traceFrom);
-			traceFrom[2] += LEDGEGRABHEIGHT - 1;
+			{
+				//scaled models hang at their scaled hand height (or at the normal one if that spot was blocked
+				//when grabbing), so check just below the lower of the two - it is below the ledge in both cases
+				const float scaled_height = PM_LedgeScaledHeight(LEDGEGRABHEIGHT);
+				traceFrom[2] += (scaled_height < LEDGEGRABHEIGHT ? scaled_height : LEDGEGRABHEIGHT) - 1;
+			}
 
-			VectorMA(traceFrom, LEDGEGRABDISTANCE, fwd, traceTo);
+			VectorMA(traceFrom, PM_LedgeScaledDistance(), fwd, traceTo);
 
 			pm->trace(&trace, traceFrom, NULL, NULL, traceTo, ps->clientNum, pm->tracemask);
 
@@ -6784,6 +6982,18 @@ static qboolean pm_check_jump(void)
 		}
 	}
 
+	if (isPlayer && pm->gametype != GT_SIEGE && BG_ClassCantJump(pm->ps->botclass))
+	{
+		// MovieDuels (port of SJE MP): as SP PM_GentCantJump (gonk, protocol droid, R2/R5)
+		return qfalse;
+	}
+
+	if (pm_entSelf && BG_AnimSetCantJump(pm_entSelf->localAnimIndex))
+	{
+		// no jump anim on this skeleton (galak_mech, mark1...): no jump; the press plays a taunt (G_NoJumpTaunt)
+		return qfalse;
+	}
+
 	if (pm->ps->forceHandExtend == HANDEXTEND_KNOCKDOWN ||
 		pm->ps->forceHandExtend == HANDEXTEND_PRETHROWN ||
 		pm->ps->forceHandExtend == HANDEXTEND_POSTTHROWN)
@@ -6939,11 +7149,11 @@ static qboolean pm_check_jump(void)
 		pm->ps->fd.forceJumpZStart = 0;
 	}
 
-	if (pm_entSelf->s.botclass == BCLASS_BOBAFETT ||
+	if (pm_entSelf && (pm_entSelf->s.botclass == BCLASS_BOBAFETT ||
 		pm_entSelf->s.botclass == BCLASS_JANGO_NOJP ||
 		pm_entSelf->s.botclass == BCLASS_MANDOLORIAN ||
 		pm_entSelf->s.botclass == BCLASS_MANDOLORIAN1 ||
-		pm_entSelf->s.botclass == BCLASS_MANDOLORIAN2)
+		pm_entSelf->s.botclass == BCLASS_MANDOLORIAN2))
 	{
 		//player playing as boba fett
 		if (pm->cmd.upmove > 0 && pm->ps->jetpackFuel > 10)
@@ -8014,11 +8224,26 @@ static qboolean LedgeTrace(trace_t* trace, vec3_t dir, float* lerpup, float* ler
 {
 	//scan for for a ledge in the given direction
 	vec3_t traceTo, traceFrom, wallangles;
-	VectorMA(pm->ps->origin, LEDGEGRABDISTANCE, dir, traceTo);
+	//the grab heights are where the hands are; scale them with the model (normal size: unchanged).
+	//Bigger models keep the normal lowest grab height so they can still grab ledges at chest height
+	//(they hang lower then, or as before if their body does not fit below the ledge).
+	float grab_min_height = PM_LedgeScaledHeight(LEDGEGRABMINHEIGHT);
+	float grab_max_height = PM_LedgeScaledHeight(LEDGEGRABMAXHEIGHT);
+
+	if (grab_min_height > LEDGEGRABMINHEIGHT)
+	{
+		grab_min_height = LEDGEGRABMINHEIGHT;
+	}
+	if (grab_max_height - grab_min_height < LEDGEGRABMAXHEIGHT - LEDGEGRABMINHEIGHT)
+	{
+		//small models keep the normal size search window so they still find ledges
+		grab_max_height = grab_min_height + (LEDGEGRABMAXHEIGHT - LEDGEGRABMINHEIGHT);
+	}
+	VectorMA(pm->ps->origin, PM_LedgeScaledDistance(), dir, traceTo);
 	VectorCopy(pm->ps->origin, traceFrom);
 
-	traceFrom[2] += LEDGEGRABMINHEIGHT;
-	traceTo[2] += LEDGEGRABMINHEIGHT;
+	traceFrom[2] += grab_min_height;
+	traceTo[2] += grab_min_height;
 
 	pm->trace(trace, traceFrom, NULL, NULL, traceTo, pm->ps->clientNum, pm->tracemask);
 
@@ -8029,7 +8254,7 @@ static qboolean LedgeTrace(trace_t* trace, vec3_t dir, float* lerpup, float* ler
 
 		VectorCopy(traceTo, traceFrom);
 
-		traceFrom[2] += LEDGEGRABMAXHEIGHT - LEDGEGRABMINHEIGHT;
+		traceFrom[2] += grab_max_height - grab_min_height;
 
 		pm->trace(trace, traceFrom, NULL, NULL, traceTo, pm->ps->clientNum, pm->tracemask);
 
@@ -8047,7 +8272,8 @@ static qboolean LedgeTrace(trace_t* trace, vec3_t dir, float* lerpup, float* ler
 		return qfalse;
 	}
 	VectorCopy(trace->endpos, traceTo);
-	*lerpup = trace->endpos[2] - pm->ps->origin[2] - LEDGEVERTOFFSET;
+	//hang so the (scaled) model's hands are on the ledge
+	*lerpup = trace->endpos[2] - pm->ps->origin[2] - PM_LedgeScaledHeight(LEDGEVERTOFFSET);
 
 	VectorCopy(pm->ps->origin, traceFrom);
 	traceTo[2] -= 1;
@@ -8065,7 +8291,7 @@ static qboolean LedgeTrace(trace_t* trace, vec3_t dir, float* lerpup, float* ler
 		return qfalse;
 	}
 
-	*lerpfwd = Distance(trace->endpos, traceFrom) - LEDGEHOROFFSET;
+	*lerpfwd = Distance(trace->endpos, traceFrom) - PM_LedgeScaledHorOffset();
 	*lerpyaw = vectoyaw(trace->plane.normal) + 180;
 	return qtrue;
 }
@@ -8240,6 +8466,17 @@ static void PM_CheckGrab(void)
 
 	//check to see if we can actually latch to that position.
 	pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, traceTo, pm->ps->clientNum, MASK_PLAYERSOLID);
+	if ((trace.fraction != 1 || trace.startsolid) && PM_LedgeModelScale() != 1.0f)
+	{
+		//the size compensated hang position is blocked, try the normal size one instead
+		lerpup += PM_LedgeScaledHeight(LEDGEVERTOFFSET) - LEDGEVERTOFFSET;
+		lerpfwd += PM_LedgeScaledHorOffset() - LEDGEHOROFFSET;
+
+		VectorMA(pm->ps->origin, lerpfwd, checkDir, traceTo);
+		traceTo[2] += lerpup;
+
+		pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, traceTo, pm->ps->clientNum, MASK_PLAYERSOLID);
+	}
 	if (trace.fraction != 1 || trace.startsolid)
 	{
 		return;
@@ -9529,6 +9766,12 @@ static void PM_AirMove(void)
 		}
 	}
 
+	// MovieDuels: charging Force Repulse floats in place (PM_RepulseHover): the air dash / jump / wall-run checks above put
+	// the run speed back on along the old moving direction, and he slid across the map while charging
+	if (pm->ps->fd.forcePowersActive & 1 << FP_REPULSE && pm->ps->stats[STAT_HEALTH] > 0 && !pm->ps->m_iVehicleNum)
+	{
+		pm->ps->velocity[0] = pm->ps->velocity[1] = 0.0f;
+	}
 	if (pm->ps->pm_flags & PMF_STUCK_TO_WALL)
 	{
 		//no grav when stuck to wall
@@ -9557,7 +9800,8 @@ static void PM_JetPackAnim(void)
 {
 	int anim = BOTH_FORCEJUMP1;
 
-	if (!PM_Bobaspecialanim(pm->ps->torsoAnim))
+	// a finished special anim (shots are in the list) no longer blocks the flight anims (as SP: one-frame flash after shots)
+	if (!PM_Bobaspecialanim(pm->ps->torsoAnim) || pm->ps->torsoTimer <= 0)
 	{
 		if (pm->cmd.rightmove > 0)
 		{
@@ -9679,8 +9923,9 @@ static void PM_JetPackAnim(void)
 			// two-handed gun: legs only, the torso holds the gun's ready pose (shots and aiming play their own anim)
 			parts = SETANIM_LEGS;
 
+			// also once the shot's torso anim has run out while weaponTime still counts down (as SP)
 			if (!jet_aiming
-				&& pm->ps->weaponTime <= 0
+				&& (pm->ps->weaponTime <= 0 || pm->ps->torsoTimer <= 0)
 				&& BG_UnstyleAnim(pm->ps->torsoAnim) != BOTH_FLAMETHROWER)
 			{
 				if (BG_UnstyleAnim(pm->ps->torsoAnim) != TORSO_WEAPONREADY3
@@ -10700,11 +10945,11 @@ static void PM_CrashLand(void)
 		}
 		else if (pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD)
 		{
-			PM_StartTorsoAnim(SBD_WEAPON_STANDING);
+			PM_StartTorsoAnim(TORSO_WEAPONREADY2);
 		}
 		else if (pm->ps->weapon == WP_BRYAR_OLD)
 		{
-			PM_StartTorsoAnim(SBD_WEAPON_STANDING);
+			PM_StartTorsoAnim(TORSO_WEAPONREADY2);
 		}
 		else
 		{
@@ -12018,6 +12263,23 @@ static void PM_CheckDuck(void)
 	{
 		pm->maxs[2] = pm->ps->standheight; //DEFAULT_MAXS_2;
 		pm->ps->viewheight = DEFAULT_VIEWHEIGHT;
+	}
+
+	// MovieDuels (port of SJE MP): creature/droid player classes: the width of their SP .npc file and a view height from
+	// their own height (as SP: viewheight = standheight / crouchheight + STANDARD_VIEWHEIGHT_OFFSET; the heights come
+	// from ClientSpawn, ps.standheight / ps.crouchheight). From ps.botclass, so server and client prediction agree.
+	if (pm->ps->clientNum < MAX_CLIENTS && pm->gametype != GT_SIEGE)
+	{
+		float halfWidth;
+		int standheight, crouchheight;
+
+		if (BG_ClassCreatureSize(pm->ps->botclass, &halfWidth, &standheight, &crouchheight))
+		{
+			pm->mins[0] = pm->mins[1] = -halfWidth;
+			pm->maxs[0] = pm->maxs[1] = halfWidth;
+			pm->ps->viewheight = (pm->ps->pm_flags & PMF_DUCKED ? pm->ps->crouchheight : pm->ps->standheight) +
+				STANDARD_VIEWHEIGHT_OFFSET;
+		}
 	}
 }
 
@@ -13376,6 +13638,22 @@ static qboolean PM_MoveClass(const int npcClass, const int botClass)
 	return botClass >= 0 && pm_entSelf->s.botclass == botClass ? qtrue : qfalse;
 }
 
+// Is this the wampa / rancor (an NPC of that class or bot class, as before)? MovieDuels (port of SJE MP): also a player
+// or bot of that botclass drawn on the creature's own skeleton, so the SP creature stand / turn anims work for them too.
+static qboolean PM_IsCreatureOf(const int npcClass, const int botClass)
+{
+	if (!pm_entSelf)
+	{
+		return qfalse;
+	}
+	if (pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		return pm_entSelf->s.NPC_class == npcClass || pm_entSelf->s.botclass == botClass ? qtrue : qfalse;
+	}
+	return pm->gametype != GT_SIEGE && pm->ps->botclass == botClass &&
+		!BG_AnimSetIsHumanoidLike(pm_entSelf->localAnimIndex) ? qtrue : qfalse;
+}
+
 // SP: clientNum >= MAX_CLIENTS && !PM_ControlledByPlayer()
 static qboolean PM_MoveIsNPC(void)
 {
@@ -13671,64 +13949,6 @@ static int PM_SPGetRunAnim(void)
 	// Retrieve animation-style flags
 	const animFlags_t flags = PM_Animationstyletable();
 
-	// Safety
-	if (pm == NULL ||
-		pm->ps == NULL ||
-		qfalse)
-	{
-		if (PM_ANIMSTYLE_ACTIVE)
-		{
-			if (flags.isAnakin == qtrue)
-			{
-				return BOTH_RUN1_ANI;
-			}
-			else if (flags.isBenKenobi == qtrue)
-			{
-				return BOTH_RUN1_BEN;
-			}
-			else if (flags.isYoda == qtrue)
-			{
-				return BOTH_RUN1_YODA;
-			}
-			else if (flags.isVader == qtrue)
-			{
-				return BOTH_RUN1_VADER;
-			}
-			else if (flags.isPalpatine == qtrue)
-			{
-				return BOTH_RUN1_PAL;
-			}
-			else if (flags.isMaul == qtrue)
-			{
-				return BOTH_RUN1_MAUL;
-			}
-			else if (flags.isObiWanEP3 == qtrue)
-			{
-				return BOTH_RUN1_OBI3;
-			}
-			else if (flags.isRey == qtrue)
-			{
-				return BOTH_RUN1_REY;
-			}
-			else if (flags.isBattleDroid == qtrue)
-			{
-				return BOTH_RUN1_BDROID;
-			}
-			else if (flags.isGrievous == qtrue)
-			{
-				return BOTH_RUN1_GRIEV;
-			}
-			else
-			{
-				return BOTH_RUN1;
-			}
-		}
-		else
-		{
-			return BOTH_RUN1;
-		}
-	}
-
 	// If saber is being drawn or put away, always use BOTH_RUN1
 	if (PM_SaberDrawPutawayAnim(pm->ps->torsoAnim) || (BG_SabersOff(pm->ps)))
 	{
@@ -13930,10 +14150,7 @@ static int PM_SPGetWalkWithSaberOnAnim(const qboolean is_holding_block_button)
 	const animFlags_t flags = PM_Animationstyletable();
 	const qboolean realisticBlocking = PM_RealisticBlocking();
 
-	if (pm == NULL ||
-		pm->ps == NULL ||
-		qfalse ||
-		PM_SaberDrawPutawayAnim(pm->ps->torsoAnim))
+	if (PM_SaberDrawPutawayAnim(pm->ps->torsoAnim))
 	{
 		if (PM_ANIMSTYLE_ACTIVE)
 		{
@@ -14848,6 +15065,39 @@ static int PM_SPWalkForwardAnim(const qboolean is_holding_block_button)
 }
 
 // Legs as MP did (slope transitions), the torso follows like SP's torso code while the weapon isn't busy
+#ifdef _GAME
+extern void NPC_SetSurfaceOnOff(gentity_t* ent, const char* surfaceName, int surfaceFlags); //NPC_utils.c
+#endif
+extern void PM_DekaSyncTorso(void); //bg_panimate.c
+
+// as SP (TurnBarrierOff when the roll starts): a rolling droideka player / bot has no shield. As in SP, TurnBarrierOff
+// does nothing for a droideka NPC (droideka_npc / Droideka_IsNPC): its shield only follows its own timers
+// (Droideka_ShieldUpdate, NPC_AI_AssassinDroid.c), rolling or not.
+static void PM_DroidekaShieldOff(void)
+{
+#ifdef _GAME
+	gentity_t* self = &g_entities[pm->ps->clientNum];
+
+	if (self->NPC && self->s.weapon == WP_DROIDEKA && pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		return;
+	}
+	if (self->flags & FL_SHIELDED || pm->ps->powerups[PW_GALAK_SHIELD])
+	{
+		self->flags &= ~FL_SHIELDED;
+		pm->ps->powerups[PW_GALAK_SHIELD] = 0;
+		if (self->NPC)
+		{
+			NPC_SetSurfaceOnOff(self, "force_shield", 0x00000100); // TURN_OFF
+		}
+	}
+	if (self->NPC)
+	{
+		TIMER_Set(self, "ShieldsDown", 1000);
+	}
+#endif
+}
+
 static void PM_SetSPMoveAnim(const int anim, const int setAnimFlags, const qboolean torsoFollows)
 {
 	const int ires = PM_LegsSlopeBackTransition(anim);
@@ -14901,12 +15151,7 @@ static void PM_Footsteps(void)
 	}
 
 	// trying to move laterally
-	if (pm->ps->clientNum >= MAX_CLIENTS &&
-		pm_entSelf &&
-		(pm_entSelf->s.NPC_class == CLASS_RANCOR ||
-			pm_entSelf->s.botclass == BCLASS_RANCOR ||
-			pm_entSelf->s.NPC_class == CLASS_WAMPA ||
-			pm_entSelf->s.botclass == BCLASS_WAMPA))
+	if (PM_IsCreatureOf(CLASS_RANCOR, BCLASS_RANCOR) || PM_IsCreatureOf(CLASS_WAMPA, BCLASS_WAMPA))
 	{
 		// Rancor & Wampa: only override turn anims on legs (no torso)
 		if (pm->ps->legsAnim == BOTH_TURN_LEFT1 ||
@@ -14991,9 +15236,7 @@ static void PM_Footsteps(void)
 		{
 			pm->ps->bobCycle = 0; // start at beginning of cycle again
 
-			if (pm->ps->clientNum >= MAX_CLIENTS &&
-				pm_entSelf &&
-				(pm_entSelf->s.NPC_class == CLASS_RANCOR || pm_entSelf->s.botclass == BCLASS_RANCOR))
+			if (PM_IsCreatureOf(CLASS_RANCOR, BCLASS_RANCOR))
 			{
 				if (pm->ps->eFlags2 & EF2_USE_ALT_ANIM)
 				{//holding someone
@@ -15008,10 +15251,7 @@ static void PM_Footsteps(void)
 					PM_ContinueLegsAnim(BOTH_STAND1);
 				}
 			}
-			else if (pm->ps->clientNum >= MAX_CLIENTS &&
-				pm_entSelf &&
-				(pm_entSelf->s.NPC_class == CLASS_WAMPA ||
-					pm_entSelf->s.botclass == BCLASS_WAMPA))
+			else if (PM_IsCreatureOf(CLASS_WAMPA, BCLASS_WAMPA))
 			{
 				if (pm->ps->eFlags2 & EF2_USE_ALT_ANIM)
 				{//holding a victim
@@ -15021,6 +15261,12 @@ static void PM_Footsteps(void)
 				{//not holding a victim
 					PM_ContinueLegsAnim(BOTH_STAND1);
 				}
+			}
+			else if (PM_MoveClass(CLASS_DROIDEKA, BCLASS_DROIDEKA) &&
+				(pm->ps->legsAnim == BOTH_RUN1 || pm->ps->legsAnim == BOTH_RUNBACK1 ||
+					(pm->ps->legsAnim == BOTH_RUN1START && pm->ps->legsTimer <= 0)))
+			{// stopping from a roll: unfold first (SP BOTH_RUN1STOP), the stand pose follows when it is done
+				PM_SetAnim(SETANIM_LEGS, BOTH_RUN1STOP, setAnimFlags | SETANIM_FLAG_HOLD);
 			}
 			else if (pm->ps->pm_flags & PMF_DUCKED || pm->ps->pm_flags & PMF_ROLLING)
 			{
@@ -15041,7 +15287,7 @@ static void PM_Footsteps(void)
 				}
 				else if (pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD || pm->ps->weapon == WP_BRYAR_OLD)
 				{
-					PM_ContinueLegsAnim(SBD_WEAPON_STANDING);
+					PM_ContinueLegsAnim(BOTH_STAND1);
 				}
 				else
 				{
@@ -15220,14 +15466,14 @@ static void PM_Footsteps(void)
 			bobmove = running ? 0.4f : 0.3f; // faster speeds bob faster
 
 			if (pm->ps->weapon == WP_BRYAR_OLD || PM_MoveClass(CLASS_SBD, BCLASS_SBD))
-			{// MP's own SBD animations
+			{// as SP: the SBD plays the plain JKA run/walk anims (its own skeleton has no SBD_* anims)
 				if (running)
 				{
-					anim = backwards ? SBD_RUNBACK_WEAPON : SBD_RUNING_WEAPON;
+					anim = backwards ? BOTH_RUNBACK1 : BOTH_RUN1;
 				}
 				else
 				{
-					anim = backwards ? SBD_WALKBACK_NORMAL : SBD_WALK_WEAPON;
+					anim = backwards ? BOTH_WALKBACK1 : BOTH_WALK1;
 				}
 				PM_RemoveSprintFlag(qtrue);
 			}
@@ -15242,15 +15488,45 @@ static void PM_Footsteps(void)
 				torsoFollows = qfalse;
 			}
 			else if (PM_MoveClass(CLASS_DROIDEKA, BCLASS_DROIDEKA))
-			{
+			{// as SP: fold into the ball (BOTH_RUN1START, shield off) before rolling, unfold (BOTH_RUN1STOP) before walking
+				const int legsAnim = pm->ps->legsAnim;
+				const qboolean rolledUp = legsAnim == BOTH_RUN1 || legsAnim == BOTH_RUNBACK1 ? qtrue : qfalse;
+
 				if (running)
 				{
 					anim = backwards ? BOTH_RUNBACK1 : BOTH_RUN1;
+					if (!rolledUp)
+					{
+						if (legsAnim != BOTH_RUN1START)
+						{
+							PM_SetAnim(SETANIM_LEGS, BOTH_RUN1START, setAnimFlags | SETANIM_FLAG_HOLD);
+							PM_DroidekaShieldOff();
+							anim = -1;
+						}
+						else if (pm->ps->legsTimer > 0)
+						{
+							anim = -1; // still folding up
+						}
+					}
+					if (anim >= 0)
+					{
+						PM_DroidekaShieldOff(); // no shield while rolling
+					}
 				}
 				else
 				{
 					anim = backwards ? BOTH_WALKBACK1 : BOTH_WALK1;
+					if (rolledUp || (legsAnim == BOTH_RUN1START && pm->ps->legsTimer <= 0))
+					{
+						PM_SetAnim(SETANIM_LEGS, BOTH_RUN1STOP, setAnimFlags | SETANIM_FLAG_HOLD);
+						anim = -1;
+					}
+					else if ((legsAnim == BOTH_RUN1STOP || legsAnim == BOTH_RUN1START) && pm->ps->legsTimer > 0)
+					{
+						anim = -1; // still unfolding (or folding up)
+					}
 				}
+				torsoFollows = qfalse; // PM_DekaSyncTorso keeps the torso on the ball anims; walking keeps the weapon pose
 			}
 			else if (backwards)
 			{
@@ -15291,7 +15567,10 @@ static void PM_Footsteps(void)
 				}
 			}
 
-			PM_SetSPMoveAnim(anim, setAnimFlags, torsoFollows);
+			if (anim >= 0)
+			{
+				PM_SetSPMoveAnim(anim, setAnimFlags, torsoFollows);
+			}
 
 #ifdef _GAME
 			if (!running && !Q_irand(0, 9))
@@ -16956,6 +17235,19 @@ static qboolean PM_InWallRunAnim(const int anim)
 		|| anim == BOTH_WALL_RUN_RIGHT_FLIP || anim == BOTH_WALL_RUN_LEFT_FLIP ? qtrue : qfalse;
 }
 
+// The two-handed push on the ground (no weapon, melee or sabers off). SP ForceThrow plays BOTH_DUAL_PUSH there and
+// Galen Marek's own BOTH_DUAL_PUSH_GALEN with the animation styles on; MP plays BOTH_2HANDPUSH, so only the Galen
+// style gets his version here (when the anim set has it).
+static int PM_TwoHandedPushAnim(void)
+{
+	if (PM_ANIMSTYLE_ACTIVE && PM_Animationstyletable().isGalenMarek
+		&& pm->animations && pm->animations[BOTH_DUAL_PUSH_GALEN].numFrames > 0)
+	{
+		return BOTH_DUAL_PUSH_GALEN;
+	}
+	return BOTH_2HANDPUSH;
+}
+
 static void PM_Weapon(void)
 {
 	int addTime;
@@ -16983,7 +17275,7 @@ static void PM_Weapon(void)
 	{ //npc with no weapon
 		gentity_t* gent = (gentity_t*)pm_entSelf;
 		if (gent->inuse && gent->client &&
-			!gent->localAnimIndex)
+			BG_AnimSetIsHumanoid(gent->localAnimIndex))
 		{ //humanoid
 			pm->ps->torsoAnim = pm->ps->legsAnim;
 			pm->ps->torsoTimer = pm->ps->legsTimer;
@@ -17105,11 +17397,11 @@ static void PM_Weapon(void)
 			}
 			else if (pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD)
 			{
-				PM_StartTorsoAnim(SBD_WEAPON_OUT_STANDING);
+				PM_StartTorsoAnim(BOTH_ATTACK2);
 			}
 			else if (pm->ps->weapon == WP_BRYAR_OLD)
 			{
-				PM_StartTorsoAnim(SBD_WEAPON_OUT_STANDING);
+				PM_StartTorsoAnim(BOTH_ATTACK2);
 			}
 			else
 			{
@@ -17155,7 +17447,7 @@ static void PM_Weapon(void)
 				}
 				else
 				{
-					desiredAnim = BOTH_2HANDPUSH;
+					desiredAnim = PM_TwoHandedPushAnim();
 
 					pm->ps->powerups[PW_FORCE_PUSH_RHAND] = pm->cmd.serverTime + pm->ps->torsoTimer + 1000;
 				}
@@ -17394,7 +17686,7 @@ static void PM_Weapon(void)
 				}
 				else
 				{
-					desiredAnim = BOTH_2HANDPUSH;
+					desiredAnim = PM_TwoHandedPushAnim();
 				}
 			}
 			else
@@ -17984,7 +18276,7 @@ static void PM_Weapon(void)
 				}
 				else if ((pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD) || (pm->ps->weapon == WP_BRYAR_OLD))
 				{ // set SBD anims
-					PM_StartTorsoAnim(SBD_WEAPON_STANDING);
+					PM_StartTorsoAnim(TORSO_WEAPONREADY2);
 				}
 				else
 				{
@@ -18205,17 +18497,33 @@ static void PM_Weapon(void)
 			PM_StartTorsoAnim(BOTH_ATTACK3);
 		}
 	}
+	else if (pm->ps->clientNum < MAX_CLIENTS && pm_entSelf && pm->gametype != GT_SIEGE &&
+		!BG_AnimSetIsHumanoidLike(pm_entSelf->localAnimIndex) &&
+		BG_ClassCreatureAttackAnim(pm->ps->botclass, pm->ps->weapon, pm->cmd.buttons & BUTTON_ALT_ATTACK ? qtrue : qfalse) != -1)
+	{
+		// MovieDuels (port of SJE MP): creature / droid players attack with the whole-body anims their SP AI plays (wampa
+		// slash / backhand, rancor smash / bite, howler lunge / tongue, mine monster bites, R2 stun zap); the hit itself is
+		// the usual melee / stun trace (FireWeapon), and the next attack waits for the anim
+		const int attackAnim = BG_ClassCreatureAttackAnim(pm->ps->botclass, pm->ps->weapon,
+			pm->cmd.buttons & BUTTON_ALT_ATTACK ? qtrue : qfalse);
+
+		PM_SetAnim(SETANIM_BOTH, attackAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART);
+		if (pm->ps->torsoAnim == attackAnim && pm->ps->torsoTimer > 0)
+		{
+			pm->ps->weaponTime = pm->ps->torsoTimer;
+		}
+	}
 	else if (pm->ps->weapon == WP_DISRUPTOR && pm->ps->zoomMode == 1)
 	{
 		PM_StartTorsoAnim(BOTH_ATTACK4);
 	}
 	else if (pm_entSelf && pm_entSelf->s.botclass == BCLASS_SBD)
 	{
-		PM_StartTorsoAnim(SBD_WEAPON_OUT_STANDING);
+		PM_StartTorsoAnim(BOTH_ATTACK2);
 	}
 	else if (pm->ps->weapon == WP_BRYAR_OLD)
 	{
-		PM_StartTorsoAnim(SBD_WEAPON_OUT_STANDING);
+		PM_StartTorsoAnim(BOTH_ATTACK2);
 	}
 	else if (pm->ps->weapon == WP_MELEE)
 	{
@@ -20576,6 +20884,7 @@ static qboolean BG_ClassHasBadBones(const int NPC_class)
 	case CLASS_SABER_DROID:
 	case CLASS_HAZARD_TROOPER:
 	case CLASS_ASSASSIN_DROID:
+	case CLASS_DROIDEKA: // as SP (g_client.cpp)
 	case CLASS_RANCOR:
 		return qtrue;
 	default:;
@@ -20593,6 +20902,7 @@ static void BG_BoneOrientationsForClass(const int NPC_class, const char* boneNam
 	//switch off class
 	switch (NPC_class)
 	{
+	case CLASS_DROIDEKA: // as SP (g_client.cpp)
 	case CLASS_RANCOR:
 		if (Q_stricmp("pelvis", boneName) == 0
 			|| Q_stricmp("lower_lumbar", boneName) == 0
@@ -20732,11 +21042,11 @@ static void BG_UpdateLookAngles(const int lookingDebounceTime, vec3_t lastHeadAn
 static void BG_G2ClientNeckAngles(void* ghoul2, const int time, const vec3_t lookAngles, vec3_t headAngles,
 	vec3_t neckAngles,
 	vec3_t thoracicAngles, vec3_t headClampMinAngles, vec3_t headClampMaxAngles,
-	const entityState_t* cent)
+	const entityState_t* cent, const int skelClass)
 {
 	vec3_t lA;
 
-	if (cent->NPC_class == CLASS_HAZARD_TROOPER)
+	if (skelClass == CLASS_HAZARD_TROOPER)
 	{
 		//don't use upper bones
 		return;
@@ -20771,7 +21081,7 @@ static void BG_G2ClientNeckAngles(void* ghoul2, const int time, const vec3_t loo
 		lA[ROLL] = headClampMaxAngles[ROLL];
 	}
 
-	if (cent->NPC_class == CLASS_ASSASSIN_DROID)
+	if (skelClass == CLASS_ASSASSIN_DROID)
 	{
 		//each bone has only 1 axis of rotation!
 		//thoracic only pitches, split with cervical
@@ -20795,7 +21105,7 @@ static void BG_G2ClientNeckAngles(void* ghoul2, const int time, const vec3_t loo
 		headAngles[ROLL] = 0.0f;
 		//no bones roll
 	}
-	else if (cent->NPC_class == CLASS_SABER_DROID)
+	else if (skelClass == CLASS_SABER_DROID)
 	{
 		//each bone has only 1 axis of rotation!
 		//no thoracic
@@ -20864,27 +21174,27 @@ static void BG_G2ClientNeckAngles(void* ghoul2, const int time, const vec3_t loo
 		}
 	}
 
-	if (BG_ClassHasBadBones(cent->NPC_class))
+	if (BG_ClassHasBadBones(skelClass))
 	{
 		int oUp, oRt, oFwd;
-		if (cent->NPC_class != CLASS_RANCOR)
+		if (skelClass != CLASS_RANCOR)
 		{
 			//Rancor doesn't use cranium and cervical
-			BG_BoneOrientationsForClass(cent->NPC_class, "cranium", &oUp, &oRt, &oFwd);
+			BG_BoneOrientationsForClass(skelClass, "cranium", &oUp, &oRt, &oFwd);
 			trap->G2API_SetBoneAngles(ghoul2, 0, "cranium", headAngles, BONE_ANGLES_POSTMULT, oUp, oRt, oFwd, 0, 0,
 				time);
-			BG_BoneOrientationsForClass(cent->NPC_class, "cervical", &oUp, &oRt, &oFwd);
+			BG_BoneOrientationsForClass(skelClass, "cervical", &oUp, &oRt, &oFwd);
 			trap->G2API_SetBoneAngles(ghoul2, 0, "cervical", neckAngles, BONE_ANGLES_POSTMULT, oUp, oRt, oFwd, 0, 0,
 				time);
 		}
-		if (cent->NPC_class != CLASS_SABER_DROID)
+		if (skelClass != CLASS_SABER_DROID)
 		{
 			//saber droid doesn't use thoracic
-			if (cent->NPC_class == CLASS_RANCOR)
+			if (skelClass == CLASS_RANCOR)
 			{
 				thoracicAngles[YAW] = thoracicAngles[ROLL] = 0.0f;
 			}
-			BG_BoneOrientationsForClass(cent->NPC_class, "thoracic", &oUp, &oRt, &oFwd);
+			BG_BoneOrientationsForClass(skelClass, "thoracic", &oUp, &oRt, &oFwd);
 			trap->G2API_SetBoneAngles(ghoul2, 0, "thoracic", thoracicAngles, BONE_ANGLES_POSTMULT, oUp, oRt, oFwd, 0, 0,
 				time);
 		}
@@ -21188,7 +21498,7 @@ void BG_G2PlayerAngles(void* ghoul2, const int motionBolt, entityState_t* cent, 
 	qboolean* tPitching, qboolean* lYawing, float* tYawAngle, float* tPitchAngle,
 	float* lYawAngle, const int frametime, vec3_t turAngles, vec3_t modelScale, const int ciLegs,
 	const int ciTorso, int* corrTime, vec3_t lookAngles, vec3_t lastHeadAngles, const int lookTime,
-	const entityState_t* emplaced, int* crazySmoothFactor, int ManualBlockingFlags)
+	const entityState_t* emplaced, int* crazySmoothFactor, int ManualBlockingFlags, const int animIndex)
 {
 	static int dir;
 	static int i;
@@ -21206,6 +21516,9 @@ void BG_G2PlayerAngles(void* ghoul2, const int motionBolt, entityState_t* cent, 
 	static vec3_t velPos, velAng;
 	static vec3_t ulAngles, llAngles, viewAngles, angles, thoracicAngles = { 0, 0, 0 };
 	static vec3_t headClampMinAngles = { -25, -55, -10 }, headClampMaxAngles = { 50, 50, 10 };
+	// the class whose bone layout the skeleton has: NPCs their class, players / bots the skeleton they were given
+	// (rockettrooper, droideka...), as SJE
+	const int skelClass = BG_SkeletonClass(cent->NPC_class, animIndex);
 
 	if (cent->m_iVehicleNum || cent->forceFrame || PM_SaberLockBreakAnim(cent->legsAnim) || PM_SaberLockBreakAnim(
 		cent->torsoAnim))
@@ -21500,7 +21813,7 @@ void BG_G2PlayerAngles(void* ghoul2, const int motionBolt, entityState_t* cent, 
 
 				BG_G2ClientSpineAngles(ghoul2, motionBolt, cent_lerpOrigin, cent_lerpAngles, cent, time, viewAngles,
 					ciLegs, ciTorso, angles, thoracicAngles, ulAngles, llAngles, modelScale,
-					tPitchAngle, tYawAngle, corrTime, cent->NPC_class);
+					tPitchAngle, tYawAngle, corrTime, skelClass);
 				trap->G2API_SetBoneAngles(ghoul2, 0, "lower_lumbar", llAngles, BONE_ANGLES_POSTMULT, POSITIVE_X,
 					NEGATIVE_Y, NEGATIVE_Z, 0, 0, time);
 				trap->G2API_SetBoneAngles(ghoul2, 0, "upper_lumbar", ulAngles, BONE_ANGLES_POSTMULT, POSITIVE_X,
@@ -21544,7 +21857,7 @@ void BG_G2PlayerAngles(void* ghoul2, const int motionBolt, entityState_t* cent, 
 
 	BG_G2ClientSpineAngles(ghoul2, motionBolt, cent_lerpOrigin, cent_lerpAngles, cent, time,
 		viewAngles, ciLegs, ciTorso, angles, thoracicAngles, ulAngles, llAngles, modelScale,
-		tPitchAngle, tYawAngle, corrTime, cent->NPC_class);
+		tPitchAngle, tYawAngle, corrTime, skelClass);
 
 	VectorCopy(cent_lerpAngles, eyeAngles);
 
@@ -21559,7 +21872,7 @@ void BG_G2PlayerAngles(void* ghoul2, const int motionBolt, entityState_t* cent, 
 		30.0f);
 
 	BG_G2ClientNeckAngles(ghoul2, time, lookAngles, headAngles, neckAngles, thoracicAngles, headClampMinAngles,
-		headClampMaxAngles, cent);
+		headClampMaxAngles, cent, skelClass);
 
 #ifdef BONE_BASED_LEG_ANGLES
 	{
@@ -21575,18 +21888,18 @@ void BG_G2PlayerAngles(void* ghoul2, const int motionBolt, entityState_t* cent, 
 	}
 #endif
 
-	if (BG_ClassHasBadBones(cent->NPC_class))
+	if (BG_ClassHasBadBones(skelClass))
 	{
 		int oUp, oRt, oFwd;
-		if (cent->NPC_class == CLASS_RANCOR)
+		if (skelClass == CLASS_RANCOR)
 		{
 			llAngles[YAW] = llAngles[ROLL] = 0.0f;
 			ulAngles[YAW] = ulAngles[ROLL] = 0.0f;
 		}
-		BG_BoneOrientationsForClass(cent->NPC_class, "upper_lumbar", &oUp, &oRt, &oFwd);
+		BG_BoneOrientationsForClass(skelClass, "upper_lumbar", &oUp, &oRt, &oFwd);
 		trap->G2API_SetBoneAngles(ghoul2, 0, "lower_lumbar", ulAngles, BONE_ANGLES_POSTMULT, oUp, oRt, oFwd, 0, 0,
 			time);
-		BG_BoneOrientationsForClass(cent->NPC_class, "lower_lumbar", &oUp, &oRt, &oFwd);
+		BG_BoneOrientationsForClass(skelClass, "lower_lumbar", &oUp, &oRt, &oFwd);
 		trap->G2API_SetBoneAngles(ghoul2, 0, "upper_lumbar", llAngles, BONE_ANGLES_POSTMULT, oUp, oRt, oFwd, 0, 0,
 			time);
 	}
@@ -22474,6 +22787,37 @@ static void PM_MoveForKata(usercmd_t* ucmd)
 
 extern qboolean PM_InAmputateMove(int anim);
 
+// Force Repulse charge (2026-10-12, DH: as The Force Unleashed): the charging player rises smoothly (g_repulseHoverHeight)
+// off the ground and hovers there, no gravity, no walking. Here in pmove (from the networked forcePowersActive bit, which
+// in MP is set only while charging) so the client predicts the float; the push (w_force.c) clears the bit, gravity is back.
+// g_repulseHoverHeight: server cvar sent to the clients (CVAR_SYSTEMINFO) so the prediction matches; 24 - 128, default 80
+extern vmCvar_t g_repulseHoverHeight;
+static void PM_RepulseHover(void)
+{
+	trace_t tr;
+	vec3_t end;
+
+	if (!(pm->ps->fd.forcePowersActive & 1 << FP_REPULSE) || pm->ps->stats[STAT_HEALTH] <= 0 || pm->ps->m_iVehicleNum)
+	{
+		return;
+	}
+	VectorCopy(pm->ps->origin, end);
+	// MovieDuels: the feet box (pm->mins / maxs are only set later this frame, PM_CheckDuck: here they were still empty, so
+	// a player on the floor measured 24 up, rose at 68 - under the ground check's 100 kick-off - and never left the floor)
+	static const vec3_t hoverMins = { -15.0f, -15.0f, -24.0f }, hoverMaxs = { 15.0f, 15.0f, 0.0f };
+	const float hoverHeight = Com_Clamp(24.0f, 128.0f, g_repulseHoverHeight.value);
+	end[2] -= hoverHeight + 8.0f;
+	pm->trace(&tr, pm->ps->origin, hoverMins, hoverMaxs, end, pm->ps->clientNum, pm->tracemask & ~CONTENTS_BODY);
+	// (world only: a body in the box made the trace start solid, fraction 0 read as "on the floor", and he shot up for good)
+	const float height = tr.startsolid || tr.allsolid ? hoverHeight : tr.fraction * (hoverHeight + 8.0f);
+
+	pm->ps->gravity = 0;
+	pm->ps->velocity[0] = pm->ps->velocity[1] = 0.0f;
+	// up while below the hover height (slowing down as he gets there), then still
+	pm->ps->velocity[2] = height < hoverHeight ? (hoverHeight - height) * 3.0f + 20.0f : 0.0f;
+	pm->cmd.forwardmove = pm->cmd.rightmove = pm->cmd.upmove = 0;
+}
+
 static void PmoveSingle(pmove_t* pmove)
 {
 	qboolean stiffenedUp = qfalse;
@@ -23166,6 +23510,8 @@ static void PmoveSingle(pmove_t* pmove)
 
 	pml.frametime = pml.msec * 0.001;
 
+	PM_RepulseHover();
+
 	if (pm->ps->clientNum >= MAX_CLIENTS &&
 		pm_entSelf &&
 		pm_entSelf->s.NPC_class == CLASS_VEHICLE)
@@ -23797,6 +24143,8 @@ static void PmoveSingle(pmove_t* pmove)
 		//don't do this if we're on a vehicle, or we are one
 		// footstep events / legs animations
 		PM_Footsteps();
+		// a rolling droideka's torso stays on its legs anim (game code may have set another one since the last pmove)
+		PM_DekaSyncTorso();
 	}
 	else
 	{

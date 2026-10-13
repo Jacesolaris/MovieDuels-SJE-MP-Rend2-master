@@ -61,7 +61,7 @@ void RB_ShadowFinish(void)
 	GLSL_SetUniformMatrix4x4(&tr.textureColorShader[TEXCOLORDEF_SCREEN_TRIANGLE], UNIFORM_MODELVIEWPROJECTIONMATRIX, projection);
 
 	vec4i_t dstBox{};
-	vec4_t quadVerts[4]{};
+	vec4_t quadVerts[4]; // all set below; no {} (it made /analyze report a NULL dereference, C6011)
 	vec2_t texCoords[4];
 	VectorSet4(dstBox, 0, glConfig.vidHeight, glConfig.vidWidth, 0);
 

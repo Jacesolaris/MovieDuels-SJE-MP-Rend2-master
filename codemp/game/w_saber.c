@@ -1350,7 +1350,7 @@ static QINLINE void G_G2PlayerAngles(gentity_t* ent, matrix3_t legs, vec3_t legs
 	VectorCopy(ent->client->ps.origin, lerp_org);
 	VectorCopy(ent->client->ps.viewangles, lerp_ang);
 
-	if (ent->localAnimIndex <= 1)
+	if (BG_AnimSetIsHumanoidLike(ent->localAnimIndex))
 	{
 		vec3_t tur_angles;
 		//don't do these things on non-humanoids
@@ -1381,7 +1381,7 @@ static QINLINE void G_G2PlayerAngles(gentity_t* ent, matrix3_t legs, vec3_t legs
 			tur_angles,
 			ent->modelScale, ci_legs, ci_torso, &ent->client->corrTime, look_angles,
 			ent->client->lastHeadAngles,
-			ent->client->lookTime, emplaced, NULL, ent->client->ps.ManualBlockingFlags);
+			ent->client->lookTime, emplaced, NULL, ent->client->ps.ManualBlockingFlags, ent->localAnimIndex);
 
 		if (ent->client->ps.heldByClient && ent->client->ps.heldByClient <= MAX_CLIENTS)
 		{
@@ -4282,7 +4282,7 @@ static void WP_SaberClearDamage(void)
 	numVictims = 0;
 }
 
-static void wp_saber_specific_do_hit(const gentity_t* self, const int saberNum, const int bladeNum, const gentity_t* victim, vec3_t impactpoint, const int dmg)
+static void wp_saber_specific_do_hit(const gentity_t* self, const int saberNum, const int bladeNum, const gentity_t* victim, vec3_t impactpoint, const vec3_t hit_normal, const vec3_t blade_dir, const int dmg)
 {
 	qboolean is_droid = qfalse;
 
@@ -4322,7 +4322,13 @@ static void wp_saber_specific_do_hit(const gentity_t* self, const int saberNum, 
 		te->s.legsAnim = bladeNum;
 
 		VectorCopy(impactpoint, te->s.origin);
-		VectorScale(impactpoint, -1, te->s.angles);
+		// a real direction for the hit effect (it was -impactpoint, the negated world position): the surface
+		// normal of the hit, else back along the blade (the cgame only uses angles as the effect direction)
+		VectorCopy(hit_normal, te->s.angles);
+		if (!VectorNormalize(te->s.angles))
+		{
+			VectorScale(blade_dir, -1, te->s.angles);
+		}
 
 		if (!te->s.angles[0] && !te->s.angles[1] && !te->s.angles[2])
 		{
@@ -4377,6 +4383,7 @@ static vec3_t saberClashPos = { 0 };
 static vec3_t saberClashNorm = { 0 };
 static int saberClashEventParm = 1;
 static int saberClashOther = -1; //the clientNum for the other player involved in the saber clash.
+static int saberClashBlocker = ENTITYNUM_NONE; //the blocker, sent in otherentityNum for the cgame's perfect-block effect
 static QINLINE void G_SetViewLock(const gentity_t* self, vec3_t impact_pos, vec3_t impact_normal);
 static QINLINE void G_SetViewLockDebounce(const gentity_t* self);
 
@@ -4388,6 +4395,7 @@ static void WP_SaberDoClash(const gentity_t* self, const int saberNum, const int
 		VectorCopy(saberClashPos, te->s.origin);
 		VectorCopy(saberClashNorm, te->s.angles);
 		te->s.eventParm = saberClashEventParm;
+		te->s.otherentityNum = saberClashBlocker; // unused by old cgames for this event
 		te->s.otherentityNum2 = self->s.number;
 		te->s.weapon = saberNum;
 		te->s.legsAnim = bladeNum;
@@ -7144,7 +7152,18 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		saberDoClashEffect = qtrue;
 		VectorCopy(tr.endpos, saberClashPos);
 		VectorCopy(tr.plane.normal, saberClashNorm);
-		saberClashEventParm = 1;
+		saberClashBlocker = blocker->s.number;
+		// MD SP plays the good-parry effect when the blocker's block points (mode 1) or force power (mode 2)
+		// are above half; the cgame picks by its cg_SerenityJediEngineMode
+		saberClashEventParm = SABERBLOCK_EVPARM_BLOCK | SABERBLOCK_EVPARM_HAS_BLOCKER;
+		if (blocker->client->ps.fd.blockPoints > BLOCKPOINTS_HALF)
+		{
+			saberClashEventParm |= SABERBLOCK_EVPARM_GOODPARRY_BP;
+		}
+		if (blocker->client->ps.fd.forcePower > BLOCKPOINTS_HALF)
+		{
+			saberClashEventParm |= SABERBLOCK_EVPARM_GOODPARRY_FP;
+		}
 
 		// Only lock view if one player is in an attack move
 		if (!idle_damage || PM_SaberInNonIdleDamageMove(&blocker->client->ps, blocker->localAnimIndex))
@@ -7344,7 +7363,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t* self, const int rSaberNum, c
 		// Saber-specific hit behaviour
 		if (isSmashTorso == qfalse)  // suppress normal hit FX during smashdown floor impact
 		{
-			wp_saber_specific_do_hit(self, rSaberNum, rBladeNum, victim, tr.endpos, dmg);
+			wp_saber_specific_do_hit(self, rSaberNum, rBladeNum, victim, tr.endpos, tr.plane.normal, dir, dmg);
 		}
 
 		// If the victim died, prevent saber bounce passthrough
@@ -7951,7 +7970,7 @@ void wp_saber_start_missile_block_check(gentity_t* self, usercmd_t* ucmd)
 		}
 	}
 
-	if (self->s.eType == ET_NPC && self->localAnimIndex <= 1)
+	if (self->s.eType == ET_NPC && BG_AnimSetIsHumanoidLike(self->localAnimIndex))
 	{
 		//humanoid NPCs don't set angles based on server angles for looking, unlike other NPCs
 		if (self->client && self->client->renderInfo.lookTarget < ENTITYNUM_WORLD)
@@ -8148,9 +8167,13 @@ static QINLINE qboolean WP_CheckThrownSaberDamaged(gentity_t* saberent,
 					if (!te->s.angles[0] && !te->s.angles[1] && !te->s.angles[2])
 						te->s.angles[1] = 1;
 
-					te->s.eventParm = 1;
+					te->s.eventParm = SABERBLOCK_EVPARM_BLOCK;
 					te->s.weapon = 0; // saberNum
 					te->s.legsAnim = 0; // bladeNum
+					// the thrower's saber (custom effects, no-clash-flare flags); was left 0 = client 0.
+					// No blocker: SP plays no perfect-block / good-parry effect on a thrown-saber knockaway.
+					te->s.otherentityNum = ENTITYNUM_NONE;
+					te->s.otherentityNum2 = saber_owner->s.number;
 
 					if (WP_saberCheckKnockdown_Thrown(saberent, saber_owner, &g_entities[tr.entityNum]))
 					{
@@ -9957,7 +9980,7 @@ static void UpdateClientRenderinfo(gentity_t* self, vec3_t render_origin, vec3_t
 			//rwwFIXMEFIXME: Base on skeleton used? Assuming humanoid currently.
 			ri->lastG2 = self->ghoul2;
 
-			if (self->localAnimIndex <= 1)
+			if (BG_AnimSetIsHumanoidLike(self->localAnimIndex))
 			{
 				ri->headBolt = trap->G2API_AddBolt(self->ghoul2, 0, "*head_eyes");
 				ri->handRBolt = trap->G2API_AddBolt(self->ghoul2, 0, "*r_hand");
@@ -14778,7 +14801,7 @@ static void WP_SaberPoseAnim_NonRandom_MD(gentity_t* self, const float zdiff, co
 				G_SetAnim(self, &self->client->pers.cmd, SETANIM_TORSO, BOTH_P6_S6_TR_MD, SETANIM_AFLAG_PACE, 0);
 				break;
 			default:
-				if (self->client && NPC_IsOversized(self))
+				if (NPC_IsOversized(self))
 				{
 					if (qtrue)
 					{
@@ -14836,7 +14859,7 @@ static void WP_SaberPoseAnim_NonRandom_MD(gentity_t* self, const float zdiff, co
 				G_SetAnim(self, &self->client->pers.cmd, SETANIM_TORSO, BOTH_P6_S6_TL_MD, SETANIM_AFLAG_PACE, 0);
 				break;
 			default:
-				if (self->client && NPC_IsOversized(self))
+				if (NPC_IsOversized(self))
 				{
 					if (qtrue)
 					{
@@ -14894,7 +14917,7 @@ static void WP_SaberPoseAnim_NonRandom_MD(gentity_t* self, const float zdiff, co
 				G_SetAnim(self, &self->client->pers.cmd, SETANIM_TORSO, BOTH_P6_S6_T__MD, SETANIM_AFLAG_PACE, 0);
 				break;
 			default:
-				if (self->client && NPC_IsOversized(self))
+				if (NPC_IsOversized(self))
 				{
 					if (qtrue)
 					{

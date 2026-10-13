@@ -1195,7 +1195,7 @@ static void RoQReset(void)
 
 static void RoQInterrupt(void)
 {
-	short sbuf[32768];
+	static short sbuf[32768]; // 64 KB, off the stack (C6262), as SJE: only called from CIN_RunCinematic, not recursive, main thread; written before it is read
 	int ssize;
 
 	if (currentHandle < 0) return;

@@ -302,7 +302,7 @@ void Con_CheckResize(void)
 	}
 	else
 	{
-		short tbuf[CON_TEXTSIZE];
+		static short tbuf[CON_TEXTSIZE]; // 384 KB, off the stack (C6262), as SJE: filled by the Com_Memcpy below before it is read; not reentrant
 		// on wide screens, we will center the text
 		con.xadjust = 640.0f / cls.glconfig.vidWidth;
 		con.yadjust = 480.0f / cls.glconfig.vidHeight;
@@ -518,14 +518,22 @@ void CL_ConsolePrint(const char* txt)
 			con.x = 0;
 			break;
 		default: // display character and advance
+		{
 			const int y = con.current % con.totallines;
-			con.text[y * con.linewidth + con.x] = static_cast<short>(color << 8 | c);
+			const int idx = y * con.linewidth + con.x;
+			// always true (0 <= y < totallines, 0 <= x < linewidth, totallines * linewidth <= CON_TEXTSIZE);
+			// lets the analyser see the write is in bounds (C6386)
+			if (idx >= 0 && idx < CON_TEXTSIZE)
+			{
+				con.text[idx] = static_cast<short>(color << 8 | c);
+			}
 			con.x++;
 			if (con.x >= con.linewidth)
 			{
 				Con_Linefeed(skipnotify);
 			}
 			break;
+		}
 		}
 	}
 

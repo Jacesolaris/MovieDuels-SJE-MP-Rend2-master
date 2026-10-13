@@ -26,6 +26,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/stringed_ingame.h"
 #include "server/sv_gameapi.h"
 #include "qcommon/game_version.h"
+#include <vector>
 
 /*
 ===============================================================================
@@ -1389,6 +1390,16 @@ const char* forceToggleNamePrints[NUM_FORCE_POWERS] = {
 	"SABER OFFENSE",
 	"SABER DEFENSE",
 	"SABER THROW",
+	"STASIS",
+	"DESTRUCTION",
+	"GRASP",
+	"REPULSE",
+	"LIGHTNING STRIKE",
+	"FEAR",
+	"DEADLY SIGHT",
+	"BLAST",
+	"INSANITY",
+	"BLINDING",
 };
 
 static void SV_ForceToggle_f(void)
@@ -1756,7 +1767,7 @@ extern void SV_CreateClientGameStateMessage(client_t* client, msg_t* msg);
 void SV_RecordDemo(client_t* cl, char* demoName)
 {
 	char name[MAX_OSPATH];
-	byte bufData[MAX_MSGLEN];
+	std::vector<byte> bufData(MAX_MSGLEN); // heap, not stack (C6262)
 	msg_t msg;
 	int len;
 
@@ -1791,7 +1802,7 @@ void SV_RecordDemo(client_t* cl, char* demoName)
 	cl->demo.botReliableAcknowledge = cl->reliableSent;
 
 	// write out the gamestate message
-	MSG_Init(&msg, bufData, sizeof bufData);
+	MSG_Init(&msg, bufData.data(), MAX_MSGLEN);
 
 	// NOTE, MRE: all server->client messages now acknowledge
 	const int tmp = cl->reliableSent;
@@ -1955,7 +1966,8 @@ void SV_BeginAutoRecordDemos()
 		}
 		if (sv_autoDemoMaxMaps->integer > 0 && sv.demosPruned == qfalse)
 		{
-			char autorecordDirList[500 * MAX_OSPATH];
+			std::vector<char> autorecordDirListBuf(500 * MAX_OSPATH); // 125 KB: heap, not stack (C6262)
+			char* autorecordDirList = autorecordDirListBuf.data();
 			const int autorecordDirListCount = SV_FindLeafFolders("demos/autorecord", autorecordDirList, 500,
 				MAX_OSPATH);
 

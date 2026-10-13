@@ -2546,20 +2546,9 @@ static void DEMP2_AltRadiusDamage(gentity_t* ent)
 {
 	float frac = (level.time - ent->genericValue5) / 800.0f;
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int iEntityList_buf[MAX_GENTITIES] = { 0 };
-	int* iEntityList = iEntityList_buf;
-	gentity_t* entity_list_buf[MAX_GENTITIES] = { 0 };
-	gentity_t** entity_list = entity_list_buf;
-
-	if (!iEntityList || !entity_list)
-	{
-		Com_Printf(S_COLOR_RED "DEMP2_AltRadiusDamage: BG_Alloc failed\n");
-		ent->think = G_FreeEntity;
-		ent->nextthink = level.time;
-		return;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int iEntityList[MAX_GENTITIES];
+	static gentity_t* entity_list[MAX_GENTITIES];
 
 	gentity_t* my_owner = NULL;
 	int i;
@@ -4186,15 +4175,8 @@ static void WP_PlaceLaserTrap(gentity_t* ent, const qboolean alt_fire)
 	vec3_t dir = { 0 }, start = { 0 };
 	int trapcount = 0;
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int found_laser_traps_buf[MAX_GENTITIES] = { 0 };
-	int* found_laser_traps = found_laser_traps_buf;
-	if (!found_laser_traps)
-	{
-		Com_Printf(S_COLOR_RED "WP_PlaceLaserTrap: BG_Alloc failed\n");
-		return;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int found_laser_traps[MAX_GENTITIES];
 
 	// Initialize array
 	for (int i = 0; i < MAX_GENTITIES; i++)
@@ -4627,15 +4609,8 @@ static void WP_DropDetPack(gentity_t* ent, const qboolean alt_fire)
 		return;
 	}
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int found_det_packs_buf[MAX_GENTITIES] = { 0 };
-	int* found_det_packs = found_det_packs_buf;
-	if (!found_det_packs)
-	{
-		Com_Printf(S_COLOR_RED "WP_DropDetPack: BG_Alloc failed\n");
-		return;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int found_det_packs[MAX_GENTITIES];
 
 	// Initialize all entries to ENTITYNUM_NONE
 	for (int i = 0; i < MAX_GENTITIES; i++)
@@ -5197,16 +5172,37 @@ static void WP_FireMelee(gentity_t* ent, qboolean alt_fire)
 		muzzle_punch[2] += ent->client->ps.viewheight - 6.0f;
 	}
 
-	// Slight forward/right offset from the body
-	VectorMA(muzzle_punch, 20.0f, forward, muzzle_punch);
-	VectorMA(muzzle_punch, 4.0f, vright, muzzle_punch);
+	// MovieDuels (port of SJE MP): creature players (wampa, rancor, howler, mine monster) reach from the edge of their own
+	// (SP sized) bbox, with a claw / jaw sized box, so a rancor does not swing inside its own body
+	const int creatureAnim = hasClient && ent->s.number < MAX_CLIENTS && level.gametype != GT_SIEGE
+		? BG_ClassCreatureAttackAnim(ent->client->pers.botclass, WP_MELEE, qfalse) : -1;
 
-	// End point of the melee trace
-	VectorMA(muzzle_punch, MELEE_RANGE, forward, end);
+	if (creatureAnim != -1)
+	{
+		// (rancor: 70% of the SP reach, as its 70% size)
+		const float reach = ent->client->pers.botclass == BCLASS_RANCOR ? 45.0f :
+			ent->client->pers.botclass == BCLASS_WAMPA ? 48.0f : 24.0f;
+		const float box = ent->client->pers.botclass == BCLASS_RANCOR ? 17.0f :
+			ent->client->pers.botclass == BCLASS_WAMPA ? 16.0f : 8.0f;
 
-	// Small box around the punch path
-	VectorSet(maxs, 6.0f, 6.0f, 6.0f);
-	VectorScale(maxs, -1.0f, mins);
+		VectorMA(muzzle_punch, ent->r.maxs[0], forward, muzzle_punch);
+		VectorMA(muzzle_punch, reach, forward, end);
+		VectorSet(maxs, box, box, box);
+		VectorScale(maxs, -1.0f, mins);
+	}
+	else
+	{
+		// Slight forward/right offset from the body
+		VectorMA(muzzle_punch, 20.0f, forward, muzzle_punch);
+		VectorMA(muzzle_punch, 4.0f, vright, muzzle_punch);
+
+		// End point of the melee trace
+		VectorMA(muzzle_punch, MELEE_RANGE, forward, end);
+
+		// Small box around the punch path
+		VectorSet(maxs, 6.0f, 6.0f, 6.0f);
+		VectorScale(maxs, -1.0f, mins);
+	}
 
 	trap->Trace(&tr,
 		muzzle_punch,
@@ -5279,6 +5275,30 @@ static void WP_FireMelee(gentity_t* ent, qboolean alt_fire)
 				if (ent->client->ps.torsoAnim == BOTH_MELEEUP)
 				{
 					dmg = MELEE_SWING_EXTRA_DAMAGE;
+				}
+				if (creatureAnim != -1)
+				{
+					// MovieDuels (port of SJE MP): the damage the SP AI does with these attacks (AI_Wampa Wampa_Slash,
+					// AI_Rancor swing / bite, AI_Howler (several small hits per attack there, one hit here), AI_MineMonster)
+					const int anim = ent->client->ps.torsoAnim;
+
+					switch (ent->client->pers.botclass)
+					{
+					case BCLASS_WAMPA:
+						dmg = anim == BOTH_ATTACK3 ? Q_irand(10, 15) : Q_irand(20, 30);
+						break;
+					case BCLASS_RANCOR:
+						dmg = anim == BOTH_MELEE2 ? Q_irand(35, 50) : Q_irand(40, 55);
+						break;
+					case BCLASS_HOWLER:
+						dmg = 8;
+						break;
+					case BCLASS_MINEMONSTER:
+						dmg = anim == BOTH_ATTACK2 ? 10 : 5;
+						break;
+					default:
+						break;
+					}
 				}
 			}
 
@@ -6153,6 +6173,17 @@ static void FireVehicleWeapon(gentity_t* ent, const qboolean alt_fire)
 
 		const int vehweapon_index = p_veh->m_pVehicleInfo->weapon[weapon_num].ID;
 
+		// MovieDuels: muzzles of this weapon without a *muzzle#/*flash# tag (vehicle on a player model, e.g. the
+		// droideka) use the model's hand bolts, otherwise they never fire (and a skipped muzzle stalls the rotation)
+		for (int m = 0; m < MAX_VEHICLE_MUZZLES; m++)
+		{
+			if (vehweapon_index > VEH_WEAPON_BASE && p_veh->m_pVehicleInfo->weapMuzzle[m] == vehweapon_index
+				&& p_veh->m_iMuzzleTag[m] == -1)
+			{
+				p_veh->m_iMuzzleTag[m] = BG_VehicleFallbackMuzzleBolt(ent->ghoul2, m);
+			}
+		}
+
 		if (p_veh->weaponStatus[weapon_num].ammo <= 0)
 		{
 			//no ammo for this weapon
@@ -6596,7 +6627,14 @@ void FireWeapon(gentity_t* ent, const qboolean alt_fire)
 		}
 		else
 		{
-			NPC_SetAnim(ent, SETANIM_TORSO, BOTH_RELOADFAIL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			if (ent->s.weapon == WP_DROIDEKA)
+			{
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_RELOAD_DEKA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			}
+			else
+			{
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_RELOADFAIL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			}
 			G_SoundOnEnt(ent, CHAN_WEAPON, "sound/weapons/reloadfail.mp3");
 			G_SoundOnEnt(ent, CHAN_VOICE_ATTEN, "*pain25.wav");
 			G_Damage(ent, NULL, NULL, NULL, ent->r.currentOrigin, 2, DAMAGE_NO_ARMOR, MOD_LAVA);

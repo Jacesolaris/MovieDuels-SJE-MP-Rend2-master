@@ -103,6 +103,40 @@ extern int cg_vehicleAmmoWarningTime;
 extern qboolean PM_InKnockDownOnly(int anim);
 void CG_BounceEffect(int weapon, vec3_t origin, vec3_t normal);
 
+/*
+=================
+CG_SaberBlockEffectForMode / CG_SaberCutEffectForMode
+
+As MD SP WP_SaberBlockEffect: the default block / cut effect follows the combat mode
+(0 = saber_block / saber_cut, 1 = the _MD effects, 2 = the _AMD effects).
+=================
+*/
+fxHandle_t CG_SaberBlockEffectForMode(void)
+{
+	switch (cg_SerenityJediEngineMode.integer)
+	{
+	case 0:
+		return cgs.effects.mSaberBlockPlain;
+	case 2:
+		return cgs.effects.mSaberBlock;
+	default:
+		return cgs.effects.mSaberBlockMD;
+	}
+}
+
+fxHandle_t CG_SaberCutEffectForMode(void)
+{
+	switch (cg_SerenityJediEngineMode.integer)
+	{
+	case 0:
+		return cgs.effects.mSaberCutPlain;
+	case 2:
+		return cgs.effects.mSaberCut;
+	default:
+		return cgs.effects.mSaberCutMD;
+	}
+}
+
 //I know, not siege, but...
 typedef enum
 {
@@ -1669,7 +1703,7 @@ void CG_CalcVehMuzzle(Vehicle_t* p_veh, centity_t* ent, const int muzzle_num)
 //corresponds to G_VehMuzzleFireFX -rww
 static void CG_VehMuzzleFireFX(centity_t* veh, const entityState_t* broadcaster)
 {
-	const Vehicle_t* p_veh = veh->m_pVehicle;
+	Vehicle_t* p_veh = veh->m_pVehicle;
 
 	if (!p_veh || !veh->ghoul2)
 	{
@@ -1678,6 +1712,12 @@ static void CG_VehMuzzleFireFX(centity_t* veh, const entityState_t* broadcaster)
 
 	for (int cur_muz = 0; cur_muz < MAX_VEHICLE_MUZZLES; cur_muz++)
 	{
+		if (p_veh->m_iMuzzleTag[cur_muz] == -1 && broadcaster->trickedentindex & 1 << cur_muz)
+		{
+			// MovieDuels: the server fired a muzzle this model has no *muzzle#/*flash# tag for (vehicle on a
+			// player model, e.g. the droideka): use the same hand-bolt fallback as the server
+			p_veh->m_iMuzzleTag[cur_muz] = BG_VehicleFallbackMuzzleBolt(veh->ghoul2, cur_muz);
+		}
 		//go through all muzzles and
 		if (p_veh->m_iMuzzleTag[cur_muz] != -1 //valid muzzle bolt
 			&& broadcaster->trickedentindex & 1 << cur_muz) //fired
@@ -3203,7 +3243,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 			int hit_person_fx_id = cgs.effects.mSaberBloodSparks;
 			int hit_person_small_fx_id = cgs.effects.mSaberBloodSparksSmall;
 			int hit_person_mid_fx_id = cgs.effects.mSaberBloodSparksMid;
-			int hit_other_fx_id = cgs.effects.mSaberCut;
+			int hit_other_fx_id = CG_SaberCutEffectForMode();
 			int hit_droid_fx_id = cgs.effects.mDroidCut;
 			int hit_other_fx_id2 = cgs.effects.mSaberBodyHit;
 
@@ -3445,10 +3485,32 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 			{
 				//saber block
 				qboolean cull_pass = qfalse;
-				int block_fxid = cgs.effects.mSaberBlock;
+				qboolean good_parry = qfalse;
+				qboolean no_clash_flare = qfalse;
+				int block_fxid = CG_SaberBlockEffectForMode();
 				int perfectblock_fxid = cgs.effects.mSaberprfectBlock;
 				qhandle_t block_sound = trap->S_RegisterSound(va("sound/weapons/saber/saberblock%d", Q_irand(1, 90)));
 				qhandle_t knock_sound = trap->S_RegisterSound(va("sound/weapons/saber/saberknock%d", Q_irand(1, 4)));
+
+				// perfect block / good parry (MD SP WP_SaberMBlockEffect). The blocker is only known from new servers
+				// (SABERBLOCK_EVPARM_HAS_BLOCKER); its FLAG_PERFECTBLOCK is networked in userInt3. This used to test the
+				// temp event entity's userInt3, which is always 0.
+				if (es->eventParm & SABERBLOCK_EVPARM_HAS_BLOCKER
+					&& es->otherentityNum >= 0 && es->otherentityNum < ENTITYNUM_WORLD
+					&& cg_entities[es->otherentityNum].currentState.userInt3 & 1 << FLAG_PERFECTBLOCK)
+				{
+					good_parry = qtrue;
+				}
+				else if (cg_SerenityJediEngineMode.integer == 2)
+				{
+					// MD SP AMD mode: good parry when the blocker's force power is above half
+					good_parry = (es->eventParm & SABERBLOCK_EVPARM_GOODPARRY_FP) ? qtrue : qfalse;
+				}
+				else if (cg_SerenityJediEngineMode.integer)
+				{
+					// MD SP MD mode: good parry when the blocker's block points are above half
+					good_parry = (es->eventParm & SABERBLOCK_EVPARM_GOODPARRY_BP) ? qtrue : qfalse;
+				}
 
 				if (es->otherentityNum2 >= 0 && es->otherentityNum2 < ENTITYNUM_NONE)
 				{
@@ -3472,8 +3534,12 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 							//use second blade style values
 							if (client->saber[saberNum].blockEffect2)
 							{
-								//custom saber block effect
-								block_fxid = client->saber[saberNum].blockEffect2;
+								//custom saber block effect (as SP, it also replaces the good-parry effect)
+								block_fxid = perfectblock_fxid = client->saber[saberNum].blockEffect2;
+							}
+							if (client->saber[saberNum].saberFlags2 & SFL2_NO_CLASH_FLARE2)
+							{
+								no_clash_flare = qtrue;
 							}
 							if (client->saber[saberNum].block2Sound[0])
 							{
@@ -3492,15 +3558,12 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 						{
 							if (client->saber[saberNum].blockEffect)
 							{
-								//custom saber block effect
-								if (cent->currentState.userInt3 & 1 << FLAG_PERFECTBLOCK)
-								{
-									perfectblock_fxid = client->saber[saberNum].blockEffect;
-								}
-								else
-								{
-									block_fxid = client->saber[saberNum].blockEffect;
-								}
+								//custom saber block effect (as SP, it also replaces the good-parry effect)
+								block_fxid = perfectblock_fxid = client->saber[saberNum].blockEffect;
+							}
+							if (client->saber[saberNum].saberFlags2 & SFL2_NO_CLASH_FLARE)
+							{
+								no_clash_flare = qtrue;
 							}
 							if (client->saber[saberNum].blockSound[0])
 							{
@@ -3549,7 +3612,15 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 						fx_dir[1] = 1;
 					}
 					trap->S_StartSound(es->origin, es->number, CHAN_AUTO, block_sound);
-					trap->FX_PlayEffectID(block_fxid, es->origin, fx_dir, -1, -1, qfalse);
+					trap->FX_PlayEffectID(good_parry ? perfectblock_fxid : block_fxid, es->origin, fx_dir, -1, -1, qfalse);
+
+					if (!no_clash_flare)
+					{
+						// clash flare on every saber block, as SP (SP's game sets g_saberFlashTime / g_saberFlashPos
+						// directly; MP only flared on EV_SABER_CLASHFLARE, which saber-vs-saber blocks never send)
+						cg_saberFlashTime = cg.time - 50;
+						VectorCopy(es->origin, cg_saberFlashPos);
+					}
 				}
 			}
 			else
@@ -3635,7 +3706,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 				}
 				else
 				{
-					trap->FX_PlayEffectID(cgs.effects.mSaberCut, es->origin, fx_dir, -1, -1, qfalse);
+					trap->FX_PlayEffectID(CG_SaberCutEffectForMode(), es->origin, fx_dir, -1, -1, qfalse);
 				}
 			}
 		}

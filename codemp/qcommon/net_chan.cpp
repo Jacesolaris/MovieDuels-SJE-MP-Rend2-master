@@ -47,6 +47,9 @@ to the new value before sending out any replies.
 
 #include "qcommon/qcommon.h"
 
+#include <memory>
+#include <vector>
+
 #define	MAX_PACKETLEN			1400		// max size of a network packet
 #define	FRAGMENT_SIZE			(MAX_PACKETLEN - 100)
 #define	PACKET_HEADER			10			// two ints and a short
@@ -618,7 +621,10 @@ Sends a text message in an out-of-band datagram
 */
 void QDECL NET_OutOfBandPrint(netsrc_t sock, netadr_t adr, const char* format, ...) {
 	va_list		argptr;
-	char		string[MAX_MSGLEN];
+	// heap, not stack (C6262); one buffer per call, as this may be re-entered (Com_Printf output
+	// is sent to an rcon client through here while redirected). Not zeroed, as on the stack.
+	const std::unique_ptr<char[]> stringBuf(new char[MAX_MSGLEN]);
+	char* string = stringBuf.get();
 
 	// set the header
 	string[0] = -1;
@@ -627,7 +633,7 @@ void QDECL NET_OutOfBandPrint(netsrc_t sock, netadr_t adr, const char* format, .
 	string[3] = -1;
 
 	va_start(argptr, format);
-	Q_vsnprintf(string + 4, sizeof(string) - 4, format, argptr);
+	Q_vsnprintf(string + 4, MAX_MSGLEN - 4, format, argptr);
 	va_end(argptr);
 
 	// send the datagram
@@ -643,7 +649,8 @@ Sends a data message in an out-of-band datagram (only used for "connect")
 */
 void QDECL NET_OutOfBandData(const netsrc_t sock, const netadr_t adr, byte* format, const int len)
 {
-	byte string[MAX_MSGLEN * 2]{};
+	std::vector<byte> stringBuf(MAX_MSGLEN * 2); // heap, not stack (C6262); zeroed as the {} was
+	byte* string = stringBuf.data();
 	msg_t mbuf{};
 
 	// set the header

@@ -59,6 +59,9 @@ static float trap_Cvar_VariableValue(const char* var_name)
 G_ParseInfos
 ===============
 */
+// bot / arena info files: 64 KB each (bg_public.h's MAX_BOTS_TEXT / MAX_ARENAS_TEXT were too small for larger bot files)
+#define BOTINFO_FILE_MAX	(64 * 1024)
+
 static int G_ParseInfos(const char* buf, const int max, char* infos[])
 {
 	char info[MAX_INFO_STRING] = { 0 };
@@ -129,7 +132,7 @@ static void G_LoadArenasFromFile(char* filename)
 	fileHandle_t f;
 
 	// Large buffer moved to static storage to avoid stack overflow
-	static char s_buf[MAX_ARENAS_TEXT + 1];
+	static char s_buf[BOTINFO_FILE_MAX + 1];
 
 	const int len = trap->FS_Open(filename, &f, FS_READ);
 	if (f == 0)
@@ -138,10 +141,10 @@ static void G_LoadArenasFromFile(char* filename)
 		return;
 	}
 
-	if (len >= MAX_ARENAS_TEXT)
+	if (len >= BOTINFO_FILE_MAX)
 	{
 		trap->Print(S_COLOR_RED "file too large: %s is %i, max allowed is %i\n",
-			filename, len, MAX_ARENAS_TEXT);
+			filename, len, BOTINFO_FILE_MAX);
 		trap->FS_Close(f);
 		return;
 	}
@@ -1335,7 +1338,7 @@ G_LoadBotsFromFile
 	fileHandle_t f;
 
 	// Large buffer moved to static storage to avoid stack overflow
-	static char s_buf[MAX_BOTS_TEXT + 1];
+	static char s_buf[BOTINFO_FILE_MAX + 1];
 
 	const int len = trap->FS_Open(filename, &f, FS_READ);
 	if (f == 0)
@@ -1344,10 +1347,10 @@ G_LoadBotsFromFile
 		return;
 	}
 
-	if (len >= MAX_BOTS_TEXT)
+	if (len >= BOTINFO_FILE_MAX)
 	{
 		trap->Print(S_COLOR_RED "file too large: %s is %i, max allowed is %i\n",
-			filename, len, MAX_BOTS_TEXT);
+			filename, len, BOTINFO_FILE_MAX);
 		trap->FS_Close(f);
 		return;
 	}

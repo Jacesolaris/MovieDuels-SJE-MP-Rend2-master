@@ -64,7 +64,6 @@ CVec3 mGlobalWindDirection;
 float mGlobalWindSpeed;
 int mParticlesRendered;
 
-extern cvar_t* r_weather;
 ////////////////////////////////////////////////////////////////////////////////////////
 // Handy Functions
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -260,11 +259,11 @@ public:
 
 	using TFlags = ratl::bits_vs<FLAG_MAX>;
 
-	float mAlpha;
+	float mAlpha = 1.0f;
 	TFlags mFlags;
 	CVec3 mPosition;
 	CVec3 mVelocity;
-	float mMass; // A higher number will more greatly resist force and result in greater gravity
+	float mMass = 1.0f; // A higher number will more greatly resist force and result in greater gravity
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -273,17 +272,17 @@ public:
 class CWindZone
 {
 public:
-	bool mGlobal;
+	bool mGlobal = false;
 	SVecRange mRBounds;
 	SVecRange mRVelocity;
-	SIntRange mRDuration;
-	SIntRange mRDeadTime;
-	float mMaxDeltaVelocityPerUpdate;
-	float mChanceOfDeadTime;
+	SIntRange mRDuration = {};
+	SIntRange mRDeadTime = {};
+	float mMaxDeltaVelocityPerUpdate = 0.0f;
+	float mChanceOfDeadTime = 0.0f;
 
 	CVec3 mCurrentVelocity;
 	CVec3 mTargetVelocity;
-	int mTargetVelocityTimeRemaining;
+	int mTargetVelocityTimeRemaining = 0;
 
 public:
 	////////////////////////////////////////////////////////////////////////////////////
@@ -387,12 +386,12 @@ private:
 	struct SWeatherZone
 	{
 		static bool mMarkedOutside;
-		uint32_t* mPointCache;
+		uint32_t* mPointCache = nullptr;
 		SVecRange mExtents;
 		SVecRange mSize;
-		int mWidth;
-		int mHeight;
-		int mDepth;
+		int mWidth = 0;
+		int mHeight = 0;
+		int mDepth = 0;
 
 		////////////////////////////////////////////////////////////////////////////////////
 		// Convert To Cell
@@ -1344,11 +1343,15 @@ void RB_RenderWorldEffects(void)
 	}
 }
 
+static qboolean weatherCommandFromConsole; // "r_we" typed: print the command list for an unknown command
+
 void R_WorldEffect_f(void)
 {
 	char temp[2048] = { 0 };
 	ri->Cmd_ArgsBuffer(temp, sizeof temp);
+	weatherCommandFromConsole = qtrue;
 	RE_WorldEffectCommand(temp);
+	weatherCommandFromConsole = qfalse;
 }
 
 void R_WeatherEffect_f(void)
@@ -1414,10 +1417,15 @@ void RE_WorldEffectCommand(const char* command)
 
 	token = COM_ParseExt(&command, qfalse);
 
-	if (!token)
+	if (!token || !token[0])
 	{
 		return;
 	}
+
+	// A number is one of the numbered presets (the menu's r_weather values, see the cgame's CG_ApplyWeather).
+	// Named commands always do what they say: before, the r_weather cvar replaced most of them with its own preset,
+	// and r_weather 0 (the default) turned every map weather command into "clear".
+	const int preset = token[0] >= '0' && token[0] <= '9' ? atoi(token) : -1;
 
 	//Die - clean up the whole weather system -rww
 	if (Q_stricmp(token, "die") == 0)
@@ -1428,7 +1436,7 @@ void RE_WorldEffectCommand(const char* command)
 
 	// Clear - Removes All Particle Clouds And Wind Zones
 	//----------------------------------------------------
-	if ((Q_stricmp(token, "clear") == 0) || r_weather->integer == 0)
+	if ((Q_stricmp(token, "clear") == 0) || preset == 0)
 	{
 		for (int p = 0; p < mParticleClouds.size(); p++)
 		{
@@ -1459,7 +1467,7 @@ void RE_WorldEffectCommand(const char* command)
 
 	// Basic Wind
 	//------------
-	else if ((Q_stricmp(token, "wind") == 0) || r_weather->integer == 8)
+	else if ((Q_stricmp(token, "wind") == 0) || preset == 8)
 	{
 		if (mWindZones.full())
 		{
@@ -1535,7 +1543,7 @@ void RE_WorldEffectCommand(const char* command)
 
 	// Create A Rain Storm
 	//---------------------
-	else if ((Q_stricmp(token, "rain") == 0) || r_weather->integer == 2)
+	else if ((Q_stricmp(token, "rain") == 0) || preset == 2)
 	{
 		if (mParticleClouds.full())
 		{
@@ -1556,7 +1564,7 @@ void RE_WorldEffectCommand(const char* command)
 
 	// Create A Rain Storm
 	//---------------------
-	else if ((Q_stricmp(token, "acidrain") == 0) || r_weather->integer == 7)
+	else if ((Q_stricmp(token, "acidrain") == 0) || preset == 7)
 	{
 		if (mParticleClouds.full())
 		{
@@ -1605,7 +1613,7 @@ void RE_WorldEffectCommand(const char* command)
 
 	// Create A Snow Storm
 	//---------------------
-	else if ((Q_stricmp(token, "snow") == 0) || r_weather->integer == 1)
+	else if ((Q_stricmp(token, "snow") == 0) || preset == 1)
 	{
 		if (mParticleClouds.full())
 		{
@@ -1618,7 +1626,7 @@ void RE_WorldEffectCommand(const char* command)
 		nCloud.mColor = 0.75f;
 		nCloud.mWaterParticles = true;
 	}
-	else if ((Q_stricmp(token, "Lava") == 0) || r_weather->integer == 3)
+	else if ((Q_stricmp(token, "Lava") == 0) || preset == 3)
 	{
 		if (mParticleClouds.full())
 		{
@@ -1634,7 +1642,7 @@ void RE_WorldEffectCommand(const char* command)
 
 	// Create A Some stuff
 	//---------------------
-	else if ((Q_stricmp(token, "spacedust") == 0) || r_weather->integer == 9)
+	else if ((Q_stricmp(token, "spacedust") == 0) || preset == 9)
 	{
 		if (mParticleClouds.full())
 		{
@@ -1662,7 +1670,7 @@ void RE_WorldEffectCommand(const char* command)
 
 	// Create A Sand Storm
 	//---------------------
-	else if ((Q_stricmp(token, "Sandstorm") == 0) || r_weather->integer == 4)
+	else if ((Q_stricmp(token, "Sandstorm") == 0) || preset == 4)
 	{
 		if (mParticleClouds.full())
 		{
@@ -1689,7 +1697,7 @@ void RE_WorldEffectCommand(const char* command)
 
 	// Create A Sand Storm
 	//---------------------
-	else if ((Q_stricmp(token, "sand") == 0) || r_weather->integer == 4)
+	else if ((Q_stricmp(token, "sand") == 0) || preset == 4)
 	{
 		if (mParticleClouds.full())
 		{
@@ -1716,7 +1724,7 @@ void RE_WorldEffectCommand(const char* command)
 
 	// Create Blowing Clouds Of Fog
 	//------------------------------
-	else if ((Q_stricmp(token, "fog") == 0) || r_weather->integer == 6)
+	else if ((Q_stricmp(token, "fog") == 0) || preset == 6)
 	{
 		if (mParticleClouds.full())
 		{
@@ -1740,7 +1748,7 @@ void RE_WorldEffectCommand(const char* command)
 
 	// Create Heavy Rain Particle Cloud
 	//-----------------------------------
-	else if ((Q_stricmp(token, "heavyrainfog") == 0) || r_weather->integer == 5)
+	else if ((Q_stricmp(token, "heavyrainfog") == 0) || preset == 5)
 	{
 		if (mParticleClouds.full())
 		{
@@ -1798,6 +1806,11 @@ void RE_WorldEffectCommand(const char* command)
 	else if (Q_stricmp(token, "outsidepain") == 0)
 	{
 		mOutside.mOutsidePain = !mOutside.mOutsidePain;
+	}
+	else if (!weatherCommandFromConsole)
+	{
+		// a map's weather name this renderer doesn't have (e.g. fx_wind's "swirlingwind"): ignore it
+		ri->Printf(PRINT_DEVELOPER, "RE_WorldEffectCommand: unknown weather command '%s' ignored\n", token);
 	}
 	else
 	{

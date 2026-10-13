@@ -27,6 +27,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "qcommon/qcommon.h"
 
+#include <memory>
+#include <vector>
+
 static int bloc = 0;
 
 void Huff_putBit(const int bit, byte* fout, int* offset)
@@ -131,6 +134,11 @@ static void swap(huff_t* huff, node_t* node1, node_t* node2)
 /* Swap these two nodes in the linked list (update ranks) */
 static void swaplist(node_t* node1, node_t* node2)
 {
+	if (node1 == nullptr || node2 == nullptr) // never: callers pass two list nodes (lets the analyser see that, C28182)
+	{
+		return;
+	}
+
 	node_t* par1 = node1->next;
 	node1->next = node2->next;
 	node2->next = par1;
@@ -414,8 +422,11 @@ void Huff_offsetTransmit(const huff_t* huff, const int ch, byte* fout, int* offs
 void Huff_Decompress(msg_t* mbuf, const int offset)
 {
 	int ch;
-	byte seq[65536]{};
-	huff_t huff;
+	// heap, not stack (C6262; 64 KB + ~50 KB huff_t), one set per call
+	std::vector<byte> seqBuf(65536); // zeroed as the {} was
+	byte* seq = seqBuf.data();
+	const std::unique_ptr<huff_t> huffBuf(new huff_t); // Com_Memset below clears it
+	huff_t& huff = *huffBuf;
 
 	const int size = mbuf->cursize - offset;
 	byte* buffer = mbuf->data + offset;
@@ -474,8 +485,11 @@ extern int oldsize;
 
 void Huff_Compress(msg_t* mbuf, const int offset)
 {
-	byte seq[65536]{};
-	huff_t huff;
+	// heap, not stack (C6262; 64 KB + ~50 KB huff_t), one set per call
+	std::vector<byte> seqBuf(65536); // zeroed as the {} was
+	byte* seq = seqBuf.data();
+	const std::unique_ptr<huff_t> huffBuf(new huff_t); // Com_Memset below clears it
+	huff_t& huff = *huffBuf;
 
 	const int size = mbuf->cursize - offset;
 	const byte* buffer = mbuf->data + +offset;

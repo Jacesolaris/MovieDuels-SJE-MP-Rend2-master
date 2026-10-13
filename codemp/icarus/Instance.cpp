@@ -43,6 +43,7 @@ CTaskManager* gTaskManagers[MAX_GENTITIES];
 ICARUS_Instance::ICARUS_Instance(void)
 {
 	m_GUID = 0;
+	m_interface = nullptr;
 
 	//to be safe
 	memset(gSequencers, 0, sizeof gSequencers);
@@ -330,6 +331,8 @@ int ICARUS_Instance::SaveSequenceIDTable(void)
 
 	STL_ITERATE(sqi, m_sequences)
 	{
+		if (itr >= numSequences) // m_sequences.size() entries, so never true; tells the analyser idTable is not overrun (C6386)
+			break;
 		idTable[itr++] = (*sqi)->GetID();
 	}
 

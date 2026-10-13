@@ -36,6 +36,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 //	none
 //------------------------------------------------------
 CPrimitiveTemplate::CPrimitiveTemplate()
+	: mRefCount(0)
 {
 	// We never start out as a copy or with a name
 	mCopy = false;

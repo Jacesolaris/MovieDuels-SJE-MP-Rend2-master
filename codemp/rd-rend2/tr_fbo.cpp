@@ -118,9 +118,10 @@ static FBO_t* FBO_Create(const char* name, int width, int height)
 		ri->Error(ERR_DROP, "FBO_Create: bad height %i", height);
 	}
 
-	if (tr.numFBOs == MAX_FBOS)
+	if (tr.numFBOs >= MAX_FBOS)
 	{
 		ri->Error(ERR_DROP, "FBO_Create: MAX_FBOS hit");
+		return nullptr; // not reached: ri->Error never returns (function pointer, so it cannot be noreturn)
 	}
 
 	fbo = tr.fbos[tr.numFBOs] = (FBO_t*)ri->Hunk_Alloc(sizeof(*fbo), h_low);
@@ -858,8 +859,8 @@ void FBO_BlitFromTexture(struct image_s* src, vec4i_t inSrcBox, vec2_t inSrcTexS
 	vec4i_t dstBox{}, srcBox{};
 	vec2_t srcTexScale{};
 	vec4_t color{};
-	vec4_t quadVerts[4]{};
-	vec2_t texCoords[4]{};
+	vec4_t quadVerts[4]; // all set below; no {} (it made /analyze report a NULL dereference, C6011)
+	vec2_t texCoords[4]; // all set below; no {} (it made /analyze report a NULL dereference, C6011)
 	vec2_t invTexRes{};
 	FBO_t* oldFbo = glState.currentFBO;
 	matrix_t projection;

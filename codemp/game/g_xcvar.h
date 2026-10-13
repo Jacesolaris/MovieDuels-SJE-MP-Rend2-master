@@ -94,6 +94,9 @@ XCVAR_DEF(g_forceClientUpdateRate, "250", NULL, CVAR_NONE, qfalse)
 XCVAR_DEF(g_forceDodge, "1", NULL, CVAR_NONE, qtrue)
 XCVAR_DEF(g_forcePowerDisable, "0", NULL, CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH, qtrue)
 XCVAR_DEF(g_forceRegenTime, "400", NULL, CVAR_SERVERINFO | CVAR_ARCHIVE, qtrue)
+XCVAR_DEF(g_repulseHoverHeight, "90", NULL, CVAR_ARCHIVE | CVAR_SYSTEMINFO, qtrue)	// Force Repulse: hover height while charging (24 - 128); sent to the clients for bg_pmove
+XCVAR_DEF(g_repulseMaxCharge, "2.0", NULL, CVAR_ARCHIVE, qtrue)	// Force Repulse: the longest charge in seconds (1.5 - 4); then it goes off even with the key held
+XCVAR_DEF(g_gonkBactaCooldown, "30", NULL, CVAR_ARCHIVE, qtrue)	// seconds before a gonk gives the next bacta canister (TryUse)
 XCVAR_DEF(g_forceRespawn, "60", NULL, CVAR_NONE, qtrue)
 XCVAR_DEF(g_fraglimitVoteCorrection, "1", NULL, CVAR_ARCHIVE, qtrue)
 XCVAR_DEF(g_friendlyFire, "1", NULL, CVAR_ARCHIVE, qtrue)
@@ -174,7 +177,15 @@ XCVAR_DEF(g_mishapRegenTime, "3000", NULL, CVAR_ARCHIVE, qtrue)
 XCVAR_DEF(g_debugviewlock, "0", NULL, CVAR_NONE, qfalse)
 XCVAR_DEF(g_saberAnimSpeed, "1.0", NULL, CVAR_ARCHIVE, qtrue)
 XCVAR_DEF(g_RealisticBlockingMode, "1", NULL, CVAR_ARCHIVE | CVAR_LATCH, qtrue) // as SP: the player's menu choice (used when hosting a local game)
-XCVAR_DEF(g_ActivateAnimationStyle, "1", NULL, CVAR_ARCHIVE, qtrue) // as SP: the characters play their own animation styles (CS_*) - 0 = everybody the base anims
+// Animation style (SP g_ActivateAnimationStyle, g_main.c G_LatchAnimationStyle). The host's setting: 0 = Classic (every
+// model its own dedicated animation set), 1 = Master (the master _humanoid set + the player's g_PlayerAnimationStyle).
+// Master is only used in a solo game (local listen server, no other human): server games always run Classic.
+XCVAR_DEF(g_ActivateAnimationStyle, "0", NULL, CVAR_ARCHIVE, qtrue)
+XCVAR_DEF(g_PlayerAnimationStyle, "default", NULL, CVAR_ARCHIVE, qfalse) // as SP: the solo player's own style with Master ("default", "yoda"...)
+XCVAR_DEF(g_animationStyleActive, "0", NULL, CVAR_SYSTEMINFO | CVAR_ROM, qfalse) // the style in force for this map (set at map load), sent to every client: renderer, cgame and ui follow it
+XCVAR_DEF(md_soloGame, "0", NULL, CVAR_SYSTEMINFO | CVAR_ROM, qfalse) // 1 while the game is solo (the menus show the animation style options only then)
+XCVAR_DEF(md_soloMasterStyle, "0", NULL, CVAR_SYSTEMINFO | CVAR_ROM, qfalse) // 1 while solo and g_ActivateAnimationStyle is 1 (the menus show "Select Animation Style" only then)
+XCVAR_DEF(g_animStyleRemoteHumans, "0", NULL, CVAR_ROM, qfalse) // other humans connected (kept over map loads: decides the style of the next map)
 XCVAR_DEF(bg_realisticBlocking, "1", NULL, CVAR_SYSTEMINFO, qfalse) // the value in force, set by the server at map start (G_InitGame) and sent to every client
 XCVAR_DEF(bot_thinklevel, "3", NULL, CVAR_ARCHIVE, qtrue)
 XCVAR_DEF(m_nerf, "0", NULL, CVAR_INTERNAL | CVAR_SERVERINFO, qtrue)
@@ -264,5 +275,8 @@ XCVAR_DEF(g_spaceBattle, "1", NULL, CVAR_ARCHIVE, qtrue)
 XCVAR_DEF(g_spaceWingmen, "3", NULL, CVAR_ARCHIVE, qtrue) // team 1 (red: the Rebels) AI ships at most
 XCVAR_DEF(g_spaceEnemies, "5", NULL, CVAR_ARCHIVE, qtrue) // team 2 (blue: the Empire) AI ships at most
 XCVAR_DEF(g_spaceAISkill, "-1", NULL, CVAR_ARCHIVE, qtrue) // 0-3, -1: medium
+// weather damage to players / NPCs standing outside (g_weather.c)
+XCVAR_DEF(g_acidRainDamage, "1", NULL, CVAR_ARCHIVE, qtrue) // acid rain ("*acidrain" / "*outsidepain"), as SP
+XCVAR_DEF(g_lavaWeatherDamage, "1", NULL, CVAR_ARCHIVE, qtrue) // lava weather ("*lava"): 1-2 every 1-3 s
 
 #undef XCVAR_DEF

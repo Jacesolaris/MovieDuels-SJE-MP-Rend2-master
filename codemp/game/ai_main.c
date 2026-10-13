@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 Copyright (C) 1999 - 2005, Id Software, Inc.
 Copyright (C) 2000 - 2013, Raven Software, Inc.
@@ -1778,6 +1778,41 @@ static qboolean bot_try_meditate(bot_state_t* bs, bot_input_t* bi)
 	return qtrue;
 }
 
+// MovieDuels: a droid bot (gonk, mouse droid, R2, R5, protocol droid: no weapon) has a droid's brain, like SP's droids (Droid_Patrol): it never
+// takes an enemy or attacks, it walks the waypoints and now and then stops for a while. (It ran the fighter AI: it chased
+// players, "fired" its no-weapon and slid along in strafe / combat anims a droid does not have.)
+static qboolean bot_is_droid(const bot_state_t* bs)
+{
+	const int bc = g_entities[bs->client].s.botclass;
+	return bc == BCLASS_GONK || bc == BCLASS_MOUSE || bc == BCLASS_R2D2 || bc == BCLASS_R5D2 || bc == BCLASS_PROTOCOL ? qtrue : qfalse;
+}
+
+static void bot_droid_input(const bot_state_t* bs, bot_input_t* bi)
+{
+	static int pauseUntil[MAX_CLIENTS], nextPause[MAX_CLIENTS];
+	const int c = bs->client;
+
+	bi->actionflags &= ~(ACTION_ATTACK | ACTION_ALT_ATTACK | ACTION_KICK | ACTION_FORCEPOWER | ACTION_BLOCK | ACTION_GLOAT
+		| ACTION_FLOURISH | ACTION_GESTURE | ACTION_JUMP | ACTION_DELAYEDJUMP | ACTION_CROUCH);
+	bi->actionflags |= ACTION_WALK;
+	if (nextPause[c] > level.time + 60000 || pauseUntil[c] > level.time + 60000)
+	{
+		nextPause[c] = pauseUntil[c] = 0; // left over from an earlier map
+	}
+	if (level.time >= nextPause[c])
+	{
+		pauseUntil[c] = level.time + Q_irand(1500, 3500);
+		nextPause[c] = pauseUntil[c] + Q_irand(6000, 14000);
+	}
+	if (level.time < pauseUntil[c])
+	{
+		bi->speed = 0;
+		bi->actionflags &= ~(ACTION_MOVEFORWARD | ACTION_MOVEBACK | ACTION_MOVELEFT | ACTION_MOVERIGHT | ACTION_MOVEUP
+			| ACTION_MOVEDOWN);
+	}
+}
+
+
 static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_time)
 {
 	bot_input_t bi;
@@ -1896,6 +1931,10 @@ static void bot_update_input(bot_state_t* bs, const int time, const int elapsed_
 
 	// Force selection
 	bi.forcesel = level.clients[bs->client].ps.fd.forcePowerSelected;
+	if (bot_is_droid(bs))
+	{
+		bot_droid_input(bs, &bi);
+	}
 
 	// Convert to usercmd
 	BotInputToUserCommand(bs, &bi, &bs->lastucmd, bs->cur_ps.delta_angles, time, bs->noUseTime);
@@ -5612,12 +5651,26 @@ static int bot_trace_duck(const bot_state_t* bs, vec3_t traceto)
 }
 
 //check of the potential enemy is a valid one
+static qboolean bot_vehicle_with_enemy(const bot_state_t* bs, const gentity_t* veh);
+
 static int pass_standard_enemy_checks(const bot_state_t* bs, const gentity_t* en)
 {
 	if (!bs || !en)
 	{
 		//shouldn't happen
 		return 0;
+	}
+	if (bot_is_droid(bs))
+	{
+		return 0; // MovieDuels: droids have no enemies
+	}
+
+	// MovieDuels: a vehicle with an enemy pilot (droideka...) is a target of its own (bot_vehicle_with_enemy). It is an NPC
+	// client with no pers.connected or session, so the player rules below dropped it again every frame and bots
+	// stopped attacking a player once he boarded.
+	if (en->s.eType == ET_NPC && en->s.NPC_class == CLASS_VEHICLE)
+	{
+		return bot_vehicle_with_enemy(bs, en) ? 1 : 0;
 	}
 
 	if (!en->client)
@@ -5774,6 +5827,11 @@ void bot_damage_notification(const gclient_t* bot, gentity_t* attacker)
 	{
 		//if attacker is an npc also don't care I suppose.
 		return;
+	}
+
+	if (botstates[bot->ps.clientNum] && bot_is_droid(botstates[bot->ps.clientNum]))
+	{
+		return; // MovieDuels: a droid does not hit back
 	}
 
 	bot_state_t* bs_a = botstates[attacker->s.number];
@@ -6030,6 +6088,26 @@ int pass_loved_one_check(const bot_state_t* bs, const gentity_t* ent)
 	return 1;
 }
 
+// A vehicle with an enemy aboard. The rider himself is no target while riding (g_vehicles.c hides him: SVF_NOCLIENT,
+// EF_NODRAW, no contents, and a trace to him hits the vehicle) and vehicles were skipped in the scan, so bots ignored a
+// player in a vehicle (droideka etc.), even in FFA. The team / loved-one checks are done on the pilot.
+static qboolean bot_vehicle_with_enemy(const bot_state_t* bs, const gentity_t* veh)
+{
+	if (!veh->inuse || veh->s.eType != ET_NPC || veh->s.NPC_class != CLASS_VEHICLE || !veh->m_pVehicle
+		|| veh->health < 1 || veh->s.eFlags & EF_DEAD)
+	{
+		return qfalse;
+	}
+	const gentity_t* pilot = (const gentity_t*)veh->m_pVehicle->m_pPilot;
+	if (!pilot || !pilot->inuse || !pilot->client || pilot->s.number == bs->client
+		|| pilot->client->sess.sessionTeam == TEAM_SPECTATOR || pilot->health < 1
+		|| OnSameTeam(&g_entities[bs->client], pilot))
+	{
+		return qfalse;
+	}
+	return pass_loved_one_check(bs, pilot) ? qtrue : qfalse;
+}
+
 //update the currentEnemy visual data for the current enemy.
 static void enemy_visual_update(bot_state_t* bs)
 {
@@ -6075,6 +6153,11 @@ static void enemy_visual_update(bot_state_t* bs)
 //standard check to find a new enemy.
 static int scan_for_enemies(bot_state_t* bs)
 {
+	if (bot_is_droid(bs))
+	{
+		bs->currentEnemy = NULL;
+		return -1;
+	}
 	float has_enemy_dist = 0;
 	qboolean no_attack_non_jm = qfalse;
 	float closest = 999999;
@@ -6279,6 +6362,11 @@ static int scan_for_enemies(bot_state_t* bs)
 //the main scan regular scan for enemies for the TAB Bot
 static void advanced_scanfor_enemies(bot_state_t* bs)
 {
+	if (bot_is_droid(bs))
+	{
+		bs->currentEnemy = NULL;
+		return;
+	}
 	vec3_t a, enemy_origin;
 	int close_enemy_num = -1;
 	float closestdist = 99999;
@@ -6323,6 +6411,7 @@ static void advanced_scanfor_enemies(bot_state_t* bs)
 		if (i != bs->client
 			&& (g_entities[i].client && !OnSameTeam(&g_entities[bs->client], &g_entities[i]) &&
 				pass_standard_enemy_checks(bs, &g_entities[i]) && pass_loved_one_check(bs, &g_entities[i])
+				|| bot_vehicle_with_enemy(bs, &g_entities[i])
 				|| g_entities[i].s.eType == ET_NPC && g_entities[i].s.NPC_class != CLASS_VEHICLE && g_entities[i].
 				health > 0 && !(g_entities[i].s.eFlags & EF_DEAD)
 				|| g_entities[i].s.weapon == WP_EMPLACED_GUN
@@ -9603,9 +9692,107 @@ static void JediDirectionalDashAttack(bot_state_t* bs, const vec3_t enemyPos)
 #define BOT_LIGHTNING_MAX_DELAY	12000
 static int s_botNextLightning[MAX_CLIENTS];
 
+// bots and the SJE SP powers ported to MP (w_force.c): only bots whose force setup has the power, at most one new cast
+// every 5-9 s (SP NPCs use them now and then, not as their main attack), with force to spare, the enemy in a narrow cone
+// and at a range that suits the power. Grasp is held about 2 s, Repulse charged about 1.3 s (or until the enemy is
+// close) and then released. Returns the power to select, or -1.
+#define BOT_SPPOWER_MIN_DELAY	5000
+#define BOT_SPPOWER_MAX_DELAY	9000
+static int s_botNextSPPower[MAX_CLIENTS];
+
+static qboolean bot_sp_power_ready(const bot_state_t* bs, const int fp, const int extra)
+{
+	const gclient_t* cl = &level.clients[bs->client];
+	const int lvl = cl->ps.fd.forcePowerLevel[fp];
+
+	return bs->cur_ps.fd.forcePowersKnown & 1 << fp && lvl > FORCE_LEVEL_0 && lvl <= FORCE_LEVEL_3
+		&& cl->ps.fd.forcePower > forcePowerNeeded[lvl][fp] + extra && cl->ps.fd.forcePowerDebounce[fp] <= level.time
+		? qtrue : qfalse;
+}
+
+static int bot_sp_power(bot_state_t* bs, vec3_t toEnemyAngles)
+{
+	const gclient_t* cl = &level.clients[bs->client];
+	const gentity_t* enemy = bs->currentEnemy;
+	const float dist = bs->frame_Enemy_Len;
+
+	// keep holding a power already going
+	if (cl->ps.fd.forcePowersActive & 1 << FP_GRASP)
+	{
+		return level.time - cl->graspStartTime < 2000 ? FP_GRASP : -1;
+	}
+	if (cl->repulseChargeStart)
+	{
+		return level.time - cl->repulseChargeStart < 1300 && dist > 96 ? FP_REPULSE : -1;
+	}
+	if (!enemy || !enemy->client || enemy->health <= 0 || s_botNextSPPower[bs->client] > level.time
+		|| !in_field_of_vision(bs->viewangles, 30, toEnemyAngles))
+	{
+		return -1;
+	}
+	const qboolean enemyStunned = enemy->client->ps.userInt3 & 1 << FLAG_FROZEN
+		|| enemy->client->ps.weaponTime > 500 ? qtrue : qfalse;
+
+	int cand[NUM_FORCE_POWERS];
+	int n = 0;
+	if (!enemyStunned && dist < 700 && bot_sp_power_ready(bs, FP_STASIS, 10))
+		cand[n++] = FP_STASIS;
+	if (dist > 250 && dist < 1500 && bot_sp_power_ready(bs, FP_DESTRUCTION, 15))
+		cand[n++] = FP_DESTRUCTION;
+	if (dist > 128 && dist < 1000 && bot_sp_power_ready(bs, FP_BLAST, 10))
+		cand[n++] = FP_BLAST;
+	if (dist < 128 * cl->ps.fd.forcePowerLevel[FP_LIGHTNING_STRIKE] && bot_sp_power_ready(bs, FP_LIGHTNING_STRIKE, 10))
+		cand[n++] = FP_LIGHTNING_STRIKE;
+	if (!enemyStunned && dist < 1024 && bot_sp_power_ready(bs, FP_FEAR, 10))
+		cand[n++] = FP_FEAR;
+	if (!enemyStunned && dist < 1024 && bot_sp_power_ready(bs, FP_INSANITY, 10))
+		cand[n++] = FP_INSANITY;
+	if (!enemyStunned && dist < 1024 && bot_sp_power_ready(bs, FP_BLINDING, 10))
+		cand[n++] = FP_BLINDING;
+	if (dist < 1024 && !(cl->ps.fd.forcePowersActive & 1 << FP_DEADLYSIGHT) && bot_sp_power_ready(bs, FP_DEADLYSIGHT, 20))
+		cand[n++] = FP_DEADLYSIGHT;
+	if (dist < 200 && bot_sp_power_ready(bs, FP_GRASP, 20))
+		cand[n++] = FP_GRASP;
+	if (dist < 300 && bot_sp_power_ready(bs, FP_REPULSE, 20))
+		cand[n++] = FP_REPULSE;
+	if (!n)
+	{
+		return -1;
+	}
+	s_botNextSPPower[bs->client] = level.time + Q_irand(BOT_SPPOWER_MIN_DELAY, BOT_SPPOWER_MAX_DELAY);
+	return cand[Q_irand(0, n - 1)];
+}
+
 #define BOT_SABER_SWING_EXTRA	50.0f	// blade + this: about 80 (90 was out of contact)
 #define BOT_SABER_IDEAL_MIN		65.0f	// the distance the saber combat handlers keep (was 85-130: the blades rarely touched)
 #define BOT_SABER_IDEAL_MAX		100.0f
+// saber duel spacing with hysteresis: -1 back off, 1 close in, 0 hold. It backed off below idealMin and closed in above
+// idealMax at full run towards a goal 64 units away, and inside the band it kept running to the last (stale) goal - two
+// bots duelling crossed the narrow band every few frames and flipped between running in and running out (the jerking
+// when they come close). Now a bot that starts backing off / closing in keeps going only until the middle of the band,
+// and holds its ground inside the band.
+static int s_botSaberSpacing[MAX_CLIENTS];
+static int Bot_SaberSpacing(const bot_state_t* bs, const float idealMin, const float idealMax)
+{
+	const float mid = 0.5f * (idealMin + idealMax);
+	const float len = bs->frame_Enemy_Len;
+	int* state = &s_botSaberSpacing[bs->client];
+
+	if (len < idealMin)
+	{
+		*state = -1;
+	}
+	else if (len > idealMax)
+	{
+		*state = 1;
+	}
+	else if ((*state < 0 && len >= mid) || (*state > 0 && len <= mid))
+	{
+		*state = 0;
+	}
+	return *state;
+}
+
 static float Bot_SaberReach(const bot_state_t* bs)
 {
 	const gclient_t* client = g_entities[bs->client].client;
@@ -9774,8 +9961,9 @@ static void saber_combat_handling(bot_state_t* bs)
 	const float idealMin = BOT_SABER_IDEAL_MIN; // was 85: saber contact needs closer
 	const float idealMax = BOT_SABER_IDEAL_MAX; // was 130
 	const float MaxDashDist = 256.0f;
+	const int spacing = Bot_SaberSpacing(bs, idealMin, idealMax);
 
-	if (bs->frame_Enemy_Len < idealMin)
+	if (spacing < 0)
 	{
 		vec3_t back;
 		VectorSubtract(bs->origin, enemyPos, back);
@@ -9787,7 +9975,7 @@ static void saber_combat_handling(bot_state_t* bs)
 
 		bs->beStill = level.time + 100;
 	}
-	else if (bs->frame_Enemy_Len > idealMax)
+	else if (spacing > 0)
 	{
 		/* Only attempt dash attack if enemy is a client with a valid playerState */
 		playerState_t* enemy_ps_for_dash = (bs->currentEnemy && bs->currentEnemy->client) ? &bs->currentEnemy->client->ps : NULL;
@@ -9811,6 +9999,10 @@ static void saber_combat_handling(bot_state_t* bs)
 				VectorMA(bs->origin, 64.0f, fwd_to_enemy, bs->goalPosition);
 			}
 		}
+	}
+	else
+	{
+		VectorCopy(bs->origin, bs->goalPosition); // in the band: hold (was: kept running to the stale goal)
 	}
 
 	// -------------------------------------------------
@@ -9955,8 +10147,9 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 	const float idealMin = BOT_SABER_IDEAL_MIN; // was 85: saber contact needs closer
 	const float idealMax = BOT_SABER_IDEAL_MAX; // was 130
 	const float MaxDashDist = 256.0f;
+	const int spacing = Bot_SaberSpacing(bs, idealMin, idealMax);
 
-	if (bs->frame_Enemy_Len < idealMin)
+	if (spacing < 0)
 	{
 		vec3_t back;
 		VectorSubtract(bs->origin, enemyPos, back);
@@ -9971,7 +10164,7 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 
 		bs->beStill = level.time + 100;
 	}
-	else if (bs->frame_Enemy_Len > idealMax)
+	else if (spacing > 0)
 	{
 		playerState_t* ps = &bs->currentEnemy->client->ps;
 		// Dash cooldown using bot-local timer
@@ -9999,6 +10192,10 @@ static void Enhanced_saber_combat_handling(bot_state_t* bs)
 #endif
 			}
 		}
+	}
+	else
+	{
+		VectorCopy(bs->origin, bs->goalPosition); // in the band: hold (was: kept running to the stale goal)
 	}
 
 	// -------------------------------------------------
@@ -12998,6 +13195,11 @@ void standard_bot_ai(bot_state_t* bs)
 	const saberInfo_t* saber2 = BG_MySaber(bs->client, 1);
 	gentity_t* botEnt = &g_entities[bs->client];
 
+	if (bot_is_droid(bs))
+	{
+		bs->currentEnemy = NULL;
+	}
+
 	qboolean dualSabers = qfalse;
 	qboolean staffSaber = qfalse;
 
@@ -13678,6 +13880,22 @@ void standard_bot_ai(bot_state_t* bs)
 			forceHostile = 0;
 		}
 	}
+
+	// the SJE SP powers (bot_sp_power): when nothing above was chosen
+	if (!use_the_force && bs->currentEnemy && bs->currentEnemy->client && bs->frame_Enemy_Vis)
+	{
+		vec3_t toEnemyVec, toEnemyAngles;
+		VectorSubtract(bs->currentEnemy->client->ps.origin, bs->eye, toEnemyVec);
+		vectoangles(toEnemyVec, toEnemyAngles);
+		const int spPower = bot_sp_power(bs, toEnemyAngles);
+		if (spPower != -1)
+		{
+			level.clients[bs->client].ps.fd.forcePowerSelected = spPower;
+			use_the_force = 1;
+			forceHostile = 1;
+		}
+	}
+
 
 	if (use_the_force && forceHostile)
 	{

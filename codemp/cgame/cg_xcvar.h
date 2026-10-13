@@ -34,6 +34,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #endif
 
 XCVAR_DEF(bg_fighterAltControl, "0", NULL, CVAR_SYSTEMINFO)
+XCVAR_DEF(g_repulseHoverHeight, "90", NULL, CVAR_SYSTEMINFO)	// Force Repulse hover height, value from the server (bg_pmove)
 XCVAR_DEF(broadsword, "1", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_animBlend, "1", NULL, CVAR_NONE)
 XCVAR_DEF(cg_animSpeed, "1", NULL, CVAR_ARCHIVE)
@@ -61,6 +62,8 @@ XCVAR_DEF(cg_drawCrosshairNames, "1", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_DrawCrosshairItem, "1", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_drawEnemyInfo, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_drawFPS, "1", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(cg_weather, "1", CG_WeatherCvarChanged, CVAR_ARCHIVE) // 0: show no weather at all (r_weather picks which)
+XCVAR_DEF(r_weather, "0", CG_WeatherCvarChanged, CVAR_ARCHIVE) // menu weather selector: 0 the map's / server's, 1-9 own preset
 XCVAR_DEF(cg_drawFriend, "1", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_drawGun, "1", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_drawIcons, "1", NULL, CVAR_ARCHIVE)
@@ -205,6 +208,10 @@ XCVAR_DEF(rgb_script2, ":0,255,255:500:0,255,0:500:", NULL, CVAR_USERINFO | CVAR
 XCVAR_DEF(team_sabercolours, "2", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(ui_menubrief, "0", NULL, CVAR_ROM | CVAR_INTERNAL)
 XCVAR_DEF(cg_holsteredweapons, "2", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(cg_ignitionSpeed, "1", NULL, CVAR_ARCHIVE) // saber ignition / retraction speed, as MD SP (CG_SaberIgnitionStep)
+XCVAR_DEF(cg_ignitionSpeedstaff, "1", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(cg_holsterHide, "", NULL, CVAR_ARCHIVE | CVAR_USERINFO)	// the guns not carried on the body (hex mask of weapon numbers; weapon wheel "On Person"), sent to the others as "hh"
+XCVAR_DEF(cg_weaponWheelOld, "0", NULL, CVAR_ARCHIVE)	// 1: the "Weapon Wheel" key opens the old menu wheel instead of the radial one (cg_weapons.c CG_DrawMDWheel)
 XCVAR_DEF(cg_holsterdebug, "0", NULL, CVAR_NONE)
 XCVAR_DEF(cg_holsterdebug_boneindex, "0", NULL, CVAR_NONE)
 XCVAR_DEF(cg_holsterdebug_posoffset, "0.0 0.0 0.0", NULL, CVAR_NONE)
@@ -276,6 +283,7 @@ XCVAR_DEF(g_candojumpdash, "1", NULL, CVAR_SYSTEMINFO)
 XCVAR_DEF(g_candodoublejump, "1", NULL, CVAR_SYSTEMINFO)
 XCVAR_DEF(g_saberLockCinematicCamera, "1", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(g_AimingCinematicCamera, "1", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(cg_aimShoulder, "1", NULL, CVAR_ARCHIVE)	// aiming camera over the right shoulder (x model size); 0 = centred
 XCVAR_DEF(cg_oversizedview, "110", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_undersizedview, "60", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(com_rend2, "0", NULL, CVAR_ARCHIVE)

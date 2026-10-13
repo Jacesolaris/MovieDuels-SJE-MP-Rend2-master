@@ -2644,7 +2644,8 @@ static void ST_Commander(void)
 			int num_listed_entities;
 			qboolean fled = qfalse;
 			gentity_t* ent;
-			int entity_list[MAX_GENTITIES];
+			// static: too big for the stack (C6262); filled by EntitiesInBox before it is read
+			static int entity_list[MAX_GENTITIES];
 
 			TIMER_Set(NPCS.NPC, "checkGrenadeTooCloseDebouncer", Q_irand(300, 600));
 
@@ -2703,7 +2704,8 @@ static void ST_Commander(void)
 
 		// Check To See If The Enemy Is Too Close For Comfort
 		//----------------------------------------------------
-		if (NPCS.NPC->client->NPC_class != CLASS_ASSASSIN_DROID)
+		if (NPCS.NPC->client->NPC_class != CLASS_ASSASSIN_DROID &&
+			NPCS.NPC->client->NPC_class != CLASS_DROIDEKA) // as SP
 		{
 			if (TIMER_Done(NPCS.NPC, "checkEnemyTooCloseDebouncer"))
 			{
@@ -3025,6 +3027,298 @@ static void Noghri_StickTrace(void)
 NPC_BSST_Attack
 -------------------------
 */
+
+// ============================================================================
+// MovieDuels: droideka movement, MD SP behaviour on MP maps.
+// In MD SP the droideka runs this stormtrooper AI. On SP maps the squad AI sends it from combat point to combat
+// point: it folds into the ball (BOTH_RUN1START) to roll there, unfolds (BOTH_RUN1STOP) when it stops, raises the
+// shield and fires, then rolls on. The anims, the stop-while-folding speed and the shield come from bg_pmove.c,
+// g_active.c and Droideka_ShieldUpdate (NPC_AI_AssassinDroid.c). MP maps have no combat points, so the squad AI
+// never gives it a move goal and the droideka stood and shot. This gives it the same cycle without combat points:
+// roll after the enemy while it is out of range, out of sight or without a clear shot; stop in range and fire with
+// the shield up; roll to another firing spot when the deploy time is over. A move goal from the squad AI (a combat
+// point) or a script is left alone, so maps with combat points keep the SP squad behaviour.
+// ============================================================================
+extern qboolean Droideka_IsNPC(const gentity_t* ent); //NPC_AI_AssassinDroid.c
+
+#define DEKA_ENGAGE_DIST_SQ		(768.0f * 768.0f)	// roll in until the enemy is this close, then deploy
+#define DEKA_REDEPLOY_DIST_SQ	(960.0f * 960.0f)	// once deployed, keep firing until the enemy is beyond this
+#define DEKA_CLOSE_DIST_SQ		(192.0f * 192.0f)	// closer than this it doesn't roll at the enemy
+#define DEKA_LOS_GRACE			750					// ms out of sight before it rolls after the enemy
+#define DEKA_NOSHOT_GRACE		1500				// ms without a clear shot before it rolls after the enemy
+#define DEKA_RELOCATE_TIME		2500				// longest reposition roll (ms)
+
+static qboolean dekaRolled; // ST_DekaTactics moved the droideka this think, ST_Move must not move it again
+
+static qboolean ST_DekaInBallAnim(const playerState_t* ps)
+{
+	if (ps->legsAnim == BOTH_RUN1 || ps->legsAnim == BOTH_RUNBACK1 || ps->legsAnim == BOTH_RUN1START)
+	{
+		return qtrue;
+	}
+	return ps->legsAnim == BOTH_RUN1STOP && ps->legsTimer > 0 ? qtrue : qfalse; // still unfolding
+}
+
+// is the next stretch in this direction walkable (steps allowed, ground under it)?
+static qboolean ST_DekaStepClear(const vec3_t dir)
+{
+	const gentity_t* self = NPCS.NPC;
+	trace_t tr;
+	vec3_t mins, end, down;
+
+	VectorSet(mins, self->r.mins[0], self->r.mins[1], self->r.mins[2] + STEPSIZE);
+	VectorMA(self->r.currentOrigin, 64.0f, dir, end);
+	trap->Trace(&tr, self->r.currentOrigin, mins, self->r.maxs, end, self->s.number, self->clipmask, qfalse, 0, 0);
+	if (tr.allsolid || tr.startsolid || tr.fraction < 0.75f)
+	{
+		return qfalse;
+	}
+	VectorCopy(tr.endpos, down);
+	down[2] -= STEPSIZE * 3;
+	trap->Trace(&tr, tr.endpos, self->r.mins, self->r.maxs, down, self->s.number, self->clipmask, qfalse, 0, 0);
+	return tr.fraction < 1.0f && !tr.allsolid ? qtrue : qfalse;
+}
+
+// roll toward dest facing the way it rolls (a non-combat move turns the NPC to its path, see NPC_MoveToGoal)
+static qboolean ST_DekaRollTo(vec3_t dest)
+{
+	NPC_SetMoveGoal(NPCS.NPC, dest, 32, qfalse, -1, NULL);
+	NPCS.NPCInfo->combatMove = qfalse;
+	if (!NPC_MoveToGoal(qtrue))
+	{
+		// MP maps have no NPC nav, so the straight look-ahead fails on steps, ramps or when the goal is higher up:
+		// still roll straight at it while the next stretch is walkable
+		vec3_t dir;
+		VectorSubtract(dest, NPCS.NPC->r.currentOrigin, dir);
+		dir[2] = 0;
+		const float dist = VectorNormalize(dir);
+		if (dist < 48.0f || !ST_DekaStepClear(dir))
+		{
+			return qfalse;
+		}
+		vectoangles(dir, NPCS.NPCInfo->lastPathAngles);
+		NPCS.NPCInfo->desiredYaw = AngleNormalize360(NPCS.NPCInfo->lastPathAngles[YAW]);
+		NPCS.NPCInfo->desiredPitch = 0.0f;
+		NPCS.NPCInfo->distToGoal = dist;
+		NPCS.NPC->client->ps.speed = NPCS.NPCInfo->stats.runSpeed;
+		NPCS.ucmd.forwardmove = 127;
+		NPCS.ucmd.rightmove = 0;
+	}
+	// a running move (no BUTTON_WALKING) is what makes bg_pmove.c fold it into the ball
+	NPCS.ucmd.buttons &= ~BUTTON_WALKING;
+	TIMER_Set(NPCS.NPC, "strafeLeft", -1); // no sideways shuffling while it rolls
+	TIMER_Set(NPCS.NPC, "strafeRight", -1);
+	return qtrue;
+}
+
+// a new firing spot to the side of the enemy, on the ground, with a clear line to him
+static qboolean ST_DekaFindSpot(vec3_t out)
+{
+	const gentity_t* self = NPCS.NPC;
+	const gentity_t* enemy = self->enemy;
+	vec3_t toEnemy, right;
+
+	VectorSubtract(enemy->r.currentOrigin, self->r.currentOrigin, toEnemy);
+	toEnemy[2] = 0;
+	const float dist = VectorNormalize(toEnemy);
+	VectorSet(right, -toEnemy[1], toEnemy[0], 0);
+
+	const int firstSide = Q_irand(0, 1) ? 1 : -1;
+	for (int attempt = 0; attempt < 4; attempt++)
+	{
+		trace_t tr;
+		vec3_t dest, down, eye, enemyEye;
+		const int side = attempt & 1 ? -firstSide : firstSide;
+		const float lateral = (float)Q_irand(160, 320) * (float)side;
+		float advance = (float)Q_irand(-64, 128);
+
+		if (dist > 640.0f)
+		{
+			advance = (float)Q_irand(128, 256); // far: close in a bit
+		}
+		else if (dist < 256.0f)
+		{
+			advance = (float)-Q_irand(96, 192); // close: back off a bit
+		}
+
+		VectorMA(self->r.currentOrigin, lateral, right, dest);
+		VectorMA(dest, advance, toEnemy, dest);
+
+		trap->Trace(&tr, self->r.currentOrigin, self->r.mins, self->r.maxs, dest, self->s.number, self->clipmask,
+			qfalse, 0, 0);
+		if (tr.allsolid || tr.startsolid || tr.fraction < 0.5f)
+		{
+			continue;
+		}
+		VectorCopy(tr.endpos, dest);
+
+		// must have ground under it
+		VectorCopy(dest, down);
+		down[2] -= 64.0f;
+		trap->Trace(&tr, dest, self->r.mins, self->r.maxs, down, self->s.number, self->clipmask, qfalse, 0, 0);
+		if (tr.fraction >= 1.0f || tr.allsolid || tr.startsolid)
+		{
+			continue;
+		}
+
+		// and a line to the enemy
+		VectorCopy(dest, eye);
+		eye[2] += self->client->ps.viewheight;
+		VectorCopy(enemy->r.currentOrigin, enemyEye);
+		enemyEye[2] += enemy->client ? enemy->client->ps.viewheight : 0;
+		trap->Trace(&tr, eye, NULL, NULL, enemyEye, self->s.number, MASK_SHOT, qfalse, 0, 0);
+		if (tr.fraction < 1.0f && tr.entityNum != enemy->s.number)
+		{
+			continue;
+		}
+
+		VectorCopy(dest, out);
+		return qtrue;
+	}
+	return qfalse;
+}
+
+static vec3_t dekaRelocateSpot[MAX_GENTITIES]; // where each droideka's reposition roll goes
+
+// this think the droideka rolls: no ST_Move, no facing the enemy, no firing from inside the ball
+static void ST_DekaRolling(void)
+{
+	dekaRolled = qtrue;
+	move = qtrue;
+	faceEnemy = qfalse;
+	shoot = qfalse;
+}
+
+// start a reposition roll to a new firing spot
+static qboolean ST_DekaStartRelocate(void)
+{
+	gentity_t* self = NPCS.NPC;
+	vec3_t spot;
+
+	if (!ST_DekaFindSpot(spot) || !ST_DekaRollTo(spot))
+	{
+		return qfalse;
+	}
+	VectorCopy(spot, dekaRelocateSpot[self->s.number]);
+	TIMER_Set(self, "dekaRelocate", DEKA_RELOCATE_TIME);
+	TIMER_Remove(self, "dekaDeploy");
+	return qtrue;
+}
+
+static void ST_DekaTactics(void)
+{
+	gentity_t* self = NPCS.NPC;
+
+	dekaRolled = qfalse;
+
+	if (!Droideka_IsNPC(self) || !self->enemy || self->health <= 0)
+	{
+		return;
+	}
+	if (trap->ICARUS_TaskIDPending((sharedEntity_t*)self, TID_MOVE_NAV))
+	{
+		return; // a script moves it
+	}
+	if (NPCS.NPCInfo->combatPoint != -1 && NPCS.NPCInfo->goalEntity && NPCS.NPCInfo->goalEntity != self->enemy)
+	{
+		return; // the squad AI sends it to a combat point (as SP)
+	}
+
+	const qboolean inBall = ST_DekaInBallAnim(&self->client->ps);
+
+	if (enemyLOS)
+	{
+		TIMER_Set(self, "dekaSeen", DEKA_LOS_GRACE);
+	}
+	if (enemyCS || (enemyLOS && inBall))
+	{
+		// (rolled up, the arm guns are inside the ball and the shot test fails: sight is enough until it unfolds)
+		TIMER_Set(self, "dekaClearShot", DEKA_NOSHOT_GRACE);
+	}
+
+	// 1. a reposition roll in progress
+	if (!TIMER_Done(self, "dekaRelocate"))
+	{
+		if (!NAV_HitNavGoal(self->r.currentOrigin, self->r.mins, self->r.maxs, dekaRelocateSpot[self->s.number], 32,
+			qfalse) && ST_DekaRollTo(dekaRelocateSpot[self->s.number]))
+		{
+			ST_DekaRolling();
+			return;
+		}
+		TIMER_Set(self, "dekaRelocate", -1); // there (or blocked): deploy here
+		TIMER_Set(self, "dekaSeen", DEKA_LOS_GRACE); // time to turn back to the enemy
+		TIMER_Set(self, "dekaClearShot", DEKA_NOSHOT_GRACE);
+	}
+
+	// 2. out of range, out of sight or no clear shot: roll after the enemy (without a clear shot at close range it
+	// rolls aside to a new firing spot instead of into him)
+	const qboolean deployed = TIMER_Exists(self, "dekaDeploy");
+	qboolean chase = enemyDist > (deployed ? DEKA_REDEPLOY_DIST_SQ : DEKA_ENGAGE_DIST_SQ) || TIMER_Done(self, "dekaSeen")
+		? qtrue
+		: qfalse;
+	if (!chase && TIMER_Done(self, "dekaClearShot"))
+	{
+		if (enemyDist > DEKA_CLOSE_DIST_SQ)
+		{
+			chase = qtrue;
+		}
+		else
+		{
+			TIMER_Set(self, "dekaClearShot", DEKA_NOSHOT_GRACE); // don't search again every think
+			if (!inBall && ST_DekaStartRelocate())
+			{
+				ST_DekaRolling();
+				return;
+			}
+		}
+	}
+	if (chase)
+	{
+		vec3_t dest;
+		VectorCopy(self->enemy->r.currentOrigin, dest);
+		if (ST_DekaRollTo(dest))
+		{
+			TIMER_Remove(self, "dekaDeploy");
+			ST_DekaRolling();
+			return;
+		}
+		// no straight way there (MP maps have no NPC nav): try a firing spot to the side, else stand and fight
+		if (!inBall && TIMER_Done(self, "dekaSideStep"))
+		{
+			TIMER_Set(self, "dekaSideStep", Q_irand(1500, 2500));
+			if (ST_DekaStartRelocate())
+			{
+				ST_DekaRolling();
+				return;
+			}
+		}
+	}
+
+	// 3. deploy: stop (it unfolds), shield up (Droideka_ShieldUpdate, WeaponThink) and fire
+	if (!TIMER_Exists(self, "dekaDeploy"))
+	{
+		TIMER_Set(self, "dekaDeploy", Q_irand(6000, 9000));
+		TIMER_Set(self, "dekaClearShot", DEKA_NOSHOT_GRACE + 500); // time to unfold and aim
+	}
+	NPCS.NPCInfo->goalEntity = NULL;
+	move = qfalse;
+	if (inBall)
+	{
+		shoot = qfalse; // let it unfold first
+		return;
+	}
+
+	// 4. deploy time over: roll to another firing spot (SP: on to the next combat point)
+	if (TIMER_Done(self, "dekaDeploy") && self->client->ps.weaponTime <= 0)
+	{
+		if (ST_DekaStartRelocate())
+		{
+			ST_DekaRolling();
+			return;
+		}
+		TIMER_Set(self, "dekaDeploy", Q_irand(2000, 4000)); // nowhere to go: try again later
+	}
+}
 
 extern qboolean PM_CrouchAnim(const int anim);
 #define MELEE_DIST_SQUARED 6400
@@ -3404,6 +3698,9 @@ void NPC_BSST_Attack(void)
 	//See if we should override shooting decision with any special considerations
 	ST_CheckFireState();
 
+	// MovieDuels: the droideka rolls after the enemy / to new firing spots, deploys and fires (MD SP behaviour)
+	ST_DekaTactics();
+
 	if (faceEnemy)
 	{
 		//face the enemy
@@ -3455,7 +3752,7 @@ void NPC_BSST_Attack(void)
 	if (move)
 	{
 		//move toward goal
-		if (NPCS.NPCInfo->goalEntity)
+		if (!dekaRolled && NPCS.NPCInfo->goalEntity)
 		{
 			move = ST_Move();
 
@@ -3492,7 +3789,7 @@ void NPC_BSST_Attack(void)
 				//TIMER_Remove( NPC, "runningBackwards" );
 			}
 		}
-		else
+		else if (!dekaRolled) // the droideka already rolled (ST_DekaTactics)
 		{
 			move = qfalse;
 		}
@@ -3500,7 +3797,7 @@ void NPC_BSST_Attack(void)
 
 	if (!move)
 	{
-		if (NPCS.NPC->client->NPC_class != CLASS_ASSASSIN_DROID)
+		if (NPCS.NPC->client->NPC_class != CLASS_ASSASSIN_DROID && NPCS.NPC->client->NPC_class != CLASS_DROIDEKA) // as SP
 		{
 			//droids don't duck.
 			if (!TIMER_Done(NPCS.NPC, "duck"))

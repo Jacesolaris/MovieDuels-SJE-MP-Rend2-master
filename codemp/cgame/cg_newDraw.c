@@ -741,6 +741,11 @@ void CG_MouseEvent(int x, int y) {
 	}
 	*/
 
+	if (CG_MDWheel_MouseEvent(x, y))
+	{
+		return;
+	}
+
 	cgs.cursorX += x;
 	if (cgs.cursorX < 0)
 		cgs.cursorX = 0;
@@ -803,6 +808,7 @@ type 0 - no event handling
 void CG_EventHandling(int type) {
 	cgs.eventHandling = type;
 	if (type == CGAME_EVENT_NONE) {
+		CG_MDWheel_Cancel();
 		CG_HideTeamMenu();
 	}
 	else if (type == CGAME_EVENT_TEAMMENU) {
@@ -813,6 +819,11 @@ void CG_EventHandling(int type) {
 }
 
 void CG_KeyEvent(int key, qboolean down) {
+	// the radial weapon wheel (cg_weapons.c) takes the keys while it is open
+	if (CG_MDWheel_KeyEvent(key, down)) {
+		return;
+	}
+
 	if (!down) {
 		return;
 	}

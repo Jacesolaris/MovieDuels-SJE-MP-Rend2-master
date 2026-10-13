@@ -60,7 +60,17 @@ const char* HolocronIcons[NUM_FORCE_POWERS] = {
 	"gfx/mp/f_icon_sight", //FP_SEE,
 	"gfx/mp/f_icon_saber_attack", //FP_SABER_OFFENSE,
 	"gfx/mp/f_icon_saber_defend", //FP_SABER_DEFENSE,
-	"gfx/mp/f_icon_saber_throw" //FP_SABERTHROW
+	"gfx/mp/f_icon_saber_throw", //FP_SABERTHROW
+	"gfx/mp/f_icon_lt_stasis", //FP_STASIS
+	"gfx/mp/f_icon_dk_destruction", //FP_DESTRUCTION
+	"gfx/mp/f_icon_lt_grasp", //FP_GRASP
+	"gfx/mp/f_icon_repulse", //FP_REPULSE
+	"gfx/mp/f_icon_lt_lightning_strike", //FP_LIGHTNING_STRIKE
+	"gfx/mp/f_icon_dk_fear", //FP_FEAR
+	"gfx/mp/f_icon_dk_deadlysight", //FP_DEADLYSIGHT
+	"gfx/mp/f_icon_lt_blast", //FP_BLAST
+	"gfx/mp/f_icon_dk_insanity", //FP_INSANITY
+	"gfx/mp/f_icon_lt_blinding" //FP_BLINDING
 };
 
 #define SCROLL_TIME_START					500
@@ -3206,6 +3216,16 @@ static qboolean Item_OwnerDraw_HandleKey(itemDef_t* item, const int key)
 			case UI_FORCE_RANK_SABERATTACK:
 			case UI_FORCE_RANK_SABERDEFEND:
 			case UI_FORCE_RANK_SABERTHROW:
+			case UI_FORCE_RANK_STASIS:
+			case UI_FORCE_RANK_DESTRUCTION:
+			case UI_FORCE_RANK_GRASP:
+			case UI_FORCE_RANK_REPULSE:
+			case UI_FORCE_RANK_LIGHTNING_STRIKE:
+			case UI_FORCE_RANK_FEAR:
+			case UI_FORCE_RANK_DEADLYSIGHT:
+			case UI_FORCE_RANK_BLAST:
+			case UI_FORCE_RANK_INSANITY:
+			case UI_FORCE_RANK_BLINDING:
 				if (!Rect_ContainsPoint(&item->window.rect, DC->cursorx, DC->cursory))
 				{
 					return qfalse;
@@ -4770,6 +4790,17 @@ void Menu_HandleKey(menuDef_t* menu, int key, qboolean down)
 		return;
 	}
 
+	// the weapon wheel's key again closes it (as MovieDuels SP)
+	if (!(key & K_CHAR_FLAG) && DC->getBindingBuf && !Q_stricmp(menu->window.name, "ingameWeaponWheelMenu"))
+	{
+		char b[256];
+		DC->getBindingBuf(key, b, sizeof b);
+		if (!Q_stricmp(b, "ui_openmenu ingameWeaponWheelMenu") || !Q_stricmp(b, "+md_wheel"))
+		{
+			key = A_ESCAPE;
+		}
+	}
+
 	// default handling
 	switch (key)
 	{
@@ -5440,6 +5471,9 @@ static const char* g_bindCommands[] = {
 	"messagemode4",
 	"saberAttackCycle",
 	"taunt",
+	"ui_openmenu ingameWeaponWheelMenu",
+	"+md_wheel", // the radial weapon wheel (cgame), held
+	"+md_forcewheel", // the same wheel on the force ring
 	"use_bacta",
 	"use_electrobinoculars",
 	"use_field",

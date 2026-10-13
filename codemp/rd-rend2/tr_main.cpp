@@ -1868,7 +1868,10 @@ static void R_AddEntitySurface(const trRefdef_t* refdef, trRefEntity_t* ent, int
 	case RT_ELECTRICITY:
 	case RT_LINE:
 	case RT_ORIENTEDLINE:
+	case RT_LATHE:		// e.g. the droideka shield: these were missing here (as in SJE / MD SP rend2), so the client was
+	case RT_CLOUDS:		// dropped with 'R_AddEntitySurfaces: Bad reType'
 	case RT_CYLINDER:
+	case RT_LIGHTNING:
 	case RT_SABER_GLOW:
 		// self blood sprites, talk balloons, etc should not be drawn in the primary
 		// view.  We can't just do this check for all entities, because md3
@@ -2021,8 +2024,12 @@ void R_GenerateDrawSurfs(viewParms_t* viewParms, trRefdef_t* refdef) {
 
 	R_AddPolygonSurfaces(refdef);
 
+	// weather belongs to the game view only. It was added to whichever scene came first in the frame: while an in-game
+	// menu is open the game view is not drawn, so the menu's model preview (RDF_NOWORLDMODEL) was scene 0 and the map's
+	// weather (ffa3 sand) was drawn over the menu across that scene's viewport.
 	if (tr.viewParms.viewParmType > VPT_POINT_SHADOWS &&
 		tr.world &&
+		!(refdef->rdflags & RDF_NOWORLDMODEL) &&
 		backEndData->currentFrame->currentScene == 0)
 	{
 		R_AddWeatherSurfaces();
@@ -2493,8 +2500,9 @@ static void R_SetupViewParms(const trRefdef_t* refdef)
 	Com_Memset(&tr.viewParms, 0, sizeof(viewParms_t));
 	tr.viewParms.viewportX = refdef->x;
 
-	// Shoud be just refef->y but this flips the menu orientation for models, so its actually needed like this
-	if (!tr.world)
+	// GL viewports count from the bottom: flip the refdef's top-down y for menu / no-world scenes too (it was only flipped
+	// while no map was loaded, so the in-game character menu's model preview was drawn too big and too high)
+	if (!tr.world || refdef->rdflags & RDF_NOWORLDMODEL)
 		tr.viewParms.viewportY = glConfig.vidHeight - (refdef->y + refdef->height);
 	else
 		tr.viewParms.viewportY = refdef->y;

@@ -830,6 +830,117 @@ static qboolean R_IsHumanoidPath(const char* animName)
 
 /*
 =================
+MovieDuels: which animation set (GLA) a mesh loads - shared by R_LoadMDXM (tr_ghoul2.cpp) and ServerLoadMDXM.
+
+g_animationStyleActive (set by the server's game module, sent to clients in the systeminfo) decides, as SP's
+md_animsets.h does with g_ActivateAnimationStyle:
+ - 1 (Master, solo games only): every humanoid-family mesh uses the master models/players/_humanoid set, unless its
+   bone count does not fit the master skeleton (super battle droid 43, droideka 59...): those keep their own GLA.
+ - 0 (Classic, the default and always in server games): every mesh uses the GLA its model.glm names, with that folder's
+   animation.cfg. A humanoid-family mesh whose folder has no animation.cfg (or whose GLA is missing) still uses the master.
+The cached glm buffer keeps the GLA actually loaded in mdxm->animName (G2API_GetGLAName: the game and cgame pick the
+animation.cfg folder from it), so the glm's own name is remembered here to decide again after the style changed.
+=================
+*/
+#define MD_ANIMSTYLE_ACTIVE_CVAR	"g_animationStyleActive"
+#define MD_MASTER_HUMANOID_GLA		"models/players/_humanoid/_humanoid"
+#define MD_MAX_MESH_ANIMNAMES		2048
+
+typedef struct mdMeshAnimName_s
+{
+	char mesh[MAX_QPATH];
+	char animName[MAX_QPATH];
+} mdMeshAnimName_t;
+
+static mdMeshAnimName_t mdMeshAnimNames[MD_MAX_MESH_ANIMNAMES];
+static int mdNumMeshAnimNames = 0;
+
+// The GLA the glm file names. fresh: the header was just read from the file (not a cached, possibly rewritten copy).
+static const char* R_MD_MeshOwnAnimName(const char* meshName, const char* headerAnimName, const qboolean fresh)
+{
+	for (int i = 0; i < mdNumMeshAnimNames; i++)
+	{
+		if (!Q_stricmp(mdMeshAnimNames[i].mesh, meshName))
+		{
+			if (fresh)
+			{
+				Q_strncpyz(mdMeshAnimNames[i].animName, headerAnimName, sizeof mdMeshAnimNames[i].animName);
+			}
+			return mdMeshAnimNames[i].animName;
+		}
+	}
+	if (mdNumMeshAnimNames < MD_MAX_MESH_ANIMNAMES)
+	{
+		mdMeshAnimName_t* entry = &mdMeshAnimNames[mdNumMeshAnimNames++];
+		Q_strncpyz(entry->mesh, meshName, sizeof entry->mesh);
+		Q_strncpyz(entry->animName, headerAnimName, sizeof entry->animName);
+		return entry->animName;
+	}
+	return headerAnimName;
+}
+
+// does the GLA's folder have an animation.cfg (pk3s included)?
+static qboolean R_MD_GLAFolderHasAnimCfg(const char* gla)
+{
+	char path[MAX_QPATH];
+
+	Q_strncpyz(path, gla, sizeof path);
+	char* slash = strrchr(path, '/');
+	if (!slash || (size_t)(slash - path) + sizeof "/animation.cfg" > sizeof path)
+	{
+		return qfalse;
+	}
+	strcpy(slash, "/animation.cfg");
+	return ri->FS_ReadFile(path, NULL) > 0 ? qtrue : qfalse;
+}
+
+qhandle_t R_MD_ChooseAnimGLA(const char* meshName, const mdxmHeader_t* mdxm, const qboolean fresh, char* usedName, const int usedNameSize)
+{
+	const char* ownName = R_MD_MeshOwnAnimName(meshName, mdxm->animName, fresh);
+	qhandle_t animIndex;
+
+	Q_strncpyz(usedName, ownName, usedNameSize);
+
+	if (!R_IsHumanoidPath(ownName))
+	{
+		// non-humanoid or custom skeleton: the model's own GLA
+		return RE_RegisterModel(va("%s.gla", ownName));
+	}
+
+	// Classic: the model's dedicated humanoid set (models/players/_humanoid_yoda/...), when its folder has the animation.cfg
+	if (ri->Cvar_VariableIntegerValue(MD_ANIMSTYLE_ACTIVE_CVAR) != 1 &&
+		Q_stricmpn(ownName, "models/players/_humanoid/", (int)strlen("models/players/_humanoid/")) &&
+		R_MD_GLAFolderHasAnimCfg(ownName))
+	{
+		animIndex = RE_RegisterModel(va("%s.gla", ownName));
+		if (animIndex)
+		{
+			return animIndex;
+		}
+	}
+
+	animIndex = RE_RegisterModel(va("%s.gla", MD_MASTER_HUMANOID_GLA));
+	if (!animIndex)
+	{
+		Com_Error(ERR_DROP, "R_LoadMDXM: required MP humanoid GLA missing: %s.gla", MD_MASTER_HUMANOID_GLA);
+	}
+
+	// A mesh with another bone count than the master humanoid skeleton (super battle droid, droideka, protocol...) was
+	// built for its own skeleton: on the master its bones would be wrong (or index past the bone cache and
+	// corrupt memory. Keep its own GLA in that case (old 72-bone models are remapped by the caller).
+	const model_t* humanoidGLA = R_GetModelByHandle(animIndex);
+	if (mdxm->numBones != 72 && humanoidGLA && humanoidGLA->type == MOD_MDXA && humanoidGLA->mdxa &&
+		mdxm->numBones != humanoidGLA->mdxa->numBones) // another skeleton (sbd 43, deka 59, protocol 54...): its own GLA, as SP
+	{
+		return RE_RegisterModel(va("%s.gla", ownName));
+	}
+
+	Q_strncpyz(usedName, MD_MASTER_HUMANOID_GLA, usedNameSize);
+	return animIndex;
+}
+
+/*
+=================
 ServerLoadMDXM - load a Ghoul 2 Mesh file
 =================
 */
@@ -905,39 +1016,9 @@ static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name,
 	============================================================
 	*/
 
-	const char* animNameToUse = mdxm->animName;
-	qhandle_t   animIndex = 0;
-
-	if (R_IsHumanoidPath(mdxm->animName))
-	{
-		const char* forcedHumanoid = "models/players/_humanoid/_humanoid"; // the MovieDuels master _humanoid (SP + MP animations, shared with SP)
-
-		animIndex = RE_RegisterModel(va("%s.gla", forcedHumanoid));
-		if (!animIndex)
-		{
-			Com_Error(ERR_DROP,
-				"ServerLoadMDXM: required MP humanoid GLA missing: %s.gla",
-				forcedHumanoid);
-		}
-
-		// A mesh with another bone count than the master humanoid skeleton (super battle droid, droideka, protocol...) was
-		// built for its own skeleton: on the master its bones would be wrong (or index past the bone cache and
-		// corrupt memory. Keep its own GLA in that case (old 72-bone models are remapped further down).
-		const model_t* humanoidGLA = R_GetModelByHandle(animIndex);
-		if (mdxm->numBones != 72 && humanoidGLA && humanoidGLA->type == MOD_MDXA && humanoidGLA->mdxa &&
-			mdxm->numBones != humanoidGLA->mdxa->numBones) // another skeleton (sbd 43, deka 59, protocol 54...): its own GLA, as SP
-		{
-			animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
-		}
-		else
-		{
-			animNameToUse = forcedHumanoid;
-		}
-	}
-	else
-	{
-		animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
-	}
+	// MovieDuels: the master or the model's own set, by g_animationStyleActive (R_MD_ChooseAnimGLA)
+	char animNameToUse[MAX_QPATH];
+	const qhandle_t animIndex = R_MD_ChooseAnimGLA(mod_name, mdxm, (qboolean)!bAlreadyFound, animNameToUse, sizeof animNameToUse);
 
 	mdxm->animIndex = animIndex;
 

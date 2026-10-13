@@ -34,6 +34,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <zlib.h>
 #endif
 #include <qcommon/q_color.h>
+#include <memory>
+#include <vector>
 
 static char hiddenCvarVal[128];
 
@@ -159,7 +161,7 @@ void CL_ParsePacketEntities(msg_t* msg, const clSnapshot_t* oldframe, clSnapshot
 
 			oldindex++;
 
-			if (oldindex >= oldframe->numEntities)
+			if (!oldframe || oldindex >= oldframe->numEntities)
 			{
 				oldnum = 99999;
 			}
@@ -181,7 +183,7 @@ void CL_ParsePacketEntities(msg_t* msg, const clSnapshot_t* oldframe, clSnapshot
 
 			oldindex++;
 
-			if (oldindex >= oldframe->numEntities)
+			if (!oldframe || oldindex >= oldframe->numEntities)
 			{
 				oldnum = 99999;
 			}
@@ -507,10 +509,13 @@ void CL_SystemInfoChanged(void)
 	qboolean gameSet = qfalse;
 	// scan through all the variables in the systeminfo and locally set cvars to match
 	s = systemInfo;
+	// heap, not stack (C6262; 16 KB): reached from a cgame syscall (configstring change)
+	std::vector<char> valueBuf(BIG_INFO_VALUE);
+	std::vector<char> keyBuf(BIG_INFO_KEY);
+	char* value = valueBuf.data();
+	char* key = keyBuf.data();
 	while (s)
 	{
-		char value[BIG_INFO_VALUE];
-		char key[BIG_INFO_KEY];
 		Info_NextPair(&s, key, value);
 		if (!key[0])
 		{
@@ -527,7 +532,7 @@ void CL_SystemInfoChanged(void)
 
 			if (!FS_FilenameCompare(value, BASEGAME))
 			{
-				Q_strncpyz(value, "", sizeof value);
+				Q_strncpyz(value, "", BIG_INFO_VALUE);
 			}
 
 			gameSet = qtrue;
@@ -655,7 +660,9 @@ A download message has been received from the server
 */
 void CL_ParseDownload(msg_t* msg)
 {
-	unsigned char data[MAX_MSGLEN];
+	// heap, not stack (C6262). Not zeroed, as on the stack.
+	const std::unique_ptr<unsigned char[]> dataBuf(new unsigned char[MAX_MSGLEN]);
+	unsigned char* data = dataBuf.get();
 
 	if (!*clc.downloadTempName)
 	{
@@ -681,7 +688,7 @@ void CL_ParseDownload(msg_t* msg)
 	}
 
 	const int size = /*(unsigned short)*/MSG_ReadShort(msg);
-	if (size < 0 || size > static_cast<int>(sizeof data))
+	if (size < 0 || size > MAX_MSGLEN)
 	{
 		Com_Error(ERR_DROP, "CL_ParseDownload: Invalid size %d for download chunk", size);
 	}

@@ -168,6 +168,11 @@ Coordinates are at 640 by 480 virtual resolution
 void SCR_DrawStringExt(const int x, const int y, const float size, const char* string, const float* setColor,
 	const qboolean forceColor, const qboolean noColorEscape)
 {
+	if (string == nullptr) // callers always pass a string; lets the analyser see s is never NULL (C6011)
+	{
+		return;
+	}
+
 	vec4_t color{};
 
 	// draw the drop shadow
@@ -242,6 +247,11 @@ Coordinates are at 640 by 480 virtual resolution
 void SCR_DrawSmallStringExt(const int x, const int y, const char* string, const float* setColor,
 	const qboolean forceColor, const qboolean noColorEscape)
 {
+	if (string == nullptr) // callers always pass a string; lets the analyser see s is never NULL (C6011)
+	{
+		return;
+	}
+
 	vec4_t color;
 
 	// draw the colored text

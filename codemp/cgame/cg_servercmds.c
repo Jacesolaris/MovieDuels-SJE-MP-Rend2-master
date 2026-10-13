@@ -867,6 +867,11 @@ static void CG_ConfigStringModified(void) {
 			CG_ParseWeatherEffect(str);
 			cgs.gameEffects[num - CS_EFFECTS] = 0;
 		}
+		else if (!str[0])
+		{
+			// blanked (an old server weather string, see the game's G_SetWeather)
+			cgs.gameEffects[num - CS_EFFECTS] = 0;
+		}
 		else
 		{
 			cgs.gameEffects[num - CS_EFFECTS] = trap->FX_RegisterEffect(str);
@@ -993,6 +998,7 @@ void CG_KillCEntityG2(int ent_num)
 	cent->ikStatus = qfalse;
 
 	cent->localAnimIndex = 0;
+	cent->animIndexGhoul2 = NULL; // a kept player instance gets its own animation set again (CG_PlayerCheckAnimIndex)
 }
 
 void CG_KillCEntityInstances(void)
@@ -1035,6 +1041,7 @@ void CG_KillCEntityInstances(void)
 		cent->numLoopingSounds = 0;
 
 		cent->localAnimIndex = 0;
+		cent->animIndexGhoul2 = NULL; // a kept player instance gets its own animation set again (CG_PlayerCheckAnimIndex)
 
 		i++;
 	}
@@ -1248,6 +1255,14 @@ static void CG_BodyQueueCopy(centity_t* cent, int client_num, int knownWeapon)
 
 	trap->G2API_DuplicateGhoul2Instance(source->ghoul2, &cent->ghoul2);
 
+	// MovieDuels (port of SJE MP): the corpse uses the animation set (skeleton) of the player it was copied from. It stayed 0
+	// (_humanoid), so a corpse of an own-skeleton model passed the humanoid test in CG_RagDoll and the ragdoll was started on
+	// bones its GLA does not have (Debug assert in G2_Set_Bone_Anim_No_BS), and the death frames came from the _humanoid
+	// table. Never a bad slot (a failed anim set load gave -1).
+	cent->localAnimIndex = source->localAnimIndex >= 0 && source->localAnimIndex < MAX_ANIM_FILES &&
+		bgAllAnims[source->localAnimIndex].anims ? source->localAnimIndex : 0;
+	cent->eventAnimIndex = source->eventAnimIndex >= 0 && source->eventAnimIndex < MAX_ANIM_FILES ? source->eventAnimIndex : 0;
+
 	if (source->isRagging)
 	{ //just reset it now.
 		source->isRagging = qfalse;
@@ -1272,14 +1287,26 @@ static void CG_BodyQueueCopy(centity_t* cent, int client_num, int knownWeapon)
 		//anim = &bgAllAnims[cent->localAnimIndex].anims[ cent->currentState.torsoAnim ];
 		if (!BG_InDeathAnim(source->currentState.torsoAnim))
 		{ //then just snap the corpse into a default
-			anim = &bgAllAnims[source->localAnimIndex].anims[BOTH_DEAD1];
+			anim = &bgAllAnims[cent->localAnimIndex].anims[BOTH_DEAD1];
 			fallBack = qtrue;
 		}
 		else
 		{
-			anim = &bgAllAnims[source->localAnimIndex].anims[source->currentState.torsoAnim];
+			anim = &bgAllAnims[cent->localAnimIndex].anims[source->currentState.torsoAnim];
 		}
-		anim_speed = 50.0f / anim->frameLerp;
+		// MovieDuels (port of SJE MP): a skeleton without this death anim (gonk and other droids: 0 frames) made the frame
+		// below -1 (Debug assert startFrame >= 0 in G2_Get_Bone_Anim via CG_TriggerAnimSounds when the corpse was drawn;
+		// a bad frame in Release): its BOTH_DEAD1 then, else its standing pose
+		if (anim->num_frames <= 0)
+		{
+			anim = &bgAllAnims[cent->localAnimIndex].anims[BOTH_DEAD1];
+			fallBack = qtrue;
+			if (anim->num_frames <= 0)
+			{
+				anim = &bgAllAnims[cent->localAnimIndex].anims[BOTH_STAND1];
+			}
+		}
+		anim_speed = anim->frameLerp ? 50.0f / anim->frameLerp : 1.0f; // MovieDuels: a set without the anim has frameLerp 0
 
 		if (!fallBack)
 		{
@@ -1291,7 +1318,7 @@ static void CG_BodyQueueCopy(centity_t* cent, int client_num, int knownWeapon)
 				aNum--;
 			}
 
-			if (aNum < anim->firstFrame - 1)
+			if (aNum < anim->firstFrame) // MovieDuels: was firstFrame - 1, which let frame -1 through for an anim at frame 0
 			{ //wrong animation...?
 				aNum = (anim->firstFrame + anim->num_frames) - 1;
 			}
@@ -1308,9 +1335,16 @@ static void CG_BodyQueueCopy(centity_t* cent, int client_num, int knownWeapon)
 		//	aNum = (anim->firstFrame+anim->num_frames)-1;
 		//}
 
-		trap->G2API_SetBoneAnim(cent->ghoul2, 0, "upper_lumbar", aNum, eFrame, flags, anim_speed, cg.time, -1, 150);
-		trap->G2API_SetBoneAnim(cent->ghoul2, 0, "model_root", aNum, eFrame, flags, anim_speed, cg.time, -1, 150);
-		trap->G2API_SetBoneAnim(cent->ghoul2, 0, "Motion", aNum, eFrame, flags, anim_speed, cg.time, -1, 150);
+		if (anim->num_frames > 0) // else (no anim at all) it keeps the pose copied from the player
+		{
+			trap->G2API_SetBoneAnim(cent->ghoul2, 0, "model_root", aNum, eFrame, flags, anim_speed, cg.time, -1, 150);
+			if (BG_AnimSetIsHumanoidLike(cent->localAnimIndex))
+			{
+				// MovieDuels (port of SJE MP): only humanoid skeletons have these bones (creatures and droids: model_root alone)
+				trap->G2API_SetBoneAnim(cent->ghoul2, 0, "upper_lumbar", aNum, eFrame, flags, anim_speed, cg.time, -1, 150);
+				trap->G2API_SetBoneAnim(cent->ghoul2, 0, "Motion", aNum, eFrame, flags, anim_speed, cg.time, -1, 150);
+			}
+		}
 	}
 
 	//After we create the bodyqueue, regenerate any limbs on the real instance

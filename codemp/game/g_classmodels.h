@@ -11,10 +11,21 @@ typedef struct classModel_s
 	bclass_t botclass;
 	bclass_t adminClass;
 	int scale;
+	qboolean exactOnly;	// MovieDuels: only an exact model/skin or folder match (step 1 or 2 of G_ClassModelFor), never the substring scan
 } classModel_t;
 
 static const classModel_t classModels[] =
 {
+	// MovieDuels 2026-10-11 (port of SJE MP): creature / droid models on their own skeleton, playable as their SP class.
+	// Exact rows only (exactOnly), so short names cannot catch other models in the substring scan.
+	{ "r5d2", BCLASS_R5D2, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },			// r5d2.npc gives the stun; owner decision: R5 has no weapon (BCLASS_R5D2)
+	{ "gonk", BCLASS_GONK, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },			// gonk.npc: WP_NONE (no weapon at all)
+	{ "rancor", BCLASS_RANCOR, BCLASS_NONE, 70, qtrue },					// 70% of the SP rancor so it fits MP maps (bbox: BG_ClassCreatureSize)
+	{ "mutant_rancor", BCLASS_RANCOR, BCLASS_NONE, 70, qtrue },			// rancor skeleton: melee, the same 70% rancor size
+	{ "saber_droid", BCLASS_SABER_DROID, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },	// saber_droid.npc: WP_SABER (had no row: fallback class)
+	{ "howler", BCLASS_HOWLER, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },		// howler.npc: WP_MELEE
+	{ "minemonster", BCLASS_MINEMONSTER, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },	// minemonster.npc: WP_MELEE
+	{ "jabba", BCLASS_ELDER, BCLASS_NONE, 160, qtrue },					// MD_MP_NPC jabba: WP_MELEE (ELDER: melee only, no Force); NPC scale 250 / height 100
 	// Added 2026-10-03: exact rows the folder rule (G_ClassModelFor) would otherwise get wrong, and selectable models
 	// that had no row (they got the fallback class)
 	{ "imperial/galak", BCLASS_GALAK, BCLASS_NONE, BOTZIZE_NORMAL },					// Galak Fyyar, not the "imperial" folder's class
@@ -35,6 +46,9 @@ static const classModel_t classModels[] =
 	{ "sith_officer/uthar", BCLASS_SITH, BCLASS_NONE, BOTZIZE_NORMAL },				// Uthar Wynn: Sith Master with a saber (was IMPOFFICER)
 	{ "deathwatch/vizsla", BCLASS_MANDO_SABER_NO_FP_ARMOUR, BCLASS_NONE, BOTZIZE_NORMAL },	// Pre Vizsla: the Darksaber (was MANDOLORIAN)
 	{ "deathwatch/vizsla2", BCLASS_MANDO_SABER_NO_FP_ARMOUR, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "deathwatch/red", BCLASS_MANDOLORIAN1, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_CLONEPISTOL (MANDOLORIAN1: dual clone pistols; the folder row gives blaster + boba rifle)
+	{ "deathwatch/redhand", BCLASS_MANDOLORIAN1, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "deathwatch/mauldalorian", BCLASS_MANDOLORIAN1, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "falon_grey", BCLASS_JEDI, BCLASS_NONE, BOTZIZE_NORMAL },						// Falon Grey: Jedi (was Rey's class via "rey")
 	{ "stk_arena", BCLASS_SITHWORRIOR1, BCLASS_NONE, BOTZIZE_NORMAL },				// Galen Marek (was Kylo's class via "ren")
 	{ "stk_rebel_general", BCLASS_SITHWORRIOR1, BCLASS_NONE, BOTZIZE_NORMAL },		// Galen Marek [Hero's Armor] (was REBEL)
@@ -164,18 +178,18 @@ static const classModel_t classModels[] =
 	{ "boba_fett/main2", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "bokatan", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "mandalore_ultimate", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "bokatan/nohelm", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "bokatan/nohelm", BCLASS_MANDOLORIAN1, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_CLONEPISTOL (MANDOLORIAN1: dual clone pistols)
 	{ "bobafett/mand1", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "bobafett/nohelm", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "bobafett/mand2", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "bobafett/nohelm2", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "mando_arm/jetpack", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "dindjarin/jetpack", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "mando_arm/jetpack", BCLASS_MANDOLORIAN1, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_CLONEPISTOL (dual clone pistols)
+	{ "dindjarin/jetpack", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-12 (DH: closest existing, md_mp_playable_bots.md): NPC WP_BLASTER_PISTOL (pistols + jetpack)
 	{ "durge/jetpack", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "jango_fett/blue", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "jumptrooper_tfu", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "jumptrooper_tfu", BCLASS_MANDOLORIAN1, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-12 (DH: closest existing, md_mp_playable_bots.md): NPC WP_ROCKET_LAUNCHER (MANDOLORIAN1 has rockets + jetpack)
 	{ "boba_fett/blue", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "jangofett/jetpack2", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "jangofett/jetpack2", BCLASS_MANDOLORIAN1, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-12 (DH: closest existing, md_mp_playable_bots.md): NPC WP_ROCKET_LAUNCHER
 	{ "jangoJA_fett/", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "jangoJA_fett/main", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "jangoJA_fett/main2", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
@@ -322,10 +336,10 @@ static const classModel_t classModels[] =
 	{ "md_wat_tambor", BCLASS_IMPWORKER, BCLASS_NONE, BOTZIZE_TALL },
 	{ "wat_tambor", BCLASS_IMPWORKER, BCLASS_NONE, BOTZIZE_TALL },
 	{ "hux", BCLASS_IMPOFFICER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "sith_officer", BCLASS_IMPOFFICER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "hux/coat", BCLASS_IMPOFFICER, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "sith_officer", BCLASS_MONMOTHMA, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_BLASTER_PISTOL (MONMOTHMA: pistol + blaster; jorak / uthar keep their saber rows)
+	{ "hux/coat", BCLASS_MONMOTHMA, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_BLASTER_PISTOL (pistol + blaster)
 	{ "davik", BCLASS_IMPOFFICER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "hux/coat_hat", BCLASS_IMPOFFICER, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "hux/coat_hat", BCLASS_MONMOTHMA, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_BLASTER_PISTOL (pistol + blaster)
 	{ "phasma", BCLASS_IMPOFFICER, BCLASS_NONE, BOTZIZE_TALL },
 	{ "captainphasma", BCLASS_IMPOFFICER, BCLASS_NONE, BOTZIZE_TALL },
 	{ "md_shu_mai", BCLASS_IMPOFFICER, BCLASS_NONE, BOTZIZE_TALL },
@@ -375,7 +389,7 @@ static const classModel_t classModels[] =
 	{ "gideon", BCLASS_SABERNOFP, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "gamorrean", BCLASS_SABERNOFP, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "finn", BCLASS_SABERNOFP, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "sithtrooper_kotor", BCLASS_SABERNOFP, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "sithtrooper_kotor", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_BLASTER (was SABERNOFP: a saber)
 	{ "mando_arm", BCLASS_SABERNOFP, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "chirrut", BCLASS_SABERNOFP, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "md_jbrute", BCLASS_SABERNOFP, BCLASS_NONE, BOTZIZE_NORMAL },
@@ -912,8 +926,8 @@ static const classModel_t classModels[] =
 	{ "landoT/endor", BCLASS_LANDO, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "landoT/bespin", BCLASS_LANDO, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "cassian", BCLASS_LANDO, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "cassian/parka", BCLASS_LANDO, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "cassian/vest", BCLASS_LANDO, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "cassian/parka", BCLASS_REBEL, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_REBELRIFLE
+	{ "cassian/vest", BCLASS_REBEL, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_REBELRIFLE
 	{ "cassian/scarif", BCLASS_LANDO, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "bodhi", BCLASS_LANDO, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "niennunb", BCLASS_LANDO, BCLASS_NONE, BOTZIZE_NORMAL },
@@ -1060,10 +1074,8 @@ static const classModel_t classModels[] =
 	{ "protocol/blue", BCLASS_PROTOCOL, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "tc14/main", BCLASS_PROTOCOL, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "kgc3po/main", BCLASS_PROTOCOL, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "r2d2", BCLASS_R2D2, BCLASS_NONE, BOTZIZE_SMALLER },
-	{ "r5d2", BCLASS_R2D2, BCLASS_NONE, BOTZIZE_SMALLER },
+	{ "r2d2", BCLASS_R2D2, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels: r2d2.npc has no scale (the r2d2 skeleton gets the r2d2.npc bbox, BG_ClassCreatureSize); r5d2: exact row at the top
 	{ "marka_ragnos", BCLASS_RAGNOS, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "rancor", BCLASS_RANCOR, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "rax_joris", BCLASS_RAX, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "calo", BCLASS_RAX, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "rebel", BCLASS_REBEL, BCLASS_NONE, BOTZIZE_NORMAL },
@@ -1119,7 +1131,7 @@ static const classModel_t classModels[] =
 	{ "snowtrooper/blue", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "snowtrooper/red", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "stormtrooper", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "stormtrooper/officer", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "stormtrooper/officer", BCLASS_SABOTEUR, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_TUSKEN_RIFLE (MP: disruptor; SABOTEUR has it)
 	{ "FN-2187", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "stormtrooper_tfa", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "stormie_tfa", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
@@ -1152,6 +1164,9 @@ static const classModel_t classModels[] =
 	{ "canderous", BCLASS_SWAMPTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "swamptrooper", BCLASS_SWAMPTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "republictrooper", BCLASS_SWAMPTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "republictrooper/belsavis", BCLASS_REBEL, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_REBELRIFLE (the folder row gives the flechette)
+	{ "republictrooper/havoc", BCLASS_REBEL, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "republictrooper/ma35", BCLASS_REBEL, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "swamptrooper/blue", BCLASS_SWAMPTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "baze", BCLASS_SWAMPTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "swamptrooper/red", BCLASS_SWAMPTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
@@ -1200,16 +1215,16 @@ static const classModel_t classModels[] =
 	{ "clonetrooper_p2/13", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "clonetrooper_p2/212_cody", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "clonetrooper_p2/212_airborne", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "clonetrooper_p2/501_rex", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "clonetrooper_p2/fox", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "clonetrooper_p2/fives", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "clonetrooper_p2/91_neyo", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "clonetrooper_p2/501_rex", BCLASS_MONMOTHMA, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-12 (DH: closest existing, md_mp_playable_bots.md): NPC WP_CLONEPISTOL -> blaster pistol + blaster
+	{ "clonetrooper_p2/fox", BCLASS_MONMOTHMA, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-12 (DH: closest existing, md_mp_playable_bots.md): NPC WP_CLONEPISTOL -> blaster pistol + blaster
+	{ "clonetrooper_p2/fives", BCLASS_MONMOTHMA, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-12 (DH: closest existing, md_mp_playable_bots.md): NPC WP_CLONEPISTOL -> blaster pistol + blaster
+	{ "clonetrooper_p2/91_neyo", BCLASS_MONMOTHMA, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-12 (DH: closest existing, md_mp_playable_bots.md): NPC WP_CLONEPISTOL -> blaster pistol + blaster
 	{ "clonetrooper_p2/332_vaughn", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "clonetrooper_p2/shadow", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "clonetrooper_p2/assassin", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "clonetrooper_p2/assassin", BCLASS_SABERNOFP, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_SABER (arc_shiv_mp + arc_shiv_dual_mp)
 	{ "md_clone_assassin", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "deathtrooper", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "deathtrooper/commander", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "deathtrooper/commander", BCLASS_TROOPER1, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_REPEATER (TROOPER1: repeater + thermal)
 	{ "shoretrooper", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "shoretrooper/tank", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "shoretrooper/elite", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
@@ -1232,7 +1247,7 @@ static const classModel_t classModels[] =
 	{ "md_clo6_rt_player", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "md_clo_332", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "md_clo_327", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "clonerc2", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "clonerc2", BCLASS_HEAVYTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },					// MovieDuels 2026-10-11 (class-row fix, md_mp_playable_bots.md): NPC WP_CLONECOMMANDO (HEAVYTROOPER has it; CLONETROOPER only the clone rifle)
 	{ "rex_old", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "md_clo_shadow", BCLASS_CLONETROOPER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "fbhutt/main", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_MASSIVE },
@@ -1313,7 +1328,7 @@ static const classModel_t classModels[] =
 	{ "ugnaught", BCLASS_UGNAUGHT, BCLASS_NONE, BOTZIZE_SMALLER },
 	{ "ew/main", BCLASS_UGNAUGHT, BCLASS_NONE, BOTZIZE_SMALLER },
 	{ "ew", BCLASS_UGNAUGHT, BCLASS_NONE, BOTZIZE_SMALLER },
-	{ "wampa", BCLASS_WAMPA, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "wampa", BCLASS_WAMPA, BCLASS_NONE, 150 },							// MovieDuels: wampa.npc scale 150 (its bbox, BG_ClassCreatureSize, is the SP one)
 	{ "weequay", BCLASS_WEEQUAY, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "weequay/blue", BCLASS_WEEQUAY, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "weequay/red", BCLASS_WEEQUAY, BCLASS_NONE, BOTZIZE_NORMAL },
@@ -1321,10 +1336,6 @@ static const classModel_t classModels[] =
 	{ "lamasu/main", BCLASS_WEEQUAY, BCLASS_NONE, BOTZIZE_LARGER },
 	{ "SBD/default", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "SBD", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
-	{ "SBD2", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
-	{ "SBD/default", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
-	{ "SBD2/default", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
-	{ "sbd_mp", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "sbd", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "md_sbd_am", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "Super_Battle_Droid", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },

@@ -332,6 +332,11 @@ static void P_WorldEffects(gentity_t* ent)
 		}
 	}
 
+	//
+	// acid rain / lava weather while standing outside (g_weather.c; as SP's WE_IsOutsideCausingPain check)
+	//
+	G_WeatherDamageCheck(ent);
+
 	// Poisoned?
 	if (ent->client->poisonDamage && ent->client->tempSpectate < level.time && ent->client->poisonTime < level.time)
 	{
@@ -891,6 +896,17 @@ static void G_SetClientSound(gentity_t* ent)
 	else if (ent->client && ent->waterlevel && ent->watertype & (CONTENTS_LAVA | CONTENTS_SLIME))
 	{
 		ent->client->ps.loopSound = level.snd_fry;
+		ent->s.loopIsSoundset = qfalse;
+	}
+	else if (ent->client && ent->client->repulseChargeStart)
+	{
+		// Force Repulse charging (w_force.c; a client's loop sound is its ps.loopSound, s.loopSound is overwritten)
+		ent->client->ps.loopSound = G_SoundIndex("sound/weapons/force/repulseloop.wav");
+		ent->s.loopIsSoundset = qfalse;
+	}
+	else if (ent->client && ent->client->ps.fd.forcePowersActive & 1 << FP_DEADLYSIGHT)
+	{
+		ent->client->ps.loopSound = G_SoundIndex("sound/weapons/force/protectloop.mp3");
 		ent->s.loopIsSoundset = qfalse;
 	}
 	else if (ent->client)
@@ -3688,7 +3704,14 @@ void WP_ReloadGun(gentity_t* ent)
 	{
 		if (ent->client->ps.BlasterAttackChainCount >= BLASTERMISHAPLEVEL_TWELVE)
 		{
-			NPC_SetAnim(ent, SETANIM_TORSO, G_GunAnim(ent, G_GUNANIM_FAIL), SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			if (ent->s.weapon == WP_DROIDEKA)
+			{
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_RELOAD_DEKA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			}
+			else
+			{
+				NPC_SetAnim(ent, SETANIM_TORSO, G_GunAnim(ent, G_GUNANIM_FAIL), SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			}
 			G_SoundOnEnt(ent, CHAN_WEAPON, "sound/weapons/reloadfail.mp3");
 			G_SoundOnEnt(ent, CHAN_VOICE_ATTEN, "*pain25.wav");
 			G_Damage(ent, NULL, NULL, NULL, ent->r.currentOrigin, 2, DAMAGE_NO_ARMOR, MOD_LAVA);
@@ -3717,6 +3740,10 @@ void WP_ReloadGun(gentity_t* ent)
 					NPC_SetAnim(ent, SETANIM_TORSO, G_GunAnim(ent, G_GUNANIM_CHARGE), SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 					G_SoundOnEnt(ent, CHAN_WEAPON, "sound/weapons/recharge.mp3");
 				}
+			}
+			else if (ent->s.weapon == WP_DROIDEKA)
+			{
+				NPC_SetAnim(ent, SETANIM_TORSO, BOTH_RELOAD_DEKA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 			}
 			else if (ent->s.weapon == WP_DISRUPTOR ||
 				ent->s.weapon == WP_BOWCASTER ||
@@ -3788,7 +3815,14 @@ void FireOverheatFail(gentity_t* ent)
 {
 	if (IsHoldingReloadableGun(ent))
 	{
-		NPC_SetAnim(ent, SETANIM_TORSO, G_GunAnim(ent, G_GUNANIM_FAIL), SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+		if (ent->s.weapon == WP_DROIDEKA)
+		{
+			NPC_SetAnim(ent, SETANIM_TORSO, BOTH_RELOAD_DEKA, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+		}
+		else
+		{
+			NPC_SetAnim(ent, SETANIM_TORSO, G_GunAnim(ent, G_GUNANIM_FAIL), SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+		}
 		G_SoundOnEnt(ent, CHAN_WEAPON, "sound/weapons/reloadfail.mp3");
 		G_SoundOnEnt(ent, CHAN_VOICE_ATTEN, "*pain25.wav");
 		G_Damage(ent, NULL, NULL, NULL, ent->r.currentOrigin, 2, DAMAGE_NO_ARMOR, MOD_LAVA);
@@ -4129,8 +4163,62 @@ extern void Weapon_AltStun_Fire(gentity_t* ent);
 
 extern void WP_SaberWearThink(gentity_t* ent, int msec);
 
+#define NOJUMP_TAUNT_COOLDOWN 3000
+
+// The jump key of a model that can't jump (no jump anim on its skeleton, or a droid class SP never lets jump) plays a
+// taunt instead: the model's own taunt-like anim when its skeleton has one, and its taunt sound (EV_TAUNT falls back
+// through *taunt / *anger / *victory...). Human players only (bots press jump all the time), at most every
+// NOJUMP_TAUNT_COOLDOWN ms.
+static void G_NoJumpTaunt(gentity_t* ent, const usercmd_t* ucmd)
+{
+	static const int taunt_anims[] = { BOTH_ENGAGETAUNT, BOTH_GESTURE1, TORSO_HANDSIGNAL4, BOTH_ALERT1, BOTH_STAND1TO2 };
+	gclient_t* client = ent->client;
+	const qboolean pressed = ucmd->upmove > 0 ? qtrue : qfalse;
+	const qboolean was_held = client->noJumpTauntHeld;
+
+	client->noJumpTauntHeld = pressed;
+
+	if (!pressed || was_held || ent->r.svFlags & SVF_BOT)
+	{
+		return;
+	}
+	if (!BG_AnimSetCantJump(ent->localAnimIndex)
+		&& !(level.gametype != GT_SIEGE && BG_ClassCantJump(client->ps.botclass)))
+	{
+		return;
+	}
+	if (client->noJumpTauntTime > level.time
+		|| client->ps.stats[STAT_HEALTH] <= 0
+		|| client->ps.pm_type != PM_NORMAL
+		|| client->ps.m_iVehicleNum
+		|| client->ps.groundEntityNum == ENTITYNUM_NONE
+		|| client->ps.weaponTime > 0)
+	{
+		return;
+	}
+
+	for (int i = 0; i < (int)ARRAY_LEN(taunt_anims); i++)
+	{
+		if (BG_HasAnimation(ent->localAnimIndex, taunt_anims[i]))
+		{
+			const qboolean standing = client->ps.velocity[0] * client->ps.velocity[0]
+				+ client->ps.velocity[1] * client->ps.velocity[1] < 100.0f ? qtrue : qfalse;
+			NPC_SetAnim(ent, standing ? SETANIM_BOTH : SETANIM_TORSO, taunt_anims[i],
+				SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			break;
+		}
+	}
+	G_AddEvent(ent, EV_TAUNT, TAUNT_TAUNT);
+	client->noJumpTauntTime = level.time + NOJUMP_TAUNT_COOLDOWN;
+}
+
 static void ClientThink_real(gentity_t* ent)
 {
+	if (!ent || !ent->client)
+	{
+		return;
+	}
+
 	gclient_t* client;
 	pmove_t pmove;
 	int old_event_sequence;
@@ -4813,6 +4901,14 @@ static void ClientThink_real(gentity_t* ent)
 			}
 
 			//ent->client->ps.speed = ent->client->ps.basespeed = NPC_GetRunSpeed( ent );
+		}
+		// as SP (g_active.cpp "ATST / Droideka start/stop ramp-up hack"): the droideka does not move while it folds
+		// into the ball (BOTH_RUN1START) or unfolds (BOTH_RUN1STOP)
+		if (client->NPC_class == CLASS_DROIDEKA &&
+			(client->ps.legsAnim == BOTH_RUN1START || client->ps.legsAnim == BOTH_RUN1STOP) &&
+			client->ps.legsTimer > 100)
+		{
+			client->ps.speed = 0;
 		}
 		client->ps.basespeed = client->ps.speed;
 	}
@@ -6132,6 +6228,9 @@ static void ClientThink_real(gentity_t* ent)
 	//play/stop any looping sounds tied to controlled movement
 	G_CheckMovingLoopingSounds(ent, ucmd);
 
+	// a model that can't jump: the jump key plays a taunt
+	G_NoJumpTaunt(ent, ucmd);
+
 	pmove.ps = &client->ps;
 	pmove.cmd = *ucmd;
 	if (pmove.ps->pm_type == PM_DEAD)
@@ -6168,7 +6267,7 @@ static void ClientThink_real(gentity_t* ent)
 #endif
 		if (ent->ghoul2)
 		{
-			if (ent->localAnimIndex > 1)
+			if (!BG_AnimSetIsHumanoidLike(ent->localAnimIndex))
 			{
 				//if it isn't humanoid then we will be having none of this.
 				pmove.ghoul2 = NULL;
@@ -6207,7 +6306,7 @@ static void ClientThink_real(gentity_t* ent)
 
 	pmove.noSpecMove = g_noSpecMove.integer;
 
-	pmove.nonHumanoid = ent->localAnimIndex > 0;
+	pmove.nonHumanoid = !BG_AnimSetIsHumanoid(ent->localAnimIndex);
 
 	VectorCopy(client->ps.origin, client->oldOrigin);
 

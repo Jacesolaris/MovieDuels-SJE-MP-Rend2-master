@@ -65,7 +65,6 @@ void WP_SetSaber(int entNum, saberInfo_t* sabers, int saberNum, const char* sabe
 void Cmd_NPC_f(gentity_t* ent);
 void Cmd_AdminNPC_f(gentity_t* ent);
 void SetTeamQuick(const gentity_t* ent, const int team, const qboolean doBegin);
-extern void G_RemoveWeather(void);
 extern void G_SetTauntAnim(gentity_t* ent, int taunt);
 
 extern vmCvar_t d_saberStanceDebug;
@@ -4880,66 +4879,18 @@ void ClientCommand(const int clientNum)
 	}
 	else if ((Q_stricmp(cmd, "weather") == 0) || (Q_stricmp(cmd, "r_weather") == 0))
 	{
-		char arg1[MAX_STRING_CHARS];
-		int num;
-		trap->Argv(1, arg1, sizeof arg1);
-
-		if ((Q_stricmp(arg1, "snow") == 0) || (Q_stricmp(arg1, "1") == 0))
+		// the server weather is everybody's (and hurts with acid rain / lava): only the listen server's host, a
+		// logged in admin, or anyone with cheats on may change it. A player's own look is the r_weather cvar.
+		if (ent->client->pers.localClient || ent->r.svFlags & SVF_ADMIN || sv_cheats.integer)
 		{
-			G_RemoveWeather();
-			num = G_EffectIndex("*clear");
-			trap->SetConfigstring(CS_EFFECTS + num, "");
-			G_EffectIndex("*snow");
+			G_WeatherCommand_f(ent); // g_weather.c
 		}
-		else if ((Q_stricmp(arg1, "lava") == 0) || (Q_stricmp(arg1, "3") == 0))
+		else
 		{
-			G_RemoveWeather();
-			num = G_EffectIndex("*clear");
-			trap->SetConfigstring(CS_EFFECTS + num, "");
-			G_EffectIndex("*lava");
+			trap->SendServerCommand(ent - g_entities,
+				"print \"Only the host or an admin can change the server weather. Your own weather: r_weather (0 = the map's), cg_weather 0 = none.\n\"");
 		}
-		else if ((Q_stricmp(arg1, "rain") == 0) || (Q_stricmp(arg1, "2") == 0))
-		{
-			G_RemoveWeather();
-			num = G_EffectIndex("*clear");
-			trap->SetConfigstring(CS_EFFECTS + num, "");
-			G_EffectIndex("*rain 500");
-		}
-		else if ((Q_stricmp(arg1, "sandstorm") == 0) || (Q_stricmp(arg1, "sand") == 0) || (Q_stricmp(arg1, "4") == 0))
-		{
-			G_RemoveWeather();
-			num = G_EffectIndex("*clear");
-			trap->SetConfigstring(CS_EFFECTS + num, "");
-			G_EffectIndex("*wind");
-			G_EffectIndex("*sand");
-		}
-		else if ((Q_stricmp(arg1, "fog") == 0) || (Q_stricmp(arg1, "6") == 0))
-		{
-			G_RemoveWeather();
-			num = G_EffectIndex("*clear");
-			trap->SetConfigstring(CS_EFFECTS + num, "");
-			G_EffectIndex("*heavyrainfog");
-		}
-		else if ((Q_stricmp(arg1, "spacedust") == 0) || (Q_stricmp(arg1, "9") == 0))
-		{
-			G_RemoveWeather();
-			num = G_EffectIndex("*clear");
-			trap->SetConfigstring(CS_EFFECTS + num, "");
-			G_EffectIndex("*spacedust 4000");
-		}
-		else if ((Q_stricmp(arg1, "acidrain") == 0) || (Q_stricmp(arg1, "7") == 0))
-		{
-			G_RemoveWeather();
-			num = G_EffectIndex("*clear");
-			trap->SetConfigstring(CS_EFFECTS + num, "");
-			G_EffectIndex("*acidrain 500");
-		}
-		if ((Q_stricmp(arg1, "clear") == 0) || (Q_stricmp(arg1, "0") == 0))
-		{
-			G_RemoveWeather();
-			num = G_EffectIndex("*clear");
-			trap->SetConfigstring(CS_EFFECTS + num, "");
-		}
+		return;
 	}
 
 	const command_t* command = (command_t*)Q_LinearSearch(cmd, commands, num_commands, sizeof commands[0], cmdcmp);

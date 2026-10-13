@@ -2388,6 +2388,12 @@ static qboolean R_IsHumanoidPath(const char* path)
 		return qfalse;
 	}
 
+	// super battle droid / droideka: their own skeleton and animation.cfg (the "_humanoid" prefix would match them)
+	if (BG_IsOwnSkeletonPath(path))
+	{
+		return qfalse;
+	}
+
 	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
 	{
 		if (!Q_strncmp(path, humanoid_prefixes[i], strlen(humanoid_prefixes[i])))
@@ -2686,9 +2692,13 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 			}
 		}
 
-		if (ent->localAnimIndex == -1)
+		if (ent->localAnimIndex < 0 || ent->localAnimIndex >= MAX_ANIM_FILES || !bgAllAnims[ent->localAnimIndex].anims)
 		{
-			Com_Error(ERR_DROP, "NPC had an invalid GLA\n");
+			// MovieDuels: was a map-dropping Com_Error ("NPC had an invalid GLA"); the clients fall back the same way
+			// (CG_SafeAnimIndex), so server and client agree on the humanoid set
+			Com_Printf(S_COLOR_YELLOW "WARNING: %s has no usable animation set (%s), using the humanoid set\n",
+				ent->NPC_type ? ent->NPC_type : ent->classname ? ent->classname : "entity", resolvedGLA);
+			ent->localAnimIndex = 0;
 		}
 	}
 	else
@@ -3361,6 +3371,10 @@ static const classModel_t* G_ClassModelFor(const char* model)
 
 	for (int i = 0; i < (int)ARRAY_LEN(classModels); i++)
 	{
+		if (classModels[i].exactOnly)
+		{
+			continue; // MovieDuels: exact rows only (steps 1 and 2)
+		}
 		if (Class_Model((char*)model, (char*)classModels[i].pattern))
 		{
 			return &classModels[i];
@@ -3369,26 +3383,62 @@ static const classModel_t* G_ClassModelFor(const char* model)
 	return NULL;
 }
 
+// SP's AnimationstylesTable names (NPC_stats.cpp), in ANIMSTYLE_* order: g_PlayerAnimationStyle / "animationstyle"
+static const char* const g_animStyleNames[ANIMSTYLE_COUNT] = {
+	"default", "anakin", "battle_droid", "ben_kenobi", "cal_kestis", "clone_trooper", "darkforces2", "count_dooku",
+	"galen_marek", "qui_gon_jinn", "grievous", "jango", "kotor", "luke_skywalker", "mace_windu", "maul", "movie_duels",
+	"obiwan", "obiwan_ep3", "palpatine", "rebels", "kylo_ren", "rey", "vader", "yoda"
+};
+
+int G_AnimStyleFromName(const char* name)
+{
+	if (!name)
+	{
+		return -1;
+	}
+	for (int i = 0; i < ANIMSTYLE_COUNT; i++)
+	{
+		if (!Q_stricmp(name, g_animStyleNames[i]))
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+const char* G_AnimStyleName(const int style)
+{
+	return style >= 0 && style < ANIMSTYLE_COUNT ? g_animStyleNames[style] : "?";
+}
+
 // The SP animation style of a model string (table: g_animstyles.h): the exact model ("folder" / "folder/skin"), else
-// its folder; ANIMSTYLE_DEFAULT when neither is listed or g_ActivateAnimationStyle is 0.
+// its folder; ANIMSTYLE_DEFAULT when neither is listed or the Master animation style is not in force (Classic: every
+// model plays its own dedicated animation set, which has no style variants).
 static int G_AnimStyleForModel(const char* model)
 {
 	char clean[MAX_QPATH], folder[MAX_QPATH];
 	int n = 0;
 
-	if (!g_ActivateAnimationStyle.integer)
+	if (!g_mdAnimStyleActive)
+	{
+		return ANIMSTYLE_DEFAULT;
+	}
+
+	// super battle droid / droideka run on their own skeleton and animation.cfg: no style variants
+	if (BG_IsOwnSkeletonModel(model))
 	{
 		return ANIMSTYLE_DEFAULT;
 	}
 
 	for (const char* s = model; *s && n < (int)sizeof clean - 1; s++)
 	{
+		const char c = *s; // read before Q_IsColorString (its null test made the analyser think s could be null)
 		if (Q_IsColorString(s))
 		{
 			s++;
 			continue;
 		}
-		clean[n++] = *s;
+		clean[n++] = c;
 	}
 	clean[n] = 0;
 	Q_strncpyz(folder, clean, sizeof folder);
@@ -3415,6 +3465,50 @@ static int G_AnimStyleForModel(const char* model)
 		}
 	}
 	return ANIMSTYLE_DEFAULT;
+}
+
+// The client's animation style. Master style (solo games only, g_mdAnimStyleActive): the solo player plays the style
+// picked in the menu (g_PlayerAnimationStyle, as SP's G_ApplyPlayerAnimationStyle: "default" = no style, whatever the
+// model), bots the style of their model (their class / default style, as SP's NPCs). Classic: ANIMSTYLE_DEFAULT.
+// Models on their own (non-humanoid) skeleton never get a style.
+static int G_AnimStyleForClient(const gentity_t* ent, const char* model)
+{
+	static int warnedModification = -1;
+
+	if (!g_mdAnimStyleActive || BG_IsOwnSkeletonModel(model))
+	{
+		return ANIMSTYLE_DEFAULT;
+	}
+	if (ent->s.number < MAX_CLIENTS && !(ent->r.svFlags & SVF_BOT) && ent->client->pers.localClient)
+	{
+		// the solo player (the host's own client; another human joining makes the game Classic at the next map load)
+		const int style = G_AnimStyleFromName(g_PlayerAnimationStyle.string);
+		if (style >= 0)
+		{
+			return style;
+		}
+		if (warnedModification != g_PlayerAnimationStyle.modificationCount)
+		{
+			warnedModification = g_PlayerAnimationStyle.modificationCount;
+			Com_Printf(S_COLOR_RED "g_PlayerAnimationStyle: unknown animation style \"%s\", type animationstyle for the list.\n",
+				g_PlayerAnimationStyle.string);
+		}
+		return ANIMSTYLE_DEFAULT;
+	}
+	return G_AnimStyleForModel(model);
+}
+
+void G_SetClientAnimStyle(gentity_t* ent)
+{
+	char userinfo[MAX_INFO_STRING];
+
+	if (!ent || !ent->client || ent->s.number >= MAX_CLIENTS)
+	{
+		return;
+	}
+	trap->GetUserinfo(ent->s.number, userinfo, sizeof userinfo);
+	ent->client->pers.animStyle = G_AnimStyleForClient(ent, Info_ValueForKey(userinfo, "model"));
+	ent->client->ps.animStyle = ent->client->pers.animStyle;
 }
 
 static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, char* userinfo, char* model, const size_t modelSize)
@@ -3445,7 +3539,7 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 		// ------------------------------------------------------------------
 		if (Class_Model(model, "model_siege") ||
 			Class_Model(model, "atst") ||
-			Class_Model(model, "gonk") ||
+			// MovieDuels (port of SJE MP): gonk is playable now (BCLASS_GONK: no weapon at all, as SP's gonk.npc)
 			Class_Model(model, "lambdashuttle") ||
 			Class_Model(model, "marka_ragnos") ||
 			Class_Model(model, "probe") ||
@@ -3482,6 +3576,29 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 		// ------------------------------------------------------------------
 		const classModel_t* classModel = G_ClassModelFor(model);
 
+		// ------------------------------------------------------------------
+		// MovieDuels (port of SJE MP): a model on its own skeleton without the full humanoid bolts (creatures, droids)
+		// is only playable as a creature class with the bolts that class needs (BG_ClassSkeletonOk; e.g. no hand
+		// needed for R2's stun or the wampa's claws, a hand for the hazard trooper's guns). Others (vehicles, props,
+		// probe, mark1/2, or a creature mapped to a humanoid class) fall back to the default model, for players and
+		// bots alike. The client (CG_RegisterClientModelname) accepts the same skeletons.
+		// ------------------------------------------------------------------
+		{
+			const int skelFlags = BG_ModelSkeletonFlags(model);
+			const int wantClass = classModel ? classModel->botclass : BCLASS_SABERNOFP;
+
+			if (skelFlags && !BG_ClassSkeletonOk(wantClass, skelFlags))
+			{
+				Com_Printf("%s: model %s cannot be played as its class (skeleton lacks what the class needs), using " DEFAULT_MODEL "\n",
+					client->pers.netname, model);
+				Q_strncpyz(model, DEFAULT_MODEL, modelSize);
+				Q_strncpyz(client->modelname, DEFAULT_MODEL, sizeof client->modelname);
+				Info_SetValueForKey(userinfo, "model", model);
+				trap->SetUserinfo(clientNum, userinfo);
+				classModel = G_ClassModelFor(model);
+			}
+		}
+
 		if (classModel)
 		{
 			client->pers.nextbotclass = classModel->adminClass != BCLASS_NONE && ent->r.svFlags & SVF_ADMIN
@@ -3517,7 +3634,7 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 	client->pers.botclass = client->pers.nextbotclass;   // if you use pers.botclass
 	ent->s.botclass = client->pers.nextbotclass;   // this is what cgame can see
 	client->ps.botclass = client->pers.nextbotclass; // BG_PlayerStateToEntityState(ExtraPolate) copies ps.botclass into s.botclass every frame: without this the class was 0 for clients
-	client->pers.animStyle = G_AnimStyleForModel(model); // the character's SP animation style (g_animstyles.h)
+	client->pers.animStyle = G_AnimStyleForClient(ent, model); // the SP animation style (g_animstyles.h / the solo player's menu choice)
 	client->ps.animStyle = client->pers.animStyle;
 #ifdef _DEBUG
 	Com_Printf("SERVER: Assigned nextbotclass %d to client %d\n", client->pers.nextbotclass, clientNum);
@@ -3534,7 +3651,7 @@ extern qboolean Bot_Is_Saber_ClassNum(int botclass);
 // Force power string and sabers (saber1|saber2) of each client at the last userinfo change. When one of them
 // changes while the player is alive in game, the player is killed (MOD_TEAM_CHANGE gives the point back) and
 // respawns with the new setup (force powers and sabers are applied at spawn), as in SerenityJediEngine MP.
-static char s_lastForcePowers[MAX_CLIENTS][DEFAULT_FORCEPOWERS_LEN];
+static char s_lastForcePowers[MAX_CLIENTS][FORCEPOWERS_MAX_LEN + 1];
 static char s_lastSabers[MAX_CLIENTS][MAX_QPATH * 2 + 2];
 
 qboolean client_userinfo_changed(const int clientNum)
@@ -3549,7 +3666,7 @@ qboolean client_userinfo_changed(const int clientNum)
 	char buf[MAX_INFO_STRING] = { 0 };
 	char oldClientinfo[MAX_INFO_STRING];
 	char model[MAX_QPATH];
-	char forcePowers[DEFAULT_FORCEPOWERS_LEN];
+	char forcePowers[FORCEPOWERS_MAX_LEN + 1];
 	char oldname[MAX_NETNAME];
 	char className[MAX_QPATH];
 	char color1[16];
@@ -3699,6 +3816,20 @@ qboolean client_userinfo_changed(const int clientNum)
 	{
 		Q_strncpyz(client->modelname, model, sizeof client->modelname);
 		model_changed = qtrue;
+	}
+	else
+	{
+		// switching to or from a model on its own skeleton (super battle droid, droideka...) mid-game: rebuild the
+		// server ghoul2 instance and anim index (SetupGameGhoul2Model below), or it keeps the old one until respawn.
+		// The second test catches a server instance still on a droid skeleton after the model was reset to the
+		// default above (client->modelname already holds it then).
+		const qboolean ownSkeleton = (qboolean)(G_PlayerHasCustomSkeleton(ent) || BG_IsOwnSkeletonModel(model));
+		if ((Q_stricmp(model, client->modelname) && (ownSkeleton || ent->localAnimIndex != 0)) ||
+			(!ownSkeleton && ent->localAnimIndex != 0))
+		{
+			Q_strncpyz(client->modelname, model, sizeof client->modelname);
+			model_changed = qtrue;
+		}
 	}
 
 	client->ps.customRGBA[0] = ((value = Info_ValueForKey(userinfo, "char_color_red")))
@@ -3936,6 +4067,14 @@ qboolean client_userinfo_changed(const int clientNum)
 	Q_strcat(buf, sizeof buf, va("c1\\%s\\", color1));
 	Q_strcat(buf, sizeof buf, va("c2\\%s\\", color2));
 	Q_strcat(buf, sizeof buf, va("hc\\%i\\", client->pers.maxHealth));
+	// the guns he doesn't carry on his body (his cg_holsterHide, weapon wheel "On Person"): the others' cgame skip them
+	{
+		const unsigned int holsterHide = (unsigned int)strtoul(Info_ValueForKey(userinfo, "cg_holsterHide"), NULL, 16);
+		if (holsterHide)
+		{
+			Q_strcat(buf, sizeof buf, va("hh\\%x\\", holsterHide));
+		}
+	}
 	//RGBSaber STUFF
 	Q_strcat(buf, sizeof buf, va("tc1\\%s\\", rgb1));
 	Q_strcat(buf, sizeof buf, va("tc2\\%s\\", rgb2));
@@ -4368,8 +4507,6 @@ void ClientBegin(const int clientNum, const qboolean allowTeamReset)
 	//init saber ent
 	wp_saber_init_blade_data(ent);
 
-	IT_LoadWeatherParms();
-
 	// First time model setup for that player.
 	trap->GetUserinfo(clientNum, userinfo, sizeof userinfo);
 	char* modelname = Info_ValueForKey(userinfo, "model");
@@ -4468,7 +4605,7 @@ void G_BreakArm(gentity_t* ent, const int arm)
 
 	assert(ent && ent->client);
 
-	if (ent->s.NPC_class == CLASS_VEHICLE || ent->localAnimIndex > 1)
+	if (ent->s.NPC_class == CLASS_VEHICLE || !BG_AnimSetIsHumanoidLike(ent->localAnimIndex))
 	{
 		//no broken limbs for vehicles and non-humanoids
 		return;
@@ -4540,8 +4677,24 @@ void G_UpdateClientAnims(gentity_t* self, float animSpeedScale)
 	static float animSpeed, lAnimSpeedScale;
 	qboolean setTorso = qfalse;
 
+	if (!self || !self->client || !self->ghoul2 || !trap->G2API_HaveWeGhoul2Models(self->ghoul2))
+	{// no ghoul2 instance (e.g. an NPC killed by a saber in the frame its model was freed): nothing to animate
+		return;
+	}
+
 	torsoAnim = self->client->ps.torsoAnim;
 	legsAnim = self->client->ps.legsAnim;
+
+	if (self->localAnimIndex < 0 || self->localAnimIndex >= MAX_ANIM_FILES)
+	{// no anim set (never expected): nothing to play
+		return;
+	}
+
+	if (self->localAnimIndex > 0)
+	{// own skeleton: the anims its set plays for these (an anim set directly by game code may be one it lacks)
+		legsAnim = BG_ResolveOwnSkelAnim(bgAllAnims[self->localAnimIndex].anims, legsAnim, qtrue);
+		torsoAnim = BG_ResolveOwnSkelAnim(bgAllAnims[self->localAnimIndex].anims, torsoAnim, qfalse);
+	}
 
 	if (self->client->ps.saberLockFrame)
 	{
@@ -4582,8 +4735,9 @@ void G_UpdateClientAnims(gentity_t* self, float animSpeedScale)
 		if (animSpeed < 0)
 		{
 			lastFrame = bgAllAnims[self->localAnimIndex].anims[legsAnim].firstFrame;
-			firstFrame = bgAllAnims[self->localAnimIndex].anims[legsAnim].firstFrame + bgAllAnims[self->localAnimIndex].
-				anims[legsAnim].numFrames;
+			// MovieDuels: its own last frame, as in the cgame (firstFrame + numFrames can be past the end of the GLA)
+			firstFrame = bgAllAnims[self->localAnimIndex].anims[legsAnim].firstFrame + (bgAllAnims[self->localAnimIndex].anims[legsAnim].numFrames > 0
+				? bgAllAnims[self->localAnimIndex].anims[legsAnim].numFrames - 1 : 0);
 		}
 		else
 		{
@@ -4648,8 +4802,9 @@ tryTorso:
 		if (animSpeed < 0)
 		{
 			lastFrame = bgAllAnims[self->localAnimIndex].anims[f].firstFrame;
-			firstFrame = bgAllAnims[self->localAnimIndex].anims[f].firstFrame + bgAllAnims[self->localAnimIndex].anims[
-				f].numFrames;
+			// MovieDuels: its own last frame, as in the cgame (firstFrame + numFrames can be past the end of the GLA)
+			firstFrame = bgAllAnims[self->localAnimIndex].anims[f].firstFrame + (bgAllAnims[self->localAnimIndex].anims[f].numFrames > 0
+				? bgAllAnims[self->localAnimIndex].anims[f].numFrames - 1 : 0);
 		}
 		else
 		{
@@ -4668,7 +4823,7 @@ tryTorso:
 	}
 
 	if (setTorso &&
-		self->localAnimIndex <= 1)
+		BG_AnimSetIsHumanoidLike(self->localAnimIndex))
 	{
 		//only set the motion bone for humanoids.
 		trap->G2API_SetBoneAnim(self->ghoul2, 0, "Motion", firstFrame, lastFrame, aFlags, lAnimSpeedScale, level.time,
@@ -4679,7 +4834,7 @@ tryTorso:
 	if (self->client->ps.brokenLimbs != self->client->brokenLimbs ||
 		setTorso)
 	{
-		if (self->localAnimIndex <= 1 && self->client->ps.brokenLimbs &&
+		if (BG_AnimSetIsHumanoidLike(self->localAnimIndex) && self->client->ps.brokenLimbs &&
 			(self->client->ps.brokenLimbs & (1 << BROKENLIMB_LARM)))
 		{ //broken left arm
 			char* brokenBone = "lhumerus";
@@ -4699,7 +4854,7 @@ tryTorso:
 
 			trap->G2API_SetBoneAnim(self->ghoul2, 0, brokenBone, armFirstFrame, armLastFrame, armFlags, armAnimSpeed, level.time, -1, 150);
 		}
-		else if (self->localAnimIndex <= 1 && self->client->ps.brokenLimbs &&
+		else if (BG_AnimSetIsHumanoidLike(self->localAnimIndex) && self->client->ps.brokenLimbs &&
 			(self->client->ps.brokenLimbs & (1 << BROKENLIMB_RARM)))
 		{ //broken right arm
 			char* brokenBone = "rhumerus";
@@ -5320,6 +5475,54 @@ void ClientSpawn(gentity_t* ent)
 
 spawn_done:
 
+	if (level.gametype != GT_SIEGE && client->sess.sessionTeam != TEAM_SPECTATOR)
+	{
+		// MovieDuels (port of SJE MP): creature classes with a bigger bbox than a human (wampa, rancor): the spawn point
+		// picked for a human may be too tight; then use another spawn point of the same kind where the creature's bbox fits
+		float halfWidth;
+		int standheight;
+
+		if (BG_ClassCreatureSize(client->pers.botclass, &halfWidth, &standheight, NULL) &&
+			(halfWidth > player_maxs[0] || standheight > player_maxs[2]))
+		{
+			vec3_t cMins, cMaxs;
+			trace_t tr;
+
+			VectorSet(cMins, -halfWidth, -halfWidth, DEFAULT_MINS_2);
+			VectorSet(cMaxs, halfWidth, halfWidth, standheight);
+			// (bodies count too: the kill box at spawn uses this bigger bbox and would telefrag anyone in it)
+			trap->Trace(&tr, spawn_origin, cMins, cMaxs, spawn_origin, ent->s.number, MASK_PLAYERSOLID, qfalse, 0, 0);
+			if ((tr.startsolid || tr.allsolid) && spawnPoint && spawnPoint->classname)
+			{
+				gentity_t* spots[64];
+				gentity_t* other = NULL;
+				int numSpots = 0;
+
+				while ((other = G_Find(other, FOFS(classname), spawnPoint->classname)) != NULL && numSpots < (int)ARRAY_LEN(spots))
+				{
+					spots[numSpots++] = other;
+				}
+				const int first = numSpots > 0 ? Q_irand(0, numSpots - 1) : 0;
+				for (int s = 0; s < numSpots; s++)
+				{
+					vec3_t o;
+
+					other = spots[(first + s) % numSpots];
+					VectorCopy(other->s.origin, o);
+					o[2] += 9;
+					trap->Trace(&tr, o, cMins, cMaxs, o, ent->s.number, MASK_PLAYERSOLID, qfalse, 0, 0);
+					if (!tr.startsolid && !tr.allsolid)
+					{
+						VectorCopy(o, spawn_origin);
+						VectorCopy(other->s.angles, spawn_angles);
+						spawnPoint = other;
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	client->pers.teamState.state = TEAM_ACTIVE;
 
 	// toggle the teleport bit so the client knows to not lerp
@@ -5482,6 +5685,22 @@ spawn_done:
 	client->ps.crouchheight = CROUCH_MAXS_2;
 	client->ps.standheight = DEFAULT_MAXS_2;
 
+	if (level.gametype != GT_SIEGE)
+	{
+		// MovieDuels (port of SJE MP): creature/droid classes get the bbox of their SP .npc file (PM_CheckDuck keeps it,
+		// from ps.botclass)
+		float halfWidth;
+		int standheight, crouchheight;
+
+		if (BG_ClassCreatureSize(client->pers.botclass, &halfWidth, &standheight, &crouchheight))
+		{
+			VectorSet(ent->r.mins, -halfWidth, -halfWidth, DEFAULT_MINS_2);
+			VectorSet(ent->r.maxs, halfWidth, halfWidth, standheight);
+			client->ps.standheight = standheight;
+			client->ps.crouchheight = crouchheight;
+		}
+	}
+
 	client->ps.clientNum = index;
 
 	// ------------------------------------------------------------
@@ -5551,7 +5770,10 @@ spawn_done:
 	}
 
 	//Give everyone fists as long as they aren't disabled.
-	if (!wDisable || !(wDisable & 1 << WP_MELEE))
+	// MovieDuels (port of SJE MP): except the classes that have no melee at all (SP NPC files: R2 only the stun; R5,
+	// gonk and protocol nothing)
+	if ((!wDisable || !(wDisable & 1 << WP_MELEE)) &&
+		!(level.gametype != GT_SIEGE && ent->s.eType != ET_NPC && BG_ClassHasNoFists(client->pers.botclass)))
 	{
 		client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 	}
@@ -5771,6 +5993,9 @@ spawn_done:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_DISRUPTOR;
 					client->skillLevel[SK_DISRUPTOR] = FORCE_LEVEL_3;
+					// MovieDuels 2026-10-12 (DH: closest existing): assassin_droid.npc carries a blaster (as SJE)
+					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BLASTER;
+					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
 					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_BARTENDER:
@@ -5957,12 +6182,17 @@ spawn_done:
 					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_PROTOCOL:
+				case BCLASS_GONK:
+				case BCLASS_R5D2:
+					// MovieDuels (port of SJE MP, owner decision 2026-10-11): as protocol.npc / gonk.npc (WP_NONE): no weapon
+					// at all, not even fists (BG_ClassHasNoFists); R5 has no weapon either - only R2-D2 has the stun
+					break;
+				case BCLASS_HOWLER:
+				case BCLASS_MINEMONSTER:
+					// MovieDuels (port of SJE MP): howler.npc / minemonster.npc: WP_MELEE (their bites, BG_ClassCreatureAttackAnim)
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					break;
 				case BCLASS_R2D2:
-					client->ps.stats[STAT_WEAPONS] |= 1 << WP_STUN_BATON;
-					break;
-				case BCLASS_R5D2:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_STUN_BATON;
 					break;
 				case BCLASS_RAGNOS:
@@ -6104,6 +6334,11 @@ spawn_done:
 				case BCLASS_WEEQUAY:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_CONCUSSION;
+					if (Q_stristr(client->modelname, "weequay/sp"))
+					{
+						// MovieDuels 2026-10-12 (DH: closest existing): weequay/sp's NPC weapon is the bowcaster
+						client->ps.stats[STAT_WEAPONS] |= 1 << WP_BOWCASTER;
+					}
 					ClassAmmoSetup(ent);
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_THERMAL;
 					client->skillLevel[SK_THERMAL] = FORCE_LEVEL_3;
@@ -6170,6 +6405,13 @@ spawn_done:
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_MELEE;
 					client->ps.stats[STAT_WEAPONS] |= 1 << WP_BATTLEDROID;
 					client->skillLevel[SK_BLASTER] = FORCE_LEVEL_3;
+					if (Q_stristr(client->modelname, "battledroid/sniper"))
+					{
+						// MovieDuels 2026-10-12 (DH: closest existing): the B1 sniper's NPC weapon (the class stays BATTLEDROID:
+						// droid death, sounds, effects)
+						client->ps.stats[STAT_WEAPONS] |= 1 << WP_DISRUPTOR;
+						client->skillLevel[SK_DISRUPTOR] = FORCE_LEVEL_3;
+					}
 					ClassAmmoSetup(ent);
 					break;
 				case BCLASS_SBD:
@@ -6439,6 +6681,11 @@ spawn_done:
 					client->ps.weapon = i1;
 					break;
 				}
+			}
+			if (i1 == WP_NONE)
+			{
+				// MovieDuels (port of SJE MP): a class without any weapon (R5, gonk, protocol droid): hold nothing
+				client->ps.weapon = WP_NONE;
 			}
 		}
 	}
@@ -6806,7 +7053,7 @@ spawn_done:
 		case BCLASS_STORMPILOT:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SEEKER;
 			ClassItemHealthSetup(ent);
-			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
@@ -6860,8 +7107,8 @@ spawn_done:
 			ClassItemHealthSetup(ent);
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SENTRY_GUN;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_EWEB;
-			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
-			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SWOOP;
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SHIELD;
 			break;
 		case BCLASS_CADENCE:
@@ -6961,7 +7208,7 @@ spawn_done:
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
 		case BCLASS_SBD:
-			//client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
+			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_DROIDEKA;
 			client->ps.stats[STAT_ARMOR] = 500;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
 			break;
@@ -7138,6 +7385,19 @@ spawn_done:
 		case BCLASS_HEAVYTROOPER:
 			client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_SPHERESHIELD;
 			break;
+		case BCLASS_R2D2:
+		case BCLASS_R5D2:
+		case BCLASS_GONK:
+		case BCLASS_PROTOCOL:
+		case BCLASS_WAMPA:
+		case BCLASS_RANCOR:
+		case BCLASS_HOWLER:
+		case BCLASS_MINEMONSTER:
+			// MovieDuels (port of SJE MP): droids and creatures: no holdable items (the default gave every class a
+			// portable shield)
+			client->ps.stats[STAT_ARMOR] = 100;
+			client->ps.stats[STAT_MAX_HEALTH] = 100;
+			break;
 		default:
 			client->ps.stats[STAT_ARMOR] = 100;
 			client->ps.stats[STAT_MAX_HEALTH] = 100;
@@ -7240,10 +7500,6 @@ spawn_done:
 		case BCLASS_GALAKMECH:
 		case BCLASS_MONMOTHMA:
 		case BCLASS_NOGHRI:
-		case BCLASS_PROTOCOL:
-		case BCLASS_R2D2:
-		case BCLASS_R5D2:
-		case BCLASS_RANCOR:
 		case BCLASS_RAX:
 		case BCLASS_REBEL:
 		case BCLASS_REBEL_PILOT:
@@ -7257,7 +7513,6 @@ spawn_done:
 		case BCLASS_TRANDOSHAN:
 		case BCLASS_TUSKEN_SNIPER:
 		case BCLASS_UGNAUGHT:
-		case BCLASS_WAMPA:
 		case BCLASS_WEEQUAY:
 		case BCLASS_SOILDER:
 		case BCLASS_BATTLEDROID:
@@ -7406,6 +7661,23 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_3;
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_3; // the saber needs all three to work right
 			break;
+		case BCLASS_PROTOCOL:
+		case BCLASS_R2D2:
+		case BCLASS_R5D2:
+		case BCLASS_GONK:
+		case BCLASS_RANCOR:
+		case BCLASS_WAMPA:
+		case BCLASS_HOWLER:
+		case BCLASS_MINEMONSTER:
+			// MovieDuels (port of SJE MP): droids and creatures have no Force at all (they only had the gunner levels
+			// zeroed before, so a player's own Force setup still knew e.g. push and grip as R2-D2)
+			for (int fp = 0; fp < NUM_FORCE_POWERS; fp++)
+			{
+				client->ps.fd.forcePowerLevel[fp] = FORCE_LEVEL_0;
+			}
+			client->ps.fd.forcePowersKnown = 0;
+			client->ps.fd.forcePowerSelected = 0;
+			break;
 		default:
 			//Read bot.txt or Player FP setup for saber users
 			break;
@@ -7429,6 +7701,16 @@ spawn_done:
 	client->ps.genericEnemyIndex = -1;
 
 	G_AddEvent(ent, EV_WEAPINVCHANGE, client->ps.stats[STAT_WEAPONS]);
+
+	if (developer.integer && (BG_ClassIsCreature(client->pers.botclass) || ent->r.svFlags & SVF_BOT))
+	{
+		// MovieDuels: creature/droid class and bot loadouts (developer only)
+		Com_Printf("ClientSpawn: %s class %d model %s: weapons 0x%x weapon %d items 0x%x force known 0x%x bbox %.0f %.0f %.0f / %.0f %.0f %.0f scale %d\n",
+			client->pers.netname, client->pers.botclass, client->modelname, client->ps.stats[STAT_WEAPONS],
+			client->ps.weapon, client->ps.stats[STAT_HOLDABLE_ITEMS], client->ps.fd.forcePowersKnown,
+			ent->r.mins[0], ent->r.mins[1], ent->r.mins[2], ent->r.maxs[0], ent->r.maxs[1], ent->r.maxs[2],
+			client->ps.iModelScale);
+	}
 
 	client->ps.isJediMaster = qfalse;
 
@@ -7564,8 +7846,9 @@ spawn_done:
 		if (ent->client->sess.sessionTeam != TEAM_SPECTATOR)
 		{
 			g_kill_box(ent);
-			if (client->ps.weapon <= WP_NONE)
+			if (client->ps.weapon <= WP_NONE && client->ps.stats[STAT_WEAPONS] & ~(1 << WP_NONE))
 			{
+				// (MovieDuels: only when there is a weapon; the weaponless classes - R5, gonk, protocol - keep WP_NONE)
 				client->ps.weapon = WP_BRYAR_PISTOL;
 			}
 

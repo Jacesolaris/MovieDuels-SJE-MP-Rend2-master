@@ -29,6 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #ifndef _WIN32
 #include <cmath>
 #endif
+#include <memory>
 unsigned frame_msec;
 int old_com_frameTime;
 
@@ -1793,7 +1794,9 @@ During normal gameplay, a client packet will contain something like:
 void CL_WritePacket(void)
 {
 	msg_t buf;
-	byte data[MAX_MSGLEN];
+	// heap, not stack (C6262); one buffer per call, as this may be re-entered (CL_Disconnect sends
+	// through here, also while shutting down from an error). Not zeroed, as on the stack.
+	const std::unique_ptr<byte[]> data(new byte[MAX_MSGLEN]);
 	int i;
 	usercmd_t nullcmd;
 
@@ -1806,7 +1809,7 @@ void CL_WritePacket(void)
 	Com_Memset(&nullcmd, 0, sizeof nullcmd);
 	usercmd_t* oldcmd = &nullcmd;
 
-	MSG_Init(&buf, data, sizeof data);
+	MSG_Init(&buf, data.get(), MAX_MSGLEN);
 
 	MSG_Bitstream(&buf);
 	// write the current serverId so the server

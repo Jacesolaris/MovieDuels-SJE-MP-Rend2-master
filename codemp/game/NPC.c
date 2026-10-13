@@ -1486,6 +1486,8 @@ extern qboolean NPC_CheckSurrender(void);
 extern void Boba_FlyStop(gentity_t* self);
 extern qboolean Jedi_CultistDestroyer(const gentity_t* self);
 extern void bubble_shield_update(void);
+extern qboolean Droideka_IsNPC(const gentity_t* ent); //NPC_AI_AssassinDroid.c
+extern void Droideka_ShieldUpdate(void); //NPC_AI_AssassinDroid.c
 extern void NPC_BSSD_Default(void);
 extern void NPC_BSCivilian_Default(int b_state);
 
@@ -1619,6 +1621,14 @@ static void NPC_RunBehavior(const npcteam_t team, const int b_state)
 		//being forced to march
 		NPC_BSDefault();
 	}
+	else if (NPCS.NPC->client->NPC_class == CLASS_GONK || NPCS.NPC->client->NPC_class == CLASS_MOUSE
+		|| NPCS.NPC->client->NPC_class == CLASS_R2D2 || NPCS.NPC->client->NPC_class == CLASS_R5D2)
+	{
+		// MovieDuels: the weaponless droids wander and keep out of fights like SP's (team NEUTRAL there). MP's NPC file
+		// parser never reads a team (it looks up "NPCplayerTeam"), so a gonk ran the combat AI: it chased players,
+		// "fired" WP_NONE every frame and slid along in anims it does not have.
+		NPC_BehaviorSet_Droid(b_state);
+	}
 	else
 	{
 		switch (team)
@@ -1702,9 +1712,10 @@ static void NPC_RunBehavior(const npcteam_t team, const int b_state)
 				BubbleShield_Update();
 			}*/
 
-			if (NPCS.NPC->client->NPC_class == CLASS_DROIDEKA)
+			if (Droideka_IsNPC(NPCS.NPC))
 			{
-				bubble_shield_update();
+				// as SP (deka_bubble_shield_update): the droideka's own shield cycle, not the assassin droid's
+				Droideka_ShieldUpdate();
 			}
 
 			/*if (NPCS.NPC->client->NPC_class == CLASS_GALAKMECH)
@@ -1935,7 +1946,7 @@ static void NPC_ExecuteBState(const gentity_t* self) //, int msec )
 			//Sniper pose
 			if (self->client->NPC_class == CLASS_SBD)
 			{
-				NPC_SetAnim(NPCS.NPC, SETANIM_TORSO, SBD_WEAPON_OUT_STANDING, SETANIM_FLAG_NORMAL);
+				NPC_SetAnim(NPCS.NPC, SETANIM_TORSO, BOTH_ATTACK2, SETANIM_FLAG_NORMAL);
 			}
 			else
 			{

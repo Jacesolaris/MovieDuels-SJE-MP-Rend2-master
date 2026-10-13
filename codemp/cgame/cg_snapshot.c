@@ -101,6 +101,8 @@ CG_TransitionSnapshot instead.
 FIXME: Also called by map_restart?
 ==================
 */
+extern void CG_SetCEntityAnimSets(centity_t* cent); // cg_players.c
+
 static void CG_SetInitialSnapshot(snapshot_t* snap)
 {
 	cg.snap = snap;
@@ -118,6 +120,9 @@ static void CG_SetInitialSnapshot(snapshot_t* snap)
 			//check now to see if we have this bone for setting anims and such
 			cg_entities[snap->ps.clientNum].noFace = qtrue;
 		}
+
+		// MovieDuels: its anim set (a model on its own skeleton has its own; this left it at the master set)
+		CG_SetCEntityAnimSets(&cg_entities[snap->ps.clientNum]);
 	}
 	BG_PlayerStateToEntityState(&snap->ps, &cg_entities[snap->ps.clientNum].currentState, qfalse);
 

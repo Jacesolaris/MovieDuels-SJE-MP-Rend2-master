@@ -4587,6 +4587,7 @@ static void S_HandleDynamicMusicStateChange(void)
 
 				default: // some unhandled type switching to silence
 					assert(0); // fall through since boss case just does silence->switch anyway
+					[[fallthrough]];
 
 				case eBGRNDTRACK_BOSS: // boss->silence
 				{

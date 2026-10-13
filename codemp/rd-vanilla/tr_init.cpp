@@ -1535,8 +1535,8 @@ static consoleCommand_t	commands[] = {
 	{ "imagecacheinfo",		RE_RegisterImages_Info_f },
 	{ "modelList",			R_model_list_f },
 	{ "modelcacheinfo",		RE_RegisterModels_Info_f },
-	{ "weather",			R_SetWeatherEffect_f },
-	{ "r_weather",			R_WeatherEffect_f },
+	// no "weather" / "r_weather" commands: "weather" is the cgame's (server weather), "r_weather" is the player's
+	// weather selector cvar, applied by the cgame (CG_ApplyWeather). "r_we <command>" still runs one directly.
 };
 
 static const size_t numCommands = ARRAY_LEN(commands);
@@ -1825,6 +1825,7 @@ extern void R_ModelFree(void);
 
 void RE_Shutdown(qboolean destroyWindow, qboolean restarting)
 {
+	R_ShutdownFlarePbos(); // flare depth-read buffers (the GL context may go away below)
 	ri->Printf(PRINT_ALL, "RE_Shutdown( %i )\n", destroyWindow);
 
 	for (size_t i = 0; i < numCommands; i++)

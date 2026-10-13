@@ -293,6 +293,149 @@ void SP_info_jedimaster_start(gentity_t* ent);
 extern void Load_Autosaves(void);
 void SP_light(gentity_t* self);
 
+/*
+============
+MovieDuels: animation style (SP g_ActivateAnimationStyle / g_animationStyleActive, g_main.cpp)
+
+The host's setting g_ActivateAnimationStyle (0 Classic, 1 Master) is only used in a SOLO game: not a dedicated server
+and no human player other than the host's local client (bots don't count). Every other game (dedicated, or a listen
+server another human has joined) runs Classic: every model plays its own dedicated animation set.
+
+The style in force is latched at map load into g_animationStyleActive (systeminfo, so every client gets it before
+its models load). The renderers (which GLA a model loads), bg (which animation.cfg) and the style code all read it, so
+the server and the clients always agree. As in SP (save + reload), a change can't be applied to loaded models: when
+the setting or the solo state changes during a map (menu, console, a second human joins or the last one leaves), the
+current map is loaded again and the new map load uses the new style.
+
+g_animStyleRemoteHumans counts the other humans every frame. It survives the map load (the reconnecting clients are
+connected to the game only after G_InitGame), so the reloaded map latches the right style.
+============
+*/
+int g_mdAnimStyleActive = 0;
+
+static qboolean G_AnimStyleSoloNow(const int remoteHumans)
+{
+	return !trap->Cvar_VariableIntegerValue("dedicated") && remoteHumans <= 0 ? qtrue : qfalse;
+}
+
+static void G_LatchAnimationStyle(void)
+{
+	const qboolean solo = G_AnimStyleSoloNow(g_animStyleRemoteHumans.integer);
+
+	g_mdAnimStyleActive = solo && g_ActivateAnimationStyle.integer == 1 ? 1 : 0;
+	trap->Cvar_Set("g_animationStyleActive", g_mdAnimStyleActive ? "1" : "0");
+	trap->Cvar_Set("md_soloGame", solo ? "1" : "0");
+	trap->Cvar_Set("md_soloMasterStyle", g_mdAnimStyleActive ? "1" : "0");
+	trap->Cvar_Update(&g_animationStyleActive);
+	trap->Cvar_Update(&md_soloGame);
+	trap->Cvar_Update(&md_soloMasterStyle);
+
+	trap->Print("Animation Style: %s (%s game%s)\n", g_mdAnimStyleActive ? "Master" : "Classic",
+		solo ? "solo" : "server", !solo && g_ActivateAnimationStyle.integer == 1 ? ", g_ActivateAnimationStyle 1 is for solo games only" : "");
+}
+
+// every frame: count the other humans, keep md_soloGame up to date, and load the map again when the style must change
+static void G_CheckAnimationStyle(void)
+{
+	static int nextRequestTime = 0;
+	static int announcedTarget = -1;
+	static int seenStartTime = -1;
+	int remote = 0;
+
+	if (seenStartTime != level.startTime)
+	{
+		// a new map (the module may stay loaded): forget the previous map's request
+		seenStartTime = level.startTime;
+		nextRequestTime = 0;
+		announcedTarget = -1;
+	}
+
+	for (int i = 0; i < level.maxclients; i++)
+	{
+		const gclient_t* cl = &level.clients[i];
+
+		if (cl->pers.connected == CON_DISCONNECTED || g_entities[i].r.svFlags & SVF_BOT || cl->pers.localClient)
+		{
+			continue;
+		}
+		remote++;
+	}
+
+	if (remote != g_animStyleRemoteHumans.integer)
+	{
+		trap->Cvar_Set("g_animStyleRemoteHumans", va("%i", remote));
+		trap->Cvar_Update(&g_animStyleRemoteHumans);
+	}
+
+	const qboolean solo = G_AnimStyleSoloNow(remote);
+	if (solo != md_soloGame.integer)
+	{
+		trap->Cvar_Set("md_soloGame", solo ? "1" : "0");
+		trap->Cvar_Update(&md_soloGame);
+	}
+
+	const int target = solo && g_ActivateAnimationStyle.integer == 1 ? 1 : 0;
+	if (target != md_soloMasterStyle.integer)
+	{
+		trap->Cvar_Set("md_soloMasterStyle", target ? "1" : "0");
+		trap->Cvar_Update(&md_soloMasterStyle);
+	}
+	if (target == g_mdAnimStyleActive)
+	{
+		announcedTarget = -1;
+		return;
+	}
+
+	// let the clients of a fresh map connect first; never in the intermission (the next map latches it anyway)
+	if (level.time - level.startTime < 3000 || level.intermissiontime || level.time < nextRequestTime)
+	{
+		return;
+	}
+
+	if (announcedTarget != target)
+	{
+		announcedTarget = target;
+		trap->SendServerCommand(-1, va("print \"Animation Style %s: %s, the map is loaded again.\n\"",
+			target ? "Master" : "Classic",
+			target ? "solo game" : remote > 0 ? "another player joined" : "setting changed"));
+	}
+
+	char mapName[MAX_QPATH];
+	trap->Cvar_VariableStringBuffer("mapname", mapName, sizeof mapName);
+	if (!mapName[0])
+	{
+		return;
+	}
+	nextRequestTime = level.time + 5000; // if the map could not be loaded now, ask again later
+	trap->SendConsoleCommand(EXEC_APPEND, va("%s %s\n", sv_cheats.integer ? "devmap" : "map", mapName));
+}
+
+// Master style: give the solo player the style chosen in the menu (g_PlayerAnimationStyle) when it changes
+static void G_ApplyPlayerAnimationStyle(void)
+{
+	static int appliedModification = -1;
+
+	if (appliedModification == g_PlayerAnimationStyle.modificationCount)
+	{
+		return;
+	}
+	appliedModification = g_PlayerAnimationStyle.modificationCount;
+	if (!g_mdAnimStyleActive)
+	{
+		return;
+	}
+
+	for (int i = 0; i < level.maxclients; i++)
+	{
+		gentity_t* ent = &g_entities[i];
+		if (!ent->inuse || !ent->client || ent->r.svFlags & SVF_BOT || ent->client->pers.connected != CON_CONNECTED)
+		{
+			continue;
+		}
+		G_SetClientAnimStyle(ent);
+	}
+}
+
 void G_InitGame(int levelTime, int randomSeed, int restart)
 {
 	int i;
@@ -333,6 +476,9 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 	trap->Cvar_Set("bg_realisticBlocking",
 		trap->Cvar_VariableIntegerValue("dedicated") || g_RealisticBlockingMode.integer ? "1" : "0");
 
+	// the animation style of this map, before any model or animation.cfg is loaded
+	G_LatchAnimationStyle();
+
 	G_ProcessIPBans();
 
 	G_InitMemory();
@@ -342,6 +488,9 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 	level.time = levelTime;
 	G_Pazaak_Init();
 	level.startTime = levelTime;
+
+	// weather damage state: picks up the weather a map_restart kept, before the entities spawn (g_weather.c)
+	G_WeatherInit();
 
 	level.follow1 = level.follow2 = -1;
 
@@ -386,8 +535,6 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 	G_CacheGametype();
 
 	G_InitWorldSession();
-
-	IT_LoadWeatherParms();
 
 	// initialize all entities for this game
 	memset(g_entities, 0, MAX_GENTITIES * sizeof g_entities[0]);
@@ -686,6 +833,14 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 
 	// parse the key/value pairs and spawn gentities
 	G_SpawnEntitiesFromString(qfalse);
+
+	// the map's default weather (Weather/<mapname>.cfg) as server weather (g_weather.c). map_restart keeps the
+	// configstrings, and with them the weather (the map's, or what the weather command set)
+	if (!restart)
+	{
+		G_WeatherNewMap();
+		G_WeatherLoadMapDefault();
+	}
 
 	// general initialization
 	G_FindTeams();
@@ -4446,6 +4601,10 @@ void G_RunFrame(const int levelTime)
 		//don't update the game world if an ROQ files is running.
 		return;
 	}
+
+	G_CheckAnimationStyle();
+	G_ApplyPlayerAnimationStyle();
+
 	if (level.gametype == GT_SIEGE &&
 		g_siegeRespawn.integer &&
 		g_siegeRespawnCheck < level.time)
@@ -5065,6 +5224,9 @@ void G_RunFrame(const int levelTime)
 			{
 				WP_BlockPointsUpdate(ent);
 			}
+
+			// acid rain / lava weather damage (players get it in P_WorldEffects, NPCs don't run that)
+			G_WeatherDamageCheck(ent);
 		}
 
 		G_RunThink(ent);

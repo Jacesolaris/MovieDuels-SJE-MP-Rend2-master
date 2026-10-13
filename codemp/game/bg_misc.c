@@ -211,7 +211,18 @@ int bgForcePowerCost[NUM_FORCE_POWERS][NUM_FORCE_POWER_LEVELS] = //0 == neutral
 	{0, 2, 5, 8}, // Sight		//FP_SEE,//duration
 	{0, 1, 5, 8}, // Saber Attack	//FP_SABER_OFFENSE,
 	{0, 1, 5, 8}, // Saber Defend	//FP_SABER_DEFENSE,
-	{0, 2, 6, 8}  // Saber Throw	//FP_SABERTHROW,
+	{0, 2, 6, 8}, // Saber Throw	//FP_SABERTHROW,
+	// the SP powers ported to MP (2026-10-12): as the MP power they are closest to
+	{0, 2, 4, 6}, // Stasis		//FP_STASIS
+	{0, 2, 5, 8}, // Destruction	//FP_DESTRUCTION
+	{0, 1, 3, 6}, // Grasp		//FP_GRASP (as grip)
+	{0, 1, 3, 6}, // Repulse	//FP_REPULSE (as push)
+	{0, 2, 5, 8}, // Lightning Strike //FP_LIGHTNING_STRIKE (as lightning)
+	{0, 2, 4, 6}, // Fear		//FP_FEAR
+	{0, 2, 5, 8}, // Deadly Sight //FP_DEADLYSIGHT
+	{0, 1, 3, 6}, // Blast		//FP_BLAST
+	{0, 2, 5, 8}, // Insanity	//FP_INSANITY
+	{0, 2, 4, 6}  // Blinding	//FP_BLINDING
 	//NUM_FORCE_POWERS
 };
 
@@ -235,7 +246,17 @@ int forcePowerSorted[NUM_FORCE_POWERS] =
 	FP_TEAM_FORCE,
 	FP_SABER_OFFENSE,
 	FP_SABER_DEFENSE,
-	FP_SABERTHROW
+	FP_SABERTHROW,
+	FP_STASIS,
+	FP_DESTRUCTION,
+	FP_GRASP,
+	FP_REPULSE,
+	FP_LIGHTNING_STRIKE,
+	FP_FEAR,
+	FP_DEADLYSIGHT,
+	FP_BLAST,
+	FP_INSANITY,
+	FP_BLINDING
 };
 
 int force_power_dark_light[NUM_FORCE_POWERS] = //0 == neutral
@@ -258,7 +279,17 @@ int force_power_dark_light[NUM_FORCE_POWERS] = //0 == neutral
 	0, //FP_SEE,//duration
 	0, //FP_SABER_OFFENSE,
 	0, //FP_SABER_DEFENSE,
-	0 //FP_SABERTHROW,
+	0, //FP_SABERTHROW,
+	FORCE_LIGHTSIDE, //FP_STASIS (as SP)
+	FORCE_DARKSIDE, //FP_DESTRUCTION
+	FORCE_LIGHTSIDE, //FP_GRASP
+	FORCE_LIGHTSIDE, //FP_REPULSE
+	FORCE_LIGHTSIDE, //FP_LIGHTNING_STRIKE
+	FORCE_DARKSIDE, //FP_FEAR
+	FORCE_DARKSIDE, //FP_DEADLYSIGHT
+	FORCE_LIGHTSIDE, //FP_BLAST
+	FORCE_DARKSIDE, //FP_INSANITY
+	FORCE_LIGHTSIDE //FP_BLINDING
 	//NUM_FORCE_POWERS
 };
 
@@ -296,7 +327,7 @@ int WeaponIdleAnim[WP_NUM_WEAPONS] =
 	TORSO_WEAPONIDLE2,//WP_CLONEPISTOL,
 	BOTH_STAND3, //WP_DROIDEKA,
 
-	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
+	TORSO_WEAPONREADY2, //WP_BRYAR_OLD, (as SP for the SBD; the SBD's own skeleton has no SBD_WEAPON_STANDING)
 	//NOT VALID (e.g. should never really be used):
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
@@ -336,7 +367,7 @@ int WeaponReadyAnim[WP_NUM_WEAPONS] =
 	TORSO_WEAPONREADY2,//WP_CLONEPISTOL,
 	TORSO_WEAPONREADY3, //WP_DROIDEKA,
 
-	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
+	TORSO_WEAPONREADY2, //WP_BRYAR_OLD, (as SP for the SBD; the SBD's own skeleton has no SBD_WEAPON_STANDING)
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -375,7 +406,7 @@ int WeaponReadyAnim2[WP_NUM_WEAPONS] =
 	BOTH_DUELPISTOL_STAND,//WP_CLONEPISTOL,
 	TORSO_WEAPONREADY3, //WP_DROIDEKA,
 
-	SBD_WEAPON_STANDING, //WP_BRYAR_OLD,
+	TORSO_WEAPONREADY2, //WP_BRYAR_OLD, (as SP for the SBD; the SBD's own skeleton has no SBD_WEAPON_STANDING)
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -453,7 +484,7 @@ int WeaponAttackAnim[WP_NUM_WEAPONS] =
 	BOTH_ATTACK2,//WP_CLONEPISTOL,
 	BOTH_ATTACK4, //WP_DROIDEKA,
 
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
+	BOTH_ATTACK2, //WP_BRYAR_OLD, (as SP for the SBD; was SBD_WEAPON_OUT_STANDING)
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	BOTH_ATTACK1 //WP_TURRET,
 };
@@ -492,7 +523,7 @@ int WeaponAttackAnim2[WP_NUM_WEAPONS] =
 	BOTH_ATTACK_DUAL,//WP_CLONEPISTOL,
 	BOTH_ATTACK4, //WP_DROIDEKA,
 
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
+	BOTH_ATTACK2, //WP_BRYAR_OLD, (as SP for the SBD; was SBD_WEAPON_OUT_STANDING)
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	BOTH_ATTACK1 //WP_TURRET,
 };
@@ -531,7 +562,7 @@ int WeaponAltAttackAnim[WP_NUM_WEAPONS] =
 	BOTH_ATTACK2,//WP_CLONEPISTOL,
 	BOTH_ATTACK3, //WP_DROIDEKA,
 
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
+	BOTH_ATTACK2, //WP_BRYAR_OLD, (as SP for the SBD; was SBD_WEAPON_OUT_STANDING)
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	BOTH_ATTACK1 //WP_TURRET,
 };
@@ -570,7 +601,7 @@ int WeaponAltAttackAnim2[WP_NUM_WEAPONS] =
 	BOTH_ATTACK_DUAL,//WP_CLONEPISTOL,
 	BOTH_ATTACK3, //WP_DROIDEKA,
 
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
+	BOTH_ATTACK2, //WP_BRYAR_OLD, (as SP for the SBD; was SBD_WEAPON_OUT_STANDING)
 	BOTH_STAND1, //WP_EMPLACED_GUN,
 	BOTH_ATTACK1 //WP_TURRET,
 };
@@ -609,7 +640,7 @@ int WeaponAimAnim[WP_NUM_WEAPONS] = // Single weapon Aiming
 	TORSO_WEAPONREADY2, //WP_CLONEPISTOL,
 	TORSO_WEAPONREADY4, //WP_DROIDEKA,
 
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
+	BOTH_ATTACK2, //WP_BRYAR_OLD, (as SP for the SBD; was SBD_WEAPON_OUT_STANDING)
 	BOTH_STAND1,       //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -648,7 +679,7 @@ int WeaponAimAnim2[WP_NUM_WEAPONS] = // dual weapon Aiming
 	BOTH_DUELPISTOL_FIRE, //WP_CLONEPISTOL,
 	TORSO_WEAPONREADY3, //WP_DROIDEKA,
 
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
+	BOTH_ATTACK2, //WP_BRYAR_OLD, (as SP for the SBD; was SBD_WEAPON_OUT_STANDING)
 	BOTH_STAND1,       //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -687,7 +718,7 @@ int WeaponAltAimAnim[WP_NUM_WEAPONS] = // Single weapon Alt Aiming
 	TORSO_WEAPONREADY2, //WP_CLONEPISTOL,
 	TORSO_WEAPONREADY3, //WP_DROIDEKA,
 
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
+	BOTH_ATTACK2, //WP_BRYAR_OLD, (as SP for the SBD; was SBD_WEAPON_OUT_STANDING)
 	BOTH_STAND1,       //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -726,7 +757,7 @@ int WeaponAltAimAnim2[WP_NUM_WEAPONS] = // dual weapon Alt Aiming
 	BOTH_DUELPISTOL_FIRE, //WP_CLONEPISTOL,
 	TORSO_WEAPONREADY3, //WP_DROIDEKA,
 
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
+	BOTH_ATTACK2, //WP_BRYAR_OLD, (as SP for the SBD; was SBD_WEAPON_OUT_STANDING)
 	BOTH_STAND1,       //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -765,7 +796,7 @@ int WeaponAimingAnim[WP_NUM_WEAPONS] =
 	BOTH_ATTACK5,       //WP_CLONEPISTOL,
 	TORSO_WEAPONREADY4, //WP_DROIDEKA,
 
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
+	BOTH_ATTACK2, //WP_BRYAR_OLD, (as SP for the SBD; was SBD_WEAPON_OUT_STANDING)
 	BOTH_STAND1,       //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -804,7 +835,7 @@ int WeaponAimingAnim2[WP_NUM_WEAPONS] =
 	BOTH_DUELPISTOL_FIRE,//WP_CLONEPISTOL,
 	TORSO_WEAPONREADY4, //WP_DROIDEKA,
 
-	SBD_WEAPON_OUT_STANDING, //WP_BRYAR_OLD,
+	BOTH_ATTACK2, //WP_BRYAR_OLD, (as SP for the SBD; was SBD_WEAPON_OUT_STANDING)
 	BOTH_STAND1,       //WP_EMPLACED_GUN,
 	TORSO_WEAPONREADY1 //WP_TURRET,
 };
@@ -3810,6 +3841,396 @@ int BG_EmplacedView(vec3_t base_angles, vec3_t angles, float* new_yaw, const flo
 	return 0;
 }
 
+// MovieDuels: which models keep their own skeleton (GLA, animation.cfg and anim slot, as in SP) instead of the master
+// _humanoid set. The renderer (R_LoadMDXM) puts every humanoid-family model on the master _humanoid GLA unless its bone
+// count is neither the master's (53) nor 72 (old models, remapped onto the master): those - super battle droid (43),
+// droideka (59), protocol droid (54), rockettrooper (40), wampa (34), assassin droid (36), saber droid (27),
+// hazardtrooper (34), jabba (71)... - keep their own GLA. bg must agree with the renderer, so this reads the same numbers
+// from the files, once per folder or model (cached). Every model on a 53-bone _humanoid_* style folder (and every 72-bone
+// one) stays on the master set and the animation-style system, as before.
+#define BG_SKEL_CACHE_SIZE		64
+#define BG_MDXA_HEADER_BYTES	100	// mdxaHeader_t
+#define BG_MDXA_NUMBONES_OFS	84
+#define BG_MDXM_HEADER_BYTES	144	// mdxmHeader_t up to numBones
+#define BG_MDXM_ANIMNAME_OFS	72
+#define BG_MDXM_NUMBONES_OFS	140
+#define BG_OLD_HUMANOID_BONES	72	// old _humanoid models, remapped onto the master skeleton by the renderer
+
+typedef struct bgSkelCache_s
+{
+	char		name[MAX_QPATH];
+	qboolean	own;
+} bgSkelCache_t;
+
+// read the first size bytes of a file; returns the number of bytes read (0 if missing)
+static int BG_ReadFileHead(const char* path, byte* buf, const int size)
+{
+	fileHandle_t f = NULL_FILE;
+	const int len = trap->FS_Open(path, &f, FS_READ);
+
+	if (!f)
+	{
+		return 0;
+	}
+	if (len <= 0)
+	{
+		trap->FS_Close(f);
+		return 0;
+	}
+
+	const int n = len < size ? len : size;
+	trap->FS_Read(buf, n, f);
+	trap->FS_Close(f);
+	return n;
+}
+
+// the bone count of a GLA (name without ".gla"), 0 when it is missing or not a GLA
+static int BG_GLABoneCount(const char* gla)
+{
+	byte head[BG_MDXA_HEADER_BYTES];
+	char path[MAX_QPATH];
+	int numBones = 0;
+
+	Com_sprintf(path, sizeof path, "%s.gla", gla);
+	if (BG_ReadFileHead(path, head, sizeof head) < (int)sizeof head || memcmp(head, "2LGA", 4) != 0)
+	{
+		return 0;
+	}
+	memcpy(&numBones, head + BG_MDXA_NUMBONES_OFS, sizeof numBones);
+	return LittleLong(numBones);
+}
+
+// the master skeleton's bone count (53 in MD)
+static int BG_MasterBoneCount(void)
+{
+	static int master = 0;
+
+	if (master <= 0)
+	{
+		master = BG_GLABoneCount("models/players/_humanoid/_humanoid");
+		if (master <= 0)
+		{
+			master = 53;
+		}
+	}
+	return master;
+}
+
+// the renderer's rule: a skeleton with this many bones is not put on the master
+static qboolean BG_BoneCountIsOwnSkeleton(const int numBones)
+{
+	return numBones > 0 && numBones != BG_OLD_HUMANOID_BONES && numBones != BG_MasterBoneCount() ? qtrue : qfalse;
+}
+
+// "models/players/<X>/..." -> folder "models/players/<X>", leaf = what follows it (NULL if nothing); false for other paths
+static qboolean BG_PlayerFolderOfPath(const char* path, char* folder, const int folderSize, const char** leaf)
+{
+	static const char prefix[] = "models/players/";
+	const int prefixLen = (int)sizeof prefix - 1;
+
+	if (!path || Q_stricmpn(path, prefix, prefixLen))
+	{
+		return qfalse;
+	}
+
+	const char* end = path + prefixLen;
+	while (*end && *end != '/' && *end != '\\')
+	{
+		end++;
+	}
+	const int len = (int)(end - path);
+	if (len <= prefixLen || len >= folderSize)
+	{
+		return qfalse;
+	}
+
+	memcpy(folder, path, len);
+	folder[len] = 0;
+	if (leaf)
+	{
+		*leaf = *end && end[1] ? end + 1 : NULL;
+	}
+	return qtrue;
+}
+
+// The GLA (name without ".gla") of the models/players folder path is in: the path itself when it names a GLA
+// ("models/players/rockettrooper/rockettrooper"), else <folder>/_humanoid, <folder>/<X> or <folder>/model.
+qboolean BG_SkeletonGLAForPath(const char* path, char* glaOut, const int glaOutSize)
+{
+	char folder[MAX_QPATH];
+	char gla[MAX_QPATH];
+	const char* leaf = NULL;
+
+	if (glaOut && glaOutSize > 0)
+	{
+		glaOut[0] = 0;
+	}
+	if (!BG_PlayerFolderOfPath(path, folder, sizeof folder, &leaf))
+	{
+		return qfalse;
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		switch (i)
+		{
+		case 0:
+			if (!leaf || strchr(leaf, '.') || strchr(leaf, '/') || strchr(leaf, '\\'))
+			{
+				continue; // not a GLA name (a cfg, or nothing)
+			}
+			Q_strncpyz(gla, path, sizeof gla);
+			break;
+		case 1:
+			Com_sprintf(gla, sizeof gla, "%s/_humanoid", folder);
+			break;
+		case 2:
+			Com_sprintf(gla, sizeof gla, "%s/%s", folder, folder + strlen("models/players/"));
+			break;
+		default:
+			Com_sprintf(gla, sizeof gla, "%s/model", folder);
+			break;
+		}
+
+		if (BG_GLABoneCount(gla) > 0)
+		{
+			if (glaOut && glaOutSize > 0)
+			{
+				Q_strncpyz(glaOut, gla, glaOutSize);
+			}
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+static int BG_SkelCacheFind(const bgSkelCache_t* cache, const int num, const char* name)
+{
+	for (int i = 0; i < num; i++)
+	{
+		if (!Q_stricmp(cache[i].name, name))
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+static void BG_SkelCacheAdd(bgSkelCache_t* cache, int* num, const char* name, const qboolean own)
+{
+	if (*num < BG_SKEL_CACHE_SIZE)
+	{
+		Q_strncpyz(cache[*num].name, name, sizeof cache[*num].name);
+		cache[*num].own = own;
+		(*num)++;
+	}
+}
+
+// True when path ("models/players/<X>/animation.cfg", a GLA name, ...) is in a models/players folder whose skeleton the
+// renderer keeps (bone count neither the master's nor 72) and that has its own animation.cfg. Never for the master
+// folder models/players/_humanoid itself.
+qboolean BG_IsOwnSkeletonPath(const char* path)
+{
+	static bgSkelCache_t cache[BG_SKEL_CACHE_SIZE];
+	static int numCached = 0;
+	char folder[MAX_QPATH];
+	char gla[MAX_QPATH];
+
+	if (!path || !path[0] || !BG_PlayerFolderOfPath(path, folder, sizeof folder, NULL))
+	{
+		return qfalse;
+	}
+	if (!Q_stricmp(folder, "models/players/_humanoid"))
+	{
+		return qfalse;
+	}
+
+	const int cached = BG_SkelCacheFind(cache, numCached, folder);
+	if (cached >= 0)
+	{
+		return cache[cached].own;
+	}
+
+	qboolean own = qfalse;
+	if (BG_SkeletonGLAForPath(path, gla, sizeof gla) && BG_BoneCountIsOwnSkeleton(BG_GLABoneCount(gla)))
+	{
+		own = BG_FileExists(va("%s/animation.cfg", folder));
+	}
+
+	BG_SkelCacheAdd(cache, &numCached, folder, own);
+	return own;
+}
+
+// True when a userinfo model string ("sbd", "sbd/default", "droideka/|head|torso|lower"...) uses its own skeleton:
+// its model.glm has neither the master's nor 72 bones (the renderer keeps its GLA) and the GLA's folder has an
+// animation.cfg (folder compared case-insensitively, color codes ignored, cached).
+qboolean BG_IsOwnSkeletonModel(const char* model)
+{
+	static bgSkelCache_t cache[BG_SKEL_CACHE_SIZE];
+	static int numCached = 0;
+	char folder[MAX_QPATH];
+	char path[MAX_QPATH];
+	int n = 0;
+
+	if (!model || !model[0])
+	{
+		return qfalse;
+	}
+
+	for (const char* s = model; *s && *s != '/' && *s != '\\' && *s != '|' && n < (int)sizeof folder - 1; s++)
+	{
+		const char c = *s;
+		if (Q_IsColorString(s))
+		{
+			s++;
+			continue;
+		}
+		folder[n++] = c;
+	}
+	folder[n] = 0;
+	if (!folder[0])
+	{
+		return qfalse;
+	}
+
+	const int cached = BG_SkelCacheFind(cache, numCached, folder);
+	if (cached >= 0)
+	{
+		return cache[cached].own;
+	}
+
+	qboolean own = qfalse;
+	byte head[BG_MDXM_HEADER_BYTES];
+	Com_sprintf(path, sizeof path, "models/players/%s/model.glm", folder);
+	if (BG_ReadFileHead(path, head, sizeof head) == (int)sizeof head && !memcmp(head, "2LGM", 4) &&
+		memchr(head + BG_MDXM_ANIMNAME_OFS, 0, MAX_QPATH))
+	{
+		int numBones = 0;
+		memcpy(&numBones, head + BG_MDXM_NUMBONES_OFS, sizeof numBones);
+		numBones = LittleLong(numBones);
+
+		if (BG_BoneCountIsOwnSkeleton(numBones))
+		{
+			char cfg[MAX_QPATH];
+			Q_strncpyz(cfg, (const char*)(head + BG_MDXM_ANIMNAME_OFS), sizeof cfg);
+			char* slash = strrchr(cfg, '/');
+			if (slash && strlen(cfg) + strlen("/animation.cfg") < sizeof cfg)
+			{
+				strcpy(slash, "/animation.cfg");
+				own = BG_FileExists(cfg);
+			}
+		}
+	}
+
+	BG_SkelCacheAdd(cache, &numCached, folder, own);
+	return own;
+}
+
+// MovieDuels animation style (SP g_ActivateAnimationStyle): is the Master style in force for this map? The server's game
+// module latches it into g_animationStyleActive at map load (g_main.c G_LatchAnimationStyle) and sends it to every client
+// in the systeminfo, so game, cgame, ui and the renderers all read the same value.
+qboolean BG_MasterAnimStyleActive(void)
+{
+	char buf[16];
+
+	trap->Cvar_VariableStringBuffer("g_animationStyleActive", buf, sizeof buf);
+	return atoi(buf) == 1 ? qtrue : qfalse;
+}
+
+// does a models/players folder ("models/players/<X>") have its own animation.cfg? (cached)
+static qboolean BG_FolderHasAnimCfg(const char* folder)
+{
+	static bgSkelCache_t cache[BG_SKEL_CACHE_SIZE];
+	static int numCached = 0;
+
+	const int cached = BG_SkelCacheFind(cache, numCached, folder);
+	if (cached >= 0)
+	{
+		return cache[cached].own;
+	}
+	const qboolean has = BG_FileExists(va("%s/animation.cfg", folder));
+	BG_SkelCacheAdd(cache, &numCached, folder, has);
+	return has;
+}
+
+// A path (animation.cfg or GLA name) in a humanoid-family folder whose skeleton fits the master: does it use the master
+// _humanoid set? Master style: yes. Classic: only the master folder itself, or a folder without an animation.cfg. The
+// same rule as the renderers' R_MD_ChooseAnimGLA, so the animation.cfg always matches the GLA the model loaded.
+qboolean BG_HumanoidPathUsesMaster(const char* path)
+{
+	char folder[MAX_QPATH];
+
+	if (BG_MasterAnimStyleActive())
+	{
+		return qtrue;
+	}
+	if (!path || !BG_PlayerFolderOfPath(path, folder, sizeof folder, NULL) || !Q_stricmp(folder, "models/players/_humanoid"))
+	{
+		return qtrue;
+	}
+	return BG_FolderHasAnimCfg(folder) ? qfalse : qtrue;
+}
+
+// True when a userinfo model string plays its own animation set, on the server and the clients alike: a model on its
+// own skeleton (BG_IsOwnSkeletonModel), or, with the Classic animation style, a model whose model.glm names a GLA outside
+// the master folder that has an animation.cfg (yoda -> models/players/_humanoid_yoda, galen -> _humanoid_galen...).
+qboolean BG_ModelUsesOwnAnimSet(const char* model)
+{
+	static bgSkelCache_t cache[BG_SKEL_CACHE_SIZE];
+	static int numCached = 0;
+	char folder[MAX_QPATH];
+	char path[MAX_QPATH];
+	int n = 0;
+
+	if (BG_IsOwnSkeletonModel(model))
+	{
+		return qtrue;
+	}
+	if (!model || !model[0] || BG_MasterAnimStyleActive())
+	{
+		return qfalse;
+	}
+
+	for (const char* s = model; *s && *s != '/' && *s != '\\' && *s != '|' && n < (int)sizeof folder - 1; s++)
+	{
+		const char c = *s;
+		if (Q_IsColorString(s))
+		{
+			s++;
+			continue;
+		}
+		folder[n++] = c;
+	}
+	folder[n] = 0;
+	if (!folder[0])
+	{
+		return qfalse;
+	}
+
+	const int cached = BG_SkelCacheFind(cache, numCached, folder);
+	if (cached >= 0)
+	{
+		return cache[cached].own;
+	}
+
+	qboolean own = qfalse;
+	byte head[BG_MDXM_HEADER_BYTES];
+	Com_sprintf(path, sizeof path, "models/players/%s/model.glm", folder);
+	if (BG_ReadFileHead(path, head, sizeof head) == (int)sizeof head && !memcmp(head, "2LGM", 4) &&
+		memchr(head + BG_MDXM_ANIMNAME_OFS, 0, MAX_QPATH))
+	{
+		char glaFolder[MAX_QPATH];
+		if (BG_PlayerFolderOfPath((const char*)(head + BG_MDXM_ANIMNAME_OFS), glaFolder, sizeof glaFolder, NULL) &&
+			Q_stricmp(glaFolder, "models/players/_humanoid"))
+		{
+			own = BG_FolderHasAnimCfg(glaFolder);
+		}
+	}
+
+	BG_SkelCacheAdd(cache, &numCached, folder, own);
+	return own;
+}
+
 //To see if the client is trying to use one of the included skins not meant for MP.
 //I don't much care for hardcoded strings, but this seems the best way to go.
 qboolean BG_IsValidCharacterModel(const char* model_name, const char* skin_name)
@@ -4432,7 +4853,7 @@ int BG_ModelCache(const char* model_name, const char* skin_name)
 //#define MAX_POOL_SIZE 20971520   // 20 MB
 #elif defined(_CGAME)
 	// Client game: less needed, but still safe
-#define MAX_POOL_SIZE   2621440    // 2.5 MB
+#define MAX_POOL_SIZE   8388608    // 8 MB (MovieDuels: Classic animation style loads every model's own animation set, about 60 KB each)
 #elif defined(UI_BUILD)
 	// UI: only G2 menu models + small allocations
 #define MAX_POOL_SIZE   1048576    // 1 MB

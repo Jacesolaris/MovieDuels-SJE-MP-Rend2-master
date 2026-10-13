@@ -544,7 +544,7 @@ static void NPC_SetMiscDefaultData(gentity_t* ent)
 	}
 	else if (ent->client->NPC_class == CLASS_DROIDEKA)
 	{
-		ent->client->ps.stats[STAT_ARMOR] = 250; // start with full armor
+		ent->client->ps.stats[STAT_ARMOR] = 100; // start with full armor (as SP: the shield recharges to 100, Droideka_ShieldUpdate)
 		ent->flags |= FL_NO_KNOCKBACK;
 		ent->NPC->scriptFlags = SCF_CHASE_ENEMIES | SCF_LOOK_FOR_ENEMIES;
 		ent->NPC->scriptFlags |= SCF_DONT_FLEE;
@@ -1194,14 +1194,8 @@ static qboolean NPC_SpotWouldTelefrag(const gentity_t* npc)
 		return qfalse;
 	}
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int touch_buf[MAX_GENTITIES] = { 0 };
-	int* touch = touch_buf;
-	if (touch == NULL)
-	{
-		return qfalse;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int touch[MAX_GENTITIES];
 
 	vec3_t mins, maxs;
 

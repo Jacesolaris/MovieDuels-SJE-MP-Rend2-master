@@ -38,6 +38,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_public.h"
 
 extern void G_AddVoiceEvent(const gentity_t* self, int event, int speak_debounce_time);
+extern qboolean Droideka_IsNPC(const gentity_t* ent); //NPC_AI_AssassinDroid.c
+extern void Droideka_ShieldOn(gentity_t* self); //NPC_AI_AssassinDroid.c
 extern void G_SetEnemy(gentity_t* self, gentity_t* enemy);
 extern qboolean NPC_CheckLookTarget(const gentity_t* self);
 extern void NPC_ClearLookTarget(const gentity_t* self);
@@ -356,8 +358,10 @@ static void G_AttackDelay(const gentity_t* self, const gentity_t* enemy)
 			return;
 		case WP_BRYAR_PISTOL:
 			break;
+		case WP_DROIDEKA: // as SP (NPC_combat.cpp)
+			attDelay += self->NPC->scriptFlags & SCF_ALT_FIRE ? Q_irand(250, 500) : -Q_irand(250, 500);
+			break;
 		case WP_BLASTER:
-		case WP_DROIDEKA:
 			if (self->NPC->scriptFlags & SCF_ALT_FIRE)
 			{
 				//rapid-fire blasters
@@ -947,8 +951,15 @@ void ChangeWeapon(const gentity_t* ent, int new_weapon)
 			break;
 		*/
 
+	case WP_DROIDEKA: // as SP (NPC_combat.cpp): bursts of two from the arm blasters (two guns: the "commando" values)
+		ent->NPC->aiFlags |= NPCAI_BURST_WEAPON;
+		ent->NPC->burstMin = 2;
+		ent->NPC->burstMean = 2;
+		ent->NPC->burstMax = 2;
+		ent->NPC->burstSpacing = ent->NPC->scriptFlags & SCF_ALT_FIRE ? 1000 : 600; //attack debounce
+		break;
+
 	case WP_BLASTER:
-	case WP_DROIDEKA:
 		if (ent->NPC->scriptFlags & SCF_ALT_FIRE)
 		{
 			ent->NPC->aiFlags |= NPCAI_BURST_WEAPON;
@@ -1225,6 +1236,16 @@ void WeaponThink(void)
 	if (level.time < NPCS.NPCInfo->shotTime)
 	{
 		return;
+	}
+
+	// as SP (WeaponThink, DROIDEKA SHIELD HANDLING): the droideka raises its shield when it opens fire (not during the
+	// "ShieldsDown" cooldown, see Droideka_ShieldOn)
+	if (Droideka_IsNPC(NPCS.NPC))
+	{
+		if (!(NPCS.NPC->flags & FL_SHIELDED) || !NPCS.NPC->client->ps.powerups[PW_GALAK_SHIELD])
+		{
+			Droideka_ShieldOn(NPCS.NPC);
+		}
 	}
 
 	// Ammo check (behaviour preserved: NPCs never run out)

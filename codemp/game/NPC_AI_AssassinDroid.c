@@ -63,14 +63,8 @@ static void BubbleShield_PushEnt(gentity_t* pushed, vec3_t smack_dir)
 // Behaviour preserved; only structure, safety, and stack usage improved.
 static void BubbleShield_PushRadiusEnts(void)
 {
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int entity_list_buf[MAX_GENTITIES] = { 0 };
-	int* entity_list = entity_list_buf;
-	if (!entity_list)
-	{
-		return;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int entity_list[MAX_GENTITIES];
 
 	const float radius = ASSASSIN_SHIELD_SIZE;
 	vec3_t mins = { 0, 0, 0 }, maxs = { 0, 0, 0 };
@@ -192,5 +186,102 @@ void bubble_shield_update(void)
 	else
 	{
 		BubbleShield_TurnOff(NPCS.NPC);
+	}
+}
+
+// ============================================================================
+// MovieDuels: the droideka's shield, ported from MD SP (AI_AssassinDroid.cpp deka_bubble_shield_update,
+// BubbleShield_TurnOn / TurnOff, AI_Character.cpp droideka_npc). Unlike the assassin droid it does not shove or
+// electrocute anyone and recharges to 100 each time it comes up. Only CLASS_DROIDEKA NPCs with WP_DROIDEKA use it.
+// ============================================================================
+
+// SP droideka_npc(): a droideka NPC with its own weapon (not a player or a bot)
+qboolean Droideka_IsNPC(const gentity_t* ent)
+{
+	if (!ent || !ent->client || !ent->NPC)
+	{
+		return qfalse;
+	}
+	return ent->client->NPC_class == CLASS_DROIDEKA && ent->s.weapon == WP_DROIDEKA && ent->s.number >= MAX_CLIENTS
+		? qtrue
+		: qfalse;
+}
+
+// SP BubbleShield_TurnOn: not while the "ShieldsDown" cooldown runs (also set by the roll, bg_pmove.c)
+void Droideka_ShieldOn(gentity_t* self)
+{
+	if (!self || !self->client)
+	{
+		return;
+	}
+	if (!(self->flags & FL_SHIELDED) && TIMER_Done(self, "ShieldsDown"))
+	{
+		self->flags |= FL_SHIELDED;
+		self->client->ps.powerups[PW_GALAK_SHIELD] = Q3_INFINITE;
+		NPC_SetSurfaceOnOff(self, "force_shield", TURN_ON);
+	}
+}
+
+// SP BubbleShield_TurnOff
+void Droideka_ShieldOff(gentity_t* self)
+{
+	if (!self || !self->client)
+	{
+		return;
+	}
+	if (self->flags & FL_SHIELDED)
+	{
+		self->flags &= ~FL_SHIELDED;
+		self->client->ps.powerups[PW_GALAK_SHIELD] = 0;
+		NPC_SetSurfaceOnOff(self, "force_shield", TURN_OFF);
+	}
+}
+
+// SP deka_bubble_shield_update: up for 6-8 s while the enemy is in sight, then down for 2.5 s
+void Droideka_ShieldUpdate(void)
+{
+	gentity_t* self = NPCS.NPC;
+
+	if (!self || !self->client || !NPCS.NPCInfo)
+	{
+		return;
+	}
+
+	// Turn shield off if NPC is dead
+	if (self->health <= 0)
+	{
+		Droideka_ShieldOff(self);
+		return;
+	}
+
+	// Turn shield off if ShieldsUp timer is done
+	if (self->flags & FL_SHIELDED && TIMER_Done(self, "ShieldsUp"))
+	{
+		Droideka_ShieldOff(self);
+		TIMER_Set(self, "ShieldsDown", 2500); // 2.5 second cooldown
+		return;
+	}
+
+	// Turn shield OFF if shield health is 0
+	if (self->flags & FL_SHIELDED && self->client->ps.stats[STAT_ARMOR] <= 0)
+	{
+		Droideka_ShieldOff(self);
+		TIMER_Set(self, "ShieldsDown", 2500); // 2.5 second cooldown
+		return;
+	}
+
+	// Turn shield on at full health once ShieldsDown timer is done
+	if (!(self->flags & FL_SHIELDED) && TIMER_Done(self, "ShieldsDown")
+		&& level.time - NPCS.NPCInfo->enemyLastSeenTime < 1000)
+	{
+		self->client->ps.stats[STAT_ARMOR] = 100;
+		Droideka_ShieldOn(self);
+		TIMER_Set(self, "ShieldsUp", Q_irand(6000, 8000)); // Shield stays up for 6-8 seconds
+
+		// Update shader value
+		self->s.customRGBA[0] =
+			self->s.customRGBA[1] =
+			self->s.customRGBA[2] =
+			self->s.customRGBA[3] = self->client->ps.stats[STAT_ARMOR];
 	}
 }

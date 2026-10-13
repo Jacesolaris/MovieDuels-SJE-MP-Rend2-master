@@ -4903,7 +4903,7 @@ anim while force speeding (as an example) and whatnot into account.
 */
 int BG_AnimLength(const int index, const animNumber_t anim)
 {
-	if ((int)anim < 0 || anim >= MAX_ANIMATIONS)
+	if ((int)anim < 0 || anim >= MAX_ANIMATIONS || index < 0 || index >= MAX_ANIM_FILES || !bgAllAnims[index].anims) // MovieDuels: bad set index guard
 	{
 		return 0;
 	}
@@ -4999,7 +4999,11 @@ void BG_ClearAnimsets()
 
 static animation_t* BG_AnimsetAlloc(void)
 {
-	assert(bgNumAllAnims < MAX_ANIM_FILES);
+	if (bgNumAllAnims >= MAX_ANIM_FILES)
+	{
+		// release-build guard (was only an assert): bg_parse_animation_file falls back to the master set (slot 0)
+		return NULL;
+	}
 	bgAllAnims[bgNumAllAnims].anims = (animation_t*)BG_Alloc(sizeof(animation_t) * MAX_TOTALANIMATIONS);
 
 	return bgAllAnims[bgNumAllAnims].anims;
@@ -5007,6 +5011,18 @@ static animation_t* BG_AnimsetAlloc(void)
 
 static void BG_AnimsetFree()
 {}
+
+// All MAX_ANIM_FILES slots are taken: warn and use the master humanoid set (slot 0) instead of overflowing.
+static int BG_AnimsetFullFallback(const char* filename)
+{
+	Com_Printf(S_COLOR_YELLOW "WARNING: bg_parse_animation_file: no free animation slot (MAX_ANIM_FILES %d) for %s, using the humanoid set\n",
+		MAX_ANIM_FILES, filename);
+	if (!bgAllAnims[0].anims)
+	{
+		bgAllAnims[0].anims = bgHumanoidAnimations; // never hand out a null table
+	}
+	return 0;
+}
 
 // The master _humanoid files SP and MP share are big (animation.cfg ~128 KB, animevents.cfg ~96 KB);
 // SP reads them into growing buffers, MP uses fixed ones (bgAnimEvtTextBuffer, bgpa_ftext): keep them
@@ -5622,15 +5638,32 @@ int BG_ParseAnimationEvtFile(const char* as_filename, const int animFileIndex, c
 	const char* text_p = NULL;
 	char* text = bgAnimEvtTextBuffer;      // static global buffer
 	char sfilename[MAX_QPATH];
-	fileHandle_t f;
+	fileHandle_t f = 0;
 	int i;
 	int used_index = -1;
 
-	assert(animFileIndex < MAX_ANIM_FILES);
-	assert(eventFileIndex < MAX_ANIM_FILES);
-
 	// Determine which event index to use
 	const int forced_index = (eventFileIndex == -1) ? 0 : eventFileIndex;
+
+	// MovieDuels: an events file loaded before keeps its slot even when every slot is taken now (the bounds check below
+	// used to come first, so with all MAX_ANIM_FILES event slots used every later NPC got the humanoid events; the Debug
+	// asserts here fired with many NPC types)
+	if (bg_animParseIncluding <= 0 && forced_index != 0 && as_filename)
+	{
+		for (i = 0; i < bgNumAnimEvents && i < MAX_ANIM_FILES; i++)
+		{
+			if (!Q_stricmp(as_filename, bgAllEvents[i].filename))
+				return i;
+		}
+	}
+
+	if (forced_index < 0 || forced_index >= MAX_ANIM_FILES || animFileIndex < 0 || animFileIndex >= MAX_ANIM_FILES ||
+		!bgAllAnims[animFileIndex].anims)
+	{
+		// release-build guard, as SJE (no free event slot, or a bad / empty anim set)
+		Com_Printf(S_COLOR_YELLOW "WARNING: no free animation event slot for %s\n", as_filename);
+		return 0;
+	}
 
 	// Skip if already parsed (unless inside an include)
 	if (bg_animParseIncluding <= 0)
@@ -5653,20 +5686,9 @@ int BG_ParseAnimationEvtFile(const char* as_filename, const int animFileIndex, c
 		}
 	}
 
-	// Build full path to mpanimevents.cfg
-	// safe vehicle-based selection of event file
-	if (as_filename && strstr(as_filename, "droideka2"))
-	{
-		Com_sprintf(sfilename, sizeof(sfilename), "models/players/droideka2/animevents.cfg");
-	}
-	else if (as_filename && strstr(as_filename, "sbd_mp"))
-	{
-		Com_sprintf(sfilename, sizeof(sfilename), "models/players/sbd_mp/animevents.cfg");
-	}
-	else
-	{
-		Com_sprintf(sfilename, sizeof(sfilename), "%smpanimevents.cfg", as_filename);
-	}
+	// Build full path to mpanimevents.cfg (the animevents.cfg fallback below covers the droideka and the SBD, whose
+	// events are in their skeleton folders: models/players/_humanoid_deka/, _humanoid_sbd/)
+	Com_sprintf(sfilename, sizeof(sfilename), "%smpanimevents.cfg", as_filename);
 
 	// Initialize event arrays (only when not inside an include)
 	if (bg_animParseIncluding <= 0)
@@ -5707,8 +5729,36 @@ int BG_ParseAnimationEvtFile(const char* as_filename, const int animFileIndex, c
 		Com_sprintf(sfilename, sizeof(sfilename), "%sanimevents.cfg", as_filename);
 		len = trap->FS_Open(sfilename, &f, FS_READ);
 	}
+	if (len <= 0 && bg_animParseIncluding <= 0 && animFileIndex > 0 && bgAllAnims[animFileIndex].filename[0])
+	{
+		// a model on its own skeleton (NPC "SBD" -> models/players/SBD/) keeps its events next to its skeleton's
+		// animation.cfg (models/players/_humanoid_sbd/animevents.cfg): try (mp)animevents.cfg in the anim set's folder
+		char setDir[MAX_QPATH];
+		Q_strncpyz(setDir, bgAllAnims[animFileIndex].filename, sizeof setDir);
+		char* setSlash = Q_strrchr(setDir, '/');
+		if (setSlash && Q_stricmpn(setDir, as_filename, (int)(setSlash - setDir) + 1))
+		{
+			setSlash[1] = 0;
+			for (i = 0; i < 2 && len <= 0; i++)
+			{
+				if (f)
+				{
+					trap->FS_Close(f);
+					f = 0;
+				}
+				Com_sprintf(sfilename, sizeof(sfilename), "%s%sanimevents.cfg", setDir, i == 0 ? "mp" : "");
+				len = trap->FS_Open(sfilename, &f, FS_READ);
+			}
+		}
+	}
 	if (len <= 0)
+	{
+		if (f)
+		{
+			trap->FS_Close(f);
+		}
 		goto finish;
+	}
 
 	if (len >= (int)sizeof(bgAnimEvtTextBuffer) - 1)
 	{
@@ -5777,6 +5827,11 @@ finish:
 
 		if (forced_index != 0)
 			bgNumAnimEvents++;
+
+		// SJE crash fix: a model without an (mp)animevents.cfg (rockettrooper, hazardtrooper, many creatures) still gets
+		// this (empty, initialised) event slot. It used to get -1, which callers store in eventAnimIndex and later
+		// index bgAllEvents[-1] with (crash in CG_PlayerAnimEventDo). Later calls for the same file returned this slot.
+		used_index = forced_index;
 	}
 
 	return used_index;
@@ -5838,6 +5893,10 @@ static qboolean R_IsHumanoidPath(const char* animName)
 	if (!animName || !animName[0])
 		return qfalse;
 
+	// super battle droid / droideka: their own skeleton and animation.cfg (the "_humanoid" prefix would match them)
+	if (BG_IsOwnSkeletonPath(animName))
+		return qfalse;
+
 	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
 	{
 		const char* prefix = humanoid_prefixes[i];
@@ -5849,6 +5908,8 @@ static qboolean R_IsHumanoidPath(const char* animName)
 
 	return qfalse;
 }
+
+static void BG_SetAnimSetSkeletonInfo(int index, const char* filename);
 
 int bg_parse_animation_file(const char* filename, animation_t* anim_set, const qboolean is_humanoid)
 {
@@ -5864,8 +5925,11 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 
 	// ------------------------------------------------------------
 	// HUMANOID NORMALIZATION USING PREFIX LIST
+	// Master animation style: every humanoid-family set is the master _humanoid one. Classic (default, server games):
+	// a model's dedicated set (_humanoid_yoda...) keeps its own animation.cfg, as the renderer keeps its own GLA
+	// (BG_HumanoidPathUsesMaster / R_MD_ChooseAnimGLA).
 	// ------------------------------------------------------------
-	if (R_IsHumanoidPath(filename))
+	if (R_IsHumanoidPath(filename) && BG_HumanoidPathUsesMaster(filename))
 	{
 		filename = "models/players/_humanoid/animation.cfg";
 	}
@@ -5886,7 +5950,7 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		// Allocate anim set if needed
 		if (!anim_set)
 		{
-			if (R_IsHumanoidPath(filename))
+			if (!Q_stricmp(filename, "models/players/_humanoid/animation.cfg")) // (after the normalization above)
 			{
 				anim_set = bgHumanoidAnimations;
 				next_index = 0;
@@ -5898,8 +5962,7 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 				dyn_alloc = qtrue;
 				if (!anim_set)
 				{
-					assert(!"Anim set alloc failed!");
-					return -1;
+					return BG_AnimsetFullFallback(filename);
 				}
 			}
 			else
@@ -5908,8 +5971,7 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 				dyn_alloc = qtrue;
 				if (!anim_set)
 				{
-					assert(!"Anim set alloc failed!");
-					return -1;
+					return BG_AnimsetFullFallback(filename);
 				}
 			}
 		}
@@ -6070,12 +6132,1085 @@ int bg_parse_animation_file(const char* filename, animation_t* anim_set, const q
 		}
 		else
 		{
-			bgpa_ftext_loaded = qtrue;
+			// only the slot 0 (_humanoid) load means "humanoid text loaded" (SJE fix): the rockettrooper slot 1 set it
+			// too, so with a rockettrooper loaded first the master set was never loaded (NULL slot 0)
+			if (next_index == 0)
+			{
+				bgpa_ftext_loaded = qtrue;
+			}
 			used_index = next_index;
+		}
+
+		if (next_index > 0)
+		{
+			BG_SetAnimSetSkeletonInfo(next_index, filename);
 		}
 	}
 
 	return used_index;
+}
+
+/*
+======================
+MovieDuels: per anim set skeleton info and the own-skeleton anim resolver
+
+A humanoid-family model kept on its own skeleton (BG_IsOwnSkeletonPath: super battle droid, droideka, rockettrooper,
+protocol droid, wampa, jabba...) plays from its own animation.cfg, which has only a part of the anims MP's class code
+asks for (the SBD_* anims were made for an old _humanoid-rigged model, the weapon tables ask for TORSO_WEAPONREADY3/4,
+G_PickDeathAnim for BOTH_DEATH1..25...). A missing anim used to freeze the legs or torso in their last pose. For these
+sets every anim the set lacks is resolved, once at load, to what SP plays for it or what the set has (SBD_* -> the JKA
+anims MD SP uses, other weapon poses -> TORSO_WEAPONREADY2, death/knockdown/getup/jump/crouch/pain families -> the
+set's own). The server timers, prediction and networked anim numbers all carry the resolved anim.
+======================
+*/
+#define BG_GLA_SKEL_READ_SIZE	65536	// enough for the gla header and skeleton (bone names)
+#define BG_GLA_HEADER_SIZE		100
+#define BG_GLA_MAX_BONES		1024
+
+static byte bgGLASkelBuf[BG_GLA_SKEL_READ_SIZE];
+
+static int BG_ReadFileStart(const char* path, byte* buf, const int bufSize)
+{
+	fileHandle_t f = 0;
+	const int len = trap->FS_Open(path, &f, FS_READ);
+
+	if (!f)
+	{
+		return 0;
+	}
+	if (len <= 0)
+	{
+		trap->FS_Close(f);
+		return 0;
+	}
+
+	const int n = len < bufSize ? len : bufSize;
+	trap->FS_Read(buf, n, f);
+	trap->FS_Close(f);
+	return n;
+}
+
+static int BG_ReadFileInt(const byte* buf, const int len, const int ofs)
+{
+	int v = 0;
+
+	if (ofs < 0 || ofs + (int)sizeof v > len)
+	{
+		return -1;
+	}
+	memcpy(&v, buf + ofs, sizeof v);
+	return LittleLong(v);
+}
+
+// gla (mdxaHeader_t): numBones at 84; the bone offset table follows the 100 byte header, each bone starts with its name
+static qboolean BG_GLAHasBone(const byte* buf, const int len, const char* boneName)
+{
+	if (len < BG_GLA_HEADER_SIZE || memcmp(buf, "2LGA", 4) != 0)
+	{
+		return qfalse;
+	}
+
+	const int numBones = BG_ReadFileInt(buf, len, 84);
+	if (numBones <= 0 || numBones > BG_GLA_MAX_BONES)
+	{
+		return qfalse;
+	}
+
+	for (int i = 0; i < numBones; i++)
+	{
+		const int boneOfs = BG_ReadFileInt(buf, len, BG_GLA_HEADER_SIZE + i * 4);
+		const int nameOfs = BG_GLA_HEADER_SIZE + boneOfs;
+		if (boneOfs < 0 || nameOfs + MAX_QPATH > len)
+		{
+			return qfalse;
+		}
+		if (memchr(buf + nameOfs, 0, MAX_QPATH) && !Q_stricmp((const char*)(buf + nameOfs), boneName))
+		{
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+// the bones the humanoid-only code uses (bolts, look angles, Motion, ragdoll, IK, dismemberment) - SJE's key-bone test
+static const char* const bgHumanoidKeyBones[] = {
+	"model_root", "pelvis", "Motion", "lower_lumbar", "upper_lumbar", "thoracic", "cervical", "cranium",
+	"rhumerus", "lhumerus", "rradius", "lradius", "rhand", "lhand",
+	"rfemurYZ", "lfemurYZ", "rtibia", "ltibia", "rtalus", "ltalus"
+};
+
+static qboolean BG_GLAIsHumanoid(const char* glaName)
+{
+	char path[MAX_QPATH];
+
+	Com_sprintf(path, sizeof path, "%s.gla", glaName);
+	const int glaLen = BG_ReadFileStart(path, bgGLASkelBuf, BG_GLA_SKEL_READ_SIZE);
+	if (glaLen <= 0)
+	{
+		return qfalse;
+	}
+
+	for (int i = 0; i < (int)ARRAY_LEN(bgHumanoidKeyBones); i++)
+	{
+		if (!BG_GLAHasBone(bgGLASkelBuf, glaLen, bgHumanoidKeyBones[i]))
+		{
+			return qfalse;
+		}
+	}
+	return qtrue;
+}
+
+// the NPC class whose bone layout a models/players folder's skeleton has (for the class-keyed bone code)
+static int BG_SkelClassForFolder(const char* path)
+{
+	static const struct
+	{
+		const char* folder;
+		int			skelClass;
+	} folders[] = {
+		{ "models/players/_humanoid_deka/", CLASS_DROIDEKA },
+		{ "models/players/droideka/", CLASS_DROIDEKA },
+		{ "models/players/_humanoid_sbd/", CLASS_SBD },
+		{ "models/players/rockettrooper/", CLASS_ROCKETTROOPER },
+		{ "models/players/wampa/", CLASS_WAMPA },
+		{ "models/players/assassin_droid/", CLASS_ASSASSIN_DROID },
+		{ "models/players/saber_droid/", CLASS_SABER_DROID },
+		{ "models/players/hazardtrooper/", CLASS_HAZARD_TROOPER },
+		{ "models/players/protocol/", CLASS_PROTOCOL },
+		{ "models/players/rancor/", CLASS_RANCOR },
+	};
+
+	for (int i = 0; i < (int)ARRAY_LEN(folders); i++)
+	{
+		if (!Q_stricmpn(path, folders[i].folder, (int)strlen(folders[i].folder)))
+		{
+			return folders[i].skelClass;
+		}
+	}
+	return CLASS_NONE;
+}
+
+// a path in one of the humanoid-family folders (the renderer's / bg's humanoid_prefixes), own skeleton or not
+static qboolean BG_IsHumanoidFamilyPath(const char* path)
+{
+	for (int i = 0; i < (int)ARRAY_LEN(humanoid_prefixes); i++)
+	{
+		if (strstr(path, humanoid_prefixes[i]) == path)
+		{
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+// the creature / droid folders that are playable as creature classes (BG_ClassIsCreature): their own sets also resolve
+// the MP class anims they lack (jumps, crouches, deaths...), as the humanoid-family own skeletons do
+static qboolean BG_IsCreaturePlayerPath(const char* path)
+{
+	static const char* const folders[] = {
+		"models/players/r2d2/", "models/players/r5d2/", "models/players/gonk/", "models/players/protocol/",
+		"models/players/wampa/", "models/players/rancor/", "models/players/howler/", "models/players/minemonster/"
+	};
+
+	for (int i = 0; i < (int)ARRAY_LEN(folders); i++)
+	{
+		if (!Q_stricmpn(path, folders[i], (int)strlen(folders[i])))
+		{
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+static qboolean BG_AnimHasFrames(const animation_t* animations, const int anim)
+{
+	return anim >= 0 && anim < MAX_ANIMATIONS && animations[anim].numFrames > 0 ? qtrue : qfalse;
+}
+
+// first anim of the list (ending with -1) the set has, -1 if none
+static int BG_FirstAnimPresent(const animation_t* animations, const int* list)
+{
+	for (; *list >= 0; list++)
+	{
+		if (BG_AnimHasFrames(animations, *list))
+		{
+			return *list;
+		}
+	}
+	return -1;
+}
+
+static qboolean BG_NameStarts(const char* name, const char* prefix)
+{
+	return !Q_stricmpn(name, prefix, (int)strlen(prefix)) ? qtrue : qfalse;
+}
+
+// odd trailing number (or none) -> 1, even -> 2: keeps death/dead variants apart
+static qboolean BG_NameNumberIsEven(const char* name)
+{
+	const size_t len = strlen(name);
+	size_t i = len;
+	while (i > 0 && name[i - 1] >= '0' && name[i - 1] <= '9')
+	{
+		i--;
+	}
+	if (i == len)
+	{
+		return qfalse;
+	}
+	return atoi(name + i) % 2 == 0 ? qtrue : qfalse;
+}
+
+// MovieDuels Classic animation style: a model's dedicated humanoid set (_humanoid_yoda, _humanoid_galen...: the master's
+// skeleton, its own animation.cfg) has the character's anims but not the MP-only ones the master set adds (BOTH_RUN3_MP,
+// BOTH_SPRINT_MP, MELEE_STANCE_*, BOTH_PARRY_WALK*, other characters' stances...). What it plays for one it lacks:
+// the same anim without the MP / variant suffix, a saber stance for a stance, a walk for a walking guard. -1: none.
+static int BG_HumanoidSetCandidate(const animation_t* animations, const char* name)
+{
+	static const char* const suffixes[] = { "_MP", "_ALT", "_OLD", "_NEW", "_MD2", "_SABER" };
+	static const int walk[] = { BOTH_WALK1, -1 };
+	static const int saberStance[] = { BOTH_STAND2, BOTH_STAND1, -1 };
+	static const int ignite[] = { BOTH_STAND1TO2, BOTH_STAND2, BOTH_STAND1, -1 };
+	static const int stand[] = { BOTH_STAND1, -1 };
+	const size_t nameLen = strlen(name);
+
+	for (int i = 0; i < (int)ARRAY_LEN(suffixes); i++)
+	{
+		const size_t sufLen = strlen(suffixes[i]);
+		char base[MAX_QPATH];
+
+		if (nameLen <= sufLen || nameLen >= sizeof base || Q_stricmp(name + nameLen - sufLen, suffixes[i]))
+		{
+			continue;
+		}
+		memcpy(base, name, nameLen - sufLen);
+		base[nameLen - sufLen] = 0;
+		const int baseAnim = GetIDForString(animTable, base);
+		if (BG_AnimHasFrames(animations, baseAnim))
+		{
+			return baseAnim;
+		}
+	}
+
+	if (strstr(name, "IGNITION"))
+	{
+		return BG_FirstAnimPresent(animations, ignite);
+	}
+	if (BG_NameStarts(name, "MELEE_STANCE"))
+	{
+		return BG_FirstAnimPresent(animations, stand);
+	}
+	if (strstr(name, "STANCE"))
+	{
+		return BG_FirstAnimPresent(animations, saberStance);
+	}
+	if (strstr(name, "WALK") && !strstr(name, "WALKBACK"))
+	{
+		return BG_FirstAnimPresent(animations, walk);
+	}
+	return -1;
+}
+
+// The anim an own-skeleton set (or, humanoidSet, a dedicated humanoid set) plays for an anim it lacks (name, its MP
+// anim name). -1: none of the candidates exists.
+static int BG_OwnSkelReplacement(const animation_t* animations, const char* name, const qboolean legs, const qboolean humanoidSet)
+{
+	static const int sbdStandLegs[] = { BOTH_STAND1, -1 };
+	static const int sbdStandTorso[] = { TORSO_WEAPONREADY2, TORSO_WEAPONIDLE2, BOTH_STAND1, -1 };
+	static const int attack[] = { BOTH_ATTACK2, BOTH_ATTACK1, BOTH_ATTACK3, -1 };
+	static const int melee[] = { BOTH_MELEE1, BOTH_ATTACK1, BOTH_ATTACK2, -1 };
+	static const int run[] = { BOTH_RUN1, BOTH_WALK1, -1 };
+	static const int runBack[] = { BOTH_RUNBACK1, BOTH_WALKBACK1, -1 };
+	static const int walk[] = { BOTH_WALK1, -1 };
+	static const int walkBack[] = { BOTH_WALKBACK1, BOTH_RUNBACK1, BOTH_WALK1, -1 };
+	static const int strafeLeft[] = { BOTH_STRAFE_LEFT1, BOTH_WALK1, -1 };
+	static const int strafeRight[] = { BOTH_STRAFE_RIGHT1, BOTH_WALK1, -1 };
+	static const int ready[] = { TORSO_WEAPONREADY2, TORSO_WEAPONREADY3, TORSO_WEAPONIDLE2, TORSO_WEAPONIDLE3, -1 };
+	static const int idle[] = { TORSO_WEAPONIDLE2, TORSO_WEAPONIDLE3, TORSO_WEAPONREADY2, TORSO_WEAPONREADY3, -1 };
+	static const int raise[] = { TORSO_RAISEWEAP1, -1 };
+	static const int drop[] = { TORSO_DROPWEAP1, -1 };
+	static const int stand[] = { BOTH_STAND1, -1 };
+	static const int death1[] = { BOTH_DEATH1, BOTH_DEATH2, -1 };
+	static const int death2[] = { BOTH_DEATH2, BOTH_DEATH1, -1 };
+	static const int fallDeath[] = { BOTH_FALLDEATH1, BOTH_DEATH1, BOTH_DEATH2, -1 };
+	static const int dead1[] = { BOTH_DEAD1, BOTH_DEAD2, -1 };
+	static const int dead2[] = { BOTH_DEAD2, BOTH_DEAD1, -1 };
+	static const int fallDead[] = { BOTH_FALLDEAD1LAND, BOTH_DEAD1, BOTH_DEAD2, -1 };
+	static const int pain[] = { BOTH_PAIN1, BOTH_PAIN2, -1 };
+	static const int knockdown[] = { BOTH_KNOCKDOWN1, BOTH_PAIN1, -1 };
+	static const int getup[] = { BOTH_GETUP1, BOTH_FORCE_GETUP_B3, -1 };
+	static const int crouch[] = { BOTH_CROUCH1IDLE, BOTH_CROUCH1, BOTH_STAND1, -1 };
+	static const int inAir[] = { BOTH_INAIR1, BOTH_JUMP1, BOTH_STAND1, -1 };
+	static const int land[] = { BOTH_LAND1, BOTH_STAND1, -1 };
+	const int* list;
+
+	if (humanoidSet)
+	{
+		const int candidate = BG_HumanoidSetCandidate(animations, name);
+		if (candidate >= 0)
+		{
+			return candidate;
+		}
+	}
+
+	// the SBD class anims (MP asks for them for the SBD; only an old _humanoid-rigged model had them): what SP plays
+	if (!Q_stricmp(name, "SBD_WEAPON_STANDING"))
+	{
+		list = legs ? sbdStandLegs : sbdStandTorso;
+	}
+	else if (!Q_stricmp(name, "SBD_WEAPON_OUT_STANDING"))
+	{
+		list = attack;
+	}
+	else if (!Q_stricmp(name, "SBD_RUNING_WEAPON"))
+	{
+		list = run;
+	}
+	else if (BG_NameStarts(name, "SBD_RUNBACK"))
+	{
+		list = runBack;
+	}
+	else if (BG_NameStarts(name, "SBD_WALKBACK"))
+	{
+		list = walkBack;
+	}
+	else if (BG_NameStarts(name, "SBD_WALK"))
+	{
+		list = walk;
+	}
+	else if (!Q_stricmp(name, "SBD_DEATH"))
+	{
+		list = death1;
+	}
+	else if (!Q_stricmp(name, "SBD_DEAD"))
+	{
+		list = dead1;
+	}
+	else if (!Q_stricmp(name, "SBD_PAIN"))
+	{
+		list = pain;
+	}
+	// weapon poses
+	else if (BG_NameStarts(name, "TORSO_WEAPONREADY"))
+	{
+		list = legs ? stand : ready;
+	}
+	else if (BG_NameStarts(name, "TORSO_WEAPONIDLE"))
+	{
+		list = legs ? stand : idle;
+	}
+	else if (BG_NameStarts(name, "TORSO_RAISEWEAP"))
+	{
+		list = raise;
+	}
+	else if (BG_NameStarts(name, "TORSO_DROPWEAP"))
+	{
+		list = drop;
+	}
+	else if (BG_NameStarts(name, "BOTH_ATTACK"))
+	{
+		list = attack;
+	}
+	else if (BG_NameStarts(name, "BOTH_MELEE"))
+	{
+		list = melee;
+	}
+	// death, dead poses, pain, knockdown, getup
+	else if (BG_NameStarts(name, "BOTH_FALLDEATH"))
+	{
+		list = fallDeath;
+	}
+	else if (BG_NameStarts(name, "BOTH_FALLDEAD"))
+	{
+		list = fallDead;
+	}
+	else if (BG_NameStarts(name, "BOTH_DEATH") || BG_NameStarts(name, "BOTH_DISMEMBER"))
+	{
+		list = BG_NameNumberIsEven(name) ? death2 : death1;
+	}
+	else if (BG_NameStarts(name, "BOTH_DEAD"))
+	{
+		list = BG_NameNumberIsEven(name) ? dead2 : dead1;
+	}
+	else if (BG_NameStarts(name, "BOTH_PAIN") || BG_NameStarts(name, "BOTH_CHOKE"))
+	{
+		list = pain;
+	}
+	else if (strstr(name, "KNOCKDOWN"))
+	{
+		list = knockdown;
+	}
+	else if (strstr(name, "GETUP"))
+	{
+		list = getup;
+	}
+	// movement
+	else if (strstr(name, "RUNBACK"))
+	{
+		list = runBack;
+	}
+	else if (strstr(name, "WALKBACK"))
+	{
+		list = walkBack;
+	}
+	else if (strstr(name, "STRAFE_LEFT"))
+	{
+		list = strafeLeft;
+	}
+	else if (strstr(name, "STRAFE_RIGHT"))
+	{
+		list = strafeRight;
+	}
+	else if (BG_NameStarts(name, "BOTH_RUN") || BG_NameStarts(name, "BOTH_SPRINT") || BG_NameStarts(name, "BOTH_JOG"))
+	{
+		list = run;
+	}
+	else if (BG_NameStarts(name, "BOTH_WALK") || strstr(name, "CROUCH1WALK"))
+	{
+		list = walk;
+	}
+	else if (BG_NameStarts(name, "BOTH_CROUCH") || BG_NameStarts(name, "BOTH_UNCROUCH"))
+	{
+		list = crouch;
+	}
+	else if (strstr(name, "JUMP") || strstr(name, "INAIR") || strstr(name, "FLIP"))
+	{
+		list = inAir;
+	}
+	else if (BG_NameStarts(name, "BOTH_LAND") || BG_NameStarts(name, "BOTH_FORCELAND"))
+	{
+		list = land;
+	}
+	else if (BG_NameStarts(name, "BOTH_STAND"))
+	{
+		list = stand;
+	}
+	else
+	{
+		list = NULL;
+	}
+
+	if (list)
+	{
+		const int found = BG_FirstAnimPresent(animations, list);
+		if (found >= 0)
+		{
+			return found;
+		}
+	}
+
+	// last resort: the stand pose on the legs, the weapon-ready pose on the torso (a humanoid set: the stand pose)
+	return BG_FirstAnimPresent(animations, legs || humanoidSet ? stand : sbdStandTorso);
+}
+
+// MovieDuels: work out the skeleton flags of a newly loaded (non-master) anim set and, for an own-skeleton set, build
+// its anim resolution tables.
+static void BG_SetAnimSetSkeletonInfo(const int index, const char* filename)
+{
+	bgLoadedAnim_t* set;
+	char gla[MAX_QPATH];
+
+	if (index <= 0 || index >= MAX_ANIM_FILES)
+	{
+		return;
+	}
+	set = &bgAllAnims[index];
+	if (set->skelChecked || !set->anims)
+	{
+		return;
+	}
+	set->skelChecked = qtrue;
+	set->skelClass = BG_SkelClassForFolder(filename);
+	const qboolean haveGLA = BG_SkeletonGLAForPath(filename, gla, sizeof gla);
+	set->humanoidSkel = haveGLA && BG_GLAIsHumanoid(gla) ? qtrue : qfalse;
+	// humanoid family: the cfg's folder ("models/players/_humanoid_sbd/...") or its GLA
+	// ("models/players/hazardtrooper/hazardtrooper") is in the humanoid prefix list
+	set->ownSkel = BG_IsOwnSkeletonPath(filename) &&
+		(BG_IsHumanoidFamilyPath(filename) || (haveGLA && BG_IsHumanoidFamilyPath(gla)) ||
+			set->skelClass == CLASS_DROIDEKA || BG_IsCreaturePlayerPath(filename)) ? qtrue : qfalse;
+	set->resolveLegs = NULL;
+	set->resolveTorso = NULL;
+
+	// Classic animation style: a model's dedicated humanoid set (master skeleton, its own animation.cfg) also resolves
+	// the MP-only anims it lacks (BG_HumanoidSetCandidate)
+	const qboolean dedicatedHumanoid = !set->ownSkel && set->humanoidSkel && BG_IsHumanoidFamilyPath(filename) ? qtrue : qfalse;
+
+	if (set->ownSkel || dedicatedHumanoid)
+	{
+		set->resolveLegs = (short*)BG_Alloc(sizeof(short) * MAX_ANIMATIONS);
+		set->resolveTorso = (short*)BG_Alloc(sizeof(short) * MAX_ANIMATIONS);
+		if (set->resolveLegs && set->resolveTorso)
+		{
+			for (int i = 0; i < MAX_ANIMATIONS; i++)
+			{
+				set->resolveLegs[i] = set->resolveTorso[i] = (short)i;
+			}
+			for (int i = 0; i < MAX_ANIMATIONS && animTable[i].name; i++)
+			{
+				const int anim = animTable[i].id;
+				if (anim < 0 || anim >= MAX_ANIMATIONS || BG_AnimHasFrames(set->anims, anim))
+				{
+					continue;
+				}
+				const int legsAnim = BG_OwnSkelReplacement(set->anims, animTable[i].name, qtrue, dedicatedHumanoid);
+				const int torsoAnim = BG_OwnSkelReplacement(set->anims, animTable[i].name, qfalse, dedicatedHumanoid);
+				if (legsAnim >= 0)
+				{
+					set->resolveLegs[anim] = (short)legsAnim;
+				}
+				if (torsoAnim >= 0)
+				{
+					set->resolveTorso[anim] = (short)torsoAnim;
+				}
+			}
+		}
+		else
+		{
+			set->resolveLegs = set->resolveTorso = NULL;
+		}
+	}
+
+#ifdef _GAME
+	Com_Printf("Animation set %d (game): %s, %s%s skeleton\n", index, filename,
+		set->ownSkel ? "own " : dedicatedHumanoid ? "dedicated " : "", set->humanoidSkel ? "humanoid" : "non-humanoid");
+#else
+	Com_Printf("Animation set %d (cgame): %s, %s%s skeleton\n", index, filename,
+		set->ownSkel ? "own " : dedicatedHumanoid ? "dedicated " : "", set->humanoidSkel ? "humanoid" : "non-humanoid");
+#endif
+}
+
+// the anim set slot these anims belong to (-1 if unknown)
+static int BG_AnimSetIndexFor(const animation_t* animations)
+{
+	if (!animations)
+	{
+		return -1;
+	}
+	if (animations == bgHumanoidAnimations)
+	{
+		return 0;
+	}
+	for (int i = 0; i < MAX_ANIM_FILES; i++)
+	{
+		if (bgAllAnims[i].anims == animations)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+int BG_ResolveOwnSkelAnim(const animation_t* animations, const int anim, const qboolean legs)
+{
+	if (!animations || anim < 0 || anim >= MAX_ANIMATIONS || animations == bgHumanoidAnimations ||
+		animations[anim].numFrames > 0)
+	{
+		return anim;
+	}
+
+	const int index = BG_AnimSetIndexFor(animations);
+	if (index <= 0) // the tables exist for own-skeleton and dedicated humanoid sets only
+	{
+		return anim;
+	}
+
+	const short* table = legs ? bgAllAnims[index].resolveLegs : bgAllAnims[index].resolveTorso;
+	return table ? table[anim] : anim;
+}
+
+int BG_AnimSetSkelClass(const animation_t* animations)
+{
+	const int index = BG_AnimSetIndexFor(animations);
+	return index > 0 ? bgAllAnims[index].skelClass : CLASS_NONE;
+}
+
+qboolean BG_AnimSetIsHumanoid(const int animIndex)
+{
+	if (animIndex == 0)
+	{
+		return qtrue;
+	}
+	if (animIndex < 0 || animIndex >= MAX_ANIM_FILES)
+	{
+		return qfalse;
+	}
+	return bgAllAnims[animIndex].humanoidSkel ? qtrue : qfalse;
+}
+
+qboolean BG_AnimSetIsHumanoidLike(const int animIndex)
+{
+	return animIndex <= 1 || BG_AnimSetIsHumanoid(animIndex) ? qtrue : qfalse; // as the old "<= 1" checks
+}
+
+// The NPC class whose (odd) bone layout this skeleton has, for the class-keyed bone code (BG_ClassHasBadBones and
+// BG_BoneOrientationsForClass). NPCs: their class, as before. Players and bots have no NPC class: the skeleton they
+// were given decides (rockettrooper, droideka...).
+int BG_SkeletonClass(const int NPC_class, const int animIndex)
+{
+	if (NPC_class != CLASS_NONE)
+	{
+		return NPC_class;
+	}
+	if (animIndex > 0 && animIndex < MAX_ANIM_FILES)
+	{
+		return bgAllAnims[animIndex].skelClass;
+	}
+	return CLASS_NONE;
+}
+
+/*
+======================
+MovieDuels (port of SJE MP's creature work): creature and droid player models
+
+MD's own-skeleton rule (BG_IsOwnSkeletonModel: the model.glm's bone count is neither the master's nor 72, and the GLA's
+folder has an animation.cfg) decides which models keep their own skeleton. For those, BG_ModelSkeletonFlags says which
+player bolts/bones the skeleton has (SKELF_*). SKELF_FULL = every bolt/bone the humanoid player code needs (the old,
+fixed cgame test). A skeleton without them (r2d2, wampa, rancor, protocol, howler...) is only playable as a creature
+class that needs nothing the skeleton lacks (BG_ClassSkeletonOk). The server (G_AssignClassAndScaleFromModel) and the
+client (CG_RegisterClientModelname) both use this, so both sides agree.
+======================
+*/
+#define BG_SKEL_GLM_READ_SIZE	131072	// enough for the glm header and its surface hierarchy
+#define BG_SKEL_GLM_HEADER_SIZE	164		// mdxmHeader_t
+#define BG_SKEL_FLAGS_CACHE		64
+
+static byte bgGLMSkelBuf[BG_SKEL_GLM_READ_SIZE];
+
+// a name stored in a fixed char[64] (MAX_QPATH) field of the file, bounds checked
+static const char* BG_ReadFileName(const byte* buf, const int len, const int ofs)
+{
+	if (ofs < 0 || ofs + MAX_QPATH > len)
+	{
+		return NULL;
+	}
+	if (!memchr(buf + ofs, 0, MAX_QPATH))
+	{
+		return NULL;
+	}
+	return (const char*)(buf + ofs);
+}
+
+// glm (mdxmHeader_t): numSurfaces at 152, ofsSurfHierarchy at 156; each mdxmSurfHierarchy_t is
+// name[64] flags shader[64] shaderIndex parentIndex numChildren childIndexes[numChildren]
+static qboolean BG_GLMHasSurface(const byte* buf, const int len, const char* surfName)
+{
+	if (len < BG_SKEL_GLM_HEADER_SIZE || memcmp(buf, "2LGM", 4) != 0)
+	{
+		return qfalse;
+	}
+
+	const int numSurfaces = BG_ReadFileInt(buf, len, 152);
+	int ofs = BG_ReadFileInt(buf, len, 156);
+	if (numSurfaces <= 0 || numSurfaces > BG_GLA_MAX_BONES || ofs < BG_SKEL_GLM_HEADER_SIZE)
+	{
+		return qfalse;
+	}
+
+	for (int i = 0; i < numSurfaces; i++)
+	{
+		const char* name = BG_ReadFileName(buf, len, ofs);
+		const int numChildren = BG_ReadFileInt(buf, len, ofs + MAX_QPATH + 4 + MAX_QPATH + 4 + 4);
+		if (!name || numChildren < 0 || numChildren > BG_GLA_MAX_BONES)
+		{
+			return qfalse;
+		}
+		if (!Q_stricmp(name, surfName))
+		{
+			return qtrue;
+		}
+		ofs += MAX_QPATH + 4 + MAX_QPATH + 4 + 4 + 4 + numChildren * 4;
+	}
+	return qfalse;
+}
+
+// G2API_AddBolt looks for a surface (tag) of that name first, then a bone
+static qboolean BG_SkelHasBolt(const int glmLen, const int glaLen, const char* name)
+{
+	return BG_GLMHasSurface(bgGLMSkelBuf, glmLen, name) || BG_GLAHasBone(bgGLASkelBuf, glaLen, name) ? qtrue : qfalse;
+}
+
+static int BG_ModelSkeletonCheck(const char* folder)
+{
+	char path[MAX_QPATH];
+	char gla[MAX_QPATH];
+	int flags = SKELF_OWN;
+
+	if (!BG_IsOwnSkeletonModel(folder))
+	{
+		return 0; // the master skeleton (or a dedicated 53-bone humanoid one): the normal path
+	}
+
+	Com_sprintf(path, sizeof path, "models/players/%s/model.glm", folder);
+	const int glmLen = BG_ReadFileStart(path, bgGLMSkelBuf, BG_SKEL_GLM_READ_SIZE);
+	const char* animName = BG_ReadFileName(bgGLMSkelBuf, glmLen, 72);
+	if (glmLen < BG_SKEL_GLM_HEADER_SIZE || memcmp(bgGLMSkelBuf, "2LGM", 4) != 0 || !animName || !animName[0])
+	{
+		return 0;
+	}
+	Q_strncpyz(gla, animName, sizeof gla);
+
+	Com_sprintf(path, sizeof path, "%s.gla", gla);
+	const int glaLen = BG_ReadFileStart(path, bgGLASkelBuf, BG_GLA_SKEL_READ_SIZE);
+	if (glaLen <= 0 || !BG_GLAHasBone(bgGLASkelBuf, glaLen, "model_root"))
+	{
+		return 0; // the renderer's model_root bone anim would fail: not usable by a player at all
+	}
+
+	if (BG_SkelHasBolt(glmLen, glaLen, "*r_hand"))
+	{
+		flags |= SKELF_RHAND;
+	}
+	if (BG_SkelHasBolt(glmLen, glaLen, "*l_hand"))
+	{
+		flags |= SKELF_LHAND;
+	}
+	const qboolean headTop = BG_SkelHasBolt(glmLen, glaLen, "*head_top") || BG_SkelHasBolt(glmLen, glaLen, "ceyebrow")
+		? qtrue : qfalse;
+	if (headTop || BG_SkelHasBolt(glmLen, glaLen, "*head_t") || BG_SkelHasBolt(glmLen, glaLen, "*head_eyes"))
+	{
+		flags |= SKELF_HEAD;
+	}
+	if (BG_SkelHasBolt(glmLen, glaLen, "Motion"))
+	{
+		flags |= SKELF_MOTION;
+	}
+	if (BG_SkelHasBolt(glmLen, glaLen, "lower_lumbar"))
+	{
+		flags |= SKELF_LLUMBAR;
+	}
+	if (BG_GLAHasBone(bgGLASkelBuf, glaLen, "upper_lumbar"))
+	{
+		flags |= SKELF_ULUMBAR;
+	}
+	if (BG_GLAHasBone(bgGLASkelBuf, glaLen, "cranium"))
+	{
+		flags |= SKELF_CRANIUM;
+	}
+
+	// the old fixed cgame test: bolts *r_hand, *l_hand, *head_top (or ceyebrow), Motion, lower_lumbar; bones model_root,
+	// upper_lumbar, cranium
+	if (headTop &&
+		(flags & (SKELF_RHAND | SKELF_LHAND | SKELF_MOTION | SKELF_LLUMBAR | SKELF_ULUMBAR | SKELF_CRANIUM)) ==
+		(SKELF_RHAND | SKELF_LHAND | SKELF_MOTION | SKELF_LLUMBAR | SKELF_ULUMBAR | SKELF_CRANIUM))
+	{
+		flags |= SKELF_FULL;
+	}
+	return flags;
+}
+
+// The SKELF_* of a userinfo model string's own skeleton ("folder", "folder/skin", "folder/|head|torso|lower"), 0 when it
+// uses the master (or a dedicated humanoid) skeleton or its skeleton cannot be used by a player. Cached per folder.
+int BG_ModelSkeletonFlags(const char* model)
+{
+	static struct
+	{
+		char	folder[MAX_QPATH];
+		int		flags;
+	} cache[BG_SKEL_FLAGS_CACHE];
+	static int numCached = 0;
+	char folder[MAX_QPATH];
+	int n = 0;
+
+	if (!model || !model[0])
+	{
+		return 0;
+	}
+	for (const char* s = model; *s && *s != '/' && *s != '\\' && *s != '|' && n < (int)sizeof folder - 1; s++)
+	{
+		const char c = *s;
+		if (Q_IsColorString(s))
+		{
+			s++;
+			continue;
+		}
+		folder[n++] = c;
+	}
+	folder[n] = 0;
+	if (!folder[0])
+	{
+		return 0;
+	}
+
+	for (int i = 0; i < numCached; i++)
+	{
+		if (!Q_stricmp(cache[i].folder, folder))
+		{
+			return cache[i].flags;
+		}
+	}
+
+	const int flags = BG_ModelSkeletonCheck(folder);
+	if (numCached < BG_SKEL_FLAGS_CACHE)
+	{
+		Q_strncpyz(cache[numCached].folder, folder, sizeof cache[numCached].folder);
+		cache[numCached].flags = flags;
+		numCached++;
+	}
+	return flags;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Creature and droid player classes. Values from the SP NPC files (ext_data/npcs/*.npc) and the SP class code.
+// ---------------------------------------------------------------------------------------------------------------
+qboolean BG_ClassIsCreature(const int botclass)
+{
+	switch (botclass)
+	{
+	case BCLASS_R2D2:
+	case BCLASS_R5D2:
+	case BCLASS_GONK:
+	case BCLASS_PROTOCOL:
+	case BCLASS_WAMPA:
+	case BCLASS_RANCOR:
+	case BCLASS_HOWLER:
+	case BCLASS_MINEMONSTER:
+	case BCLASS_ASSASSIN_DROID:
+	case BCLASS_HAZARDTROOPER:
+	case BCLASS_SABER_DROID:
+		return qtrue;
+	default:
+		return qfalse;
+	}
+}
+
+// Every skeleton with the full humanoid bolts is fine for any class (as before). A creature skeleton only for a creature
+// class, and only with the bolts that class needs: a hand for a hand-held weapon (the weapon model sits on *r_hand, the
+// saber on *r_hand / *l_hand). Melee and the stun baton hit from the view origin, so they need no hand.
+qboolean BG_ClassSkeletonOk(const int botclass, const int skelFlags)
+{
+	if (!(skelFlags & SKELF_OWN) || skelFlags & SKELF_FULL)
+	{
+		return qtrue;
+	}
+	if (botclass == BCLASS_ELDER)
+	{
+		// melee only, no Force, no saber (jabba: both hands and a head, no Motion / upper_lumbar)
+		return (skelFlags & (SKELF_RHAND | SKELF_LHAND | SKELF_HEAD)) == (SKELF_RHAND | SKELF_LHAND | SKELF_HEAD) ? qtrue : qfalse;
+	}
+	if (!BG_ClassIsCreature(botclass))
+	{
+		return qfalse;
+	}
+	switch (botclass)
+	{
+	case BCLASS_ASSASSIN_DROID:
+	case BCLASS_HAZARDTROOPER:
+		return skelFlags & SKELF_RHAND ? qtrue : qfalse;
+	case BCLASS_SABER_DROID:
+		return (skelFlags & (SKELF_RHAND | SKELF_LHAND)) == (SKELF_RHAND | SKELF_LHAND) ? qtrue : qfalse;
+	default:
+		return qtrue;
+	}
+}
+
+// SP: r2d2/r5d2.npc WP_STUN_BATON, gonk.npc and protocol.npc WP_NONE: no melee for any of them (owner decision
+// 2026-10-11: only R2-D2 keeps the stun; R5, gonk, protocol and the sith droid get nothing at all)
+qboolean BG_ClassHasNoFists(const int botclass)
+{
+	switch (botclass)
+	{
+	case BCLASS_R2D2:
+	case BCLASS_R5D2:
+	case BCLASS_GONK:
+	case BCLASS_PROTOCOL:
+		return qtrue;
+	default:
+		return qfalse;
+	}
+}
+
+// SP bg_pmove PM_GentCantJump
+qboolean BG_ClassCantJump(const int botclass)
+{
+	switch (botclass)
+	{
+	case BCLASS_R2D2:
+	case BCLASS_R5D2:
+	case BCLASS_GONK:
+	case BCLASS_PROTOCOL:
+		return qtrue;
+	default:
+		return qfalse;
+	}
+}
+
+// a model on its own (not humanoid) skeleton with no real jump anim: no BOTH_JUMP1, or one that only repeats the stand
+// pose (galak_mech). It can't jump (as SP, whose NPCs of these never jump); the jump key plays a taunt (G_NoJumpTaunt)
+qboolean BG_AnimSetCantJump(const int animIndex)
+{
+	if (animIndex <= 0 || animIndex >= MAX_ANIM_FILES || animIndex >= bgNumAllAnims || BG_AnimSetIsHumanoidLike(animIndex))
+	{
+		return qfalse;
+	}
+	const animation_t* anims = bgAllAnims[animIndex].anims;
+	if (!anims)
+	{
+		return qfalse;
+	}
+	if (anims[BOTH_JUMP1].numFrames <= 0)
+	{
+		return qtrue;
+	}
+	return anims[BOTH_JUMP1].firstFrame == anims[BOTH_STAND1].firstFrame
+		&& anims[BOTH_JUMP1].numFrames == anims[BOTH_STAND1].numFrames ? qtrue : qfalse;
+}
+
+// classes whose anims always move the whole body (beasts and the weaponless / handless droids): the cgame drives
+// lower_lumbar with the legs anim, and their attacks are whole-body anims
+qboolean BG_ClassIsWholeBody(const int botclass)
+{
+	switch (botclass)
+	{
+	case BCLASS_R2D2:
+	case BCLASS_R5D2:
+	case BCLASS_GONK:
+	case BCLASS_PROTOCOL:
+	case BCLASS_WAMPA:
+	case BCLASS_RANCOR:
+	case BCLASS_HOWLER:
+	case BCLASS_MINEMONSTER:
+		return qtrue;
+	default:
+		return qfalse;
+	}
+}
+
+// The smallest creatures (gonk, howler, mine monster) are 30-32 units tall in SP, which put their first-person eye 2-4
+// units above the origin (inside the model). They get this minimum height instead (SJE owner decision 2026-10-11): stand
+// maxs 20, view height 16 (eye 40 above the floor, 4 below the top of the bbox).
+#define CREATURE_MIN_HEIGHT	44
+
+// bbox from the SP .npc "width" (mins/maxs x and y) and "height"/"crouchheight" (maxs z = value + DEFAULT_MINS_2).
+// Only classes whose size differs from a human; the humanoid-shaped droids keep the normal player box.
+qboolean BG_ClassCreatureSize(const int botclass, float* halfWidth, int* standheight, int* crouchheight)
+{
+	float w;
+	int h, c;
+
+	switch (botclass)
+	{
+	case BCLASS_R2D2:	// r2d2.npc / r5d2.npc: width 12, height 40
+	case BCLASS_R5D2:
+		w = 12;
+		h = 40;
+		c = 40;
+		break;
+	case BCLASS_GONK:	// gonk.npc: width 12, height 32
+		w = 12;
+		h = CREATURE_MIN_HEIGHT;	// SP 32
+		c = CREATURE_MIN_HEIGHT;
+		break;
+	case BCLASS_WAMPA:	// wampa.npc: width 30, height 128, crouchheight 80 (scale 150)
+		w = 30;
+		h = 128;
+		c = 80;
+		break;
+	case BCLASS_RANCOR:	// rancor.npc: width 60, height 160, crouchheight 128 - at 70% (the SP rancor does not fit MP maps;
+						// its model scale is 70 too, g_classmodels.h / BG_ClassCreatureScale)
+		w = 42;
+		h = 112;
+		c = 90;
+		break;
+	case BCLASS_HOWLER:	// howler.npc: height 32, crouchheight 32, no width (SP default 15)
+		w = 15;
+		h = CREATURE_MIN_HEIGHT;	// SP 32
+		c = CREATURE_MIN_HEIGHT;
+		break;
+	case BCLASS_MINEMONSTER:	// minemonster.npc: width 9, height 30
+		w = 9;
+		h = CREATURE_MIN_HEIGHT;	// SP 30
+		c = CREATURE_MIN_HEIGHT;
+		break;
+	default:
+		return qfalse;
+	}
+	if (halfWidth)
+	{
+		*halfWidth = w;
+	}
+	if (standheight)
+	{
+		*standheight = h + DEFAULT_MINS_2;
+	}
+	if (crouchheight)
+	{
+		*crouchheight = c + DEFAULT_MINS_2;
+	}
+	return qtrue;
+}
+
+// SP .npc "scale" of the creature classes (the model is drawn at this size; the bbox above matches it)
+int BG_ClassCreatureScale(const int botclass)
+{
+	switch (botclass)
+	{
+	case BCLASS_WAMPA:
+		return 150;
+	case BCLASS_R2D2:
+	case BCLASS_R5D2:
+	case BCLASS_GONK:
+	case BCLASS_HOWLER:
+	case BCLASS_MINEMONSTER:
+		return 100;
+	case BCLASS_RANCOR:	// 70% of SP
+		return 70;
+	default:
+		return 0;
+	}
+}
+
+// The attack anims the SP AI of these classes plays (AI_Wampa, AI_Rancor, AI_Howler, AI_MineMonster), primary / alt fire.
+// R2-D2: the stun zap (BOTH_ATTACK3, as WeaponAttackAnim; the r2d2 cfg aliases it to a jolt).
+int BG_ClassCreatureAttackAnim(const int botclass, const int weapon, const qboolean alt)
+{
+	switch (botclass)
+	{
+	case BCLASS_WAMPA:	// slash / backhand
+		return weapon == WP_MELEE ? alt ? BOTH_ATTACK3 : BOTH_ATTACK1 : -1;
+	case BCLASS_RANCOR:	// smash / bite
+		return weapon == WP_MELEE ? alt ? BOTH_MELEE2 : BOTH_MELEE1 : -1;
+	case BCLASS_HOWLER:	// lunge / tongue
+		return weapon == WP_MELEE ? alt ? BOTH_ATTACK2 : BOTH_ATTACK1 : -1;
+	case BCLASS_MINEMONSTER:	// bite / big bite
+		return weapon == WP_MELEE ? alt ? BOTH_ATTACK2 : BOTH_ATTACK1 : -1;
+	case BCLASS_R2D2:
+	case BCLASS_R5D2:
+		return weapon == WP_STUN_BATON ? BOTH_ATTACK3 : -1;
+	default:
+		return -1;
+	}
+}
+
+// the SP NPC class of a creature class (death effects), CLASS_NONE otherwise
+int BG_ClassCreatureNPCClass(const int botclass)
+{
+	switch (botclass)
+	{
+	case BCLASS_R2D2:
+		return CLASS_R2D2;
+	case BCLASS_R5D2:
+		return CLASS_R5D2;
+	case BCLASS_GONK:
+		return CLASS_GONK;
+	case BCLASS_PROTOCOL:
+		return CLASS_PROTOCOL;
+	case BCLASS_WAMPA:
+		return CLASS_WAMPA;
+	case BCLASS_RANCOR:
+		return CLASS_RANCOR;
+	case BCLASS_HOWLER:
+		return CLASS_HOWLER;
+	case BCLASS_MINEMONSTER:
+		return CLASS_MINEMONSTER;
+	case BCLASS_ASSASSIN_DROID:
+		return CLASS_ASSASSIN_DROID;
+	case BCLASS_HAZARDTROOPER:
+		return CLASS_HAZARD_TROOPER;
+	case BCLASS_SABER_DROID:
+		return CLASS_SABER_DROID;
+	default:
+		return CLASS_NONE;
+	}
 }
 
 /*
@@ -6114,8 +7249,38 @@ static void BG_StartLegsAnim(playerState_t* ps, const int anim)
 	ps->legsAnim = anim;
 }
 
-void PM_ContinueLegsAnim(const int anim)
+static void BG_StartTorsoAnim(playerState_t* ps, int anim);
+
+// MovieDuels: the droideka's rolled-up / folding legs anims (SP): its torso plays the same anim (the ball has no
+// separate torso pose), so walker-pose torso bones never mix with ball-pose legs
+static qboolean BG_DekaRollAnim(const int anim)
 {
+	return anim == BOTH_RUN1 || anim == BOTH_RUNBACK1 || anim == BOTH_RUN1START || anim == BOTH_RUN1STOP ? qtrue : qfalse;
+}
+
+static qboolean PM_DekaRolling(void)
+{
+	return pm && pm->ps && pm->ps->stats[STAT_HEALTH] > 0 && pm->ps->pm_type < PM_DEAD &&
+		BG_DekaRollAnim(pm->ps->legsAnim) && BG_AnimSetSkelClass(pm->animations) == CLASS_DROIDEKA ? qtrue : qfalse;
+}
+
+// keep the droideka's torso on its legs anim while it rolls (called after every legs change and once per pmove)
+void PM_DekaSyncTorso(void)
+{
+	if (!PM_DekaRolling() || pm->ps->torsoAnim == pm->ps->legsAnim)
+	{
+		return;
+	}
+	BG_StartTorsoAnim(pm->ps, pm->ps->legsAnim);
+	pm->ps->torsoTimer = pm->ps->legsTimer;
+}
+
+void PM_ContinueLegsAnim(int anim)
+{
+	// own skeleton: the anim it plays for this one, resolved before the early-out (else the BG_FlipPart in
+	// BG_StartLegsAnim would restart a looping anim every frame)
+	anim = BG_ResolveOwnSkelAnim(pm->animations, anim, qtrue);
+
 	if (pm->ps->legsAnim == anim)
 	{
 		return;
@@ -6126,10 +7291,19 @@ void PM_ContinueLegsAnim(const int anim)
 	}
 
 	BG_StartLegsAnim(pm->ps, anim);
+	PM_DekaSyncTorso();
 }
 
-void PM_ForceLegsAnim(const int anim)
+void PM_ForceLegsAnim(int anim)
 {
+	const int requested = anim;
+	anim = BG_ResolveOwnSkelAnim(pm->animations, anim, qtrue);
+
+	if (anim != requested && pm->ps->legsAnim == anim)
+	{
+		return; // a substituted anim that is already playing: don't restart it every frame (see PM_StartTorsoAnim)
+	}
+
 	if (PM_InSpecialJump(pm->ps->legsAnim) &&
 		pm->ps->legsTimer > 0 &&
 		!PM_InSpecialJump(anim))
@@ -6146,6 +7320,7 @@ void PM_ForceLegsAnim(const int anim)
 
 	pm->ps->legsTimer = 0;
 	BG_StartLegsAnim(pm->ps, anim);
+	PM_DekaSyncTorso();
 }
 
 /*
@@ -6154,7 +7329,7 @@ TORSO Animations
 Override animations for upper body
 ===================
 */
-static void BG_StartTorsoAnim(playerState_t* ps, const int anim)
+static void BG_StartTorsoAnim(playerState_t* ps, int anim)
 {
 	if (ps->pm_type >= PM_DEAD)
 	{
@@ -6176,8 +7351,23 @@ static void BG_StartTorsoAnim(playerState_t* ps, const int anim)
 	ps->torsoAnim = anim;
 }
 
-void PM_StartTorsoAnim(const int anim)
+void PM_StartTorsoAnim(int anim)
 {
+	const int requested = anim;
+	anim = BG_ResolveOwnSkelAnim(pm->animations, anim, qfalse); // own skeleton: the anim it plays for this one
+
+	if (anim != requested && pm->ps->torsoAnim == anim)
+	{
+		// a substituted anim that is already playing: code that compares torsoAnim with the anim it asks for
+		// (e.g. "torsoAnim != PM_GetWeaponReadyAnim()") would otherwise restart it (BG_FlipPart) every frame
+		return;
+	}
+
+	if (PM_DekaRolling() && anim != pm->ps->legsAnim)
+	{// rolling droideka: the torso stays on the legs anim
+		PM_DekaSyncTorso();
+		return;
+	}
 	BG_StartTorsoAnim(pm->ps, anim);
 }
 
@@ -6653,10 +7843,14 @@ qboolean BG_HasAnimation(const int anim_index, const int animation)
 	}
 
 	//Must have a file index entry
-	if (anim_index < 0 || anim_index > bgNumAllAnims)
+	if (anim_index < 0 || anim_index > bgNumAllAnims || anim_index >= MAX_ANIM_FILES) // MovieDuels: also the array bound (and a null set below)
 		return qfalse;
 
 	const animation_t* animations = bgAllAnims[anim_index].anims;
+	if (!animations)
+	{
+		return qfalse;
+	}
 
 	//No frames, no anim
 	if (animations[animation].numFrames == 0)
@@ -6709,7 +7903,7 @@ static const char* const bgAnimStyleSuffix[ANIMSTYLE_COUNT] =
 	"DF2",		// DARKFORCES2
 	"DOOKU",	// COUNT_DOOKU
 	"GALEN",	// GALEN_MAREK
-	NULL,		// QUI_GON_JINN (no anims of its own)
+	"GON",		// QUI_GON_JINN (SP: BOTH_STAND2IDLE1_GON, BOTH_SABERSLOW_STANCE_JKA_GON)
 	"GRIEV",	// GRIEVOUS
 	"JANGO",	// JANGO
 	"KOTOR",	// KOTOR
@@ -6738,11 +7932,15 @@ static const char* const bgAnimStyleFamilies[] =
 
 // Single anims (exact names) SP's style code also swaps for the character's own version: gun shots (SP PM_Weapon),
 // the saber pull (catching a thrown saber), the jetpack flamethrower, the ceiling drop (NPC ambush) and the staff
-// blocks (SP PM_UpdateViewAngles)
+// blocks (SP PM_UpdateViewAngles). Also the staff draw (SP PM_SetSaberMove: BOTH_S1_S7_GALEN / _CAL / _GRIEV /
+// _MAUL; MP's AMD draws play BOTH_S1_S7_AMD, so this covers where MP plays the plain BOTH_S1_S7), the two-handed push
+// (SP ForceThrow: BOTH_DUAL_PUSH_GALEN; MP plays BOTH_2HANDPUSH there, see PM_TwoHandedPushAnim) and the dual
+// pistol ready pose (SP PM_TorsoAnimation: BOTH_READY_DUAL_JANGO).
 static const char* const bgAnimStyleExact[] =
 {
 	"BOTH_ATTACK2", "BOTH_ATTACK3", "BOTH_ATTACK4", "BOTH_ATTACK_DUAL", "BOTH_ATTACK_FP",
-	"BOTH_SABERPULL", "BOTH_FLAMETHROWER", "BOTH_CEILING_DROP", "BOTH_BLOCK_L_STAFF", "BOTH_BLOCK_R_STAFF"
+	"BOTH_SABERPULL", "BOTH_FLAMETHROWER", "BOTH_CEILING_DROP", "BOTH_BLOCK_L_STAFF", "BOTH_BLOCK_R_STAFF",
+	"BOTH_S1_S7", "BOTH_DUAL_PUSH", "BOTH_READY_DUAL"
 };
 
 static short bgStyleAnim[ANIMSTYLE_COUNT][MAX_ANIMATIONS];
@@ -6966,6 +8164,22 @@ void BG_SetAnim(playerState_t* ps, const animation_t* animations, int setAnimPar
 	// the character's animation style (SP): its own version of this anim, if it has one
 	anim = BG_StyleAnim(ps->animStyle, animations, anim);
 
+	// MovieDuels: a model on its own skeleton plays what its set has for an anim it lacks (SP's choice for MP's class
+	// anims, the set's own death/knockdown/jump... variants) instead of freezing in its last pose
+	if (animations != bgHumanoidAnimations && anim >= 0 && anim < MAX_ANIMATIONS && animations[anim].numFrames <= 0)
+	{
+		const int legsAnim = BG_ResolveOwnSkelAnim(animations, anim, qtrue);
+		const int torsoAnim = BG_ResolveOwnSkelAnim(animations, anim, qfalse);
+
+		if ((setAnimParts & SETANIM_BOTH) == SETANIM_BOTH && legsAnim != torsoAnim)
+		{// different anims on the torso and the legs (e.g. SBD_WEAPON_STANDING: weapon ready / stand)
+			BG_SetAnim(ps, animations, SETANIM_TORSO, torsoAnim, setAnimFlags);
+			BG_SetAnim(ps, animations, SETANIM_LEGS, legsAnim, setAnimFlags);
+			return;
+		}
+		anim = setAnimParts & SETANIM_TORSO ? torsoAnim : legsAnim;
+	}
+
 	if (animations[anim].firstFrame == 0 && animations[anim].numFrames == 0)
 	{
 		if (anim == BOTH_RUNBACK1 ||
@@ -7026,7 +8240,18 @@ void BG_SetAnim(playerState_t* ps, const animation_t* animations, int setAnimPar
 
 void PM_SetAnim(const int setAnimParts, const int anim, const int setAnimFlags)
 {
+	if ((setAnimParts & SETANIM_TORSO) && !(setAnimParts & SETANIM_LEGS) && PM_DekaRolling())
+	{// rolling droideka: the torso stays on the legs anim
+		PM_DekaSyncTorso();
+		return;
+	}
+
 	BG_SetAnim(pm->ps, pm->animations, setAnimParts, anim, setAnimFlags);
+
+	if (setAnimParts & SETANIM_LEGS)
+	{
+		PM_DekaSyncTorso();
+	}
 }
 
 float BG_GetSelfTorsoAnimPoint(const playerState_t* ps, const int animSetIndex)

@@ -305,6 +305,39 @@ static void CG_LoadHud_f(void)
 	CG_LoadMenus(hudSet);
 }
 
+/*
+=================
+CG_Weather_f
+
+"weather <type>" sets the server's weather (for everybody, game G_WeatherCommand_f, host / admin / cheats only).
+The in-game menu's weather selector runs "weather clear; wait 100; r_weather" after setting r_weather: that "clear"
+is only meant for this client's view, so while the menu is up it just re-applies the weather this client shows.
+(The renderers used to own "weather" and "r_weather" as local commands, which is why "weather acidrain" in a client
+console never reached the game.)
+=================
+*/
+static void CG_Weather_f(void)
+{
+	char args[MAX_STRING_CHARS];
+
+	trap->Cmd_Args(args, sizeof args);
+
+	const int catcher = trap->Key_GetCatcher();
+	if (!Q_stricmp(args, "clear") && catcher & KEYCATCH_UI && !(catcher & KEYCATCH_CONSOLE))
+	{
+		CG_ApplyWeather();
+		return;
+	}
+
+	if (!args[0])
+	{
+		trap->Print("Shown weather: r_weather %d (0 = the map's / server's, 1-9 own preset), cg_weather %d (0 = none)\n",
+			r_weather.integer, cg_weather.integer);
+	}
+
+	trap->SendClientCommand(va("weather %s", args));
+}
+
 typedef struct consoleCommand_s
 {
 	const char* cmd;
@@ -317,7 +350,11 @@ static int cmdcmp(const void* a, const void* b)
 }
 
 static consoleCommand_t commands[] = {
+	{"+md_forcewheel", CG_MDWheel_ForceDown_f}, // the same wheel on the force ring (the "Force Wheel" bind)
+	{"+md_wheel", CG_MDWheel_Down_f}, // the radial weapon / force wheel (cg_weapons.c), held
 	{"+scores", CG_ScoresDown_f},
+	{"-md_forcewheel", CG_MDWheel_Up_f},
+	{"-md_wheel", CG_MDWheel_Up_f},
 	{"-scores", CG_ScoresUp_f},
 	{"briefing", CG_SiegeBriefing_f},
 	{"clientlist", CG_ClientList_f},
@@ -327,6 +364,7 @@ static consoleCommand_t commands[] = {
 	{"invprev", cg_prev_inventory_f},
 	{"loaddeferred", CG_LoadDeferredPlayers},
 	{"loadhud", CG_LoadHud_f},
+	{"md_wheel_open", CG_MDWheel_Open_f}, // the old wheel bind, turned into this by CG_IncomingConsoleCommand
 	{"nextframe", CG_TestModelNextFrame_f},
 	{"nextskin", CG_TestModelNextSkin_f},
 	{"prevframe", CG_TestModelPrevFrame_f},
@@ -347,6 +385,7 @@ static consoleCommand_t commands[] = {
 	{"weapon", CG_Weapon_f},
 	{"weaponclean", CG_WeaponClean_f},
 	{"weapprev", CG_PrevWeapon_f},
+	{"weather", CG_Weather_f},
 };
 
 static const size_t num_commands = ARRAY_LEN(commands);
@@ -404,7 +443,6 @@ static const char* gcmds[] = {
 	"zoom",
 	"togglesaber",
 	"hitmarker",
-	"weather",
 	//emotes
 	"myhead",
 	"cower",
@@ -439,7 +477,7 @@ static const char* gcmds[] = {
 	"hips",
 	"won",
 	"emote",
-	"r_weather",
+	// no "r_weather": it is the player's weather selector cvar (CG_ApplyWeather)
 	"Adminlogin",
 	"Adminlogout",
 	"Adminnpc",

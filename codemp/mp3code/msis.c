@@ -212,7 +212,7 @@ void is_process_MPEG2(float x[][1152], /* intensity stereo */
 	int i, j, k, n, cb;
 	float fl, fr;
 	int isf;
-	int il[21];
+	int il[21] = { 0 }; /* zeroed as in SJE / MD SP: the nr[] fill loop may not cover every entry read below (C6001) */
 	int tmp;
 	int r;
 	int cb0;

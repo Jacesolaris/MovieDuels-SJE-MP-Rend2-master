@@ -201,3 +201,15 @@ qboolean BG_GetRootSurfNameWithVariant(void* ghoul2, const char* rootSurfName, c
 	Q_strncpyz(return_surf_name, rootSurfName, return_size);
 	return qfalse;
 }
+
+// MovieDuels: a vehicle built on a player model has no *muzzle#/*flash# tags (the droideka vehicle uses
+// models/players/droideka, which only has the arm-gun bolts *r_hand/*l_hand), so its weapons never fired.
+// Muzzles without a tag fall back to the hand bolts, alternating right/left. Returns -1 if those are missing too.
+int BG_VehicleFallbackMuzzleBolt(void* ghoul2, const int muzzle_num)
+{
+	if (!ghoul2 || muzzle_num < 0 || muzzle_num >= MAX_VEHICLE_MUZZLES)
+	{
+		return -1;
+	}
+	return trap->G2API_AddBolt(ghoul2, 0, muzzle_num & 1 ? "*l_hand" : "*r_hand");
+}

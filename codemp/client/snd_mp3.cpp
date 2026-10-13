@@ -29,6 +29,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "snd_mp3.h"					// only included directly by a few snd_xxxx.cpp files plus this one
 #include "mp3code/mp3struct.h"	// keep this rather awful file secret from the rest of the program
 
+#include <memory>
+
 // expects data already loaded, filename arg is for error printing only
 //
 // returns success/fail
@@ -289,7 +291,9 @@ qboolean MP3Stream_InitFromFile(sfx_t* sfx, byte* pbSrcData, const int iSrcDatal
 
 		// now init the low-level MP3 stuff...
 		//
-		MP3STREAM SFX_MP3Stream = {}; // important to init to all zeroes!
+		// ~26 KB: on the heap, not the stack (C6262); new MP3STREAM() value-initialises it to all zeroes, as the = {} did
+		const std::unique_ptr<MP3STREAM> SFX_MP3StreamBuf(new MP3STREAM()); // important to init to all zeroes!
+		MP3STREAM& SFX_MP3Stream = *SFX_MP3StreamBuf;
 		char* psError = C_MP3Stream_DecodeInit(&SFX_MP3Stream, /*sfx->data*/ /*sfx->soundData*/ pbSrcData, iSrcDatalen,
 			dma.speed, //(s_khz->value == 44)?44100:(s_khz->value == 22)?22050:11025,
 			2/*sfx->width*/ * 8,

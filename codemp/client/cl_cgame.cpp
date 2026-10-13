@@ -35,6 +35,7 @@ extern IHeapAllocator* G2VertSpaceClient;
 
 #include "snd_ambient.h"
 #include "qcommon/timing.h"
+#include <memory>
 
 /*
 Ghoul2 Insert End
@@ -238,7 +239,9 @@ void CL_ConfigstringModified(void)
 	}
 
 	// build the new gameState_t
-	gameState_t oldGs = cl.gameState;
+	// copy of the old gameState on the heap, not the stack (C6262; ~40 KB): this runs from a cgame syscall
+	const std::unique_ptr<gameState_t> oldGsBuf(new gameState_t(cl.gameState));
+	gameState_t& oldGs = *oldGsBuf;
 
 	Com_Memset(&cl.gameState, 0, sizeof cl.gameState);
 
@@ -446,6 +449,9 @@ rescan:
 	if (strcmp(cmd, "bcs1") == 0)
 	{
 		s = Cmd_Argv(2);
+		// no-op: the static buffer starts zeroed and never holds more than BIG_INFO_STRING - 1 chars, so its last
+		// byte is always 0; tells the analyser the strlen below stays inside the buffer (C6054)
+		bigConfigString[BIG_INFO_STRING - 1] = '\0';
 		if (strlen(bigConfigString) + strlen(s) >= BIG_INFO_STRING)
 		{
 			Com_Error(ERR_DROP, "bcs exceeded BIG_INFO_STRING");
@@ -457,6 +463,9 @@ rescan:
 	if (strcmp(cmd, "bcs2") == 0)
 	{
 		s = Cmd_Argv(2);
+		// no-op: the static buffer starts zeroed and never holds more than BIG_INFO_STRING - 1 chars, so its last
+		// byte is always 0; tells the analyser the strlen below stays inside the buffer (C6054)
+		bigConfigString[BIG_INFO_STRING - 1] = '\0';
 		if (strlen(bigConfigString) + strlen(s) + 1 >= BIG_INFO_STRING)
 		{
 			Com_Error(ERR_DROP, "bcs exceeded BIG_INFO_STRING");

@@ -265,15 +265,8 @@ static void multi_trigger(gentity_t* ent, gentity_t* activator)
 		const int owning_team = ent->genericValue3;
 		int new_owning_team;
 
-		// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-		// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-		int entity_list_buf[MAX_GENTITIES] = { 0 };
-		int* entity_list = entity_list_buf;
-		if (!entity_list)
-		{
-			Com_Printf(S_COLOR_RED "multi_trigger: BG_Alloc for entity_list failed\n");
-			return;
-		}
+		// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+		static int entity_list[MAX_GENTITIES];
 
 		if (level.gametype != GT_SIEGE)
 		{
@@ -1702,15 +1695,8 @@ void shipboundary_touch(gentity_t* self, gentity_t* other, trace_t* trace)
 
 void shipboundary_think(gentity_t* ent)
 {
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int iEntityList_buf[MAX_GENTITIES] = { 0 };
-	int* iEntityList = iEntityList_buf;
-	if (!iEntityList)
-	{
-		Com_Printf(S_COLOR_RED "shipboundary_think: BG_Alloc failed\n");
-		return;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int iEntityList[MAX_GENTITIES];
 
 	int i = 0;
 

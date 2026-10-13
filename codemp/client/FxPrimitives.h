@@ -248,8 +248,8 @@ public:
 		float curST[2];
 	};
 
-	TVert mVerts[4];
-	qhandle_t mShader;
+	TVert mVerts[4] = {};
+	qhandle_t mShader = 0;
 
 	CTrail()
 	{};
@@ -264,19 +264,19 @@ public:
 class CLight : public CEffect
 {
 protected:
-	float mSizeStart;
-	float mSizeEnd;
-	float mSizeParm;
+	float mSizeStart = 0.0f;
+	float mSizeEnd = 0.0f;
+	float mSizeParm = 0.0f;
 
-	vec3_t mOrgOffset;
-	vec3_t mRGBStart;
-	vec3_t mRGBEnd;
-	float mRGBParm;
+	vec3_t mOrgOffset = { 0.0f, 0.0f, 0.0f };
+	vec3_t mRGBStart = { 0.0f, 0.0f, 0.0f };
+	vec3_t mRGBEnd = { 0.0f, 0.0f, 0.0f };
+	float mRGBParm = 0.0f;
 
-	CGhoul2Info_v* mGhoul2;
-	short mEntNum;
-	char mModelNum;
-	char mBoltNum;
+	CGhoul2Info_v* mGhoul2 = nullptr;
+	short mEntNum = -1;
+	char mModelNum = -1;
+	char mBoltNum = -1;
 
 	void UpdateSize();
 	void UpdateRGB();
@@ -330,30 +330,30 @@ public:
 class CParticle : public CEffect
 {
 protected:
-	vec3_t mOrgOffset;
+	vec3_t mOrgOffset = { 0.0f, 0.0f, 0.0f };
 
-	vec3_t mVel;
-	vec3_t mAccel;
+	vec3_t mVel = { 0.0f, 0.0f, 0.0f };
+	vec3_t mAccel = { 0.0f, 0.0f, 0.0f };
 
-	float mSizeStart;
-	float mSizeEnd;
-	float mSizeParm;
+	float mSizeStart = 0.0f;
+	float mSizeEnd = 0.0f;
+	float mSizeParm = 0.0f;
 
-	vec3_t mRGBStart;
-	vec3_t mRGBEnd;
-	float mRGBParm;
+	vec3_t mRGBStart = { 0.0f, 0.0f, 0.0f };
+	vec3_t mRGBEnd = { 0.0f, 0.0f, 0.0f };
+	float mRGBParm = 0.0f;
 
-	float mAlphaStart;
-	float mAlphaEnd;
-	float mAlphaParm;
+	float mAlphaStart = 0.0f;
+	float mAlphaEnd = 0.0f;
+	float mAlphaParm = 0.0f;
 
-	float mRotationDelta;
-	float mElasticity;
+	float mRotationDelta = 0.0f;
+	float mElasticity = 0.0f;
 
-	CGhoul2Info_v* mGhoul2;
-	short mEntNum;
-	char mModelNum;
-	char mBoltNum;
+	CGhoul2Info_v* mGhoul2 = nullptr;
+	short mEntNum = -1;
+	char mModelNum = -1;
+	char mBoltNum = -1;
 
 	bool UpdateOrigin();
 	void UpdateSize();
@@ -488,11 +488,11 @@ public:
 class CBezier : public CLine
 {
 protected:
-	vec3_t mControl1;
-	vec3_t mControl1Vel;
+	vec3_t mControl1 = { 0.0f, 0.0f, 0.0f };
+	vec3_t mControl1Vel = { 0.0f, 0.0f, 0.0f };
 
-	vec3_t mControl2;
-	vec3_t mControl2Vel;
+	vec3_t mControl2 = { 0.0f, 0.0f, 0.0f };
+	vec3_t mControl2Vel = { 0.0f, 0.0f, 0.0f };
 
 	bool mInit;
 
@@ -705,14 +705,19 @@ protected:
 	int mTimeStamp;
 
 public:
-	vec3_t mOrg[MAX_CPOLY_VERTS];
-	vec2_t mST[MAX_CPOLY_VERTS];
+	vec3_t mOrg[MAX_CPOLY_VERTS] = { { 0.0f, 0.0f, 0.0f } };
+	vec2_t mST[MAX_CPOLY_VERTS] = { { 0.0f, 0.0f } };
 
-	float mRot[3][3];
+	float mRot[3][3] = { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } };
 	int mLastFrameTime;
 
 	CPoly()
-	{}
+	{
+		mCount = 0;
+		VectorClear(mRotDelta);
+		mTimeStamp = 0;
+		mLastFrameTime = 0;
+	}
 
 	~CPoly() override
 	{}

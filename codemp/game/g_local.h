@@ -1113,6 +1113,22 @@ struct gclient_s
 	// BOT_SABER_PENDING_MASK / BOT_PENDING_STAND_ANIM. Kept out of ps.userInt1, whose bits are the LOCK_* view/move
 	// locks (any bit there also zeroes ps.speed), so a pending bot action no longer freezes the bot.
 	int botPendingFlags;
+
+	// models that can't jump (BG_AnimSetCantJump / BG_ClassCantJump): the jump key plays a taunt, at most every
+	// NOJUMP_TAUNT_COOLDOWN ms (G_NoJumpTaunt)
+	int noJumpTauntTime;
+	qboolean noJumpTauntHeld;
+
+	// the SJE SP force powers ported to MP (w_force.c, 2026-10-12)
+	int graspEntityNum;			// FP_GRASP: who we hold + 1 (0 = nobody; the client struct is zeroed on spawn)
+	int graspStartTime;
+	int repulseChargeStart;		// FP_REPULSE: when the charge began (0 = not charging)
+	int repulseBlastTime;		// FP_REPULSE: when the released charge blasts (the throw frame of the anim), 0 = none
+	int repulseBlastCharge;		// FP_REPULSE: the charge time of that blast (its strength)
+	int repulseRelightTime;		// FP_REPULSE: when the saber comes back on after the throw, 0 = none
+	int repulseHoverEnd;		// FP_REPULSE: released, he floats on until this time (a moment after the blast), 0 = no
+	int repulseSaberHolster;	// FP_REPULSE: saberHolstered before the charge put it out, -1 = it was not on
+	int deadlySightNextTick;	// FP_DEADLYSIGHT: next damage tick
 };
 
 //animations
@@ -1467,6 +1483,12 @@ int G_BSPIndex(const char* name);
 int G_IconIndex(const char* name);
 
 qboolean G_PlayerHasCustomSkeleton(gentity_t* ent);
+
+// MovieDuels animation style (g_main.c / g_client.c)
+extern int g_mdAnimStyleActive;				// 1 = Master style in force for this map (g_animationStyleActive), 0 = Classic
+void G_SetClientAnimStyle(gentity_t* ent);	// the client's animation style for its model / the solo player's menu choice
+int G_AnimStyleFromName(const char* name);	// "default", "yoda"... (SP AnimationstylesTable) -> ANIMSTYLE_*, -1 if unknown
+const char* G_AnimStyleName(int style);		// ANIMSTYLE_* -> its name
 
 void G_TeamCommand(team_t team, char* cmd);
 void G_ScaleNetHealth(gentity_t* self);
@@ -1840,7 +1862,16 @@ void G_InitSessionData(gclient_t* client, const char* userinfo, qboolean isBot);
 void G_InitWorldSession(void);
 void G_WriteSessionData(void);
 
-void IT_LoadWeatherParms(void);
+//
+// g_weather.c
+//
+void G_WeatherInit(void);
+void G_WeatherRescan(void);
+void G_WeatherEffectCreated(const char* name);
+void G_WeatherDamageCheck(gentity_t* ent);
+void G_WeatherNewMap(void);
+void G_WeatherLoadMapDefault(void);
+void G_WeatherCommand_f(const gentity_t* ent);
 
 //
 // NPC_senses.cpp

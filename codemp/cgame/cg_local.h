@@ -238,6 +238,7 @@ typedef struct clientInfo_s {
 	int				curWeapon;
 
 	int				handicap;
+	unsigned int	holsterHide;	// "hh": the guns this player doesn't carry on his body (weapon wheel "On Person")
 	int				wins, losses;	// in tourney mode
 
 	int				teamTask;		// task in teamplay (offence/defence)
@@ -292,6 +293,9 @@ typedef struct clientInfo_s {
 	qhandle_t		bolt_motion;
 
 	qhandle_t		bolt_llumbar;
+
+	qboolean		creatureSkel;	// MovieDuels: own skeleton without the full humanoid bolts (creature / droid): missing bolts point at others
+	qboolean		noHandBolt;		// MovieDuels: the model has no *r_hand: no weapon model is drawn on it
 
 	int				siegeIndex;
 	int				siegeDesiredTeam;
@@ -396,6 +400,7 @@ typedef struct centity_s {
 	Vehicle_t* m_pVehicle; //vehicle data
 	void* ghoul2; //g2 instance
 	int				localAnimIndex; //index locally (game/cgame) to anim data for this skel
+	void*			animIndexGhoul2; // players: the ghoul2 instance localAnimIndex was worked out for (CG_PlayerCheckAnimIndex)
 	vec3_t			modelScale; //needed for g2 collision
 
 	//from here up must be unified with bgEntity_t -rww
@@ -496,6 +501,7 @@ typedef struct centity_s {
 	int				overridingBones;
 
 	int				bodyFadeTime;
+	int				repulseFadeTime;	// the Force Repulse blast refraction (CG_ForceRepulseRefraction's timer)
 	vec3_t			pushEffectOrigin;
 
 	cgLoopSound_t	loopingSound[MAX_CG_LOOPSOUNDS];
@@ -1886,12 +1892,15 @@ typedef struct cgEffects_s {
 	fxHandle_t itemCone;
 
 	fxHandle_t	mSparks;
-	fxHandle_t	mSaberCut;
-	fxHandle_t	mSaberCutMD;
+	fxHandle_t	mSaberCut;			// saber_cut_AMD (cg_SerenityJediEngineMode 2)
+	fxHandle_t	mSaberCutMD;		// saber_cut_MD (mode 1)
+	fxHandle_t	mSaberCutPlain;		// saber_cut (mode 0)
 	fxHandle_t	mDroidCut;
 	fxHandle_t	mDroidtouch;
 	fxHandle_t	mTurretMuzzleFlash;
-	fxHandle_t	mSaberBlock;
+	fxHandle_t	mSaberBlock;		// saber_block_AMD (mode 2)
+	fxHandle_t	mSaberBlockMD;		// saber_block_MD (mode 1)
+	fxHandle_t	mSaberBlockPlain;	// saber_block (mode 0)
 	fxHandle_t	mSaberBodyHit;
 	fxHandle_t	mSaberlimb_Bolton;
 	fxHandle_t	mSaberBloodSparks;
@@ -1928,6 +1937,7 @@ typedef struct cgEffects_s {
 	fxHandle_t	mBlueJet;
 
 	fxHandle_t	mboil;
+	fxHandle_t	saberFizz; // a lit blade in the rain (as SP's "saber/fizz")
 
 	//footstep effects
 	fxHandle_t footstepMud;
@@ -2068,6 +2078,9 @@ typedef struct cgs_s {
 	cg_staticmodel_t	miscStaticModels[MAX_STATIC_MODELS];
 
 	int m_nerf;
+
+	// the global weather from the server's "*..." CS_EFFECTS strings (CG_ParseWeatherEffect), for the saber rain fizz
+	bgWeatherState_t	weather;
 } cgs_t;
 
 typedef struct siegeExtended_s
@@ -2126,11 +2139,22 @@ void CG_StartMusic(qboolean bForceStart);
 
 void CG_UpdateCvars(void);
 
+void CG_ApplyWeather(void);
+void CG_WeatherCvarChanged(void);
+
 int CG_CrosshairPlayer(void);
 int CG_LastAttacker(void);
 void CG_LoadMenus(const char* menuFile);
 void CG_KeyEvent(int key, qboolean down);
 void CG_MouseEvent(int x, int y);
+void CG_MDWheel_Down_f(void);
+void CG_MDWheel_ForceDown_f(void);
+void CG_MDWheel_Up_f(void);
+void CG_MDWheel_Open_f(void);
+void CG_MDWheel_Cancel(void);
+qboolean CG_MDWheel_KeyEvent(int key, qboolean down);
+qboolean CG_MDWheel_MouseEvent(int x, int y);
+void CG_DrawMDWheel(void);
 void CG_EventHandling(int type);
 void CG_SetScoreSelection(void* p);
 void CG_BuildSpectatorString(void);
@@ -2253,6 +2277,8 @@ const char* CG_PlaceString(int rank);
 void CG_EntityEvent(centity_t* cent, vec3_t position);
 void CG_PainEvent(centity_t* cent, int health);
 void CG_ReattachLimb(centity_t* source);
+fxHandle_t CG_SaberBlockEffectForMode(void);
+fxHandle_t CG_SaberCutEffectForMode(void);
 
 //
 // cg_ents.c

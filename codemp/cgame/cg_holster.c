@@ -88,7 +88,13 @@ void CG_LoadHolsterData(clientInfo_t* ci)
 
 		if (!f)
 		{
-			f_len = trap->FS_Open("models/players/kyle/holster.cfg", &f, FS_READ);
+			// MovieDuels: not on a creature / droid skeleton (saber droid, gonk...): Kyle's spots (chest tag, lumbar, hips) are bones it
+			// lacks, so the holstered saber was drawn at the stand-in bolt and floated around the body. Such a model only
+			// shows holstered weapons with a holster.cfg of its own.
+			if (!ci->creatureSkel)
+			{
+				f_len = trap->FS_Open("models/players/kyle/holster.cfg", &f, FS_READ);
+			}
 		}
 	}
 	else
@@ -103,7 +109,13 @@ void CG_LoadHolsterData(clientInfo_t* ci)
 
 		if (!f)
 		{
-			f_len = trap->FS_Open("models/players/kyle/holster.cfg", &f, FS_READ);
+			// MovieDuels: not on a creature / droid skeleton (saber droid, gonk...): Kyle's spots (chest tag, lumbar, hips) are bones it
+			// lacks, so the holstered saber was drawn at the stand-in bolt and floated around the body. Such a model only
+			// shows holstered weapons with a holster.cfg of its own.
+			if (!ci->creatureSkel)
+			{
+				f_len = trap->FS_Open("models/players/kyle/holster.cfg", &f, FS_READ);
+			}
 		}
 	}
 

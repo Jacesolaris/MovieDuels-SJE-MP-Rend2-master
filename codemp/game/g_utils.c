@@ -107,6 +107,7 @@ G_FindConfigstringIndex
 static int G_FindConfigstringIndex(const char* name, const int start, const int max, const qboolean create)
 {
 	int i;
+	int firstFree = 0;
 
 	if (!VALIDSTRING(name))
 	{
@@ -119,6 +120,16 @@ static int G_FindConfigstringIndex(const char* name, const int start, const int 
 		trap->GetConfigstring(start + i, s, sizeof s);
 		if (!s[0])
 		{
+			// the effects can have blanked slots in the middle (old weather strings, g_weather.c G_SetWeather): look
+			// at all of them, then take the first free one
+			if (start == CS_EFFECTS)
+			{
+				if (!firstFree)
+				{
+					firstFree = i;
+				}
+				continue;
+			}
 			break;
 		}
 		if (strcmp(s, name) == 0)
@@ -132,12 +143,23 @@ static int G_FindConfigstringIndex(const char* name, const int start, const int 
 		return 0;
 	}
 
+	if (firstFree)
+	{
+		i = firstFree;
+	}
+
 	if (i == max)
 	{
 		trap->Error(ERR_DROP, "G_FindConfigstringIndex: overflow");
 	}
 
 	trap->SetConfigstring(start + i, name);
+
+	if (start == CS_EFFECTS && name[0] == '*')
+	{
+		//a new global weather effect: the clients run it now, keep the game's weather state in step (g_weather.c)
+		G_WeatherEffectCreated(name);
+	}
 
 	return i;
 }
@@ -215,10 +237,7 @@ int G_BSPIndex(const char* name)
 // its anims (timers, bolts, collision) come from its own GLA and animation.cfg, as on the client and in SP.
 qboolean G_PlayerHasCustomSkeleton(gentity_t* ent)
 {
-	static char cachedModel[64][MAX_QPATH];
-	static qboolean cachedResult[64];
-	static int numCached = 0;
-	char userinfo[MAX_INFO_STRING], model[MAX_QPATH];
+	char userinfo[MAX_INFO_STRING];
 
 	if (!ent || !ent->client || ent->s.number >= MAX_CLIENTS)
 	{
@@ -226,50 +245,10 @@ qboolean G_PlayerHasCustomSkeleton(gentity_t* ent)
 	}
 
 	trap->GetUserinfo(ent->s.number, userinfo, sizeof userinfo);
-	Q_strncpyz(model, Info_ValueForKey(userinfo, "model"), sizeof model);
-	{
-		char* slash = strchr(model, '/');
-		if (slash)
-		{
-			*slash = 0; // "sbd/default" -> "sbd"
-		}
-	}
-	if (!model[0])
-	{
-		return qfalse;
-	}
-
-	for (int i = 0; i < numCached; i++)
-	{
-		if (!Q_stricmp(cachedModel[i], model))
-		{
-			return cachedResult[i];
-		}
-	}
-
-	qboolean custom = qfalse;
-	fileHandle_t f;
-	const int len = trap->FS_Open(va("models/players/%s/model.glm", model), &f, FS_READ);
-	if (f)
-	{
-		// mdxmHeader_t: ident, version, name[64], animName[64], animIndex, numBones
-		byte header[144];
-		if (len >= (int)sizeof header)
-		{
-			trap->FS_Read(header, sizeof header, f);
-			const int numBones = LittleLong(*(int*)(header + 140));
-			custom = (qboolean)(numBones > 0 && numBones != 53 && numBones != 72);
-		}
-		trap->FS_Close(f);
-	}
-
-	if (numCached < 64)
-	{
-		Q_strncpyz(cachedModel[numCached], model, sizeof cachedModel[numCached]);
-		cachedResult[numCached] = custom;
-		numCached++;
-	}
-	return custom;
+	// the shared rule (bg_misc.c, cached): the glm's bone count is neither the master's nor 72 and its skeleton
+	// folder has an animation.cfg (without one the server would have no anim set for it); with the Classic animation
+	// style also every model whose glm names its own dedicated humanoid set (_humanoid_yoda...), as the clients load it
+	return BG_ModelUsesOwnAnimSet(Info_ValueForKey(userinfo, "model"));
 }
 
 /*
@@ -2128,6 +2107,58 @@ extern qboolean gSiegeRoundBegun;
 static vec3_t player_mins = { -15, -15, DEFAULT_MINS_2 };
 static vec3_t player_maxs = { 15, 15, DEFAULT_MAXS_2 };
 
+// MovieDuels: a gonk (power droid: an NPC, or a player playing one) gives a bacta canister to whoever uses it: dropped in
+// front of it, towards the user, then it needs g_gonkBactaCooldown seconds (default 30) for the next one. The cgame
+// shows the use icon on a living gonk within 256 units (CG_DrawGonkHint).
+static int gonkBactaTime[MAX_GENTITIES];
+
+static qboolean G_IsLivingGonk(const gentity_t* ent)
+{
+	if (!ent || !ent->inuse || !ent->client || ent->health <= 0 || ent->client->ps.pm_type == PM_DEAD
+		|| ent->s.eFlags & EF_DEAD)
+	{
+		return qfalse;
+	}
+	return ent->s.eType == ET_NPC ? ent->client->NPC_class == CLASS_GONK : ent->s.botclass == BCLASS_GONK;
+}
+
+static void G_GonkGiveBacta(gentity_t* gonk, const gentity_t* user)
+{
+	if (gonkBactaTime[gonk->s.number] > level.time + 3600000)
+	{
+		gonkBactaTime[gonk->s.number] = 0; // left over from an earlier map
+	}
+	if (level.time < gonkBactaTime[gonk->s.number])
+	{
+		if (user->s.number < MAX_CLIENTS)
+		{
+			trap->SendServerCommand(user->s.number, va("cp \"The gonk is recharging (%d s)\"",
+				(gonkBactaTime[gonk->s.number] - level.time + 999) / 1000));
+		}
+		return;
+	}
+	gitem_t* item = BG_FindItemForHoldable(HI_MEDPAC);
+	vec3_t dir, org, vel;
+
+	if (!item)
+	{
+		return;
+	}
+	VectorSubtract(user->r.currentOrigin, gonk->r.currentOrigin, dir);
+	dir[2] = 0;
+	if (VectorNormalize(dir) < 1.0f)
+	{
+		AngleVectors(gonk->r.currentAngles, dir, NULL, NULL);
+	}
+	VectorMA(gonk->r.currentOrigin, 20.0f, dir, org);
+	org[2] += 8.0f;
+	VectorScale(dir, 80.0f, vel);
+	vel[2] = 120.0f;
+	LaunchItem(item, org, vel);
+	G_Sound(gonk, CHAN_VOICE, G_SoundIndex("sound/chars/gonk/misc/gonktalk1"));
+	gonkBactaTime[gonk->s.number] = level.time + (int)((g_gonkBactaCooldown.value > 0.0f ? g_gonkBactaCooldown.value : 0.0f) * 1000.0f);
+}
+
 void TryUse(gentity_t* ent)
 {
 	trace_t trace;
@@ -2218,6 +2249,12 @@ void TryUse(gentity_t* ent)
 	}
 
 	gentity_t* target = &g_entities[trace.entityNum];
+
+	if (target != ent && G_IsLivingGonk(target))
+	{
+		G_GonkGiveBacta(target, ent);
+		return;
+	}
 
 	//Enable for corpse dragging
 #if 0

@@ -677,3 +677,5 @@ typedef struct Vehicle_s
 #endif
 
 extern int BG_VehicleGetIndex(const char* vehicleName);
+// game and cgame only (bg_g2_utils.c): hand-bolt fallback for a vehicle muzzle without a *muzzle#/*flash# tag
+extern int BG_VehicleFallbackMuzzleBolt(void* ghoul2, int muzzle_num);

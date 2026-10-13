@@ -891,6 +891,36 @@ void NPC_BSRemove(void)
 	}
 }
 
+// SP NPC_BSSearch: the guard idle at a search point is the character's own with the animation styles on
+// (BOTH_GUARD_IDLE1_BDROID / BOTH_GUARD_IDLE1_JANGO), when its anim set has it. SP's other guard idles (wandering,
+// the rancor) stay the plain BOTH_GUARD_IDLE1, so this is not a generic style remap.
+static int NPC_SearchGuardIdleAnim(const gentity_t* self)
+{
+	int anim = BOTH_GUARD_IDLE1;
+
+	if (self && self->client)
+	{
+		const animFlags_t flags = BG_AnimStyleFlags(self->client->ps.animStyle);
+
+		if (flags.isBattleDroid)
+		{
+			anim = BOTH_GUARD_IDLE1_BDROID;
+		}
+		else if (flags.isJango)
+		{
+			anim = BOTH_GUARD_IDLE1_JANGO;
+		}
+		if (anim != BOTH_GUARD_IDLE1
+			&& (self->localAnimIndex < 0 || self->localAnimIndex >= MAX_ANIM_FILES
+				|| !bgAllAnims[self->localAnimIndex].anims
+				|| bgAllAnims[self->localAnimIndex].anims[anim].numFrames <= 0))
+		{
+			anim = BOTH_GUARD_IDLE1;
+		}
+	}
+	return anim;
+}
+
 void NPC_BSSearch(void)
 {
 	NPC_CheckAlertEvents(qtrue, qtrue, -1, qfalse, AEL_DANGER);
@@ -977,7 +1007,7 @@ void NPC_BSSearch(void)
 			}
 			else
 			{
-				NPC_SetAnim(NPCS.NPC, SETANIM_BOTH, BOTH_GUARD_IDLE1, SETANIM_FLAG_NORMAL);
+				NPC_SetAnim(NPCS.NPC, SETANIM_BOTH, NPC_SearchGuardIdleAnim(NPCS.NPC), SETANIM_FLAG_NORMAL);
 			}
 			NPCS.NPCInfo->investigateDebounceTime = level.time + Q_irand(3000, 10000);
 		}

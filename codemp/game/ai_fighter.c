@@ -256,6 +256,10 @@ static void Walk_NextGoal(const vec3_t pos, const vec3_t ship_pos, vec3_t goal)
 		way[i] = 1.0e30f;
 		done[i] = qfalse;
 	}
+	if (end < 0)
+	{
+		return; // no walk point nearer than "infinitely far" (C6386: way[-1])
+	}
 	way[end] = 0.0f;
 	for (;;)
 	{

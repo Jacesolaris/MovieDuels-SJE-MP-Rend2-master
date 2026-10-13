@@ -907,7 +907,7 @@ void Boba_SetJetpackAnims(const gentity_t* self)
 	if (!(self->client->ps.eFlags2 & EF2_FLYING))
 		return;
 
-	if (self->localAnimIndex != 0)
+	if (!BG_AnimSetIsHumanoid(self->localAnimIndex))
 		return;
 
 	if (self->client->ps.legsTimer > 0)
@@ -4442,8 +4442,7 @@ static evasionType_t Jedi_CheckFlipEvasions(gentity_t* self, const float rightdo
 		//boba can't flip
 		return EVASION_NONE;
 	}
-	if (self->client
-		&& (self->client->ps.fd.forceRageRecoveryTime > level.time || self->client->ps.fd.forcePowersActive & 1 <<
+	if ((self->client->ps.fd.forceRageRecoveryTime > level.time || self->client->ps.fd.forcePowersActive & 1 <<
 			FP_RAGE))
 	{
 		//no fancy dodges when raging

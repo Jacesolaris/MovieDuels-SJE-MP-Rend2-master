@@ -605,6 +605,8 @@ void R_LoadWeatherImages()
 		tr.weatherSystem->weatherSlots[WEATHER_FOG].drawImage = R_FindImageFile("gfx/effects/alpha_smoke2b", type, flags);
 }
 
+static qboolean weatherCommandFromConsole; // "r_we" typed: print the command list for an unknown command
+
 void RE_WorldEffectCommand(const char* command)
 {
 	if (!command)
@@ -620,7 +622,19 @@ void RE_WorldEffectCommand(const char* command)
 
 	token = COM_ParseExt(&command, qfalse);
 
-	if (!token)
+	if (!token || !token[0] || !tr.weatherSystem)
+	{
+		return;
+	}
+
+	// A number is one of the numbered presets (the menu's r_weather values, see the cgame's CG_ApplyWeather).
+	// Named commands always do what they say: before, the r_weather cvar replaced most of them with its own preset,
+	// and r_weather 0 (the default) turned every map weather command into "clear".
+	const int preset = token[0] >= '0' && token[0] <= '9' ? atoi(token) : -1;
+
+	// the wind commands below don't check for a free wind slot
+	if ((Q_stricmp(token, "wind") == 0 || Q_stricmp(token, "gustingwind") == 0 || preset == 8)
+		&& tr.weatherSystem->activeWindObjects >= MAX_WINDOBJECTS)
 	{
 		return;
 	}
@@ -645,7 +659,7 @@ void RE_WorldEffectCommand(const char* command)
 		tr.weatherSystem->activeWindObjects = 0;
 		tr.weatherSystem->frozen = false;
 	}
-	else if (r_weather->integer == 0)
+	else if (preset == 0)
 	{
 		for (int i = 0; i < NUM_WEATHER_TYPES; i++)
 			tr.weatherSystem->weatherSlots[i].active = false;
@@ -685,7 +699,7 @@ void RE_WorldEffectCommand(const char* command)
 		currentWindObject->targetVelocityTimeRemaining = 0;
 		tr.weatherSystem->activeWindObjects++;
 	}
-	else if (r_weather->integer == 8)
+	else if (preset == 8)
 	{
 		windObject_t* currentWindObject = &tr.weatherSystem->windSlots[tr.weatherSystem->activeWindObjects];
 		currentWindObject->chanceOfDeadTime = 0.3f;
@@ -785,7 +799,7 @@ void RE_WorldEffectCommand(const char* command)
 			0.5f,
 			tr.weatherSystem->weatherSlots[WEATHER_RAIN].color);
 	}
-	else if (r_weather->integer == 2)
+	else if (preset == 2)
 	{
 		if (!tr.weatherSystem->weatherSlots[WEATHER_RAIN].active)
 			tr.weatherSystem->activeWeatherTypes++;
@@ -832,7 +846,7 @@ void RE_WorldEffectCommand(const char* command)
 			0.7f,
 			tr.weatherSystem->weatherSlots[WEATHER_RAIN].color);
 	}
-	else if (r_weather->integer == 7)
+	else if (preset == 7)
 	{
 		if (!tr.weatherSystem->weatherSlots[WEATHER_RAIN].active)
 			tr.weatherSystem->activeWeatherTypes++;
@@ -900,7 +914,7 @@ void RE_WorldEffectCommand(const char* command)
 		VectorSet4(tr.weatherSystem->weatherSlots[WEATHER_SNOW].color, 0.75f, 0.75f, 0.75f, 0.75f);
 		VectorScale(tr.weatherSystem->weatherSlots[WEATHER_SNOW].color, 0.75f, tr.weatherSystem->weatherSlots[WEATHER_SNOW].color);
 	}
-	else if (r_weather->integer == 1)
+	else if (preset == 1)
 	{
 		if (!tr.weatherSystem->weatherSlots[WEATHER_SNOW].active)
 			tr.weatherSystem->activeWeatherTypes++;
@@ -946,7 +960,7 @@ void RE_WorldEffectCommand(const char* command)
 			0.75f,
 			tr.weatherSystem->weatherSlots[WEATHER_SPACEDUST].color);
 	}
-	else if (r_weather->integer == 9)
+	else if (preset == 9)
 	{
 		int count;
 		token = COM_ParseExt(&command, qfalse);
@@ -1008,7 +1022,7 @@ void RE_WorldEffectCommand(const char* command)
 
 		VectorSet4(tr.weatherSystem->weatherSlots[WEATHER_SAND].color, 0.9f, 0.6f, 0.0f, 0.5f);
 	}
-	else if (r_weather->integer == 4)
+	else if (preset == 4)
 	{
 		if (!tr.weatherSystem->weatherSlots[WEATHER_SAND].active)
 			tr.weatherSystem->activeWeatherTypes++;
@@ -1046,7 +1060,7 @@ void RE_WorldEffectCommand(const char* command)
 		VectorSet4(tr.weatherSystem->weatherSlots[WEATHER_FOG].color, 0.2f, 0.2f, 0.2f, 0.2f);
 		VectorScale(tr.weatherSystem->weatherSlots[WEATHER_FOG].color, 0.2f, tr.weatherSystem->weatherSlots[WEATHER_FOG].color);
 	}
-	else if (r_weather->integer == 6)
+	else if (preset == 6)
 	{
 		if (!tr.weatherSystem->weatherSlots[WEATHER_FOG].active)
 			tr.weatherSystem->activeWeatherTypes++;
@@ -1085,7 +1099,7 @@ void RE_WorldEffectCommand(const char* command)
 		VectorSet4(tr.weatherSystem->weatherSlots[WEATHER_FOG].color, 0.3f, 0.3f, 0.3f, 0.3f);
 		VectorScale(tr.weatherSystem->weatherSlots[WEATHER_FOG].color, 0.3f, tr.weatherSystem->weatherSlots[WEATHER_FOG].color);
 	}
-	else if (r_weather->integer == 5)
+	else if (preset == 5)
 	{
 		if (!tr.weatherSystem->weatherSlots[WEATHER_FOG].active)
 			tr.weatherSystem->activeWeatherTypes++;
@@ -1144,7 +1158,7 @@ void RE_WorldEffectCommand(const char* command)
 		VectorScale(tr.weatherSystem->weatherSlots[WEATHER_SNOW].color, 0.95f, tr.weatherSystem->weatherSlots[WEATHER_SNOW].color);
 	}
 
-	else if (r_weather->integer == 3)
+	else if (preset == 3)
 	{
 		if (!tr.weatherSystem->weatherSlots[WEATHER_SNOW].active)
 			tr.weatherSystem->activeWeatherTypes++;
@@ -1178,6 +1192,11 @@ void RE_WorldEffectCommand(const char* command)
 #else
 		ri->Printf(PRINT_DEVELOPER, "outsidepain isn't supported in MP\n");
 #endif
+	}
+	else if (!weatherCommandFromConsole)
+	{
+		// a map's weather name this renderer doesn't have (e.g. fx_wind's "swirlingwind"): ignore it
+		ri->Printf(PRINT_DEVELOPER, "RE_WorldEffectCommand: unknown weather command '%s' ignored\n", token);
 	}
 	else
 	{
@@ -1214,7 +1233,9 @@ void R_WorldEffect_f(void)
 {
 	char temp[2048] = { 0 };
 	ri->Cmd_ArgsBuffer(temp, sizeof(temp));
+	weatherCommandFromConsole = qtrue;
 	RE_WorldEffectCommand(temp);
+	weatherCommandFromConsole = qfalse;
 }
 
 void R_WeatherEffect_f(void)
@@ -1488,6 +1509,10 @@ float R_GetChanceOfSaberFizz()
 {
 	float	chance = 0.0f;
 	int		numWater = 0;
+	if (!tr.weatherSystem) // no weather system yet (called before the renderer has a map)
+	{
+		return 0.0f;
+	}
 	if (tr.weatherSystem->weatherSlots[WEATHER_RAIN].active)
 	{
 		chance += (tr.weatherSystem->weatherSlots[WEATHER_RAIN].gravity / 20.0f);

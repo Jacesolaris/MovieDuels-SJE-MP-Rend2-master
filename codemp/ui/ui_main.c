@@ -787,7 +787,17 @@ const char* forcepowerDesc[NUM_FORCE_POWERS] =
 	"@MENUS_EFFECT_NAREA_OF_EFFECT",
 	"@MD_MP_GAME_FORCE_SABER_OFFENSE_DESC",
 	"@MD_MP_GAME_FORCE_SABER_DEFENSE_DESC",
-	"@MD_MP_GAME_FORCE_SABER_THROW_DESC"
+	"@MD_MP_GAME_FORCE_SABER_THROW_DESC",
+	"@SP_INGAME_FORCE_STASIS_DESC",
+	"@SP_INGAME_FORCE_DESTRUCTION_DESC",
+	"@SP_INGAME_FORCE_GRASP_DESC",
+	"@SP_INGAME_FORCE_REPULSE_DESC",
+	"@SP_INGAME_FORCE_LIGHTNINGSTRIKE_DESC",
+	"@SP_INGAME_FORCE_FEAR_DESC",
+	"@SP_INGAME_FORCE_DEADLYSIGHT_DESC",
+	"@SP_INGAME_FORCE_BLAST_DESC",
+	"@SP_INGAME_FORCE_INSANITY_DESC",
+	"@SP_INGAME_FORCE_BLINDING_DESC"
 };
 
 // Movedata Sounds
@@ -980,7 +990,13 @@ int uiNumAllAnims = 1; //start off at 0, because 0 will always be assigned to hu
 
 static animation_t* UI_AnimsetAlloc(void)
 {
-	assert(uiNumAllAnims < MAX_ANIM_FILES);
+	if (uiNumAllAnims >= MAX_ANIM_FILES)
+	{
+		// release-build guard (was only an assert): UI_ParseAnimationFile returns -1 and the preview keeps its
+		// default pose (slot 0 may not be loaded in the ui, so it is no safe fallback here)
+		Com_Printf(S_COLOR_YELLOW "WARNING: UI_AnimsetAlloc: no free animation slot (MAX_ANIM_FILES %d)\n", MAX_ANIM_FILES);
+		return NULL;
+	}
 	bgAllAnims[uiNumAllAnims].anims = (animation_t*)BG_Alloc(sizeof(animation_t) * MAX_TOTALANIMATIONS);
 
 	return bgAllAnims[uiNumAllAnims].anims;
@@ -1041,6 +1057,10 @@ static qboolean UI_IsHumanoidPath(const char* path)
 	if (!path || !path[0])
 		return qfalse;
 
+	// super battle droid / droideka: their own skeleton and animation.cfg (the "_humanoid" prefix would match them)
+	if (BG_IsOwnSkeletonPath(path))
+		return qfalse;
+
 	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
 	{
 		const char* prefix = humanoid_prefixes[i];
@@ -1062,8 +1082,10 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 
 	// ------------------------------------------------------------
 	// HUMANOID DETECTION USING PREFIX LIST
+	// (Classic animation style: a model's dedicated humanoid set keeps its own animation.cfg, as the renderer keeps
+	// its own GLA - BG_HumanoidPathUsesMaster)
 	// ------------------------------------------------------------
-	if (UI_IsHumanoidPath(filename))
+	if (UI_IsHumanoidPath(filename) && BG_HumanoidPathUsesMaster(filename))
 	{
 		is_humanoid = qtrue;
 
@@ -1094,8 +1116,7 @@ int UI_ParseAnimationFile(const char* filename, animation_t* animset, qboolean i
 			animset = UI_AnimsetAlloc();
 			if (!animset)
 			{
-				assert(!"Anim set alloc failed!");
-				return -1;
+				return -1; // all slots taken (UI_AnimsetAlloc warned); the caller skips the animation
 			}
 		}
 	}
@@ -2364,9 +2385,9 @@ void UI_LoadMenus(const char* menuFile, const qboolean reset)
 	Com_Printf("---- Genuine MovieDuels SerenityJediEngine (Solaris Edition) ----\n");
 	Com_Printf("----------------------- MovieDuels-SJE-MP -----------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
-	Com_Printf("-------------------------- Update 9.0 ---------------------------\n");
-	Com_Printf("--------------------- Build Date 09/10/2026 ---------------------\n");// build date
-	Com_Printf("--------------------------- Build 06 ----------------------------\n");
+	Com_Printf("-------------------------- Update 8.0 ---------------------------\n");
+	Com_Printf("--------------------- Build Date 13/10/2026 ---------------------\n");// build date
+	Com_Printf("--------------------------- Build 07 ----------------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Lightsaber ---------------------------\n");
 	Com_Printf("---------- An elegant weapon for a more civilized age -----------\n");
@@ -3734,7 +3755,17 @@ static int UI_OwnerDrawWidth(int ownerDraw, float scale)
 	case UI_FORCE_RANK_SABERATTACK:
 	case UI_FORCE_RANK_SABERDEFEND:
 	case UI_FORCE_RANK_SABERTHROW:
-		findex = ownerDraw - UI_FORCE_RANK - 1;
+	case UI_FORCE_RANK_STASIS:
+	case UI_FORCE_RANK_DESTRUCTION:
+	case UI_FORCE_RANK_GRASP:
+	case UI_FORCE_RANK_REPULSE:
+	case UI_FORCE_RANK_LIGHTNING_STRIKE:
+	case UI_FORCE_RANK_FEAR:
+	case UI_FORCE_RANK_DEADLYSIGHT:
+	case UI_FORCE_RANK_BLAST:
+	case UI_FORCE_RANK_INSANITY:
+	case UI_FORCE_RANK_BLINDING:
+		findex = UI_FORCE_RANK_INDEX(ownerDraw);
 		//this will give us the index as long as UI_FORCE_RANK is always one below the first force rank index
 		i = uiForcePowersRank[findex];
 
@@ -4189,8 +4220,17 @@ static void UI_OwnerDraw(float x, float y, float w, float h, float text_x, float
 	case UI_FORCE_RANK_SABERATTACK:
 	case UI_FORCE_RANK_SABERDEFEND:
 	case UI_FORCE_RANK_SABERTHROW:
-
-		findex = ownerDraw - UI_FORCE_RANK - 1;
+	case UI_FORCE_RANK_STASIS:
+	case UI_FORCE_RANK_DESTRUCTION:
+	case UI_FORCE_RANK_GRASP:
+	case UI_FORCE_RANK_REPULSE:
+	case UI_FORCE_RANK_LIGHTNING_STRIKE:
+	case UI_FORCE_RANK_FEAR:
+	case UI_FORCE_RANK_DEADLYSIGHT:
+	case UI_FORCE_RANK_BLAST:
+	case UI_FORCE_RANK_INSANITY:
+	case UI_FORCE_RANK_BLINDING:
+		findex = UI_FORCE_RANK_INDEX(ownerDraw);
 		//this will give us the index as long as UI_FORCE_RANK is always one below the first force rank index
 		if (uiForcePowerDarkLight[findex] && uiForceSide != uiForcePowerDarkLight[findex])
 		{
@@ -5478,7 +5518,17 @@ static qboolean UI_OwnerDrawHandleKey(int ownerDraw, int flags, float* special, 
 	case UI_FORCE_RANK_SABERATTACK:
 	case UI_FORCE_RANK_SABERDEFEND:
 	case UI_FORCE_RANK_SABERTHROW:
-		findex = ownerDraw - UI_FORCE_RANK - 1;
+	case UI_FORCE_RANK_STASIS:
+	case UI_FORCE_RANK_DESTRUCTION:
+	case UI_FORCE_RANK_GRASP:
+	case UI_FORCE_RANK_REPULSE:
+	case UI_FORCE_RANK_LIGHTNING_STRIKE:
+	case UI_FORCE_RANK_FEAR:
+	case UI_FORCE_RANK_DEADLYSIGHT:
+	case UI_FORCE_RANK_BLAST:
+	case UI_FORCE_RANK_INSANITY:
+	case UI_FORCE_RANK_BLINDING:
+		findex = UI_FORCE_RANK_INDEX(ownerDraw);
 		//this will give us the index as long as UI_FORCE_RANK is always one below the first force rank index
 		return UI_ForcePowerRank_HandleKey(flags, special, key, uiForcePowersRank[findex], 0,
 			NUM_FORCE_POWER_LEVELS - 1, ownerDraw);
@@ -7251,6 +7301,63 @@ static void UI_UpdateSiegeStatusIcons(void)
 	}
 }
 
+// The weapon wheel (port of MovieDuels SP, ui/MD_MP/ingameweaponwheel.menu): the icons of the weapons the player doesn't
+// have are greyed out and can't be clicked, the ones set to "not on person" are tinted red. The weapon bits come from
+// cgame (cg_view.c sets ui_wheelweapons when they change). Icon names as MovieDuels SP's menu, MP weapon numbers.
+static void UI_ViewWeaponWheel(void)
+{
+	static const struct
+	{
+		const char* iconName;
+		int weapon;
+	} wheelIcons[] = {
+		{ "melee_icon", WP_MELEE }, { "saber_icon", WP_SABER }, { "stun_baton_icon", WP_STUN_BATON },
+		{ "blaster_pistol_icon", WP_BRYAR_PISTOL }, { "clone_pistol_icon", WP_CLONEPISTOL }, { "lpann14_icon", WP_REY },
+		{ "westar_icon", WP_JANGO }, { "briar_icon", WP_BRYAR_OLD }, { "dh17_icon", WP_REBELBLASTER },
+		{ "blaster_icon", WP_BLASTER }, { "a280_icon", WP_REBELRIFLE }, { "clone_rifle_icon", WP_CLONERIFLE },
+		{ "dc15s_icon", WP_CLONECARBINE }, { "dc17m_icon", WP_CLONECOMMANDO }, { "e5_icon", WP_BATTLEDROID },
+		{ "ee3_icon", WP_BOBA }, { "f11d_icon", WP_THEFIRSTORDER }, { "repeater_icon", WP_REPEATER },
+		{ "rotary_cannon_icon", WP_Z6_ROTARY_CANNON }, { "bowcaster_icon", WP_BOWCASTER },
+		{ "rocket_launcher_icon", WP_ROCKET_LAUNCHER }, { "demp2_icon", WP_DEMP2 }, { "concussion_icon", WP_CONCUSSION },
+		{ "flechette_icon", WP_FLECHETTE }, { "disruptor_icon", WP_DISRUPTOR }, { "thermal_icon", WP_THERMAL },
+		{ "trip_mine_icon", WP_TRIP_MINE }, { "det_pack_icon", WP_DET_PACK },
+	};
+	const menuDef_t* menu = Menus_FindByName("ingameWeaponWheelMenu");
+	char buf[32];
+
+	if (!menu)
+	{
+		return;
+	}
+	trap->Cvar_VariableStringBuffer("ui_wheelweapons", buf, sizeof buf);
+	const unsigned int have = (unsigned int)strtoul(buf, NULL, 10);
+	trap->Cvar_VariableStringBuffer("cg_holsterHide", buf, sizeof buf);
+	const unsigned int hide = (unsigned int)strtoul(buf, NULL, 16);
+
+	for (int i = 0; i < (int)ARRAY_LEN(wheelIcons); i++)
+	{
+		itemDef_t* item = Menu_FindItemByName(menu, wheelIcons[i].iconName);
+		if (!item)
+		{
+			continue;
+		}
+		const unsigned int bit = 1u << wheelIcons[i].weapon;
+		if (have & bit)
+		{
+			item->disabled = qfalse;
+			item->window.foreColor[0] = 1.0f;
+			item->window.foreColor[1] = hide & bit ? 0.4f : 1.0f;
+			item->window.foreColor[2] = hide & bit ? 0.4f : 1.0f;
+			item->window.foreColor[3] = 1.0f;
+		}
+		else
+		{
+			item->disabled = qtrue;
+			item->window.foreColor[3] = 0.4f;
+		}
+	}
+}
+
 static void UI_RunMenuScript(char** args)
 {
 	const char* name, * name2;
@@ -7611,6 +7718,38 @@ static void UI_RunMenuScript(char** args)
 			trap->Key_ClearStates();
 			trap->Cvar_Set("cl_paused", "0");
 			Menus_CloseAll();
+		}
+		else if (Q_stricmp(name, "md_viewweaponwheel") == 0)
+		{
+			UI_ViewWeaponWheel();
+		}
+		else if (Q_stricmp(name, "md_wheelpick") == 0)
+		{
+			// a gun icon of the weapon wheel (port of MovieDuels SP): in "Equip" mode (ui_wheelmode 0) take it with the
+			// normal weapon command and close the wheel, in "On Person" mode toggle whether it is drawn on the body when
+			// carried (cg_holsterHide: a hex mask of weapon numbers, a userinfo cvar, so the others see it too)
+			int weapon;
+			if (Int_Parse(args, &weapon) && weapon > WP_NONE && weapon < WP_NUM_WEAPONS)
+			{
+				if (trap->Cvar_VariableValue("ui_wheelmode") == 0 || weapon == WP_THERMAL || weapon == WP_TRIP_MINE
+					|| weapon == WP_DET_PACK)
+				{
+					// "weaponclean": the real weapon number ("weapon" is the slot number, +2 above the stun baton)
+					trap->Cmd_ExecuteText(EXEC_APPEND, va("weaponclean %d\n", weapon));
+					trap->Key_SetCatcher(trap->Key_GetCatcher() & ~KEYCATCH_UI);
+					trap->Key_ClearStates();
+					trap->Cvar_Set("cl_paused", "0");
+					Menus_CloseAll();
+				}
+				else
+				{
+					char hide[32];
+					trap->Cvar_VariableStringBuffer("cg_holsterHide", hide, sizeof hide);
+					const unsigned int mask = (unsigned int)strtoul(hide, NULL, 16) ^ 1u << weapon;
+					trap->Cvar_Set("cg_holsterHide", mask ? va("%x", mask) : "");
+					UI_ViewWeaponWheel();
+				}
+			}
 		}
 		else if (Q_stricmp(name, "voteMap") == 0)
 		{

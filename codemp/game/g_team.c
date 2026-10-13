@@ -737,15 +737,8 @@ static int Team_TouchOurFlag(gentity_t* ent, const gentity_t* other, const int t
 	int enemy_flag;
 	vec3_t mins, maxs;
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int touch_buf[MAX_GENTITIES] = { 0 };
-	int* touch = touch_buf;
-	if (!touch)
-	{
-		Com_Printf(S_COLOR_RED "Team_TouchOurFlag: BG_Alloc failed\n");
-		return 0;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int touch[MAX_GENTITIES];
 
 	// Determine which flag is the enemy flag
 	enemy_flag = (cl->sess.sessionTeam == TEAM_RED) ? PW_BLUEFLAG : PW_REDFLAG;
@@ -903,15 +896,8 @@ int Team_TouchEnemyFlag(gentity_t* ent, const gentity_t* other, const int team)
 	vec3_t mins, maxs;
 	int ourFlag;
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int touch_buf[MAX_GENTITIES] = { 0 };
-	int* touch = touch_buf;
-	if (!touch)
-	{
-		Com_Printf(S_COLOR_RED "Team_TouchEnemyFlag: BG_Alloc failed\n");
-		return 0;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int touch[MAX_GENTITIES];
 
 	VectorSubtract(ent->s.pos.trBase, minFlagRange, mins);
 	VectorAdd(ent->s.pos.trBase, maxFlagRange, maxs);
@@ -1229,6 +1215,34 @@ static gentity_t* SelectRandomTeamSpawnPoint(const int teamstate, const team_t t
 }
 
 #include "ai_main.h"
+// MovieDuels: a spawn waypoint nobody stands on, tried in a random order (so bots do not spawn on top of each
+// other); all taken: any of them.
+static int BOT_FreeSpawnWP(const int* list, const int count)
+{
+	static int touch[MAX_GENTITIES];
+	const int start = Q_irand(0, count - 1);
+
+	for (int k = 0; k < count; k++)
+	{
+		const int idx = list[(start + k) % count];
+		vec3_t mins, maxs;
+		qboolean busy = qfalse;
+
+		VectorSet(mins, gWPArray[idx]->origin[0] - 16, gWPArray[idx]->origin[1] - 16, gWPArray[idx]->origin[2] - 24);
+		VectorSet(maxs, gWPArray[idx]->origin[0] + 16, gWPArray[idx]->origin[1] + 16, gWPArray[idx]->origin[2] + 40);
+		const int num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
+		for (int i = 0; i < num && !busy; i++)
+		{
+			busy = g_entities[touch[i]].client && g_entities[touch[i]].health > 0 ? qtrue : qfalse;
+		}
+		if (!busy)
+		{
+			return idx;
+		}
+	}
+	return list[start];
+}
+
 qboolean BOT_FindCTFWaypointSpawnPoint_blue(gentity_t* bot, vec3_t outOrigin)
 {
 	// Validate bot entity and client
@@ -1238,15 +1252,8 @@ qboolean BOT_FindCTFWaypointSpawnPoint_blue(gentity_t* bot, vec3_t outOrigin)
 		return qfalse;
 	}
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int spawnList_buf[MAX_WPARRAY_SIZE] = { 0 };
-	int* spawnList = spawnList_buf;
-	if (!spawnList)
-	{
-		Com_Printf(S_COLOR_RED "BOT_FindCTFWaypointSpawnPoint_blue: BG_Alloc failed\n");
-		return qfalse;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int spawnList[MAX_WPARRAY_SIZE];
 
 	int spawnCount = 0;
 
@@ -1284,7 +1291,7 @@ qboolean BOT_FindCTFWaypointSpawnPoint_blue(gentity_t* bot, vec3_t outOrigin)
 	}
 
 	// Pick a random waypoint spawnpoint
-	const int chosen = spawnList[Q_irand(0, spawnCount - 1)];
+	const int chosen = BOT_FreeSpawnWP(spawnList, spawnCount);
 
 	// Get pointer to the chosen waypoint and copy its origin
 	const wpobject_t* chosenWP = gWPArray[chosen];
@@ -1308,15 +1315,8 @@ qboolean BOT_FindCTFWaypointSpawnPoint_red(gentity_t* bot, vec3_t outOrigin)
 		return qfalse;
 	}
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int spawnList_buf[MAX_WPARRAY_SIZE] = { 0 };
-	int* spawnList = spawnList_buf;
-	if (!spawnList)
-	{
-		Com_Printf(S_COLOR_RED "BOT_FindCTFWaypointSpawnPoint_red: BG_Alloc failed\n");
-		return qfalse;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int spawnList[MAX_WPARRAY_SIZE];
 
 	int spawnCount = 0;
 
@@ -1354,7 +1354,7 @@ qboolean BOT_FindCTFWaypointSpawnPoint_red(gentity_t* bot, vec3_t outOrigin)
 	}
 
 	// Pick a random waypoint spawnpoint
-	const int chosen = spawnList[Q_irand(0, spawnCount - 1)];
+	const int chosen = BOT_FreeSpawnWP(spawnList, spawnCount);
 
 	// Get pointer to the chosen waypoint and copy its origin
 	const wpobject_t* chosenWP = gWPArray[chosen];
@@ -1378,15 +1378,8 @@ qboolean BOT_FindFFAWaypointSpawnPoint(gentity_t* bot, vec3_t outOrigin)
 		return qfalse;
 	}
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int spawnList_buf[MAX_WPARRAY_SIZE] = { 0 };
-	int* spawnList = spawnList_buf;
-	if (!spawnList)
-	{
-		Com_Printf(S_COLOR_RED "BOT_FindFFAWaypointSpawnPoint: BG_Alloc failed\n");
-		return qfalse;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int spawnList[MAX_WPARRAY_SIZE];
 
 	int spawnCount = 0;
 
@@ -1424,7 +1417,7 @@ qboolean BOT_FindFFAWaypointSpawnPoint(gentity_t* bot, vec3_t outOrigin)
 	}
 
 	// Pick a random waypoint spawnpoint
-	const int chosen = spawnList[Q_irand(0, spawnCount - 1)];
+	const int chosen = BOT_FreeSpawnWP(spawnList, spawnCount);
 
 	// Get pointer to the chosen waypoint and copy its origin
 	const wpobject_t* chosenWP = gWPArray[chosen];
@@ -1471,15 +1464,8 @@ static qboolean PointWouldTelefrag(vec3_t point)
 {
 	vec3_t mins, maxs;
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	int touch_buf[MAX_GENTITIES] = { 0 };
-	int* touch = touch_buf;
-	if (!touch)
-	{
-		Com_Printf(S_COLOR_RED "PointWouldTelefrag: BG_Alloc failed\n");
-		return qfalse;
-	}
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static int touch[MAX_GENTITIES];
 
 	// Compute bounding box around the point
 	VectorAdd(point, playerMins, mins);

@@ -3514,59 +3514,8 @@ int OldToNewRemapTable[72] = {
 };
 
 // Prefixes that count as humanoid
-static const char* humanoid_prefixes[] =
-{
-	"models/players/_humanoid",
-	"models/players/JK2anims",
-	"models/players/_humanoid_ani",
-	"models/players/_humanoid_bdroid",
-	"models/players/_humanoid_ben",
-	"models/players/_humanoid_cal",
-	"models/players/_humanoid_clo",
-	"models/players/_humanoid_deka",
-	"models/players/_humanoid_df2",
-	"models/players/_humanoid_dooku",
-	"models/players/_humanoid_galen",
-	"models/players/_humanoid_gon",
-	"models/players/_humanoid_grievous",
-	"models/players/_humanoid_jabba",
-	"models/players/_humanoid_jango",
-	"models/players/_humanoid_kotor",
-	"models/players/_humanoid_luke",
-	"models/players/_humanoid_mace",
-	"models/players/_humanoid_maul",
-	"models/players/_humanoid_md",
-	"models/players/_humanoid_melee",
-	"models/players/_humanoid_obi",
-	"models/players/_humanoid_obi3",
-	"models/players/_humanoid_pal",
-	"models/players/_humanoid_reb",
-	"models/players/_humanoid_ren",
-	"models/players/_humanoid_rey",
-	"models/players/_humanoid_sbd",
-	"models/players/_humanoid_vader",
-	"models/players/_humanoid_yoda",
-	"models/players/darktrooper_tv",
-	"models/players/hazardtrooper/hazardtrooper",
-	"models/players/rockettrooper/rockettrooper",
-	"models/players/protocol/protocol",
-	"models/players/assassin_droid/model",
-	"models/players/saber_droid/model",
-	"models/players/wampa/wampa"
-};
-
-static qboolean R_IsHumanoidPath(const char* animName)
-{
-	if (!animName || !animName[0])
-		return qfalse;
-
-	for (int i = 0; i < ARRAY_LEN(humanoid_prefixes); i++)
-	{
-		if (strstr(animName, humanoid_prefixes[i]))
-			return qtrue;
-	}
-	return qfalse;
-}
+// MovieDuels: the animation set (master _humanoid or the model's own) a mesh loads, by g_animationStyleActive (tr_model.cpp)
+qhandle_t R_MD_ChooseAnimGLA(const char* meshName, const mdxmHeader_t* mdxm, qboolean fresh, char* usedName, int usedNameSize);
 
 qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
@@ -3634,44 +3583,12 @@ qboolean R_LoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& 
 
 	// --------------------------------------------------------------------
 	// Decide which animation GLA to use.
-	// Rule:
-	//  - Any humanoid-family animName (by prefix) is forced to the master _humanoid/_humanoid.gla
-	//  - Non-humanoids keep their own animName
+	// Rule (MovieDuels, R_MD_ChooseAnimGLA): Master style (solo games) puts humanoid-family meshes on the master
+	// _humanoid/_humanoid.gla; Classic (default, server games) keeps the GLA the glm names (fallback: master).
 	// --------------------------------------------------------------------
-	const char* animNameToUse = mdxm->animName;
-	qhandle_t   animIndex = 0;
-
-	if (R_IsHumanoidPath(mdxm->animName))
-	{
-		// Force all humanoid / humanoid-variant models to MP humanoid
-		const char* forcedHumanoid = "models/players/_humanoid/_humanoid"; // the MovieDuels master _humanoid (SP + MP animations, shared with SP)
-
-		animIndex = RE_RegisterModel(va("%s.gla", forcedHumanoid));
-		if (!animIndex)
-		{
-			Com_Error(ERR_DROP,
-				"R_LoadMDXM: required MP humanoid GLA missing: %s.gla", forcedHumanoid);
-		}
-
-		// A mesh with another bone count than the master humanoid skeleton (super battle droid, droideka, protocol...) was
-		// built for its own skeleton: on the master its bones would be wrong (or index past the bone cache and
-		// corrupt memory. Keep its own GLA in that case (old 72-bone models are remapped further down).
-		const model_t* humanoidGLA = R_GetModelByHandle(animIndex);
-		if (mdxm->numBones != 72 && humanoidGLA && humanoidGLA->type == MOD_MDXA && humanoidGLA->mdxa &&
-			mdxm->numBones != humanoidGLA->mdxa->numBones) // another skeleton (sbd 43, deka 59, protocol 54...): its own GLA, as SP
-		{
-			animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
-		}
-		else
-		{
-			animNameToUse = forcedHumanoid;
-		}
-	}
-	else
-	{
-		// Non-humanoid or droid: use the model's own animName
-		animIndex = RE_RegisterModel(va("%s.gla", animNameToUse));
-	}
+	// MovieDuels: the master or the model's own set, by g_animationStyleActive (R_MD_ChooseAnimGLA, tr_model.cpp)
+	char animNameToUse[MAX_QPATH];
+	const qhandle_t animIndex = R_MD_ChooseAnimGLA(mod_name, mdxm, (qboolean)!bAlreadyFound, animNameToUse, sizeof animNameToUse);
 
 	mdxm->animIndex = animIndex;
 

@@ -35,6 +35,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "server/sv_gameapi.h"
 #include <qcommon/q_math.h>
+#include <vector>
 
 static void SV_CloseDownload(client_t* cl);
 
@@ -141,7 +142,7 @@ void SV_DirectConnect(netadr_t from)
 	char userinfo[MAX_INFO_STRING];
 	int i;
 	client_t* cl, * newcl;
-	client_t temp{};
+	static client_t temp; // ~500 KB, off the stack (C6262): Com_Memset below clears it before use
 	sharedEntity_t* ent;
 	int clientNum;
 	int version;
@@ -529,9 +530,9 @@ the wrong gamestate.
 void SV_SendClientGameState(client_t* client)
 {
 	msg_t msg;
-	byte msgBuffer[MAX_MSGLEN];
+	std::vector<byte> msgBuffer(MAX_MSGLEN); // heap, not stack (C6262); freed on return or Com_Error throw
 
-	MSG_Init(&msg, msgBuffer, sizeof msgBuffer);
+	MSG_Init(&msg, msgBuffer.data(), MAX_MSGLEN);
 
 	// MW - my attempt to fix illegible server message errors caused by
 	// packet fragmentation of initial snapshot.
@@ -565,9 +566,9 @@ void SV_SendClientGameState(client_t* client)
 void SV_SendClientMapChange(client_t* client)
 {
 	msg_t msg;
-	byte msgBuffer[MAX_MSGLEN];
+	std::vector<byte> msgBuffer(MAX_MSGLEN); // heap, not stack (C6262); freed on return or Com_Error throw
 
-	MSG_Init(&msg, msgBuffer, sizeof msgBuffer);
+	MSG_Init(&msg, msgBuffer.data(), MAX_MSGLEN);
 
 	// NOTE, MRE: all server->client messages now acknowledge
 	// let the client know which reliable clientCommands we have received

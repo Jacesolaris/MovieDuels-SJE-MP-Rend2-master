@@ -711,17 +711,10 @@ static qboolean turretG2_find_enemies(gentity_t* self)
 	vec3_t org, org2;
 	qboolean foundClient = qfalse;
 
-	// stack buffer: BG_Alloc memory is only released at the next map load, so allocating
-	// this per call leaked the pool until "BG_Alloc: buffer exceeded tail" (turrets, respawns, ...)
-	gentity_t* entity_list_buf[MAX_GENTITIES] = { 0 };
-	gentity_t** entity_list = entity_list_buf;
+	// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
+	static gentity_t* entity_list[MAX_GENTITIES];
 	trace_t tr_buf = { 0 };
 	trace_t* tr = &tr_buf;
-	if (!entity_list || !tr)
-	{
-		Com_Printf(S_COLOR_RED "turretG2_find_enemies: BG_Alloc failed\n");
-		return qfalse;
-	}
 
 	gentity_t* bestTarget = NULL;
 

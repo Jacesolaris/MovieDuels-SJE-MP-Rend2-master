@@ -61,7 +61,6 @@ typedef struct ipFilter_s
 
 static ipFilter_t ipFilters[MAX_IPFILTERS];
 static int numIPFilters;
-extern cvar_t* r_weather;
 
 /*
 =================
@@ -282,11 +281,6 @@ static void Svcmd_AddIP_f(void)
 	AddIP(str);
 }
 
-void G_RemoveWeather(void)
-{
-	trap->SendConsoleCommand(EXEC_APPEND, "execq Weather/clear.cfg");
-}
-
 void G_Rename_Player(gentity_t* player, const char* newname)
 {
 	char userinfo[MAX_INFO_STRING];
@@ -296,70 +290,6 @@ void G_Rename_Player(gentity_t* player, const char* newname)
 	trap->SetUserinfo(clientNum, userinfo);
 	client_userinfo_changed(clientNum);
 	player->client->pers.netnameTime = level.time + 5000; // hmmm...
-}
-
-static void Svcmd_Weather_f(void)
-{
-	char arg1[MAX_STRING_CHARS];
-	int num;
-	trap->Argv(1, arg1, sizeof arg1);
-
-	if ((Q_stricmp(arg1, "snow") == 0) || (Q_stricmp(arg1, "1") == 0))
-	{
-		G_RemoveWeather();
-		num = G_EffectIndex("*clear");
-		trap->SetConfigstring(CS_EFFECTS + num, "");
-		G_EffectIndex("*snow");
-	}
-	else if ((Q_stricmp(arg1, "lava") == 0) || (Q_stricmp(arg1, "3") == 0))
-	{
-		G_RemoveWeather();
-		num = G_EffectIndex("*clear");
-		trap->SetConfigstring(CS_EFFECTS + num, "");
-		G_EffectIndex("*lava");
-	}
-	else if ((Q_stricmp(arg1, "rain") == 0) || (Q_stricmp(arg1, "2") == 0))
-	{
-		G_RemoveWeather();
-		num = G_EffectIndex("*clear");
-		trap->SetConfigstring(CS_EFFECTS + num, "");
-		G_EffectIndex("*rain 500");
-	}
-	else if ((Q_stricmp(arg1, "sandstorm") == 0) || (Q_stricmp(arg1, "sand") == 0) || (Q_stricmp(arg1, "4") == 0))
-	{
-		G_RemoveWeather();
-		num = G_EffectIndex("*clear");
-		trap->SetConfigstring(CS_EFFECTS + num, "");
-		G_EffectIndex("*wind");
-		G_EffectIndex("*sand");
-	}
-	else if ((Q_stricmp(arg1, "fog") == 0) || (Q_stricmp(arg1, "6") == 0))
-	{
-		G_RemoveWeather();
-		num = G_EffectIndex("*clear");
-		trap->SetConfigstring(CS_EFFECTS + num, "");
-		G_EffectIndex("*heavyrainfog");
-	}
-	else if ((Q_stricmp(arg1, "spacedust") == 0) || (Q_stricmp(arg1, "9") == 0))
-	{
-		G_RemoveWeather();
-		num = G_EffectIndex("*clear");
-		trap->SetConfigstring(CS_EFFECTS + num, "");
-		G_EffectIndex("*spacedust 4000");
-	}
-	else if ((Q_stricmp(arg1, "acidrain") == 0) || (Q_stricmp(arg1, "7") == 0))
-	{
-		G_RemoveWeather();
-		num = G_EffectIndex("*clear");
-		trap->SetConfigstring(CS_EFFECTS + num, "");
-		G_EffectIndex("*acidrain 500");
-	}
-	if ((Q_stricmp(arg1, "clear") == 0) || (Q_stricmp(arg1, "0") == 0))
-	{
-		G_RemoveWeather();
-		num = G_EffectIndex("*clear");
-		trap->SetConfigstring(CS_EFFECTS + num, "");
-	}
 }
 
 /*
@@ -627,6 +557,47 @@ static void Svcmd_Say_f(void)
 	trap->SendServerCommand(-1, va("print \"server: %s\n\"", text));
 }
 
+// MovieDuels, as SP's "animationstyle" command: list the animation styles, or pick the solo player's style for the Master
+// animation style (sets g_PlayerAnimationStyle, the menu's "Select Animation Style")
+static void Svcmd_AnimationStyle_f(void)
+{
+	char arg[MAX_TOKEN_CHARS] = { 0 };
+
+	trap->Argv(1, arg, sizeof arg);
+
+	if (!arg[0] || G_AnimStyleFromName(arg) < 0)
+	{
+		if (arg[0])
+		{
+			trap->Print(S_COLOR_RED "animationstyle: unknown animation style \"%s\".\n", arg);
+		}
+		trap->Print("Animation Style in force: %s (g_ActivateAnimationStyle %i, %s game). g_PlayerAnimationStyle: %s\n",
+			g_mdAnimStyleActive ? "Master" : "Classic", g_ActivateAnimationStyle.integer,
+			md_soloGame.integer ? "solo" : "server", g_PlayerAnimationStyle.string);
+		for (int i = 0; i < level.maxclients; i++)
+		{
+			const gentity_t* ent = &g_entities[i];
+			if (ent->inuse && ent->client && ent->client->pers.connected == CON_CONNECTED)
+			{
+				trap->Print("  client %i %s%s: style %s, animation set %i\n", i, ent->client->pers.netname,
+					ent->r.svFlags & SVF_BOT ? " (bot)" : "", G_AnimStyleName(ent->client->pers.animStyle), ent->localAnimIndex);
+			}
+		}
+		trap->Print("Valid animation style names are:\n");
+		for (int i = 0; i < ANIMSTYLE_COUNT; i++)
+		{
+			trap->Print("  %s\n", G_AnimStyleName(i));
+		}
+		return;
+	}
+
+	trap->Cvar_Set("g_PlayerAnimationStyle", arg); // G_ApplyPlayerAnimationStyle (g_main.c) gives it to the player
+	if (!g_mdAnimStyleActive)
+	{
+		trap->Print(S_COLOR_YELLOW "The style is used with the Master animation style (g_ActivateAnimationStyle 1, solo games).\n");
+	}
+}
+
 typedef struct svcmd_s
 {
 	const char* name;
@@ -641,6 +612,7 @@ static int svcmdcmp(const void* a, const void* b)
 
 svcmd_t svcmds[] = {
 	{"addbot", Svcmd_AddBot_f, qfalse},
+	{"animationstyle", Svcmd_AnimationStyle_f, qfalse},
 	{"addip", Svcmd_AddIP_f, qfalse},
 	{"botlist", Svcmd_BotList_f, qfalse},
 	{"entitylist", Svcmd_EntityList_f, qfalse},
@@ -669,7 +641,7 @@ qboolean ConsoleCommand(void)
 
 	if ((Q_stricmp(cmd, "r_weather") == 0) || (Q_stricmp(cmd, "weather") == 0))
 	{
-		Svcmd_Weather_f();
+		G_WeatherCommand_f(NULL); // g_weather.c
 		return qtrue;
 	}
 

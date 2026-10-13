@@ -25,6 +25,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // cvar.c -- dynamic variable tracking
 
 #include "qcommon/qcommon.h"
+#include <vector>
 
 cvar_t* cvar_vars = nullptr;
 cvar_t* cvar_cheats;
@@ -534,7 +535,8 @@ static void Cvar_QSortByName(cvar_t** a, const int n)
 
 static void Cvar_Sort(void)
 {
-	cvar_t* list[MAX_CVARS]{}, * var;
+	std::vector<cvar_t*> list(MAX_CVARS); // 64 KB: heap, not stack (C6262); zeroed as the {} was
+	cvar_t* var;
 	int count;
 
 	for (count = 0, var = cvar_vars; var; var = var->next)
