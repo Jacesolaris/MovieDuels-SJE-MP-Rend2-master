@@ -1116,7 +1116,7 @@ typedef struct cg_s {
 	} sharedBuffer;
 
 	short				radarEntityCount;
-	short				radarEntities[64];
+	short				radarEntities[128];
 
 	short				bracketedEntityCount;
 	short				bracketedEntities[MAX_CLIENTS + 16];

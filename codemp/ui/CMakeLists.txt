@@ -33,6 +33,9 @@ set(MPUIDefines ${MPSharedDefines} "UI_BUILD")
 
 set(MPUIGameFiles
 	"${MPDir}/game/bg_misc.c"
+	"${MPDir}/game/bg_skeleton.c"
+	"${MPDir}/game/bg_classmodel.c"
+	"${MPDir}/game/bg_classmodel.h"
 	"${MPDir}/game/bg_saberLoad.c"
 	"${MPDir}/game/bg_saga.c"
 	"${MPDir}/game/bg_vehicleLoad.c"

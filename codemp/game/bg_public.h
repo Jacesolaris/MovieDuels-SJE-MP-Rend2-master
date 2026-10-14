@@ -146,7 +146,7 @@ animFlags_t BG_AnimStyleFlags(int animStyle);
 #define DEFAULT_REDTEAM_NAME	"Empire"
 #define DEFAULT_BLUETEAM_NAME	"Rebellion"
 
-#define CURRENT_MD_CLIENTVERSION		"Day-13,Month-10,Year-26,BuildNum-07" // build date
+#define CURRENT_MD_CLIENTVERSION		"Day-14,Month-10,Year-26,BuildNum-08" // build date
 
 #define	STEPSIZE		18
 
@@ -2209,13 +2209,17 @@ qboolean BG_MasterAnimStyleActive(void);				// the Master animation style is in 
 qboolean BG_HumanoidPathUsesMaster(const char* path);	// a humanoid-family path uses the master _humanoid set (style / no cfg)
 qboolean BG_ModelUsesOwnAnimSet(const char* model);		// a userinfo model plays its own animation set (own skeleton, or Classic style)
 qboolean BG_SkeletonGLAForPath(const char* path, char* glaOut, int glaOutSize); // the GLA (no extension) of the path's models/players folder
+// SJE->MD parity (2026-10-13)
+qboolean BG_BoneCountIsOwnSkeleton(int numBones);		// bg_misc.c: the renderer never puts a mesh with this many bones on the master
+qboolean BG_IsHumanoidFamilyPath(const char* path);		// bg_skeleton.c: a path in a humanoid-family folder (humanoid_prefixes)
+qboolean BG_ModelUsesHumanoidGLA(const char* model);		// bg_skeleton.c: the model's glm stays on a humanoid set (SJE's test)
 // MovieDuels: per anim set skeleton info (bg_panimate.c, game + cgame)
 qboolean BG_AnimSetIsHumanoid(int animIndex);		// slot 0, or a set whose skeleton has the humanoid bones (was: index == 0)
 qboolean BG_AnimSetIsHumanoidLike(int animIndex);	// the above, or the rockettrooper slot 1 (was: index <= 1)
 int		BG_SkeletonClass(int NPC_class, int animIndex);	// the NPC class whose bone layout the skeleton has (players: from the anim set)
 int		BG_ResolveOwnSkelAnim(const animation_t* animations, int anim, qboolean legs); // own-skeleton sets: the anim it plays for anim
 int		BG_AnimSetSkelClass(const animation_t* animations); // skelClass of the set these anims belong to (CLASS_NONE if unknown)
-// MovieDuels (port of SJE MP): creature / droid player models (bg_panimate.c, game + cgame). A model on its own skeleton
+// MovieDuels (port of SJE MP): creature / droid player models (bg_skeleton.c, game + cgame + ui). A model on its own skeleton
 // (BG_IsOwnSkeletonModel); BG_ModelSkeletonFlags says which player bolts/bones it has. The botclass decides what it needs.
 #define SKELF_OWN		0x0001	// the model uses its own skeleton (BG_IsOwnSkeletonModel) with a model_root bone
 #define SKELF_RHAND		0x0002	// *r_hand

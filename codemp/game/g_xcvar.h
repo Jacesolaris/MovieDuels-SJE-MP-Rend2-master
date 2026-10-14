@@ -34,6 +34,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #endif
 
 XCVAR_DEF(bg_fighterAltControl, "0", NULL, CVAR_SYSTEMINFO, qtrue)
+XCVAR_DEF(g_fighterArcade, "1", NULL, CVAR_ARCHIVE | CVAR_SYSTEMINFO, qtrue) // (2026-10-13) fighters: 1 = responsive flight (rate steering, quick throttle, stick roll), 0 = the old flight exactly; sent to the clients for the prediction
+XCVAR_DEF(g_fighterTurnScale, "1.6", NULL, CVAR_ARCHIVE | CVAR_SYSTEMINFO, qtrue) // (2026-10-13) fighters with g_fighterArcade 1: top turn rate = turningSpeed x this x 12 deg/s (the old flight's hard-coded factor is 0.8)
 XCVAR_DEF(capturelimit, "8", NULL, CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, qtrue)
 XCVAR_DEF(com_optvehtrace, "0", NULL, CVAR_NONE, qtrue)
 XCVAR_DEF(d_altRoutes, "0", NULL, CVAR_CHEAT, qfalse)

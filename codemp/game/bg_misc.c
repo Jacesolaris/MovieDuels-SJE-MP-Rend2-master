@@ -3916,8 +3916,9 @@ static int BG_MasterBoneCount(void)
 	return master;
 }
 
-// the renderer's rule: a skeleton with this many bones is not put on the master
-static qboolean BG_BoneCountIsOwnSkeleton(const int numBones)
+// the renderer's rule: a skeleton with this many bones is not put on the master (SJE->MD parity 2026-10-13: public,
+// bg_skeleton.c BG_ModelUsesHumanoidGLA uses it)
+qboolean BG_BoneCountIsOwnSkeleton(const int numBones)
 {
 	return numBones > 0 && numBones != BG_OLD_HUMANOID_BONES && numBones != BG_MasterBoneCount() ? qtrue : qfalse;
 }
@@ -4109,7 +4110,10 @@ qboolean BG_IsOwnSkeletonModel(const char* model)
 		memcpy(&numBones, head + BG_MDXM_NUMBONES_OFS, sizeof numBones);
 		numBones = LittleLong(numBones);
 
-		if (BG_BoneCountIsOwnSkeleton(numBones))
+		// SJE->MD parity (2026-10-13), SJE's GLA-path rule as a second test: a GLA outside every humanoid-family folder
+		// (BG_IsHumanoidFamilyPath) is the model's own skeleton whatever its bone count - the renderer loads it as it is
+		// (R_MD_ChooseAnimGLA), so a custom 53-bone skeleton is not animated with the master set's frames
+		if (BG_BoneCountIsOwnSkeleton(numBones) || !BG_IsHumanoidFamilyPath((const char*)(head + BG_MDXM_ANIMNAME_OFS)))
 		{
 			char cfg[MAX_QPATH];
 			Q_strncpyz(cfg, (const char*)(head + BG_MDXM_ANIMNAME_OFS), sizeof cfg);

@@ -60,6 +60,7 @@ USER INTERFACE MAIN
 #include "menudef.h"
 #include <search.h>
 #include "ui_mdchars.h"
+#include "game/bg_classmodel.h" // SJE->MD parity (2026-10-13): BG_ModelBlocked, BG_ClassModelBotclass (the server's class table)
 
 extern void UI_SaberAttachToChar(itemDef_t* item);
 
@@ -84,88 +85,62 @@ static charMD_t charMD[NO_OF_MD_MODELS_ALL];
 static int mdNumModels = 0;
 #define NO_OF_MD_MODELS mdNumModels
 
-// MP plays every player model on the standard humanoid skeleton (the master _humanoid). Models whose .glm
-// uses a skeleton of its own that isn't an external humanoid (gonk, R2-D2, protocol droid, hazard/rocket trooper...) can't be
-// played yet, so the menu leaves them out. The skeleton is read from the files: model.glm names its .gla,
-// the .gla header has the bone count.
-#define MD_HUMANOID_BONES 53
-
+// SJE->MD parity (2026-10-13): the menu offers what the server lets a player play, with the server's rules (as SJE MP's
+// ui_sjechars.c): not a blocked model (BG_ModelBlocked), a model.glm, and either a glm that stays on a humanoid set
+// (BG_ModelUsesHumanoidGLA: the master or a dedicated _humanoid_* set, or the master fallback) or an own skeleton
+// (BG_ModelSkeletonFlags) that the class the server gives the model may use (BG_ClassModelBotclass, BG_ClassSkeletonOk).
+// So the creatures and droids the server accepts (r2d2, gonk, rancor, howler, minemonster, protocol, saber droid,
+// assassin droid, hazard trooper...) can be picked too. (Was: the GLA has 53 bones, or a _humanoid_* folder with an
+// animation.cfg.) model: a userinfo model string ("folder", "folder/skin" or "folder/head|torso|lower").
 static qboolean MD_CharModelSupported(const char* model)
 {
-	static char glaNames[64][MAX_QPATH];
-	static qboolean glaOk[64];
-	static int numGlas = 0;
+	char folder[MAX_QPATH];
 	fileHandle_t f;
-	char glmHeader[136];
-	char glaName[MAX_QPATH];
-	int glaHeader[22];
 
 	if (!model[0])
 	{
 		return qtrue;
 	}
 
-	// mdxmHeader_t: ident, version, name[64], animName[64]
-	if (trap->FS_Open(va("models/players/%s/model.glm", model), &f, FS_READ) < (int)sizeof glmHeader)
+	Q_strncpyz(folder, model, sizeof folder);
 	{
-		if (f)
+		char* slash = strchr(folder, '/');
+		if (slash)
 		{
-			trap->FS_Close(f);
+			*slash = 0;
 		}
+	}
+
+	// the Wampa is a bot only, not a player choice (DH 2026-10-13)
+	if (!Q_stricmp(folder, "wampa"))
+	{
 		return qfalse;
 	}
-	trap->FS_Read(glmHeader, sizeof glmHeader, f);
-	trap->FS_Close(f);
-	Q_strncpyz(glaName, &glmHeader[72], sizeof glaName);
 
-	for (int i = 0; i < numGlas; i++)
+	if (BG_ModelBlocked(model))
 	{
-		if (!Q_stricmp(glaNames[i], glaName))
-		{
-			return glaOk[i];
-		}
+		return qfalse;
 	}
 
-	// mdxaHeader_t: ident, version, name[64], fScale, numFrames, ofsFrames, numBones (int 21)
-	qboolean ok = qfalse;
-	if (trap->FS_Open(va("%s.gla", glaName), &f, FS_READ) >= (int)sizeof glaHeader)
-	{
-		trap->FS_Read(glaHeader, sizeof glaHeader, f);
-		ok = glaHeader[21] == MD_HUMANOID_BONES ? qtrue : qfalse;
-	}
+	const int len = trap->FS_Open(va("models/players/%s/model.glm", folder), &f, FS_READ);
 	if (f)
 	{
 		trap->FS_Close(f);
 	}
-
-	// An external humanoid skeleton (models/players/_humanoid_sbd, _humanoid_deka...) with its own animation.cfg:
-	// the game now loads its own GLA and animations for it (as SP), so it can be played.
-	if (!ok && !Q_stricmpn(glaName, "models/players/_humanoid_", 25) && !strstr(glaName, "_deka")) // the server blocks the droideka (rolling droid)
+	if (len <= 0)
 	{
-		char animCfg[MAX_QPATH];
-		Q_strncpyz(animCfg, glaName, sizeof animCfg);
-		char* slash = Q_strrchr(animCfg, '/');
-		if (slash)
-		{
-			strcpy(slash, "/animation.cfg");
-			if (trap->FS_Open(animCfg, &f, FS_READ) > 0)
-			{
-				ok = qtrue;
-			}
-			if (f)
-			{
-				trap->FS_Close(f);
-			}
-		}
+		return qfalse;
 	}
 
-	if (numGlas < 64)
+	const int skelFlags = BG_ModelSkeletonFlags(model);
+	if (!skelFlags)
 	{
-		Q_strncpyz(glaNames[numGlas], glaName, sizeof glaNames[0]);
-		glaOk[numGlas++] = ok;
+		return BG_ModelUsesHumanoidGLA(model);
 	}
-	return ok;
+	return BG_ClassSkeletonOk(BG_ClassModelBotclass(model), skelFlags);
 }
+
+static void MD_PlayerModelForCharacter(const charMD_t* c, char* model, size_t modelSize);
 
 // charMD = the playable rows of charMDAll. When a character's main row goes, its first playable variant
 // takes its place.
@@ -178,7 +153,10 @@ static void MD_BG_FilterCharacters(void)
 	{
 		const charMD_t* c = &charMDAll[i];
 
-		if (c->era != TOTAL_ERAS && !MD_CharModelSupported(c->model))
+		char modelString[MAX_QPATH];
+
+		MD_PlayerModelForCharacter(c, modelString, sizeof modelString); // SJE->MD parity (2026-10-13): the class depends on the skin
+		if (c->era != TOTAL_ERAS && !MD_CharModelSupported(modelString))
 		{
 			if (!c->isSubDiv)
 			{
@@ -1796,6 +1774,9 @@ static void UI_SetActiveMenu(uiMenuCommand_t menu)
 			trap->Key_SetCatcher(KEYCATCH_UI);
 			UI_BuildPlayerList();
 			Menus_CloseAll();
+			// the same stack as Escape -> PROFILE: the in-game bar (ingame.menu) behind, the player page on top with the
+			// focus; on its own the player page left a gap where the bar goes (DH 2026-10-13)
+			Menus_ActivateByName("ingame");
 			Menus_ActivateByName("ingame_player");
 			UpdateForceUsed();
 			return;
@@ -2386,8 +2367,8 @@ void UI_LoadMenus(const char* menuFile, const qboolean reset)
 	Com_Printf("----------------------- MovieDuels-SJE-MP -----------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Update 8.0 ---------------------------\n");
-	Com_Printf("--------------------- Build Date 13/10/2026 ---------------------\n");// build date
-	Com_Printf("--------------------------- Build 07 ----------------------------\n");
+	Com_Printf("--------------------- Build Date 14/10/2026 ---------------------\n");// build date
+	Com_Printf("--------------------------- Build 08 ----------------------------\n");
 	Com_Printf("-----------------------------------------------------------------\n");
 	Com_Printf("-------------------------- Lightsaber ---------------------------\n");
 	Com_Printf("---------- An elegant weapon for a more civilized age -----------\n");
@@ -11453,7 +11434,7 @@ PlayerModel_BuildList
 		}
 
 		if (!MD_CharModelSupported(dirptr))
-		{// not on the standard humanoid skeleton: MP can't play it yet (see MD_CharModelSupported)
+		{// not playable as a player (the server's rules, see MD_CharModelSupported)
 			continue;
 		}
 

@@ -746,6 +746,20 @@ retryModel:
 		ci->noHandBolt = qfalse;
 	}
 
+	// SJE->MD parity (2026-10-13), as SJE: a model that is not on a humanoid set must have an own skeleton bg accepts
+	// (BG_ModelSkeletonFlags; siege: with the full humanoid bolts), else the default model is drawn - the server resets
+	// such a model too (G_AssignClassAndScaleFromModel, BG_ModelUsesHumanoidGLA)
+	if (!isHumanoidGLA)
+	{
+		const int ownFlags = BG_ModelSkeletonFlags(model_name);
+
+		if (!ownFlags || !(ownFlags & SKELF_FULL) && cgs.gametype == GT_SIEGE)
+		{
+			bad_model = qtrue;
+			goto retryModel;
+		}
+	}
+
 	// ------------------------------------------------------------
 	// LOAD ANIMATION.CFG
 	// ------------------------------------------------------------

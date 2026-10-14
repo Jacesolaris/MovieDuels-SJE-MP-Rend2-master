@@ -35,6 +35,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "g_local.h"
 #include "g_classmodels.h" // model -> bot class + scale table
+#include "bg_classmodel.h" // SJE->MD parity (2026-10-13): BG_ClassModelIndex, BG_ModelBlocked (shared with the ui)
 #include "g_animstyles.h" // model -> SP animation style table
 #include "g_pazaak.h"
 #include "ghoul2/G2.h"
@@ -2684,6 +2685,16 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 			Com_Printf(S_COLOR_YELLOW "WARNING: %s has no usable animation set (%s), using the humanoid set\n",
 				ent->NPC_type ? ent->NPC_type : ent->classname ? ent->classname : "entity", resolvedGLA);
 			ent->localAnimIndex = 0;
+
+			if (ent->s.number < MAX_CLIENTS && precachedKyle)
+			{
+				// SJE->MD parity (2026-10-13), as SJE: a player whose own skeleton could not be set up falls back to the
+				// default model too (its own skeleton on the humanoid set would read the wrong bones)
+				trap->G2API_CleanGhoul2Models(&ent->ghoul2);
+				ent->ghoul2 = NULL;
+				trap->G2API_DuplicateGhoul2Instance(precachedKyle, &ent->ghoul2);
+				trap->G2API_AttachInstanceToEntNum(ent->ghoul2, ent->s.number, qtrue);
+			}
 		}
 	}
 	else
@@ -3112,83 +3123,8 @@ static char* G_ValidateUserinfo(const char* userinfo)
 	return NULL;
 }
 
-/*
-==================
-Class_Model System start
-
-Behaviour preserved exactly, but structure cleaned and bugs fixed.
-==================
-*/
-static char lcase(char c)
-{
-	if (c >= 'A' && c <= 'Z')
-	{
-		c = c | 0x20;
-	}
-	return c;
-}
-
-static int Class_Model(char* haystack, char* needle)
-{
-	char* h;
-	char* n;
-
-	if (!haystack || !needle)
-	{
-		return 0;
-	}
-
-	while (*haystack)
-	{
-		h = haystack;
-		n = needle;
-
-		/* Find first matching character (case-insensitive) */
-		if (lcase(*h) != lcase(*n))
-		{
-			haystack++;
-			continue;
-		}
-
-		/* Try to match the entire needle */
-		while (*h && *n)
-		{
-			/* Skip color codes in haystack */
-			if (*h == '^')
-			{
-				int i;
-				for (i = 0; i < 3; i++)
-				{
-					if (*h)
-					{
-						h++;
-					}
-				}
-				continue;
-			}
-
-			/* If characters don't match (case-insensitive), break */
-			if (lcase(*h) != lcase(*n))
-			{
-				break;
-			}
-
-			h++;
-			n++;
-		}
-
-		/* If we consumed all of needle, match succeeded */
-		if (!*n)
-		{
-			return 1;
-		}
-
-		/* Move to next starting position */
-		haystack++;
-	}
-
-	return 0;
-}
+// SJE->MD parity (2026-10-13): Class_Model (the class table's case-insensitive substring test that skips colour codes) is
+// BG_ClassModelHas in bg_classmodel.c now, with the whole lookup (BG_ClassModelIndex) and the blocked list (BG_ModelBlocked).
 
 /*
 ==================
@@ -3298,74 +3234,13 @@ Class_Model System
 // ------------------------------------------------------------
 // CLASS + SCALE ASSIGNMENT HELPER
 // ------------------------------------------------------------
-// The class table row for a model string ("folder", "folder/skin" or "folder/head|torso|lower"):
-// 1. a row naming exactly this model/skin,
-// 2. a row naming exactly this model folder - the table has short general patterns ("jedi", "reva", "ma", "ew"...)
-//    listed before specific ones, and a plain substring scan let them catch e.g. revan_jedi, maul_rebels, jeditrainer,
-//    nihilus/new before the rows written for those models,
-// 3. else (as before) the first row whose pattern is somewhere in the model string.
+// The class table row for a model string: BG_ClassModelIndex (bg_classmodel.c, shared with the ui's character menu;
+// SJE->MD parity 2026-10-13: the same steps as before - exact model/skin row, exact folder row, substring scan without
+// the exactOnly rows - plus SJE's character-menu variant folders and uniform head_X|torso_X|lower_X skins).
 static const classModel_t* G_ClassModelFor(const char* model)
 {
-	char clean[MAX_QPATH], folder[MAX_QPATH];
-	int n = 0;
-
-	for (const char* s = model; *s && n < (int)sizeof clean - 1; s++)
-	{
-		if (Q_IsColorString(s))
-		{// skip colour codes, as Class_Model does
-			s++;
-			continue;
-		}
-		clean[n++] = *s;
-	}
-	clean[n] = 0;
-
-	Q_strncpyz(folder, clean, sizeof folder);
-	{
-		char* slash = strchr(folder, '/');
-		if (slash)
-		{
-			*slash = 0;
-		}
-	}
-
-	for (int i = 0; i < (int)ARRAY_LEN(classModels); i++)
-	{
-		const char* p = classModels[i].pattern;
-		const char* slash = strchr(p, '/');
-		if (slash && slash[1] && !Q_stricmp(p, clean))
-		{
-			return &classModels[i];
-		}
-	}
-
-	for (int i = 0; i < (int)ARRAY_LEN(classModels); i++)
-	{
-		const char* p = classModels[i].pattern;
-		const char* slash = strchr(p, '/');
-		if (slash && slash[1])
-		{
-			continue; // a model/skin row
-		}
-		const size_t len = slash ? (size_t)(slash - p) : strlen(p);
-		if (len == strlen(folder) && !Q_stricmpn(p, folder, (int)len))
-		{
-			return &classModels[i];
-		}
-	}
-
-	for (int i = 0; i < (int)ARRAY_LEN(classModels); i++)
-	{
-		if (classModels[i].exactOnly)
-		{
-			continue; // MovieDuels: exact rows only (steps 1 and 2)
-		}
-		if (Class_Model((char*)model, (char*)classModels[i].pattern))
-		{
-			return &classModels[i];
-		}
-	}
-	return NULL;
+	const int i = BG_ClassModelIndex(model);
+	return i >= 0 ? &classModels[i] : NULL;
 }
 
 // SP's AnimationstylesTable names (NPC_stats.cpp), in ANIMSTYLE_* order: g_PlayerAnimationStyle / "animationstyle"
@@ -3522,24 +3397,7 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 		//    These should NEVER use the humanoid BCLASS system.
 		//    We force them back to DEFAULT_MODEL and normal scale.
 		// ------------------------------------------------------------------
-		if (Class_Model(model, "model_siege") ||
-			Class_Model(model, "atst") ||
-			// MovieDuels (port of SJE MP): gonk is playable now (BCLASS_GONK: no weapon at all, as SP's gonk.npc)
-			Class_Model(model, "lambdashuttle") ||
-			Class_Model(model, "marka_ragnos") ||
-			Class_Model(model, "probe") ||
-			Class_Model(model, "rocks") ||
-			Class_Model(model, "sand_creature") ||
-			Class_Model(model, "sentry") ||
-			Class_Model(model, "swoop") ||
-			Class_Model(model, "tauntaun") ||
-			Class_Model(model, "tie_bomber") ||
-			Class_Model(model, "tie_fighter") ||
-			Class_Model(model, "droideka") ||
-			Class_Model(model, "droideka/main") ||
-			Class_Model(model, "droideka_mp") ||
-			Class_Model(model, "x-wing") ||
-			Class_Model(model, "z-95"))
+		if (BG_ModelBlocked(model)) // SJE->MD parity (2026-10-13): the same list, in bg_classmodel.c (the ui hides the same models)
 		{
 			// Don't allow them to pick these models
 			Q_strncpyz(model, DEFAULT_MODEL, modelSize);
@@ -3572,7 +3430,19 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 			const int skelFlags = BG_ModelSkeletonFlags(model);
 			const int wantClass = classModel ? classModel->botclass : BCLASS_SABERNOFP;
 
-			if (skelFlags && !BG_ClassSkeletonOk(wantClass, skelFlags))
+			// SJE->MD parity (2026-10-13), as SJE: a model on neither a humanoid set nor a usable own skeleton (props, a GLA
+			// without its animation.cfg...) is drawn as the default model by every client (CG_RegisterClientModelname), so
+			// reset it here too, class-correct
+			if (!skelFlags && model[0] && !BG_ModelUsesHumanoidGLA(model))
+			{
+				Com_Printf("%s: model %s has no usable player skeleton, using " DEFAULT_MODEL "\n", client->pers.netname, model);
+				Q_strncpyz(model, DEFAULT_MODEL, modelSize);
+				Q_strncpyz(client->modelname, DEFAULT_MODEL, sizeof client->modelname);
+				Info_SetValueForKey(userinfo, "model", model);
+				trap->SetUserinfo(clientNum, userinfo);
+				classModel = G_ClassModelFor(model);
+			}
+			else if (skelFlags && !BG_ClassSkeletonOk(wantClass, skelFlags))
 			{
 				Com_Printf("%s: model %s cannot be played as its class (skeleton lacks what the class needs), using " DEFAULT_MODEL "\n",
 					client->pers.netname, model);
@@ -3616,6 +3486,12 @@ static void G_AssignClassAndScaleFromModel(gentity_t* ent, const int clientNum, 
 		}
 	}
 
+	// a new class (another character picked): the next spawn re-reads the player's own Force setup before the class
+	// rules apply, or a Jedi turned stormtrooper and back keeps the stormtrooper's zeroed powers (2026-10-13)
+	if (client->pers.botclass != client->pers.nextbotclass)
+	{
+		client->ps.fd.forceDoInit = 1;
+	}
 	client->pers.botclass = client->pers.nextbotclass;   // if you use pers.botclass
 	ent->s.botclass = client->pers.nextbotclass;   // this is what cgame can see
 	client->ps.botclass = client->pers.nextbotclass; // BG_PlayerStateToEntityState(ExtraPolate) copies ps.botclass into s.botclass every frame: without this the class was 0 for clients
@@ -5042,6 +4918,49 @@ static void ClassItemHealthSetup(gentity_t* ent)
 	else
 	{
 		client->ps.stats[STAT_HOLDABLE_ITEMS] |= 1 << HI_MEDPAC;
+	}
+}
+
+// the ten SJE SP powers (Stasis .. Blinding, FP_STASIS onwards): the classes without the Force lose them as well
+// (their rules in ClientSpawn only list the original eighteen) (2026-10-13)
+static void G_ClearNewForcePowers(gclient_t* client)
+{
+	for (int fp = FP_STASIS; fp < NUM_FORCE_POWERS; fp++)
+	{
+		client->ps.fd.forcePowerLevel[fp] = FORCE_LEVEL_0;
+	}
+}
+
+// after the class rules: a power at level 0 is not known and not running, and the selected power is a known one
+static void G_DropUnusableForcePowers(gentity_t* ent)
+{
+	gclient_t* client = ent->client;
+
+	for (int fp = 0; fp < NUM_FORCE_POWERS; fp++)
+	{
+		if (client->ps.fd.forcePowerLevel[fp] > FORCE_LEVEL_0)
+		{
+			continue;
+		}
+		if (client->ps.fd.forcePowersActive & 1 << fp)
+		{
+			WP_ForcePowerStop(ent, (forcePowers_t)fp);
+		}
+		client->ps.fd.forcePowersKnown &= ~(1 << fp);
+	}
+
+	if (!(client->ps.fd.forcePowersKnown & 1 << client->ps.fd.forcePowerSelected))
+	{
+		client->ps.fd.forcePowerSelected = FP_HEAL;
+		for (int fp = 0; fp < NUM_FORCE_POWERS; fp++)
+		{
+			if (client->ps.fd.forcePowersKnown & 1 << fp && fp != FP_LEVITATION && fp != FP_SABER_OFFENSE &&
+				fp != FP_SABER_DEFENSE && fp != FP_SABERTHROW)
+			{
+				client->ps.fd.forcePowerSelected = fp;
+				break;
+			}
+		}
 	}
 }
 
@@ -7512,6 +7431,7 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_0;
+			G_ClearNewForcePowers(client);
 			break;
 			//chewie gets rage
 		case BCLASS_CHEWIE:
@@ -7533,6 +7453,7 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_RAGE] = FORCE_LEVEL_3; //chewie gets rage
+			G_ClearNewForcePowers(client);
 			break;
 			//big jumps for the jetpack club
 		case BCLASS_ROCKETTROOPER:
@@ -7561,6 +7482,7 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_0;
+			G_ClearNewForcePowers(client);
 			break;
 		case BCLASS_WOOKIE:
 			client->ps.fd.forcePowerLevel[FP_HEAL] = FORCE_LEVEL_0;
@@ -7581,6 +7503,7 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] = FORCE_LEVEL_3;
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_3;
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_3;
+			G_ClearNewForcePowers(client);
 			break;
 		case BCLASS_WOOKIEMELEE:
 			client->ps.fd.forcePowerLevel[FP_HEAL] = FORCE_LEVEL_0;
@@ -7601,6 +7524,7 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_0;
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_0;
+			G_ClearNewForcePowers(client);
 			break;
 			//he neads saber powers to be a threat in melee, but no force powers
 		case BCLASS_TUSKEN_RAIDER:
@@ -7624,6 +7548,7 @@ spawn_done:
 			client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] = FORCE_LEVEL_3;
 			client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] = FORCE_LEVEL_3;
 			client->ps.fd.forcePowerLevel[FP_SABERTHROW] = FORCE_LEVEL_3; // the saber needs all three to work right
+			G_ClearNewForcePowers(client);
 			break;
 		case BCLASS_PROTOCOL:
 		case BCLASS_R2D2:
@@ -7647,6 +7572,9 @@ spawn_done:
 			break;
 		}
 	}
+	// every power the class (or the player's setup) leaves at level 0 is unknown and stopped, and the selected power is
+	// one that is known: a Jedi turned stormtrooper in the Select Character menu keeps no Force (2026-10-13)
+	G_DropUnusableForcePowers(ent);
 
 	if (client->sess.sessionTeam == TEAM_SPECTATOR)
 	{

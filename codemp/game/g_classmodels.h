@@ -1,9 +1,12 @@
 // MovieDuels MP: player/bot model -> bot class + model scale (G_AssignClassAndScaleFromModel, g_client.c).
 //
-// The first row whose pattern is found in the model string (case-insensitive substring, colour codes skipped -
-// Class_Model) wins, so a row must come before shorter rows that would also match its model. adminClass: the class
-// an admin gets instead (BCLASS_NONE = the same as everyone).
+// Lookup (BG_ClassModelIndex, bg_classmodel.c): a row naming exactly the model/skin, else a row naming exactly the model
+// folder, else the first row whose pattern is found in the model string (case-insensitive substring, colour codes
+// skipped, exactOnly rows left out), so a row must come before shorter rows that would also match its model.
+// adminClass: the class an admin gets instead (BCLASS_NONE = the same as everyone).
 // Generated from the former if/else chain (same order, same patterns, same result).
+// SJE->MD parity (2026-10-13): the rows are the same as in SJE MP's g_classmodels.h (see the comment at the top of the
+// table).
 
 typedef struct classModel_s
 {
@@ -16,16 +19,60 @@ typedef struct classModel_s
 
 static const classModel_t classModels[] =
 {
-	// MovieDuels 2026-10-11 (port of SJE MP): creature / droid models on their own skeleton, playable as their SP class.
-	// Exact rows only (exactOnly), so short names cannot catch other models in the substring scan.
+	// MD<->SJE parity (2026-10-13): this table is the same in MovieDuels MP and SJE MP (game/g_classmodels.h), keep both in
+	// sync. Creature / droid models on their own skeleton, playable as their SP class (MD and SJE 2026-10-11).
+	// Exact rows only (exactOnly), so short names like "r2" cannot catch other models in the substring scan.
 	{ "r5d2", BCLASS_R5D2, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },			// r5d2.npc gives the stun; owner decision: R5 has no weapon (BCLASS_R5D2)
+	{ "r2", BCLASS_R2D2, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },				// r2d2 skeleton, r2d2.npc: stun baton
+	{ "r5", BCLASS_R5D2, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },				// r2d2 skeleton; owner decision 2026-10-11: R5 has no weapon (only R2-D2 gets the stun)
 	{ "gonk", BCLASS_GONK, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },			// gonk.npc: WP_NONE (no weapon at all)
+	{ "sith_droid", BCLASS_PROTOCOL, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },	// protocol skeleton: as protocol.npc
 	{ "rancor", BCLASS_RANCOR, BCLASS_NONE, 70, qtrue },					// 70% of the SP rancor so it fits MP maps (bbox: BG_ClassCreatureSize)
+	{ "teran", BCLASS_RANCOR, BCLASS_NONE, 70, qtrue },						// rancor skeleton (rancor reskin): melee; 70% of SP size (BG_ClassCreatureSize)
 	{ "mutant_rancor", BCLASS_RANCOR, BCLASS_NONE, 70, qtrue },			// rancor skeleton: melee, the same 70% rancor size
 	{ "saber_droid", BCLASS_SABER_DROID, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },	// saber_droid.npc: WP_SABER (had no row: fallback class)
+	{ "saberdroid", BCLASS_SABER_DROID, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },	// saber_droid skeleton
 	{ "howler", BCLASS_HOWLER, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },		// howler.npc: WP_MELEE
 	{ "minemonster", BCLASS_MINEMONSTER, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },	// minemonster.npc: WP_MELEE
+	{ "mark1", BCLASS_MARK1, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },			// was caught by the Sith "ma" row; not playable
+	{ "mark2", BCLASS_MARK2, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },			// (no creature class: reset to the default model)
 	{ "jabba", BCLASS_ELDER, BCLASS_NONE, 160, qtrue },					// MD_MP_NPC jabba: WP_MELEE (ELDER: melee only, no Force); NPC scale 250 / height 100
+
+	// Added 2026-10-04: selectable models that had no row (they got the fallback class). Classes from the SJE NPC
+	// files where there is one; the alien species models are generic gunners.
+	{ "bounty_hunter", BCLASS_BOBAFETT, BCLASS_NONE, BOTZIZE_NORMAL },				// npcs/bounty_hunter.npc: CLASS_BOBAFETT, disruptor + blaster
+	{ "redja", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_NORMAL },					// npcs/redja.npc: CLASS_STORMTROOPER, blaster
+	{ "omicron_iridonian", BCLASS_REBORN, BCLASS_NONE, BOTZIZE_NORMAL },				// npcs/darkpadawan.npc: CLASS_REBORN, dual sabers
+	{ "sith_vk_ol", BCLASS_SITH, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "abyssin", BCLASS_HUMAN_MERC, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "advozse", BCLASS_HUMAN_MERC, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "aqualish", BCLASS_HUMAN_MERC, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "devaronian", BCLASS_HUMAN_MERC, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "duros", BCLASS_HUMAN_MERC, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "gotal", BCLASS_HUMAN_MERC, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "kaleesh", BCLASS_HUMAN_MERC, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "nikto", BCLASS_HUMAN_MERC, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "snivvian", BCLASS_HUMAN_MERC, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "twilek", BCLASS_HUMAN_MERC, BCLASS_NONE, BOTZIZE_NORMAL },
+
+	// Added 2026-10-11 (SJE: bots for the SP NPC characters, scriptsmp/sje_characters.bot): models/skins whose class did not
+	// give the NPC file's weapon, or that fell to the saber fallback class. Classes from the NPC files.
+	{ "jedi_kyle", BCLASS_KYLE, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },		// kyle.npc Kyle/Kyle2 (CLASS_KYLE); was caught by the "jedi" row
+	{ "imperial/officer", BCLASS_IMPOFFICER, BCLASS_NONE, BOTZIZE_NORMAL },	// impofficer.npc: WP_BLASTER
+	{ "imperial/commander", BCLASS_IMPOFFICER, BCLASS_NONE, BOTZIZE_NORMAL },	// impcommander.npc: WP_BLASTER
+	{ "granjk2", BCLASS_GRAN, BCLASS_NONE, BOTZIZE_LARGE, qtrue },			// gran.npc GranJK2: WP_THERMAL + WP_MELEE (as gran/red)
+	{ "rebel_commando", BCLASS_REBEL, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },	// rebel2.npc species commandos are CLASS_REBEL (the bith/quarren skins hit saber rows)
+	{ "reebus", BCLASS_RAX, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },			// rax.npc Rax2: WP_CONCUSSION (fell to the saber fallback)
+	{ "mohc", BCLASS_RAX, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },				// rax.npc Mohc: WP_CONCUSSION (fell to the saber fallback)
+	{ "darktrooper", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_NORMAL, qtrue },	// stormtrooper.npc StormTrooper2, as the darktrooper_tv rows (fell to the saber fallback)
+	{ "human_merc/abyssin", BCLASS_RODIAN, BCLASS_NONE, BOTZIZE_NORMAL },		// alien_mercs.npc abyssin: CLASS_RODIAN, WP_DISRUPTOR
+	{ "human_merc/devaronian", BCLASS_RODIAN, BCLASS_NONE, BOTZIZE_NORMAL },	// alien_mercs.npc devaronian: CLASS_RODIAN, WP_CONCUSSION
+	{ "human_merc/kaleesh", BCLASS_RODIAN, BCLASS_NONE, BOTZIZE_NORMAL },		// alien_mercs.npc kaleesh: CLASS_RODIAN, WP_TUSKEN_RIFLE (SP only; disruptor here)
+	{ "human_merc/zhug_boss", BCLASS_WEEQUAY, BCLASS_NONE, BOTZIZE_NORMAL },	// alien_mercs.npc zhug_boss: CLASS_WEEQUAY, WP_BOWCASTER
+	{ "human_merc/zhug", BCLASS_WEEQUAY, BCLASS_NONE, BOTZIZE_NORMAL },		// alien_mercs.npc zhug: CLASS_WEEQUAY (its WP_BLASTER is not in that class)
+	{ "human_merc/advozse", BCLASS_WEEQUAY, BCLASS_NONE, BOTZIZE_NORMAL },		// alien_mercs.npc advozse: CLASS_WEEQUAY (its WP_ROCKET_LAUNCHER is not in that class)
+	{ "human_merc/arcona", BCLASS_SABOTEUR, BCLASS_NONE, BOTZIZE_NORMAL },		// alien_mercs.npc arcona: CLASS_SABOTEUR (its WP_BOWCASTER is not in that class)
+
 	// Added 2026-10-03: exact rows the folder rule (G_ClassModelFor) would otherwise get wrong, and selectable models
 	// that had no row (they got the fallback class)
 	{ "imperial/galak", BCLASS_GALAK, BCLASS_NONE, BOTZIZE_NORMAL },					// Galak Fyyar, not the "imperial" folder's class
@@ -197,8 +244,8 @@ static const classModel_t classModels[] =
 	{ "md_jango", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "md_jango_geo", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "md_jango_dual_player", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
-	{ "jangofett", BCLASS_MANDOLORIAN2, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "jangofett_mp", BCLASS_JANGO_NOJP, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "jangofett", BCLASS_JANGO_NOJP, BCLASS_NONE, BOTZIZE_NORMAL },					// MD<->SJE parity (2026-10-13): Jango's own class (as SJE; MD had MANDOLORIAN2)
 	{ "chiss", BCLASS_BARTENDER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "chiss/red", BCLASS_BARTENDER, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "chiss/blue", BCLASS_BARTENDER, BCLASS_NONE, BOTZIZE_NORMAL },
@@ -1257,6 +1304,7 @@ static const classModel_t classModels[] =
 	{ "Itho4", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "darktrooper_tv_mp", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "darktrooper_tv", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_MASSIVE },
+	{ "darktrooper_tvp", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "ithorian", BCLASS_STORMTROOPER, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "tavion", BCLASS_TAVION, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "tavion/blue", BCLASS_TAVION, BCLASS_NONE, BOTZIZE_NORMAL },
@@ -1336,6 +1384,9 @@ static const classModel_t classModels[] =
 	{ "lamasu/main", BCLASS_WEEQUAY, BCLASS_NONE, BOTZIZE_LARGER },
 	{ "SBD/default", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "SBD", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
+	{ "SBD2", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
+	{ "SBD2/default", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
+	{ "sbd_mp", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "sbd", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "md_sbd_am", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
 	{ "Super_Battle_Droid", BCLASS_SBD, BCLASS_NONE, BOTZIZE_MASSIVE },
@@ -1501,6 +1552,7 @@ static const classModel_t classModels[] =
 	{ "darthvader/anh", BCLASS_VADER, BCLASS_NONE, BOTZIZE_LARGE },
 	{ "darthvader/battle", BCLASS_VADER, BCLASS_NONE, BOTZIZE_LARGE },
 	{ "vaderVM", BCLASS_VADER, BCLASS_NONE, BOTZIZE_LARGE },
+	{ "vadervm/default", BCLASS_VADER, BCLASS_NONE, BOTZIZE_LARGE },
 	{ "vader/", BCLASS_VADER, BCLASS_NONE, BOTZIZE_LARGE },
 	{ "vader/main", BCLASS_VADER, BCLASS_NONE, BOTZIZE_LARGE },
 	{ "vader/main2", BCLASS_VADER, BCLASS_NONE, BOTZIZE_LARGE },
@@ -1546,6 +1598,7 @@ static const classModel_t classModels[] =
 	{ "darthbane", BCLASS_SITHLORD, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "darthmalgus_onslaught", BCLASS_SITHLORD, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "darthsion", BCLASS_SITHLORD, BCLASS_NONE, BOTZIZE_NORMAL },
+	{ "aggl_dooku/", BCLASS_DOOKU, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "aggl_dooku", BCLASS_DOOKU, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "aggl_dooku/main", BCLASS_DOOKU, BCLASS_NONE, BOTZIZE_NORMAL },
 	{ "dooku_mp", BCLASS_DOOKU, BCLASS_NONE, BOTZIZE_NORMAL },
