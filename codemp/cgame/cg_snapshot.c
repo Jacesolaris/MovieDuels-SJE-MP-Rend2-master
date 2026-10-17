@@ -335,7 +335,7 @@ valid snapshot.
 */
 static snapshot_t* CG_ReadNextSnapshot(void)
 {
-	snapshot_t* dest;
+	snapshot_t* dest = NULL;
 
 	if (cg.latestSnapshotNum > cgs.processedSnapshotNum + 1000)
 	{

@@ -263,7 +263,7 @@ static void multi_trigger(gentity_t* ent, gentity_t* activator)
 		int team1_cl_num = 0;
 		int team2_cl_num = 0;
 		const int owning_team = ent->genericValue3;
-		int new_owning_team;
+		int new_owning_team = 0;
 
 		// static: too big for the stack, and BG_Alloc is never freed: asked for on every call, this ran the pool dry
 		static int entity_list[MAX_GENTITIES];
@@ -723,7 +723,7 @@ idealclass	-	Can only be used by this class/these classes. You can specify use b
 */
 void SP_trigger_multiple(gentity_t* ent)
 {
-	char* s;
+	char* s = NULL;
 	if (G_SpawnString("noise", "", &s))
 	{
 		if (s && s[0])
@@ -810,7 +810,7 @@ idealclass	-	Can only be used by this class/these classes. You can specify use b
 */
 void SP_trigger_once(gentity_t* ent)
 {
-	char* s;
+	char* s = NULL;
 	if (G_SpawnString("noise", "", &s))
 	{
 		if (s && s[0])
@@ -946,7 +946,7 @@ use to toggle on and off
 */
 void SP_trigger_lightningstrike(gentity_t* ent)
 {
-	char* s;
+	char* s = NULL;
 
 	ent->use = Use_Strike;
 	ent->think = Think_Strike;
@@ -1416,7 +1416,12 @@ extern qboolean G_FxRunnerIsFire(const gentity_t* ent);
 
 void hurt_touch(gentity_t* self, gentity_t* other, trace_t* trace)
 {
-	int dflags;
+	int dflags = 0;
+
+	if (!other)
+	{
+		return;
+	}
 
 	// a hurt for one team only (siege_destroyer2's hangar shields: they keep the Rebels out, the Empire's own ships fly
 	// through), in every game type: not only in siege, where the map's ships would die leaving their hangar
@@ -1454,14 +1459,14 @@ void hurt_touch(gentity_t* self, gentity_t* other, trace_t* trace)
 		return;
 	}
 
-	if (self->damage == -1 && other && other->client && other->health < 1)
+	if (self->damage == -1 && other->client && other->health < 1)
 	{
 		other->client->ps.fallingToDeath = 0;
 		ClientRespawn(other);
 		return;
 	}
 
-	if (self->damage == -1 && other && other->client && other->client->ps.fallingToDeath)
+	if (self->damage == -1 && other->client && other->client->ps.fallingToDeath)
 	{
 		return;
 	}
@@ -1484,7 +1489,7 @@ void hurt_touch(gentity_t* self, gentity_t* other, trace_t* trace)
 		dflags = 0;
 	}
 
-	if (self->damage == -1 && other && other->client)
+	if (self->damage == -1 && other->client)
 	{
 		if (other->client->ps.otherKillerTime > level.time)
 		{
@@ -1780,7 +1785,7 @@ void SP_trigger_shipboundary(gentity_t* self)
 
 void hyperspace_touch(const gentity_t* self, gentity_t* other, trace_t* trace)
 {
-	gentity_t* ent;
+	gentity_t* ent = NULL;
 
 	if (!other || !other->inuse || !other->client ||
 		other->s.number < MAX_CLIENTS ||

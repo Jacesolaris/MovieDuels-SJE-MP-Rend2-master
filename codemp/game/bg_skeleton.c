@@ -306,7 +306,7 @@ int BG_ModelSkeletonFlags(const char* model)
 		int		flags;
 	} cache[BG_SKEL_FLAGS_CACHE];
 	static int numCached = 0;
-	char folder[MAX_QPATH];
+	char folder[MAX_QPATH] = { 0 };
 	int n = 0;
 
 	if (!model || !model[0])
@@ -407,7 +407,7 @@ qboolean BG_ClassSkeletonOk(const int botclass, const int skelFlags)
 // server resets it to the default model, the client draws the default model, the menu leaves it out.
 qboolean BG_ModelUsesHumanoidGLA(const char* model)
 {
-	char folder[MAX_QPATH];
+	char folder[MAX_QPATH] = { 0 };
 	char path[MAX_QPATH];
 	int n = 0;
 

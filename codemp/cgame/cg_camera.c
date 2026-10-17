@@ -213,7 +213,7 @@ CGCam_Pan
 
 void CGCam_Pan(vec3_t dest, vec3_t panDirection, const float duration)
 {
-	float delta2;
+	float delta2 = 0.0f;
 
 	CGCam_FollowDisable();
 	CGCam_DistanceDisable();
@@ -633,7 +633,7 @@ void CGCam_Distance(const float distance, const float initLerp)
 static void CGCam_FollowUpdate(void)
 {
 	vec3_t center, dir, cameraAngles, vec, focus[MAX_CAMERA_GROUP_SUBJECTS]; //No more than 16 subjects in a cameraGroup
-	int num_subjects = 0, i;
+	int num_subjects = 0, i = 0;
 
 	if (client_camera.cameraGroup[0] == -1)
 	{
@@ -1120,7 +1120,7 @@ static void CGCam_Roff(void);
 
 void CGCam_Update(void)
 {
-	int i;
+	int i = 0;
 	qboolean checkFollow = qfalse;
 	qboolean checkTrack = qfalse;
 
@@ -1169,7 +1169,7 @@ void CGCam_Update(void)
 	}
 	else if (client_camera.info_state & CAMERA_ZOOMING)
 	{
-		float actualFOV_X;
+		float actualFOV_X = 0.0f;
 
 		if (client_camera.FOV_time + client_camera.FOV_duration < cg.time)
 		{
@@ -1414,7 +1414,7 @@ This doesn't actually affect the camera's info, but passed information instead
 
 void CGCam_UpdateShake(vec3_t origin, vec3_t angles)
 {
-	int i;
+	int i = 0;
 	vec3_t moveDir;
 
 	if (client_camera.shake_duration <= 0)
@@ -1544,7 +1544,7 @@ static void CGCam_NotetrackProcessFov(const char* addlArg)
 static void CGCam_NotetrackProcessFovZoom(const char* addlArg)
 {
 	int a = 0;
-	float begin_fov;
+	float begin_fov = 0.0f;
 	char t[64];
 	int d = 0;
 	const int tsize = 64;
@@ -1581,7 +1581,7 @@ static void CGCam_NotetrackProcessFovZoom(const char* addlArg)
 	}
 	if (addlArg[a])
 	{
-		float fov_time;
+		float fov_time = 0.0f;
 		d = 0;
 		memset(t, 0, tsize * sizeof(char));
 		while (addlArg[a] && !isspace(addlArg[a]) && d < tsize)
@@ -1647,7 +1647,7 @@ static void CGCam_NotetrackProcessFovAccel(const char* addlArg)
 {
 	char t[64];
 	int a = 0;
-	float beginFOV;
+	float beginFOV = 0.0f;
 	int d = 0;
 	const int tsize = 64;
 
@@ -1700,7 +1700,7 @@ static void CGCam_NotetrackProcessFovAccel(const char* addlArg)
 		}
 		if (addlArg[a])
 		{
-			float fov_time;
+			float fov_time = 0.0f;
 			d = 0;
 			memset(t, 0, tsize * sizeof(char));
 			while (addlArg[a] && !isspace(addlArg[a]) && d < tsize)
@@ -2002,9 +2002,9 @@ static void CMD_CGCam_Disable(void)
 
 void CG_CameraParse(void)
 {
-	int int_data;
+	int int_data = 0;
 	vec3_t vector_data = { 0 };
-	float float_data, float2_data;
+	float float_data = 0.0f, float2_data = 0.0f;
 
 	const char* o = CG_ConfigString(CS_CAMERA);
 

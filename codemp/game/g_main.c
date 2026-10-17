@@ -105,8 +105,8 @@ All but the last will have the teamchain field set to the next one
 */
 static void G_FindTeams(void)
 {
-	gentity_t* e, * e2;
-	int i, j;
+	gentity_t* e = NULL, * e2 = NULL;
+	int i = 0, j = 0;
 
 	int c = 0;
 	int c2 = 0;
@@ -438,7 +438,7 @@ static void G_ApplyPlayerAnimationStyle(void)
 
 void G_InitGame(int levelTime, int randomSeed, int restart)
 {
-	int i;
+	int i = 0;
 	vmCvar_t mapname;
 	vmCvar_t ckSum;
 	char serverinfo[MAX_INFO_STRING] = { 0 };
@@ -1010,7 +1010,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else
 		{
 			int i1 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 			for (i1 = 0; i1 < level.num_entities; i1++)
 				// dont do map change at end of levels so players can stay on maps and erm...play
 			{
@@ -1067,7 +1067,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "yavin1b") == 0 && level.gametype != GT_SINGLE_PLAYER)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1089,7 +1089,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "yavin2") == 0 && level.gametype != GT_SINGLE_PLAYER)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1117,7 +1117,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "hoth3") == 0)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1140,7 +1140,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "t1_danger") == 0 && level.gametype != GT_SINGLE_PLAYER)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1158,7 +1158,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "t1_fatal") == 0)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1254,7 +1254,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "t1_surprise") == 0)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 			qboolean found_bugged_switch = qfalse;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
@@ -1324,7 +1324,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "t2_rancor") == 0 && level.gametype != GT_SINGLE_PLAYER)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1346,7 +1346,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "t2_rogue") == 0)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1440,7 +1440,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		{
 			if (!g_allowNPC.integer)
 			{
-				gentity_t* ent;
+				gentity_t* ent = NULL;
 				int i2 = 0;
 				for (i2 = 0; i2 < level.num_entities; i2++)
 				{
@@ -1512,7 +1512,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "t2_dpred") == 0 && level.gametype != GT_SINGLE_PLAYER)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1568,7 +1568,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "vjun1") == 0 && level.gametype != GT_SINGLE_PLAYER)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
 				ent = &g_entities[i2];
@@ -1594,7 +1594,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "t3_hevil") == 0 && level.gametype != GT_SINGLE_PLAYER)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1638,7 +1638,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "t3_byss") == 0)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1683,7 +1683,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "t3_rift") == 0)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1713,7 +1713,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "taspir1") == 0 && level.gametype != GT_SINGLE_PLAYER)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1733,7 +1733,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "taspir2") == 0 && level.gametype != GT_SINGLE_PLAYER)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1754,7 +1754,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		else if (Q_stricmp(sje_mapname, "kor1") == 0 && level.gametype != GT_SINGLE_PLAYER)
 		{
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1778,7 +1778,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		{
 			// if its a FFA game, then remove some entities
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1799,7 +1799,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		{
 			// if its a FFA game, then remove the shield in the final part
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -1827,7 +1827,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart)
 		{
 			// if its a FFA game, then remove the shield at the destroyer
 			int i2 = 0;
-			gentity_t* ent;
+			gentity_t* ent = NULL;
 
 			for (i2 = 0; i2 < level.num_entities; i2++)
 			{
@@ -2224,7 +2224,7 @@ static void RemovePowerDuelLosers(void)
 
 static void RemoveDuelDrawLoser(void)
 {
-	int cl_failure;
+	int cl_failure = 0;
 
 	if (level.clients[level.sortedClients[0]].pers.connected != CON_CONNECTED)
 	{
@@ -2292,7 +2292,7 @@ AdjustTournamentScores
 */
 static void AdjustTournamentScores(void)
 {
-	int clientNum;
+	int clientNum = 0;
 
 	if (level.clients[level.sortedClients[0]].ps.persistant[PERS_SCORE] ==
 		level.clients[level.sortedClients[1]].ps.persistant[PERS_SCORE] &&
@@ -2303,8 +2303,8 @@ static void AdjustTournamentScores(void)
 			sortedClients[0]].ps.stats[STAT_ARMOR];
 		const int clSec = level.clients[level.sortedClients[1]].ps.stats[STAT_HEALTH] + level.clients[level.
 			sortedClients[1]].ps.stats[STAT_ARMOR];
-		int cl_failure;
-		int cl_success;
+		int cl_failure = 0;
+		int cl_success = 0;
 
 		if (clFirst > clSec)
 		{
@@ -2507,10 +2507,10 @@ and team change.
 */
 void CalculateRanks(void)
 {
-	int i;
+	int i = 0;
 	//	int		preNumSpec = 0;
 	//int		nonSpecIndex = -1;
-	gclient_t* cl;
+	gclient_t* cl = NULL;
 
 	//	preNumSpec = level.numNonSpectatorClients;
 
@@ -2921,7 +2921,7 @@ extern void SiegeDoTeamAssign(void); //g_saga.c
 extern siegePers_t g_siegePersistant; //g_saga.c
 void ExitLevel(void)
 {
-	int i;
+	int i = 0;
 
 	// if we are running a tournament map, kick the loser to spectator status,
 	// which will automatically grab the next spectator and restart
@@ -3001,7 +3001,7 @@ void QDECL G_LogPrintf(const char* fmt, ...)
 {
 	va_list		argptr;
 	char		string[1024] = { 0 };
-	int			mins, seconds, msec, l;
+	int			mins = 0, seconds = 0, msec = 0, l = 0;
 
 	msec = level.time - level.startTime;
 
@@ -3037,7 +3037,7 @@ void QDECL G_SecurityLogPrintf(const char* fmt, ...)
 {
 	va_list argptr;
 	char string[1024] = { 0 };
-	time_t rawtime;
+	time_t rawtime = 0;
 
 	time(&rawtime);
 	localtime(&rawtime);
@@ -3130,8 +3130,8 @@ wait 10 seconds before going on.
 */
 static void CheckIntermissionExit(void)
 {
-	int i;
-	gclient_t* cl;
+	int i = 0;
+	gclient_t* cl = NULL;
 
 	// see which players are ready
 	int ready = 0;
@@ -3416,7 +3416,7 @@ int LMSResetTime = 0;
 
 static void CheckLMS()
 {
-	int i;
+	int i = 0;
 	if (!LMSReset //not already reseting
 		&& g_lms.integer > 0 && BG_IsLMSGametype(g_gametype.integer)
 		&& LMS_EnoughPlayers())
@@ -3530,8 +3530,8 @@ qboolean g_endPDuel = qfalse;
 
 void CheckExitRules(void)
 {
-	int i;
-	char* sKillLimit;
+	int i = 0;
+	char* sKillLimit = NULL;
 	qboolean printLimit = qtrue;
 	// if at the intermission, wait for all non-bots to
 	// signal ready, then go to next level
@@ -4251,7 +4251,7 @@ CheckTeamLeader
 */
 void CheckTeamLeader(const int team)
 {
-	int i;
+	int i = 0;
 
 	for (i = 0; i < level.maxclients; i++)
 	{
@@ -4292,7 +4292,7 @@ CheckTeamVote
 */
 static void CheckTeamVote(const int team)
 {
-	int cs_offset;
+	int cs_offset = 0;
 
 	if (team == TEAM_RED)
 		cs_offset = 0;
@@ -4582,7 +4582,7 @@ extern void TieFighterThink(gentity_t* self);
 void G_RunFrame(const int levelTime)
 {
 	int i = 0;
-	gentity_t* ent;
+	gentity_t* ent = NULL;
 #ifdef _G_FRAME_PERFANAL
 	int			iTimer_ItemRun = 0;
 	int			iTimer_ROFF = 0;

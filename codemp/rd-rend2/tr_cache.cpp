@@ -99,7 +99,7 @@ qboolean CModelCacheManager::LoadFile(const char* pFileName, void** ppFileBuffer
 
 void* CModelCacheManager::Allocate(int iSize, void* pvDiskBuffer, const char* psModelFileName, qboolean* bAlreadyFound, memtag_t eTag)
 {
-	int		iChecksum;
+	int		iChecksum = 0;
 	char	sModelName[MAX_QPATH];
 
 	/* Standard NULL checking. */
@@ -173,7 +173,7 @@ void CModelCacheManager::DumpNonPure(void)
 
 	for (auto it = files.begin(); it != files.end(); /* empty */)
 	{
-		int iChecksum;
+		int iChecksum = 0;
 		int iInPak = ri->FS_FileIsInPAK(it->path, &iChecksum);
 
 		if (iInPak == -1 || iChecksum != it->iPAKChecksum)

@@ -72,8 +72,8 @@ and applies it to the clientInfo_t structure.
 */
 void CG_LoadHolsterData(clientInfo_t* ci)
 {
-	fileHandle_t f;
-	int f_len;
+	fileHandle_t f = 0;
+	int f_len = 0;
 
 	/* Large buffers moved off stack */
 	static char file_buffer[MAX_HOLSTER_INFO_SIZE];

@@ -116,7 +116,7 @@ void AAS_RemovePortalsClusterReference(const int clusternum)
 //===========================================================================
 int AAS_UpdatePortal(const int areanum, const int clusternum)
 {
-	int portalnum;
+	int portalnum = 0;
 
 	//find the portal of the area
 	for (portalnum = 1; portalnum < aasworld.numportals; portalnum++)
@@ -173,7 +173,7 @@ int AAS_UpdatePortal(const int areanum, const int clusternum)
 //===========================================================================
 int AAS_FloodClusterAreas_r(const int areanum, const int clusternum)
 {
-	int i;
+	int i = 0;
 
 	//
 	if (areanum <= 0 || areanum >= aasworld.numareas)
@@ -303,8 +303,8 @@ void AAS_NumberClusterPortals(const int clusternum)
 //===========================================================================
 void AAS_NumberClusterAreas(const int clusternum)
 {
-	int i, portalnum;
-	aas_portal_t* portal;
+	int i = 0, portalnum = 0;
+	aas_portal_t* portal = nullptr;
 
 	aasworld.clusters[clusternum].numareas = 0;
 	aasworld.clusters[clusternum].numreachabilityareas = 0;
@@ -667,7 +667,7 @@ qboolean AAS_CanMergeFaces(int *facenums, int numfaces, int planenum)
 //===========================================================================
 void AAS_ConnectedAreas_r(int* areanums, const int numareas, int* connectedareas, const int curarea)
 {
-	int j, otherareanum;
+	int j = 0, otherareanum = 0;
 
 	connectedareas[curarea] = qtrue;
 	const aas_area_t* area = &aasworld.areas[areanums[curarea]];
@@ -722,7 +722,7 @@ qboolean AAS_ConnectedAreas(int* areanums, const int numareas)
 //===========================================================================
 int AAS_GetAdjacentAreasWithLessPresenceTypes_r(int* areanums, int numareas, const int curareanum)
 {
-	int j, otherareanum;
+	int j = 0, otherareanum = 0;
 
 	areanums[numareas++] = curareanum;
 	const aas_area_t* area = &aasworld.areas[curareanum];
@@ -780,11 +780,11 @@ static int s_backareanums[MAX_PORTALAREAS];
 
 static int AAS_CheckAreaForPossiblePortals(const int areanum)
 {
-	int i, j, k, fen, ben;
-	int otherareanum;
-	int numfrontfaces, numbackfaces;
-	int numareas, numfrontareas, numbackareas;
-	int frontplanenum, backplanenum;
+	int i = 0, j = 0, k = 0, fen = 0, ben = 0;
+	int otherareanum = 0;
+	int numfrontfaces = 0, numbackfaces = 0;
+	int numareas = 0, numfrontareas = 0, numbackareas = 0;
+	int frontplanenum = 0, backplanenum = 0;
 
 	// If it is already a cluster portal, nothing to do.
 	if (aasworld.areasettings[areanum].contents & AREACONTENTS_CLUSTERPORTAL)
@@ -1534,7 +1534,7 @@ void AAS_SetViewPortalsAsClusterPortals()
 //===========================================================================
 void AAS_InitClustering()
 {
-	int i;
+	int i = 0;
 
 	if (!aasworld.loaded) return;
 	//if there are clusters

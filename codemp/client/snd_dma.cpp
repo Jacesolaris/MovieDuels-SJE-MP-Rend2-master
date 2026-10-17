@@ -1106,8 +1106,8 @@ S_PickChannel
 */
 channel_t* S_PickChannel(const int entnum, const int entchannel)
 {
-	int ch_idx;
-	channel_t* ch, * firstToDie;
+	int ch_idx = 0;
+	channel_t* ch = nullptr, * firstToDie = nullptr;
 	qboolean foundChan = qfalse;
 
 #ifdef USE_OPENAL
@@ -1370,7 +1370,7 @@ Used for spatializing s_channels
 */
 void S_SpatializeOrigin(const vec3_t origin, const float master_vol, int* left_vol, int* right_vol, const int channel)
 {
-	float lscale, rscale;
+	float lscale = 0.0f, rscale = 0.0f;
 	vec3_t source_vec;
 	float dist_mult = SOUND_ATTENUATE;
 
@@ -1493,7 +1493,7 @@ static float S_MusicVolume()
 void S_StartAmbientSound(const vec3_t origin, const int entityNum, const unsigned char volume,
 	const sfxHandle_t sfxHandle)
 {
-	channel_t* ch;
+	channel_t* ch = nullptr;
 
 	if (!s_soundStarted || s_soundMuted)
 	{
@@ -1606,7 +1606,7 @@ entchannel 0 will never override a playing sound
 */
 void S_StartSound(const vec3_t origin, const int entityNum, const int entchannel, const sfxHandle_t sfxHandle)
 {
-	channel_t* ch;
+	channel_t* ch = nullptr;
 
 	if (!s_soundStarted || s_soundMuted)
 	{
@@ -1829,7 +1829,7 @@ void S_ClearSoundBuffer(void)
 	if (!s_UseOpenAL)
 #endif
 	{
-		int clear;
+		int clear = 0;
 		if (dma.samplebits == 8)
 			clear = 0x80;
 		else
@@ -2086,7 +2086,7 @@ S_AddAmbientLoopingSound
 void S_AddAmbientLoopingSound(const vec3_t origin, const unsigned char volume, const sfxHandle_t sfxHandle)
 {
 	/*const*/
-	sfx_t* sfx;
+	sfx_t* sfx = nullptr;
 
 	if (!s_soundStarted || s_soundMuted)
 	{
@@ -2147,7 +2147,7 @@ sum up the channel multipliers.
 */
 void S_AddLoopSounds(void)
 {
-	int left, right, right_total;
+	int left = 0, right = 0, right_total = 0;
 	static int loopFrame;
 
 	loopFrame++;
@@ -2247,8 +2247,8 @@ void S_RawSamples(const int samples, const int rate, const int width, const int 
 	const float volume,
 	const int bFirstOrOnlyUpdateThisFrame)
 {
-	int i;
-	int src, dst;
+	int i = 0;
+	int src = 0, dst = 0;
 
 	if (!s_soundStarted || s_soundMuted)
 	{
@@ -2480,7 +2480,7 @@ static int S_CheckAmplitude(channel_t* ch, const unsigned int s_oldpaintedtime)
 	if (ch->startSample == s_oldpaintedtime || next_amplitude < s_soundtime)
 		//(ch->startSample == START_SAMPLE_IMMEDIATE)//!s_entityWavVol_back[ch->entnum]
 	{
-		int sample;
+		int sample = 0;
 		int sample_total = 0;
 		int count = 0;
 
@@ -2600,8 +2600,8 @@ void S_Respatialize(const int entityNum, const vec3_t head, matrix3_t axis, cons
 	EAXOCCLUSIONPROPERTIES eaxOCProp{};
 	EAXACTIVEFXSLOTS eaxActiveSlots{};
 #endif
-	int i;
-	channel_t* ch;
+	int i = 0;
+	channel_t* ch = nullptr;
 
 	if (!s_soundStarted || s_soundMuted)
 	{
@@ -3766,7 +3766,7 @@ void AL_UpdateRawSamples()
 
 int S_MP3PreProcessLipSync(const channel_t* ch, const short* data)
 {
-	int sample;
+	int sample = 0;
 	int sampleTotal = 0;
 
 	for (int i = 0; i < 576; i += 100)
@@ -3794,9 +3794,9 @@ int S_MP3PreProcessLipSync(const channel_t* ch, const short* data)
 
 void S_SetLipSyncs()
 {
-	unsigned int samples;
-	int currentTime, timePlayed;
-	channel_t* ch;
+	unsigned int samples = 0;
+	int currentTime = 0, timePlayed = 0;
+	channel_t* ch = nullptr;
 
 #ifdef _WIN32
 	currentTime = timeGetTime();
@@ -4001,8 +4001,8 @@ static const char* sSoundCompressionMethodStrings[ct_NUMBEROF] =
 
 void S_SoundList_f(void)
 {
-	int i;
-	sfx_t* sfx;
+	int i = 0;
+	sfx_t* sfx = nullptr;
 	int iVariantCap = -1; // for %d-inquiry stuff
 	int iTotalBytes = 0;
 
@@ -4078,8 +4078,8 @@ void S_SoundList_f(void)
 						char sFindName[MAX_QPATH];
 						Q_strncpyz(sFindName, sfx->sSoundName, sizeof sFindName);
 						sFindName[iStrLen - 1] = '1';
-						int i2;
-						sfx_t* sfx2;
+						int i2 = 0;
+						sfx_t* sfx2 = nullptr;
 						for (sfx2 = s_knownSfx, i2 = 0; i2 < s_numSfx; i2++, sfx2++)
 						{
 							if (!Q_stricmp(sFindName, sfx2->sSoundName))
@@ -4139,7 +4139,7 @@ background music functions
 
 int FGetLittleLong(const fileHandle_t f)
 {
-	int v;
+	int v = 0;
 
 	FS_Read(&v, sizeof v, f);
 
@@ -4148,7 +4148,7 @@ int FGetLittleLong(const fileHandle_t f)
 
 int FGetLittleShort(const fileHandle_t f)
 {
-	short v;
+	short v = 0;
 
 	FS_Read(&v, sizeof v, f);
 
@@ -4189,7 +4189,7 @@ int S_FindWavChunk(const fileHandle_t f, const char* chunk)
 //
 qboolean S_FileExists(const char* psFilename)
 {
-	fileHandle_t fhTemp;
+	fileHandle_t fhTemp = 0;
 
 	FS_FOpenFileRead(psFilename, &fhTemp, qtrue); // qtrue so I can fclose the handle without closing a PAK
 	if (!fhTemp)
@@ -4287,7 +4287,7 @@ void S_UnCacheDynamicMusic(void)
 static qboolean S_StartBackgroundTrack_Actual(MusicInfo_t* pMusicInfo, const qboolean qbDynamic, const char* intro,
 	const char* loop)
 {
-	int len;
+	int len = 0;
 	char dump[16];
 	char name[MAX_QPATH];
 
@@ -4339,7 +4339,7 @@ static qboolean S_StartBackgroundTrack_Actual(MusicInfo_t* pMusicInfo, const qbo
 
 		MP3MusicStream_Reset(pMusicInfo);
 
-		byte* pbMP3DataSegment;
+		byte* pbMP3DataSegment = nullptr;
 		int iInitialMP3ReadSize = 8192; // fairly arbitrary, whatever size this is then the decoder is allowed to
 		// scan up to halfway of it to find floating headers, so don't make it
 		// too small. 8k works fine.
@@ -5518,7 +5518,7 @@ void S_FreeAllSFXMem(void)
 int SND_FreeOldestSound(const sfx_t* pButNotThisOne /* = NULL */)
 {
 	int iBytesFreed = 0;
-	sfx_t* sfx;
+	sfx_t* sfx = nullptr;
 
 	int iOldest = Com_Milliseconds();
 	int iUsed = 0;
@@ -5535,7 +5535,7 @@ int SND_FreeOldestSound(const sfx_t* pButNotThisOne /* = NULL */)
 			{
 				// new bit, we can't throw away any sfx_t struct in use by a channel, else the paint code will crash...
 				//
-				int iChannel;
+				int iChannel = 0;
 				for (iChannel = 0; iChannel < MAX_CHANNELS; iChannel++)
 				{
 					const channel_t* ch = &s_channels[iChannel];

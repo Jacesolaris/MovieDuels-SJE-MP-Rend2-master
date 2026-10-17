@@ -46,7 +46,7 @@ qboolean G_SpawnString(const char* key, const char* defaultString, char** out)
 
 qboolean G_SpawnFloat(const char* key, const char* defaultString, float* out)
 {
-	char* s;
+	char* s = NULL;
 
 	const qboolean present = G_SpawnString(key, defaultString, &s);
 	*out = atof(s);
@@ -55,7 +55,7 @@ qboolean G_SpawnFloat(const char* key, const char* defaultString, float* out)
 
 qboolean G_SpawnInt(const char* key, const char* defaultString, int* out)
 {
-	char* s;
+	char* s = NULL;
 
 	const qboolean present = G_SpawnString(key, defaultString, &s);
 	*out = atoi(s);
@@ -64,7 +64,7 @@ qboolean G_SpawnInt(const char* key, const char* defaultString, int* out)
 
 qboolean G_SpawnVector(const char* key, const char* defaultString, float* out)
 {
-	char* s;
+	char* s = NULL;
 
 	const qboolean present = G_SpawnString(key, defaultString, &s);
 	if (sscanf(s, "%f %f %f", &out[0], &out[1], &out[2]) != 3)
@@ -78,7 +78,7 @@ qboolean G_SpawnVector(const char* key, const char* defaultString, float* out)
 
 qboolean G_SpawnBoolean(const char* key, const char* defaultString, qboolean* out)
 {
-	char* s;
+	char* s = NULL;
 
 	const qboolean present = G_SpawnString(key, defaultString, &s);
 
@@ -493,7 +493,7 @@ void SP_item_botroam(gentity_t* ent)
 static void SP_gametype_item(gentity_t* ent)
 {
 	gitem_t* item = NULL;
-	char* value;
+	char* value = NULL;
 	int team = -1;
 
 	G_SpawnString("teamfilter", "", &value);
@@ -859,7 +859,7 @@ so message texts can be multi-line
 */
 char* G_NewString(const char* string)
 {
-	char* newb;
+	char* newb = NULL;
 
 	const int len = strlen(string) + 1;
 	char* new_p = newb = (char*)G_Alloc(len);
@@ -886,7 +886,7 @@ char* G_NewString(const char* string)
 
 static char* G_NewString_Safe(const char* string)
 {
-	char* newb;
+	char* newb = NULL;
 
 	const int len = strlen(string) + 1;
 	char* new_p = newb = (char*)malloc(len);
@@ -936,7 +936,7 @@ static void G_ParseField(const char* key, const char* value, gentity_t* ent)
 	if (f)
 	{
 		vec3_t vec;
-		float v;
+		float v = 0.0f;
 		// found it
 		byte* b = (byte*)ent;
 
@@ -1009,8 +1009,8 @@ level.spawnVars[], then call the class specfic spawn function
 */
 void G_SpawnGEntityFromSpawnVars(qboolean inSubBSP)
 {
-	int i;
-	char* value;
+	int i = 0;
+	char* value = NULL;
 	static char* gametypeNames[] =
 	{
 		"ffa",
@@ -1222,7 +1222,7 @@ void sje_main_spawn_entity(gentity_t* ent)
 {
 	int i = 0;
 	int j = 0;
-	char* value;
+	char* value = NULL;
 	static char* gametypeNames[] =
 	{
 		"ffa",
@@ -1366,7 +1366,7 @@ void AddSpawnField(const char* field, const char* value)
 
 static void HandleEntityAdjustment(void)
 {
-	char* value;
+	char* value = NULL;
 	vec3_t origin, newOrigin, angles;
 	char temp[MAX_QPATH];
 
@@ -1789,8 +1789,8 @@ float g_cullDistance;
 
 static void SP_worldspawn(void)
 {
-	char* text;
-	int i;
+	char* text = NULL;
+	int i = 0;
 
 	G_SpawnFloat("distanceCull", "6000.0", &g_cullDistance);
 	trap->SetServerCull(g_cullDistance);
@@ -1970,7 +1970,7 @@ void G_PrecacheSoundsets(void)
 
 void G_LinkLocations(void)
 {
-	int i, n;
+	int i = 0, n = 0;
 
 	if (level.locations.linked)
 		return;

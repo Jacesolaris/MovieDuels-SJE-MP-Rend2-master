@@ -227,7 +227,7 @@ qboolean CROFFSystem::InitROFF2(unsigned char* data, CROFF* obj)
 
 	if (obj->mMoveRotateList != nullptr)
 	{
-		int i;
+		int i = 0;
 		// Step past the header to get to the goods
 		auto roff_data = reinterpret_cast<TROFF2Entry*>(&hdr[1]);
 
@@ -254,7 +254,7 @@ qboolean CROFFSystem::InitROFF2(unsigned char* data, CROFF* obj)
 		if (obj->mNumNoteTracks)
 		{
 			size_t size = 0;
-			char* start;
+			char* start = nullptr;
 
 			char* ptr = start = reinterpret_cast<char*>(&roff_data[i]);
 
@@ -339,7 +339,7 @@ int CROFFSystem::Cache(const char* file, const qboolean isClient)
 {
 	int id = GetID(file);
 	unsigned char* data = nullptr;
-	CROFF* cROFF;
+	CROFF* cROFF = nullptr;
 
 	if (id)
 	{
@@ -843,8 +843,8 @@ qboolean CROFFSystem::ApplyROFF(SROFFEntity* roff_ent, const CROFF* roff)
 {
 	vec3_t result;
 	sharedEntity_t* ent = nullptr;
-	trajectory_t* originTrajectory, * angleTrajectory;
-	float* origin, * angle;
+	trajectory_t* originTrajectory = nullptr, * angleTrajectory = nullptr;
+	float* origin = nullptr, * angle = nullptr;
 	vec3_t originTemp, angleTemp; // function scope: origin/angle point here and are used after the if block
 
 	if (svs.time < roff_ent->mNextROFFTime)
@@ -996,8 +996,8 @@ void CROFFSystem::ProcessNote(const SROFFEntity* roff_ent, const char* note)
 //---------------------------------------------------------------------------
 qboolean CROFFSystem::ClearLerp(const SROFFEntity* roff_ent)
 {
-	trajectory_t* originTrajectory, * angleTrajectory;
-	float* origin, * angle;
+	trajectory_t* originTrajectory = nullptr, * angleTrajectory = nullptr;
+	float* origin = nullptr, * angle = nullptr;
 	vec3_t originTemp, angleTemp; // function scope: origin/angle point here and are used after the if block
 
 	if (roff_ent->mIsClient)

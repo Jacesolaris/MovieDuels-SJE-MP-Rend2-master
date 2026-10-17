@@ -126,7 +126,7 @@ UI_LoadArenasFromFile
 */
 static void UI_LoadArenasFromFile(char* filename)
 {
-	fileHandle_t	f;
+	fileHandle_t	f = 0;
 	static char			buf[BOTINFO_FILE_MAX];
 
 	const int len = trap->FS_Open(filename, &f, FS_READ);
@@ -389,7 +389,7 @@ UI_LoadBotsFromFile
 */
 static void UI_LoadBotsFromFile(char* filename)
 {
-	fileHandle_t	f;
+	fileHandle_t	f = 0;
 	static char			buf[BOTINFO_FILE_MAX];
 
 	const int len = trap->FS_Open(filename, &f, FS_READ);
@@ -563,7 +563,7 @@ one with the same model folder. The MovieDuels character menu takes the characte
 */
 const char* UI_GetBotInfoByModel(const char* model) {
 	char base[MAX_QPATH];
-	const char* slash;
+	const char* slash = NULL;
 	const char* found = NULL;
 
 	if (!model || !model[0]) {

@@ -74,7 +74,7 @@ qhandle_t CG_StatusHandle(int task) {
 }
 
 float CG_GetValue(int ownerDraw) {
-	clientInfo_t* ci;
+	clientInfo_t* ci = NULL;
 
 	const centity_t* cent = &cg_entities[cg.snap->ps.clientNum];
 	const playerState_t* ps = &cg.snap->ps;
@@ -287,7 +287,7 @@ static void CG_Text_Paint_Limit(float* maxX, float x, float y, float scale, vec4
 			&& psOut < &sTemp[sizeof(sTemp) - 1]	// sanity
 			)
 		{
-			int iAdvanceCount;
+			int iAdvanceCount = 0;
 			psOutLastGood = psOut;
 
 			const unsigned int uiLetter = trap->R_AnyLanguage_ReadCharFromString(psText, &iAdvanceCount, &bIsTrailingPunctuation);
@@ -321,12 +321,12 @@ static void CG_Text_Paint_Limit(float* maxX, float x, float y, float scale, vec4
 
 extern const char* CG_GetLocationString(const char* loc); //cg_main.c
 static void CG_DrawNewTeamInfo(rectDef_t* rect, float text_x, float text_y, float scale, vec4_t color, qhandle_t shader) {
-	int i, len;
-	const char* p;
+	int i = 0, len = 0;
+	const char* p = NULL;
 	vec4_t		hcolor;
-	float maxx, leftOver;
-	clientInfo_t* ci;
-	qhandle_t h;
+	float maxx = 0.0f, leftOver = 0.0f;
+	clientInfo_t* ci = NULL;
+	qhandle_t h = 0;
 
 	// max player name width
 	float pwidth = 0;
@@ -424,7 +424,7 @@ static void CG_DrawNewTeamInfo(rectDef_t* rect, float text_x, float text_y, floa
 
 static void CG_DrawTeamSpectators(rectDef_t* rect, float scale, vec4_t color, qhandle_t shader) {
 	if (cg.spectatorLen) {
-		float maxX;
+		float maxX = 0.0f;
 
 		if (cg.spectatorWidth == -1) {
 			cg.spectatorWidth = 0;

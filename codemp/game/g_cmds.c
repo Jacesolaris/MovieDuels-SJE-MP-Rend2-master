@@ -148,8 +148,8 @@ DeathmatchScoreboardMessage
 void DeathmatchScoreboardMessage(const gentity_t* ent)
 {
 	char string[1400] = { 0 };
-	int i;
-	int accuracy;
+	int i = 0;
+	int accuracy = 0;
 
 	// send the latest information on all clients
 	string[0] = 0;
@@ -166,7 +166,7 @@ void DeathmatchScoreboardMessage(const gentity_t* ent)
 	{
 		const int score_flags = 0;
 		char entry[1024];
-		int ping;
+		int ping = 0;
 
 		const gclient_t* cl = &level.clients[level.sortedClients[i]];
 
@@ -273,7 +273,7 @@ StringIsInteger
 */
 qboolean StringIsInteger(const char* s)
 {
-	int i, len;
+	int i = 0, len = 0;
 	qboolean found_digit = qfalse;
 
 	for (i = 0, len = strlen(s); i < len; i++)
@@ -297,8 +297,8 @@ Returns -1 if invalid
 */
 static int clientNumberFromString(const gentity_t* to, const char* s, const qboolean allowconnecting)
 {
-	gclient_t* cl;
-	int idnum;
+	gclient_t* cl = NULL;
+	int idnum = 0;
 	char clean_input[MAX_NETNAME];
 
 	if (StringIsInteger(s))
@@ -377,8 +377,8 @@ static int G_ClientNumberFromStrippedSubstring(const char* name)
 {
 	char		s2[MAX_STRING_CHARS];
 	char		n2[MAX_STRING_CHARS];
-	int			i, match = -1;
-	gclient_t* cl;
+	int			i = 0, match = -1;
+	gclient_t* cl = NULL;
 
 	// check for a name match
 	SanitizeString2((char*)name, s2);
@@ -403,7 +403,7 @@ static int G_ClientNumberFromStrippedSubstring(const char* name)
 static int G_ClientNumberFromArg(char* name)
 {
 	int client_id = 0;
-	char* cp;
+	char* cp = NULL;
 
 	cp = name;
 	while (*cp)
@@ -913,7 +913,7 @@ argv(0) god
 */
 static void Cmd_God_f(gentity_t* ent)
 {
-	char* msg;
+	char* msg = NULL;
 
 	ent->flags ^= FL_GODMODE;
 	if (!(ent->flags & FL_GODMODE))
@@ -935,7 +935,7 @@ argv(0) notarget
 */
 static void Cmd_Notarget_f(gentity_t* ent)
 {
-	char* msg;
+	char* msg = NULL;
 
 	ent->flags ^= FL_NOTARGET;
 	if (!(ent->flags & FL_NOTARGET))
@@ -948,7 +948,7 @@ static void Cmd_Notarget_f(gentity_t* ent)
 
 static void Cmd_Noforce_f(gentity_t* ent)
 {
-	char* msg;
+	char* msg = NULL;
 
 	ent->flags ^= FL_NOFORCE;
 	if (!(ent->flags & FL_NOFORCE))
@@ -968,7 +968,7 @@ argv(0) noclip
 */
 static void Cmd_Noclip_f(gentity_t* ent)
 {
-	char* msg;
+	char* msg = NULL;
 
 	if (in_camera)
 		return;
@@ -1207,7 +1207,7 @@ qboolean g_preventTeamBegin = qfalse;
 
 void SetTeam(gentity_t* ent, const char* s)
 {
-	int team;
+	int team = 0;
 
 	// fix: this prevents rare creation of invalid players
 	if (!ent->inuse)
@@ -1658,7 +1658,7 @@ Cmd_DuelTeam_f
 */
 static void Cmd_DuelTeam_f(gentity_t* ent)
 {
-	int old_team;
+	int old_team = 0;
 	char s[MAX_TOKEN_CHARS];
 
 	if (level.gametype != GT_POWERDUEL)
@@ -2210,7 +2210,7 @@ static void G_SayTo(const gentity_t* ent, const gentity_t* other, const int mode
 
 static void G_Say(const gentity_t* ent, const gentity_t* target, int mode, const char* chat_text)
 {
-	int color;
+	int color = 0;
 	char name[64];
 	// don't let text be too long for malicious reasons
 	char text[MAX_SAY_TEXT];
@@ -3100,7 +3100,7 @@ static void Cmd_AdminLogout(gentity_t* ent)
 
 static void Cmd_CallVote_f(gentity_t* ent)
 {
-	int i;
+	int i = 0;
 	char arg1[MAX_CVAR_VALUE_STRING] = { 0 };
 	char arg2[MAX_CVAR_VALUE_STRING] = { 0 };
 	voteString_t* vote = NULL;
@@ -3376,7 +3376,7 @@ Cmd_CallTeamVote_f
 static void Cmd_CallTeamVote_f(const gentity_t* ent)
 {
 	const team_t team = ent->client->sess.sessionTeam;
-	int i, cs_offset;
+	int i = 0, cs_offset = 0;
 	char arg1[MAX_CVAR_VALUE_STRING] = { 0 };
 	char arg2[MAX_CVAR_VALUE_STRING] = { 0 };
 
@@ -3479,7 +3479,7 @@ Cmd_TeamVote_f
 static void Cmd_TeamVote_f(const gentity_t* ent)
 {
 	const team_t team = ent->client->sess.sessionTeam;
-	int cs_offset;
+	int cs_offset = 0;
 	char msg[64] = { 0 };
 
 	if (team == TEAM_RED)

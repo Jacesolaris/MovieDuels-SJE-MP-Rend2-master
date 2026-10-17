@@ -144,8 +144,8 @@ void is_process_MPEG1(float x[][1152], /* intensity stereo */
 	CB_INFO cb_info[2], /* [ch] */
 	const int nsamp, const int ms_mode)
 {
-	int j, n, cb;
-	int isf;
+	int j = 0, n = 0, cb = 0;
+	int isf = 0;
 	float fls[3], frs[3];
 
 	int cb0 = cb_info[1].cbmax; /* start at end of right */
@@ -209,13 +209,13 @@ void is_process_MPEG2(float x[][1152], /* intensity stereo */
 	IS_SF_INFO* is_sf_info,
 	const int nsamp, const int ms_mode)
 {
-	int i, j, k, n, cb;
-	float fl, fr;
-	int isf;
+	int i = 0, j = 0, k = 0, n = 0, cb = 0;
+	float fl = 0.0f, fr = 0.0f;
+	int isf = 0;
 	int il[21] = { 0 }; /* zeroed as in SJE / MD SP: the nr[] fill loop may not cover every entry read below (C6001) */
-	int tmp;
-	int r;
-	int cb0;
+	int tmp = 0;
+	int r = 0;
+	int cb0 = 0;
 
 	const ARRAY2* lr = lr2[is_sf_info->intensity_scale][ms_mode];
 

@@ -352,7 +352,7 @@ CG_CalculateWeaponPosition
 */
 static void CG_CalculateWeaponPosition(vec3_t origin, vec3_t angles)
 {
-	float scale;
+	float scale = 0.0f;
 
 	VectorCopy(cg.refdef.vieworg, origin);
 	VectorCopy(cg.refdef.viewangles, angles);
@@ -517,8 +517,8 @@ void CG_AddViewWeaponDuals(refEntity_t* parent, playerState_t* ps, centity_t* ce
 	refEntity_t   barrel;
 	refEntity_t   flash;
 	weapon_t      weapon_num;
-	weaponInfo_t* weapon;
-	centity_t* non_predicted_cent;
+	weaponInfo_t* weapon = NULL;
+	centity_t* non_predicted_cent = NULL;
 	mdxaBone_t boltMatrix;
 
 	weapon_num = cent->currentState.weapon;
@@ -1079,8 +1079,8 @@ void CG_AddPlayerWeapon(refEntity_t* parent, playerState_t* ps, centity_t* cent,
 	refEntity_t gun;
 	refEntity_t barrel;
 	weapon_t weapon_num;
-	weaponInfo_t* weapon;
-	centity_t* non_predicted_cent;
+	weaponInfo_t* weapon = NULL;
+	centity_t* non_predicted_cent = NULL;
 	refEntity_t flash;
 	mdxaBone_t boltMatrix;
 
@@ -1517,12 +1517,12 @@ Add the weapon, and flash for the player's view
 void CG_AddViewWeapon(playerState_t* ps)
 {
 	refEntity_t hand;
-	centity_t* cent;
-	clientInfo_t* ci;
-	float fov_offset;
+	centity_t* cent = NULL;
+	clientInfo_t* ci = NULL;
+	float fov_offset = 0.0f;
 	vec3_t angles;
-	weaponInfo_t* weapon;
-	float cgFov;
+	weaponInfo_t* weapon = NULL;
+	float cgFov = 0.0f;
 
 	// Determine FOV for viewmodel
 	if (!cg.renderingThirdPerson &&
@@ -1618,7 +1618,7 @@ void CG_AddViewWeapon(playerState_t* ps)
 
 	// Animation mapping
 	{
-		float currentFrame;
+		float currentFrame = 0.0f;
 
 		if (cent->currentState.eType == ET_NPC)
 		{
@@ -1731,12 +1731,12 @@ WEAPON SELECTION
 
 void CG_DrawIconBackground(void)
 {
-	int height, x_add, t;
+	int height = 0, x_add = 0, t = 0;
 	const float in_time = cg.invenSelectTime + WEAPON_SELECT_TIME;
 	const float wp_time = cg.weaponSelectTime + WEAPON_SELECT_TIME;
 	const float fp_time = cg.forceSelectTime + WEAPON_SELECT_TIME;
-	int draw_type;
-	int prongs_on;
+	int draw_type = 0;
+	int prongs_on = 0;
 
 	// don't display if dead
 	if (cg.snap->ps.stats[STAT_HEALTH] <= 0)
@@ -2002,9 +2002,9 @@ Modernized for:
 */
 void CG_DrawWeaponSelect(void)
 {
-	int i;
+	int i = 0;
 	int count = 0;
-	int side_left_icon_cnt, side_right_icon_cnt;
+	int side_left_icon_cnt = 0, side_right_icon_cnt = 0;
 	const int y_offset = 0;
 
 	// Cannot cycle while on emplaced gun
@@ -2573,7 +2573,7 @@ void CG_Weapon_f(void)
 
 	if (num >= WP_THERMAL && num <= WP_DET_PACK)
 	{
-		int weap, i = 0;
+		int weap = 0, i = 0;
 
 		if (cg.snap->ps.weapon >= WP_THERMAL &&
 			cg.snap->ps.weapon <= WP_DET_PACK)
@@ -2926,7 +2926,7 @@ extern qboolean PM_PainAnim(int anim);
 
 void CG_FireWeapon(centity_t* cent, const qboolean alt_fire)
 {
-	int c;
+	int c = 0;
 
 	const entityState_t* ent = &cent->currentState;
 
@@ -3173,7 +3173,7 @@ Caused by an EV_MISSILE_MISS event, or directly by local bullet tracing
 */
 void cg_missile_hit_wall(const int weapon, vec3_t origin, vec3_t dir, const qboolean alt_fire, const int charge)
 {
-	int parm;
+	int parm = 0;
 	vec3_t up = { 0, 0, 1 };
 
 	switch (weapon)
@@ -3670,7 +3670,7 @@ void CG_ShutDownG2Weapons(void)
 
 void* CG_G2WeaponInstance(const centity_t* cent, const int weapon)
 {
-	const clientInfo_t* ci;
+	const clientInfo_t* ci = NULL;
 
 	if (weapon != WP_SABER)
 	{
@@ -3710,7 +3710,7 @@ void* CG_G2WeaponInstance(const centity_t* cent, const int weapon)
 
 void* CG_G2WeaponInstance2(const centity_t* cent, const int weapon)
 {
-	const clientInfo_t* ci;
+	const clientInfo_t* ci = NULL;
 
 	if (weapon != WP_SABER)
 	{
@@ -3750,7 +3750,7 @@ void* CG_G2WeaponInstance2(const centity_t* cent, const int weapon)
 
 void* CG_G2HolsterWeaponInstance(const centity_t* cent, const int weapon, const qboolean second_saber)
 {
-	const clientInfo_t* ci;
+	const clientInfo_t* ci = NULL;
 
 	if (weapon != WP_SABER)
 	{
@@ -3805,7 +3805,7 @@ void* CG_G2HolsterWeaponInstance(const centity_t* cent, const int weapon, const 
 // what ghoul2 model do we want to copy ?
 void CG_CopyG2WeaponInstance(const centity_t* cent, const int weapon_num, void* to_ghoul2)
 {
-	void* weapG2;
+	void* weapG2 = NULL;
 	qboolean hasWeaponInstance = qfalse;
 
 	if (cent == NULL)
@@ -4695,7 +4695,7 @@ void CG_DrawMDWheel(void)
 		const float a = 2.0f * (float)M_PI * (float)n / (float)mdWheel.numItems;
 		const float size = n == mdWheel.hover ? iconSize * MDW_ICON_HOVER / MDW_ICON : iconSize;
 		const float x = mx + sinf(a) * MDW_RADIUS * ax, y = my - cosf(a) * MDW_RADIUS;
-		qhandle_t icon;
+		qhandle_t icon = 0;
 		vec4_t color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		if (mdWheel.ring == 0)

@@ -5865,13 +5865,13 @@ static void BG_SetAnimSetSkeletonInfo(int index, const char* filename);
 
 int bg_parse_animation_file(const char* filename, animation_t* anim_set, const qboolean is_humanoid)
 {
-	char* text_p;
-	int i;
-	int used_index;
+	char* text_p = NULL;
+	int i = 0;
+	int used_index = 0;
 	int next_index = bgNumAllAnims;
 	qboolean dyn_alloc = qfalse;
 	static char bgpa_ftext[BG_ANIM_TEXT_BUFFER_SIZE];
-	fileHandle_t f;
+	fileHandle_t f = 0;
 
 	bgpa_ftext[0] = '\0';
 
@@ -6381,7 +6381,7 @@ static int BG_OwnSkelReplacement(const animation_t* animations, const char* name
 	static const int crouch[] = { BOTH_CROUCH1IDLE, BOTH_CROUCH1, BOTH_STAND1, -1 };
 	static const int inAir[] = { BOTH_INAIR1, BOTH_JUMP1, BOTH_STAND1, -1 };
 	static const int land[] = { BOTH_LAND1, BOTH_STAND1, -1 };
-	const int* list;
+	const int* list = NULL;
 
 	if (humanoidSet)
 	{
@@ -6546,7 +6546,7 @@ static int BG_OwnSkelReplacement(const animation_t* animations, const char* name
 // its anim resolution tables.
 static void BG_SetAnimSetSkeletonInfo(const int index, const char* filename)
 {
-	bgLoadedAnim_t* set;
+	bgLoadedAnim_t* set = NULL;
 	char gla[MAX_QPATH];
 
 	if (index <= 0 || index >= MAX_ANIM_FILES)
@@ -6783,8 +6783,8 @@ qboolean BG_ClassIsWholeBody(const int botclass)
 // Only classes whose size differs from a human; the humanoid-shaped droids keep the normal player box.
 qboolean BG_ClassCreatureSize(const int botclass, float* halfWidth, int* standheight, int* crouchheight)
 {
-	float w;
-	int h, c;
+	float w = 0.0f;
+	int h = 0, c = 0;
 
 	switch (botclass)
 	{
@@ -7561,7 +7561,7 @@ qboolean BG_HasAnimation(const int anim_index, const int animation)
 
 int PM_PickAnim(const int anim_index, const int min_anim, const int max_anim)
 {
-	int anim;
+	int anim = 0;
 	int count = 0;
 
 	do

@@ -214,7 +214,7 @@ void* RE_RegisterModels_Malloc(const int iSize, void* pvDiskBufferIfJustLoaded, 
 		ModelBin.pModelDiskImage = pvDiskBufferIfJustLoaded;
 		ModelBin.iAllocSize = iSize;
 
-		int iCheckSum;
+		int iCheckSum = 0;
 		if (ri->FS_FileIsInPAK(sModelName, &iCheckSum) == 1)
 		{
 			ModelBin.iPAKFileCheckSum = iCheckSum;	// else ModelBin's constructor will leave it as -1
@@ -285,7 +285,7 @@ static void* RE_RegisterServerModels_Malloc(const int iSize, void* pvDiskBufferI
 		ModelBin.pModelDiskImage = pvDiskBufferIfJustLoaded;
 		ModelBin.iAllocSize = iSize;
 
-		int iCheckSum;
+		int iCheckSum = 0;
 		if (ri->FS_FileIsInPAK(sModelName, &iCheckSum) == 1)
 		{
 			ModelBin.iPAKFileCheckSum = iCheckSum;	// else ModelBin's constructor will leave it as -1
@@ -647,9 +647,9 @@ ServerLoadMDXA - load a Ghoul 2 animation file
 */
 static qboolean ServerLoadMDXA(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
-	mdxaHeader_t* pinmodel, * mdxa;
-	int					version;
-	int					size;
+	mdxaHeader_t* pinmodel = nullptr, * mdxa = nullptr;
+	int					version = 0;
+	int					size = 0;
 
 #ifdef Q3_BIG_ENDIAN
 	int					j, k, i;
@@ -897,7 +897,7 @@ static qboolean R_MD_GLAFolderHasAnimCfg(const char* gla)
 qhandle_t R_MD_ChooseAnimGLA(const char* meshName, const mdxmHeader_t* mdxm, const qboolean fresh, char* usedName, const int usedNameSize)
 {
 	const char* ownName = R_MD_MeshOwnAnimName(meshName, mdxm->animName, fresh);
-	qhandle_t animIndex;
+	qhandle_t animIndex = 0;
 
 	Q_strncpyz(usedName, ownName, usedNameSize);
 
@@ -948,14 +948,14 @@ extern int OldToNewRemapTable[72];
 
 static qboolean ServerLoadMDXM(model_t* mod, void* buffer, const char* mod_name, qboolean& bAlreadyCached)
 {
-	int					i, j;
-	mdxmHeader_t* pinmodel, * mdxm;
-	mdxmLOD_t* lod;
-	mdxmSurface_t* surf;
-	int					version;
-	int					size;
+	int					i = 0, j = 0;
+	mdxmHeader_t* pinmodel = nullptr, * mdxm = nullptr;
+	mdxmLOD_t* lod = nullptr;
+	mdxmSurface_t* surf = nullptr;
+	int					version = 0;
+	int					size = 0;
 	//shader_t			*sh;
-	mdxmSurfHierarchy_t* surfInfo;
+	mdxmSurfHierarchy_t* surfInfo = nullptr;
 
 #ifdef Q3_BIG_ENDIAN
 	int					k;
@@ -1188,9 +1188,9 @@ Same as RE_RegisterModel, except used by the server to handle ghoul2 instance mo
 ====================
 */
 qhandle_t RE_RegisterServerModel(const char* name) {
-	model_t* mod;
+	model_t* mod = nullptr;
 	unsigned* buf = nullptr;
-	int			lod;
+	int			lod = 0;
 	qboolean	loaded;
 	/*
 	Ghoul2 Insert End
@@ -1340,11 +1340,11 @@ asked for again.
 ====================
 */
 static qhandle_t RE_RegisterModel_Actual(const char* name) {
-	model_t* mod;
+	model_t* mod = nullptr;
 	unsigned* buf = nullptr;
-	int			lod;
+	int			lod = 0;
 	qboolean	loaded;
-	modelHash_t* mh;
+	modelHash_t* mh = nullptr;
 	/*
 	Ghoul2 Insert End
 	*/
@@ -1560,11 +1560,11 @@ R_LoadMD3
 =================
 */
 static qboolean R_LoadMD3(model_t* mod, int lod, void* buffer, const char* name, qboolean& bAlreadyCached) {
-	int j;
-	md3Header_t* pinmodel;
-	md3Surface_t* surf;
-	int					version;
-	int					size;
+	int j = 0;
+	md3Header_t* pinmodel = nullptr;
+	md3Surface_t* surf = nullptr;
+	int					version = 0;
+	int					size = 0;
 
 #ifdef Q3_BIG_ENDIAN
 	md3Frame_t* frame;

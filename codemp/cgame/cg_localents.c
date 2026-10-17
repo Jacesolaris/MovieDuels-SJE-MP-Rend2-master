@@ -201,7 +201,7 @@ void CG_FragmentBounceSound(localEntity_t* le, const trace_t* trace)
 	// half the fragments will make a bounce sounds
 	if (rand() & 1)
 	{
-		sfxHandle_t s;
+		sfxHandle_t s = 0;
 
 		switch (le->leBounceSoundType)
 		{
@@ -440,7 +440,7 @@ CG_AddMoveScaleFade
 */
 static void CG_AddMoveScaleFade(localEntity_t* le)
 {
-	float c;
+	float c = 0.0f;
 	vec3_t delta;
 
 	refEntity_t* re = &le->refEntity;
@@ -625,7 +625,7 @@ CG_AddSpriteExplosion
 static void CG_AddSpriteExplosion(localEntity_t* le)
 {
 	refEntity_t re;
-	float c;
+	float c = 0.0f;
 
 	re = le->refEntity;
 
@@ -648,7 +648,7 @@ static void CG_AddSpriteExplosion(localEntity_t* le)
 	// add the dlight
 	if (le->light)
 	{
-		float light;
+		float light = 0.0f;
 
 		light = (float)(cg.time - le->startTime) / (le->endTime - le->startTime);
 		if (light < 0.5)
@@ -690,7 +690,7 @@ void CG_AddScorePlum(localEntity_t* le)
 {
 	vec3_t origin, delta, dir, vec;
 	const vec3_t up = { 0, 0, 1 };
-	int digits[10], numdigits;
+	int digits[10], numdigits = 0;
 
 	refEntity_t* re = &le->refEntity;
 

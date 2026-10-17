@@ -1942,7 +1942,7 @@ void CPoly::PolyInit(void)
 		return;
 	}
 
-	int i;
+	int i = 0;
 	vec3_t org = { 0.0f, 0.0f, 0.0f };
 
 	// Find our midpoint

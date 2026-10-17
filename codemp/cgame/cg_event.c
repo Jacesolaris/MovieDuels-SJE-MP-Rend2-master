@@ -51,7 +51,7 @@ extern qboolean PM_ReloadAnim(int anim);
 
 static void CG_SanitizeStringForPrint(const char* in, char* out, int outLen)
 {
-	int i, j = 0;
+	int i = 0, j = 0;
 	if (!in || !out || outLen <= 0) return;
 	for (i = 0; in[i] && j < outLen - 1; i++)
 	{
@@ -160,7 +160,7 @@ Also called by scoreboard drawing
 const char* CG_PlaceString(int rank)
 {
 	static char str[64];
-	char* s, * t;
+	char* s = NULL, * t = NULL;
 	// number extenstions, eg 1st, 2nd, 3rd, 4th etc.
 	// note that the rules are different for french, but by changing the required strip strings they seem to work
 	char s_st[10];
@@ -309,18 +309,18 @@ CG_Obituary
 */
 static void CG_Obituary(entityState_t* ent)
 {
-	int mod;
-	int target, attacker;
-	char* message;
-	const char* target_info;
-	const char* attacker_info;
+	int mod = 0;
+	int target = 0, attacker = 0;
+	char* message = NULL;
+	const char* target_info = NULL;
+	const char* attacker_info = NULL;
 	char target_name[32];
 	char attacker_name[32];
 	char target_veh_name[32] = { 0 };
 	char attacker_veh_name[32] = { 0 };
 	char attacker_veh_weap_name[32] = { 0 };
 	gender_t gender;
-	clientInfo_t* ci;
+	clientInfo_t* ci = NULL;
 	qboolean veh_message = qfalse;
 
 	target = ent->otherentityNum;
@@ -332,7 +332,7 @@ static void CG_Obituary(entityState_t* ent)
 	// them as the attacker so the obituary isn't shown as a suicide.
 	if (attacker == target && mod == MOD_SABER)
 	{
-		int ci;
+		int ci = 0;
 		for (ci = 0; ci < MAX_CLIENTS; ci++)
 		{
 			if (cg_entities[ci].serverSaberHitIndex == target &&
@@ -561,7 +561,7 @@ clientkilled:
 	// check for kill messages from the current clientNum
 	if (attacker == cg.snap->ps.clientNum)
 	{
-		char* s;
+		char* s = NULL;
 
 		if (cgs.gametype < GT_TEAM && cgs.gametype != GT_DUEL && cgs.gametype != GT_POWERDUEL)
 		{
@@ -1002,8 +1002,8 @@ CG_UseItem
 */
 static void CG_UseItem(const centity_t* cent)
 {
-	clientInfo_t* ci;
-	int clientNum;
+	clientInfo_t* ci = NULL;
+	int clientNum = 0;
 
 	const entityState_t* es = &cent->currentState;
 
@@ -1184,7 +1184,7 @@ Also called by playerstate transition
 */
 void CG_PainEvent(centity_t* cent, const int health)
 {
-	char* snd;
+	char* snd = NULL;
 
 	// don't do more than two pain sounds a second
 	if (cg.time - cent->pe.painTime < 1500)
@@ -1220,7 +1220,7 @@ extern qboolean BG_GetRootSurfNameWithVariant(void* ghoul2, const char* rootSurf
 
 void CG_ReattachLimb(centity_t* source)
 {
-	const clientInfo_t* ci;
+	const clientInfo_t* ci = NULL;
 
 	if (source->currentState.number >= MAX_CLIENTS)
 	{
@@ -1310,7 +1310,7 @@ static const char* CG_TeamName(const int team)
 static void CG_PrintCTFMessage(clientInfo_t* ci, const char* team_name, const int ctf_message)
 {
 	char printMsg[1024];
-	char* ref_name;
+	char* ref_name = NULL;
 
 	switch (ctf_message)
 	{
@@ -1485,7 +1485,7 @@ static void DoFall(centity_t* cent, const entityState_t* es, const int clientNum
 
 static int CG_InClientBitflags(const entityState_t* ent, const int client)
 {
-	int check_in;
+	int check_in = 0;
 	int sub = 0;
 
 	if (client > 47)
@@ -1851,14 +1851,14 @@ extern void CG_ChatBox_AddString(char* chat_str);
 
 void CG_EntityEvent(centity_t* cent, vec3_t position)
 {
-	entityState_t* es;
-	int event;
+	entityState_t* es = NULL;
+	int event = 0;
 	vec3_t dir;
-	const char* s;
-	int clientNum;
+	const char* s = NULL;
+	int clientNum = 0;
 	int e_id = 0;
 	int isnd = 0;
-	centity_t* cl_ent;
+	centity_t* cl_ent = NULL;
 
 	es = &cent->currentState;
 	event = es->event & ~EV_EVENT_BITS;
@@ -2038,9 +2038,9 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 	case EV_STEP_16: // smooth out step up transitions
 		DEBUGNAME("EV_STEP");
 		{
-			float old_step;
-			int delta;
-			int step;
+			float old_step = 0.0f;
+			int delta = 0;
+			int step = 0;
 
 			if (clientNum != cg.predictedPlayerState.clientNum)
 			{
@@ -2078,7 +2078,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 		DEBUGNAME("EV_SABERLOCK");
 		{
 			//entity is in saberlock, render blade lock and sound effects
-			centity_t* enemy;
+			centity_t* enemy = NULL;
 			clientInfo_t* enemy_client = NULL;
 			clientInfo_t* client = NULL;
 			int index = 1;
@@ -2838,8 +2838,8 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 	case EV_ITEM_PICKUP:
 		DEBUGNAME("EV_ITEM_PICKUP");
 		{
-			gitem_t* item;
-			int index;
+			gitem_t* item = NULL;
+			int index = 0;
 			qboolean newindex = qfalse;
 
 			index = cg_entities[es->eventParm].currentState.modelIndex; // player predicted
@@ -2921,8 +2921,8 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 	case EV_GLOBAL_ITEM_PICKUP:
 		DEBUGNAME("EV_GLOBAL_ITEM_PICKUP");
 		{
-			gitem_t* item;
-			int index;
+			gitem_t* item = NULL;
+			int index = 0;
 
 			index = es->eventParm; // player predicted
 
@@ -3016,7 +3016,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 		DEBUGNAME("EV_CHANGE_WEAPON");
 		{
 			int weapon = es->eventParm;
-			weaponInfo_t* weapon_info;
+			weaponInfo_t* weapon_info = NULL;
 
 			assert(weapon >= 0 && weapon < MAX_WEAPONS);
 
@@ -4426,7 +4426,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 	case EV_CONC_ALT_IMPACT:
 		DEBUGNAME("EV_CONC_ALT_IMPACT");
 		{
-			float dist;
+			float dist = 0.0f;
 			float shot_dist = VectorNormalize(es->angles);
 			vec3_t spot;
 
@@ -4831,8 +4831,8 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 	case EV_BMODEL_SOUND:
 		DEBUGNAME("EV_BMODEL_SOUND");
 		{
-			sfxHandle_t sfx;
-			const char* sound_set;
+			sfxHandle_t sfx = 0;
+			const char* sound_set = NULL;
 
 			sound_set = CG_ConfigString(CS_AMBIENT_SET + es->soundSetIndex);
 
@@ -5026,7 +5026,7 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 		//somewhat of a hack - weapon is the caller entity's index, trickedentindex is the proper sound channel
 		if (es->trickedentindex == CHAN_VOICE || es->trickedentindex == CHAN_VOICE_GLOBAL)
 		{
-			int gender;
+			int gender = 0;
 
 			if (es->clientNum < MAX_CLIENTS && cg_entities[es->clientNum].currentValid)
 			{
@@ -5046,15 +5046,15 @@ void CG_EntityEvent(centity_t* cent, vec3_t position)
 
 			if (gender == GENDER_FEMALE)
 			{
-				char* r;
+				char* r = NULL;
 				s = CG_ConfigString(CS_SOUNDS + es->eventParm);
 				r = strstr(s, "SOUND/CHARS/JADEN_MALE/");
 
 				if (r)
 				{
 					char sound_name[MAX_QPATH];
-					char* name_slash;
-					char* fileName;
+					char* name_slash = NULL;
+					char* fileName = NULL;
 
 					if (!strstr(s, "SOUND/CHARS/JADEN_MALE/MISC/"))
 					{

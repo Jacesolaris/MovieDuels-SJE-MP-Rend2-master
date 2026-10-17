@@ -247,7 +247,7 @@ static float AngleDiff(const float ang1, const float ang2)
 //===========================================================================
 int BotFuzzyPointReachabilityArea(vec3_t origin)
 {
-	int j;
+	int j = 0;
 	int areas[10];
 	vec3_t points[10], end;
 
@@ -446,7 +446,7 @@ static int MoverDown(aas_reachability_t* reach)
 //========================================================================
 void BotSetBrushModelTypes(void)
 {
-	int modelnum;
+	int modelnum = 0;
 
 	Com_Memset(modeltypes, 0, MAX_MODELS * sizeof(int));
 	//
@@ -516,7 +516,7 @@ static int BotValidTravel(vec3_t origin, aas_reachability_t* reach, const int tr
 //===========================================================================
 static void BotAddToAvoidReach(bot_movestate_t* ms, const int number, const float avoidtime)
 {
-	int i;
+	int i = 0;
 
 	for (i = 0; i < MAX_AVOIDREACH; i++)
 	{
@@ -549,7 +549,7 @@ static void BotAddToAvoidReach(bot_movestate_t* ms, const int number, const floa
 static float DistanceFromLineSquared(vec3_t p, vec3_t lp1, vec3_t lp2)
 {
 	vec3_t proj, dir;
-	int j;
+	int j = 0;
 
 	AAS_ProjectPointOntoVector(p, lp1, lp2, proj);
 	for (j = 0; j < 3; j++)
@@ -586,7 +586,7 @@ static float VectorDistanceSquared(vec3_t p1, vec3_t p2)
 //===========================================================================
 static int BotAvoidSpots(vec3_t origin, aas_reachability_t* reach, bot_avoidspot_t* avoidspots, const int numavoidspots)
 {
-	int checkbetween;
+	int checkbetween = 0;
 
 	switch (reach->traveltype & TRAVELTYPE_MASK)
 	{
@@ -678,7 +678,7 @@ int BotGetReachabilityToGoal(vec3_t origin, const int areanum,
 	bot_goal_t* goal, int travelflags,
 	bot_avoidspot_s* avoidspots, const int numavoidspots, int* flags)
 {
-	int i, t;
+	int i = 0, t = 0;
 	aas_reachability_t reach;
 
 	//if not in a valid area
@@ -771,7 +771,7 @@ int BotMovementViewTarget(const int movestate, bot_goal_t* goal, const int trave
 {
 	aas_reachability_t reach;
 	vec3_t end;
-	float dist;
+	float dist = 0.0f;
 
 	bot_movestate_t* ms = BotMoveStateFromHandle(movestate);
 	if (!ms) return qfalse;
@@ -919,7 +919,7 @@ static void MoverBottomCenter(aas_reachability_t* reach, vec3_t bottomcenter)
 //===========================================================================
 float BotGapDistance(vec3_t origin, vec3_t hordir, const int entnum)
 {
-	float startz;
+	float startz = 0.0f;
 	vec3_t start, end;
 	aas_trace_t trace;
 
@@ -1043,10 +1043,10 @@ static int BotWalkInDirection(bot_movestate_t* ms, vec3_t dir, const float speed
 	// if the bot is on the ground
 	if (ms->moveflags & MFL_ONGROUND)
 	{
-		int   stopevent;
-		int   cmdframes;
-		int   maxframes;
-		int   presencetype;
+		int   stopevent = 0;
+		int   cmdframes = 0;
+		int   maxframes = 0;
+		int   presencetype = 0;
 		vec3_t origin;
 		vec3_t tmpdir;
 		vec3_t velocity;
@@ -1295,7 +1295,7 @@ static void BotCheckBlocked(bot_movestate_t* ms, vec3_t dir, const int checkbott
 //===========================================================================
 static bot_moveresult_t BotTravel_Walk(bot_movestate_t* ms, aas_reachability_t* reach)
 {
-	float speed;
+	float speed = 0.0f;
 	vec3_t hordir{};
 	bot_moveresult_t_cleared(result);
 
@@ -1563,7 +1563,7 @@ static bot_moveresult_t BotFinishTravel_WaterJump(bot_movestate_t* ms, aas_reach
 static bot_moveresult_t BotTravel_WalkOffLedge(bot_movestate_t* ms, aas_reachability_t* reach)
 {
 	vec3_t hordir{}, dir;
-	float speed;
+	float speed = 0.0f;
 	bot_moveresult_t_cleared(result);
 
 	//check if the bot is blocked by anything
@@ -1658,7 +1658,7 @@ static int BotAirControl(vec3_t origin, vec3_t velocity, vec3_t goal, vec3_t dir
 static bot_moveresult_t BotFinishTravel_WalkOffLedge(bot_movestate_t* ms, aas_reachability_t* reach)
 {
 	vec3_t dir, hordir, end, v;
-	float speed;
+	float speed = 0.0f;
 	bot_moveresult_t_cleared(result);
 
 	//
@@ -1696,7 +1696,7 @@ static bot_moveresult_t BotTravel_Jump(bot_movestate_t* ms, aas_reachability_t* 
 {
 	vec3_t hordir, dir1, dir2, start, end, runstart;
 	//	vec3_t runstart, dir1, dir2, hordir;
-	int gapdist;
+	int gapdist = 0;
 	bot_moveresult_t_cleared(result);
 
 	//
@@ -1866,7 +1866,7 @@ static bot_moveresult_t BotTravel_Teleport(bot_movestate_t* ms, aas_reachability
 static bot_moveresult_t BotTravel_Elevator(bot_movestate_t* ms, aas_reachability_t* reach)
 {
 	vec3_t bottomcenter;
-	float dist, speed;
+	float dist = 0.0f, speed = 0.0f;
 	bot_moveresult_t_cleared(result);
 
 	//if standing on the plat
@@ -1916,8 +1916,8 @@ static bot_moveresult_t BotTravel_Elevator(bot_movestate_t* ms, aas_reachability
 	} //end if
 	else
 	{
-		float dist2;
-		float dist1;
+		float dist2 = 0.0f;
+		float dist1 = 0.0f;
 		vec3_t dir2;
 		vec3_t dir1;
 		vec3_t dir;
@@ -2107,7 +2107,7 @@ static void BotFuncBobStartEnd(aas_reachability_t* reach, vec3_t start, vec3_t e
 static bot_moveresult_t BotTravel_FuncBobbing(bot_movestate_t* ms, aas_reachability_t* reach)
 {
 	vec3_t dir, bottomcenter, bob_start, bob_end, bob_origin;
-	float dist, speed;
+	float dist = 0.0f, speed = 0.0f;
 	bot_moveresult_t_cleared(result);
 
 	//
@@ -2160,8 +2160,8 @@ static bot_moveresult_t BotTravel_FuncBobbing(bot_movestate_t* ms, aas_reachabil
 	} //end if
 	else
 	{
-		float dist2;
-		float dist1;
+		float dist2 = 0.0f;
+		float dist1 = 0.0f;
 		vec3_t dir2;
 		vec3_t dir1;
 #ifdef DEBUG_FUNCBOB
@@ -2270,7 +2270,7 @@ static bot_moveresult_t BotFinishTravel_FuncBobbing(bot_movestate_t* ms, aas_rea
 {
 	vec3_t bob_origin, bob_start, bob_end, dir, hordir;
 	bot_moveresult_t_cleared(result);
-	float speed;
+	float speed = 0.0f;
 
 	//
 	BotFuncBobStartEnd(reach, bob_start, bob_end, bob_origin);
@@ -2379,7 +2379,7 @@ static void BotResetGrapple(bot_movestate_t* ms)
 static bot_moveresult_t BotTravel_Grapple(bot_movestate_t* ms, aas_reachability_t* reach)
 {
 	bot_moveresult_t_cleared(result);
-	float dist;
+	float dist = 0.0f;
 	vec3_t dir;
 
 #ifdef DEBUG_GRAPPLE
@@ -2405,7 +2405,7 @@ static bot_moveresult_t BotTravel_Grapple(bot_movestate_t* ms, aas_reachability_
 	//
 	if (ms->moveflags & MFL_ACTIVEGRAPPLE)
 	{
-		int state;
+		int state = 0;
 #ifdef DEBUG_GRAPPLE
 		botimport.Print(PRT_MESSAGE, "BotTravel_Grapple: active grapple\n");
 #endif //DEBUG_GRAPPLE
@@ -2463,7 +2463,7 @@ static bot_moveresult_t BotTravel_Grapple(bot_movestate_t* ms, aas_reachability_
 	} //end if
 	else
 	{
-		int areanum;
+		int areanum = 0;
 		vec3_t org;
 		vec3_t viewdir;
 #ifdef DEBUG_GRAPPLE
@@ -2512,7 +2512,7 @@ static bot_moveresult_t BotTravel_Grapple(bot_movestate_t* ms, aas_reachability_
 		} //end if
 		else
 		{
-			float speed;
+			float speed = 0.0f;
 			if (dist < 70) speed = 300 - (300 - 4 * dist);
 			else speed = 400;
 			//
@@ -2658,7 +2658,7 @@ static bot_moveresult_t BotTravel_BFGJump(bot_movestate_t* ms, aas_reachability_
 static bot_moveresult_t BotFinishTravel_WeaponJump(bot_movestate_t* ms, aas_reachability_t* reach)
 {
 	vec3_t hordir;
-	float speed;
+	float speed = 0.0f;
 	bot_moveresult_t_cleared(result);
 
 	//if not jumped yet
@@ -2719,7 +2719,7 @@ static bot_moveresult_t BotTravel_JumpPad(bot_movestate_t* ms, aas_reachability_
 //===========================================================================
 static bot_moveresult_t BotFinishTravel_JumpPad(bot_movestate_t* ms, aas_reachability_t* reach)
 {
-	float speed;
+	float speed = 0.0f;
 	vec3_t hordir;
 	bot_moveresult_t_cleared(result);
 
@@ -2781,7 +2781,7 @@ static bot_moveresult_t BotMoveInGoalArea(bot_movestate_t* ms, bot_goal_t* goal)
 {
 	bot_moveresult_t_cleared(result);
 	vec3_t dir{};
-	float dist, speed;
+	float dist = 0.0f, speed = 0.0f;
 
 #ifdef DEBUG
 	//botimport.Print(PRT_MESSAGE, "%s: moving straight to goal\n", ClientName(ms->entityNum-1));
@@ -2835,7 +2835,7 @@ static bot_moveresult_t BotMoveInGoalArea(bot_movestate_t* ms, bot_goal_t* goal)
 //===========================================================================
 void BotMoveToGoal(bot_moveresult_t* result, const int movestate, bot_goal_t* goal, const int travelflags)
 {
-	int reachnum, resultflags;
+	int reachnum = 0, resultflags = 0;
 	aas_reachability_t reach, lastreach;
 	//vec3_t mins, maxs, up = {0, 0, 1};
 	//bsp_trace_t trace;

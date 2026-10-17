@@ -227,9 +227,9 @@ static void table_init()
 
 	if (!iOnceOnly++)
 	{
-		int code;
-		int j;
-		int i;
+		int code = 0;
+		int j = 0;
+		int i = 0;
 		/*--  c_values (dequant) --*/
 		for (i = 1; i < 18; i++)
 			look_c_value[i] = 2.0F / steps[i];
@@ -287,9 +287,9 @@ int audio_decode_init(MPEG_HEAD* h, const int framebytes_arg,
 	int reduction_code, const int transform_code, int convert_code,
 	int freq_limit)
 {
-	int i;
+	int i = 0;
 	static int first_pass = 1;
-	int abcd_index;
+	int abcd_index = 0;
 
 	if (first_pass)
 	{

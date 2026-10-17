@@ -774,7 +774,7 @@ qboolean WP_SaberBladeDoTransitionDamage(const saberInfo_t* saber, const int bla
 	qboolean saber2Active = qfalse;
 	qboolean dualSabers = qfalse;
 	int validStyles = 0;
-	int styleNum;
+	int styleNum = 0;
 
 	// -----------------------------------------------------
 	// DETERMINE DUAL SABERS
@@ -1209,7 +1209,7 @@ static void wp_saber_set_defaults(saberInfo_t* saber)
 
 static void Saber_ParseName(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	Q_strncpyz(saber->fullName, value, sizeof saber->fullName);
@@ -1217,7 +1217,7 @@ static void Saber_ParseName(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberType(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int saberType = GetIDForString(saberTable, value);
@@ -1227,7 +1227,7 @@ static void Saber_ParseSaberType(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberModel(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	Q_strncpyz(saber->model, value, sizeof saber->model);
@@ -1235,7 +1235,7 @@ static void Saber_ParseSaberModel(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseCustomSkin(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->skin = trap->R_RegisterSkin(value);
@@ -1243,7 +1243,7 @@ static void Saber_ParseCustomSkin(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSoundOn(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->soundOn = BG_SoundIndex(value);
@@ -1251,7 +1251,7 @@ static void Saber_ParseSoundOn(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSoundLoop(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->soundLoop = BG_SoundIndex(value);
@@ -1259,7 +1259,7 @@ static void Saber_ParseSoundLoop(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSoundOff(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->soundOff = BG_SoundIndex(value);
@@ -1267,7 +1267,7 @@ static void Saber_ParseSoundOff(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNumBlades(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1284,7 +1284,7 @@ static void Saber_ParseNumBlades(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberColor(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 
 	if (COM_ParseString(p, &value))
 		return;
@@ -1296,7 +1296,7 @@ static void Saber_ParseSaberColor(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberColor2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 
 	if (COM_ParseString(p, &value))
 		return;
@@ -1307,7 +1307,7 @@ static void Saber_ParseSaberColor2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberColor3(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 
 	if (COM_ParseString(p, &value))
 		return;
@@ -1318,7 +1318,7 @@ static void Saber_ParseSaberColor3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberColor4(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 
 	if (COM_ParseString(p, &value))
 		return;
@@ -1329,7 +1329,7 @@ static void Saber_ParseSaberColor4(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberColor5(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 
 	if (COM_ParseString(p, &value))
 		return;
@@ -1340,7 +1340,7 @@ static void Saber_ParseSaberColor5(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberColor6(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 
 	if (COM_ParseString(p, &value))
 		return;
@@ -1351,7 +1351,7 @@ static void Saber_ParseSaberColor6(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberColor7(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 
 	if (COM_ParseString(p, &value))
 		return;
@@ -1362,7 +1362,7 @@ static void Saber_ParseSaberColor7(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberLength(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1376,7 +1376,7 @@ static void Saber_ParseSaberLength(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberLength2(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1389,7 +1389,7 @@ static void Saber_ParseSaberLength2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberLength3(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1402,7 +1402,7 @@ static void Saber_ParseSaberLength3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberLength4(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1415,7 +1415,7 @@ static void Saber_ParseSaberLength4(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberLength5(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1428,7 +1428,7 @@ static void Saber_ParseSaberLength5(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberLength6(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1441,7 +1441,7 @@ static void Saber_ParseSaberLength6(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberLength7(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1454,7 +1454,7 @@ static void Saber_ParseSaberLength7(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberRadius(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1468,7 +1468,7 @@ static void Saber_ParseSaberRadius(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberRadius2(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1481,7 +1481,7 @@ static void Saber_ParseSaberRadius2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberRadius3(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1494,7 +1494,7 @@ static void Saber_ParseSaberRadius3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberRadius4(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1507,7 +1507,7 @@ static void Saber_ParseSaberRadius4(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberRadius5(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1520,7 +1520,7 @@ static void Saber_ParseSaberRadius5(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberRadius6(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1533,7 +1533,7 @@ static void Saber_ParseSaberRadius6(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberRadius7(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 
 	if (COM_ParseFloat(p, &f))
 		return;
@@ -1546,7 +1546,7 @@ static void Saber_ParseSaberRadius7(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberStyle(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 
 	if (COM_ParseString(p, &value))
 		return;
@@ -1566,7 +1566,7 @@ static void Saber_ParseSaberStyle(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberStyleLearned(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->stylesLearned |= 1 << TranslateSaberStyle(value);
@@ -1574,7 +1574,7 @@ static void Saber_ParseSaberStyleLearned(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSaberStyleForbidden(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->stylesForbidden |= 1 << TranslateSaberStyle(value);
@@ -1582,7 +1582,7 @@ static void Saber_ParseSaberStyleForbidden(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseMaxChain(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1593,7 +1593,7 @@ static void Saber_ParseMaxChain(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseLockable(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1605,7 +1605,7 @@ static void Saber_ParseLockable(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseThrowable(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1617,7 +1617,7 @@ static void Saber_ParseThrowable(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseDisarmable(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1629,7 +1629,7 @@ static void Saber_ParseDisarmable(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBlocking(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1641,7 +1641,7 @@ static void Saber_ParseBlocking(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseTwoHanded(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1653,7 +1653,7 @@ static void Saber_ParseTwoHanded(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseForceRestrict(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 
 	if (COM_ParseString(p, &value))
 		return;
@@ -1665,7 +1665,7 @@ static void Saber_ParseForceRestrict(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseLockBonus(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1676,7 +1676,7 @@ static void Saber_ParseLockBonus(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseParryBonus(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1687,7 +1687,7 @@ static void Saber_ParseParryBonus(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBreakParryBonus(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1698,7 +1698,7 @@ static void Saber_ParseBreakParryBonus(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBreakParryBonus2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1709,7 +1709,7 @@ static void Saber_ParseBreakParryBonus2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseDisarmBonus(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1720,7 +1720,7 @@ static void Saber_ParseDisarmBonus(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseDisarmBonus2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1731,7 +1731,7 @@ static void Saber_ParseDisarmBonus2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSingleBladeStyle(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->singleBladeStyle = TranslateSaberStyle(value);
@@ -1739,7 +1739,7 @@ static void Saber_ParseSingleBladeStyle(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSingleBladeThrowable(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1751,7 +1751,7 @@ static void Saber_ParseSingleBladeThrowable(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBrokenSaber1(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	Q_strncpyz(saber->brokenSaber1, Q_stricmp(value, "none") ? value : "", sizeof saber->brokenSaber1);
@@ -1759,7 +1759,7 @@ static void Saber_ParseBrokenSaber1(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBrokenSaber2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	Q_strncpyz(saber->brokenSaber2, Q_stricmp(value, "none") ? value : "", sizeof saber->brokenSaber2);
@@ -1767,7 +1767,7 @@ static void Saber_ParseBrokenSaber2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseReturnDamage(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1779,7 +1779,7 @@ static void Saber_ParseReturnDamage(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSpinSound(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->spinSound = BG_SoundIndex(value);
@@ -1787,7 +1787,7 @@ static void Saber_ParseSpinSound(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSwingSound1(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->swingSound[0] = BG_SoundIndex(value);
@@ -1795,7 +1795,7 @@ static void Saber_ParseSwingSound1(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSwingSound2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->swingSound[1] = BG_SoundIndex(value);
@@ -1803,7 +1803,7 @@ static void Saber_ParseSwingSound2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSwingSound3(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->swingSound[2] = BG_SoundIndex(value);
@@ -1811,7 +1811,7 @@ static void Saber_ParseSwingSound3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseMoveSpeedScale(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 	if (COM_ParseFloat(p, &f))
 	{
 		SkipRestOfLine(p);
@@ -1822,7 +1822,7 @@ static void Saber_ParseMoveSpeedScale(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseAnimSpeedScale(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 	if (COM_ParseFloat(p, &f))
 	{
 		SkipRestOfLine(p);
@@ -1833,7 +1833,7 @@ static void Saber_ParseAnimSpeedScale(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBounceOnWalls(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1845,7 +1845,7 @@ static void Saber_ParseBounceOnWalls(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBoltToWrist(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -1857,7 +1857,7 @@ static void Saber_ParseBoltToWrist(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseKataMove(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int saberMove = GetIDForString(saber_moveTable, value);
@@ -1868,7 +1868,7 @@ static void Saber_ParseKataMove(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseLungeAtkMove(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int saberMove = GetIDForString(saber_moveTable, value);
@@ -1878,7 +1878,7 @@ static void Saber_ParseLungeAtkMove(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseJumpAtkUpMove(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int saberMove = GetIDForString(saber_moveTable, value);
@@ -1888,7 +1888,7 @@ static void Saber_ParseJumpAtkUpMove(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseJumpAtkFwdMove(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int saberMove = GetIDForString(saber_moveTable, value);
@@ -1898,7 +1898,7 @@ static void Saber_ParseJumpAtkFwdMove(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseJumpAtkBackMove(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int saberMove = GetIDForString(saber_moveTable, value);
@@ -1908,7 +1908,7 @@ static void Saber_ParseJumpAtkBackMove(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseJumpAtkRightMove(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int saberMove = GetIDForString(saber_moveTable, value);
@@ -1918,7 +1918,7 @@ static void Saber_ParseJumpAtkRightMove(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseJumpAtkLeftMove(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int saberMove = GetIDForString(saber_moveTable, value);
@@ -1928,7 +1928,7 @@ static void Saber_ParseJumpAtkLeftMove(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseReadyAnim(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int anim = GetIDForString(animTable, value);
@@ -1938,7 +1938,7 @@ static void Saber_ParseReadyAnim(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseDrawAnim(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int anim = GetIDForString(animTable, value);
@@ -1948,7 +1948,7 @@ static void Saber_ParseDrawAnim(saberInfo_t* saber, const char** p)
 
 static void Saber_ParsePutawayAnim(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int anim = GetIDForString(animTable, value);
@@ -1958,7 +1958,7 @@ static void Saber_ParsePutawayAnim(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseTauntAnim(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int anim = GetIDForString(animTable, value);
@@ -1968,7 +1968,7 @@ static void Saber_ParseTauntAnim(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBowAnim(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 
@@ -1979,7 +1979,7 @@ static void Saber_ParseBowAnim(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseMeditateAnim(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int anim = GetIDForString(animTable, value);
@@ -1989,7 +1989,7 @@ static void Saber_ParseMeditateAnim(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseFlourishAnim(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int anim = GetIDForString(animTable, value);
@@ -1999,7 +1999,7 @@ static void Saber_ParseFlourishAnim(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseGloatAnim(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int anim = GetIDForString(animTable, value);
@@ -2009,7 +2009,7 @@ static void Saber_ParseGloatAnim(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSurrenderAnim(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int anim = GetIDForString(animTable, value);
@@ -2019,7 +2019,7 @@ static void Saber_ParseSurrenderAnim(saberInfo_t* saber, const char** p)
 
 static void Saber_ParsecombatstanceAnim(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	const int anim = GetIDForString(animTable, value);
@@ -2029,7 +2029,7 @@ static void Saber_ParsecombatstanceAnim(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoRollStab(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2041,7 +2041,7 @@ static void Saber_ParseNoRollStab(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoPullAttack(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2053,7 +2053,7 @@ static void Saber_ParseNoPullAttack(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoBackAttack(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2065,7 +2065,7 @@ static void Saber_ParseNoBackAttack(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoStabDown(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2077,7 +2077,7 @@ static void Saber_ParseNoStabDown(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoWallRuns(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2089,7 +2089,7 @@ static void Saber_ParseNoWallRuns(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoWallFlips(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2101,7 +2101,7 @@ static void Saber_ParseNoWallFlips(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoWallGrab(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2113,7 +2113,7 @@ static void Saber_ParseNoWallGrab(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoRolls(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2125,7 +2125,7 @@ static void Saber_ParseNoRolls(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoFlips(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2137,7 +2137,7 @@ static void Saber_ParseNoFlips(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoCartwheels(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2149,7 +2149,7 @@ static void Saber_ParseNoCartwheels(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoKicks(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2161,7 +2161,7 @@ static void Saber_ParseNoKicks(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoMirrorAttacks(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2183,7 +2183,7 @@ static void Saber_ParseNotInMP(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBladeStyle2Start(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2194,7 +2194,7 @@ static void Saber_ParseBladeStyle2Start(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoWallMarks(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2206,7 +2206,7 @@ static void Saber_ParseNoWallMarks(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoDLight(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2218,7 +2218,7 @@ static void Saber_ParseNoDLight(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoBlade(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2230,7 +2230,7 @@ static void Saber_ParseNoBlade(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseTrailStyle(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2241,7 +2241,7 @@ static void Saber_ParseTrailStyle(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseG2MarksShader(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 	{
 		SkipRestOfLine(p);
@@ -2256,7 +2256,7 @@ static void Saber_ParseG2MarksShader(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseG2WeaponMarkShader(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 	{
 		SkipRestOfLine(p);
@@ -2271,7 +2271,7 @@ static void Saber_ParseG2WeaponMarkShader(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseKnockbackScale(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 	if (COM_ParseFloat(p, &f))
 	{
 		SkipRestOfLine(p);
@@ -2282,7 +2282,7 @@ static void Saber_ParseKnockbackScale(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseDamageScale(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 	if (COM_ParseFloat(p, &f))
 	{
 		SkipRestOfLine(p);
@@ -2293,7 +2293,7 @@ static void Saber_ParseDamageScale(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoDismemberment(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2305,7 +2305,7 @@ static void Saber_ParseNoDismemberment(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoIdleEffect(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2317,7 +2317,7 @@ static void Saber_ParseNoIdleEffect(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseAlwaysBlock(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2329,7 +2329,7 @@ static void Saber_ParseAlwaysBlock(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoManualDeactivate(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2341,7 +2341,7 @@ static void Saber_ParseNoManualDeactivate(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseTransitionDamage(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2353,7 +2353,7 @@ static void Saber_ParseTransitionDamage(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSplashRadius(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 	if (COM_ParseFloat(p, &f))
 	{
 		SkipRestOfLine(p);
@@ -2364,7 +2364,7 @@ static void Saber_ParseSplashRadius(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSplashDamage(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2375,7 +2375,7 @@ static void Saber_ParseSplashDamage(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSplashKnockback(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 	if (COM_ParseFloat(p, &f))
 	{
 		SkipRestOfLine(p);
@@ -2386,7 +2386,7 @@ static void Saber_ParseSplashKnockback(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseHitSound1(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->hit_sound[0] = BG_SoundIndex(value);
@@ -2394,7 +2394,7 @@ static void Saber_ParseHitSound1(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseHitSound2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->hit_sound[1] = BG_SoundIndex(value);
@@ -2402,7 +2402,7 @@ static void Saber_ParseHitSound2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseHitSound3(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->hit_sound[2] = BG_SoundIndex(value);
@@ -2410,7 +2410,7 @@ static void Saber_ParseHitSound3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBlockSound1(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->blockSound[0] = BG_SoundIndex(value);
@@ -2418,7 +2418,7 @@ static void Saber_ParseBlockSound1(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBlockSound2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->blockSound[1] = BG_SoundIndex(value);
@@ -2426,7 +2426,7 @@ static void Saber_ParseBlockSound2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBlockSound3(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->blockSound[2] = BG_SoundIndex(value);
@@ -2434,7 +2434,7 @@ static void Saber_ParseBlockSound3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBounceSound1(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->bounceSound[0] = BG_SoundIndex(value);
@@ -2442,7 +2442,7 @@ static void Saber_ParseBounceSound1(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBounceSound2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->bounceSound[1] = BG_SoundIndex(value);
@@ -2450,7 +2450,7 @@ static void Saber_ParseBounceSound2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBounceSound3(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->bounceSound[2] = BG_SoundIndex(value);
@@ -2458,7 +2458,7 @@ static void Saber_ParseBounceSound3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBlockEffect(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 #ifdef _CGAME
@@ -2470,7 +2470,7 @@ static void Saber_ParseBlockEffect(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseHitPersonEffect(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 #ifdef _CGAME
@@ -2482,7 +2482,7 @@ static void Saber_ParseHitPersonEffect(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseHitOtherEffect(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 #ifdef _CGAME
@@ -2494,7 +2494,7 @@ static void Saber_ParseHitOtherEffect(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBladeEffect(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 #ifdef _CGAME
@@ -2506,7 +2506,7 @@ static void Saber_ParseBladeEffect(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoClashFlare(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2518,7 +2518,7 @@ static void Saber_ParseNoClashFlare(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoWallMarks2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2530,7 +2530,7 @@ static void Saber_ParseNoWallMarks2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoDLight2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2542,7 +2542,7 @@ static void Saber_ParseNoDLight2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoBlade2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2554,7 +2554,7 @@ static void Saber_ParseNoBlade2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseTrailStyle2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2565,7 +2565,7 @@ static void Saber_ParseTrailStyle2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseG2MarksShader2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 	{
 		SkipRestOfLine(p);
@@ -2580,7 +2580,7 @@ static void Saber_ParseG2MarksShader2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseG2WeaponMarkShader2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 	{
 		SkipRestOfLine(p);
@@ -2595,7 +2595,7 @@ static void Saber_ParseG2WeaponMarkShader2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseKnockbackScale2(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 	if (COM_ParseFloat(p, &f))
 	{
 		SkipRestOfLine(p);
@@ -2606,7 +2606,7 @@ static void Saber_ParseKnockbackScale2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseDamageScale2(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 	if (COM_ParseFloat(p, &f))
 	{
 		SkipRestOfLine(p);
@@ -2617,7 +2617,7 @@ static void Saber_ParseDamageScale2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoDismemberment2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2629,7 +2629,7 @@ static void Saber_ParseNoDismemberment2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoIdleEffect2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2641,7 +2641,7 @@ static void Saber_ParseNoIdleEffect2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseAlwaysBlock2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2653,7 +2653,7 @@ static void Saber_ParseAlwaysBlock2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoManualDeactivate2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2665,7 +2665,7 @@ static void Saber_ParseNoManualDeactivate2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseTransitionDamage2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2677,7 +2677,7 @@ static void Saber_ParseTransitionDamage2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSplashRadius2(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 	if (COM_ParseFloat(p, &f))
 	{
 		SkipRestOfLine(p);
@@ -2688,7 +2688,7 @@ static void Saber_ParseSplashRadius2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSplashDamage2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -2699,7 +2699,7 @@ static void Saber_ParseSplashDamage2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseSplashKnockback2(saberInfo_t* saber, const char** p)
 {
-	float f;
+	float f = 0.0f;
 	if (COM_ParseFloat(p, &f))
 	{
 		SkipRestOfLine(p);
@@ -2710,7 +2710,7 @@ static void Saber_ParseSplashKnockback2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseHit2Sound1(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->hit2Sound[0] = BG_SoundIndex(value);
@@ -2718,7 +2718,7 @@ static void Saber_ParseHit2Sound1(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseHit2Sound2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->hit2Sound[1] = BG_SoundIndex(value);
@@ -2726,7 +2726,7 @@ static void Saber_ParseHit2Sound2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseHit2Sound3(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->hit2Sound[2] = BG_SoundIndex(value);
@@ -2734,7 +2734,7 @@ static void Saber_ParseHit2Sound3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBlock2Sound1(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->block2Sound[0] = BG_SoundIndex(value);
@@ -2742,7 +2742,7 @@ static void Saber_ParseBlock2Sound1(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBlock2Sound2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->block2Sound[1] = BG_SoundIndex(value);
@@ -2750,7 +2750,7 @@ static void Saber_ParseBlock2Sound2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBlock2Sound3(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->block2Sound[2] = BG_SoundIndex(value);
@@ -2758,7 +2758,7 @@ static void Saber_ParseBlock2Sound3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseFallSound1(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->hit_sound[0] = BG_SoundIndex(value);
@@ -2766,7 +2766,7 @@ static void Saber_ParseFallSound1(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseFallSound2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->hit_sound[0] = BG_SoundIndex(value);
@@ -2774,7 +2774,7 @@ static void Saber_ParseFallSound2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseFallSound3(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->hit_sound[0] = BG_SoundIndex(value);
@@ -2782,7 +2782,7 @@ static void Saber_ParseFallSound3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBounce2Sound1(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->bounce2Sound[0] = BG_SoundIndex(value);
@@ -2790,7 +2790,7 @@ static void Saber_ParseBounce2Sound1(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBounce2Sound2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->bounce2Sound[1] = BG_SoundIndex(value);
@@ -2798,7 +2798,7 @@ static void Saber_ParseBounce2Sound2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBounce2Sound3(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 	saber->bounce2Sound[2] = BG_SoundIndex(value);
@@ -2806,7 +2806,7 @@ static void Saber_ParseBounce2Sound3(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBlockEffect2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 #ifdef _CGAME
@@ -2818,7 +2818,7 @@ static void Saber_ParseBlockEffect2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseHitPersonEffect2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 #ifdef _CGAME
@@ -2830,7 +2830,7 @@ static void Saber_ParseHitPersonEffect2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseHitOtherEffect2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 #ifdef _CGAME
@@ -2842,7 +2842,7 @@ static void Saber_ParseHitOtherEffect2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseBladeEffect2(saberInfo_t* saber, const char** p)
 {
-	const char* value;
+	const char* value = NULL;
 	if (COM_ParseString(p, &value))
 		return;
 #ifdef _CGAME
@@ -2854,7 +2854,7 @@ static void Saber_ParseBladeEffect2(saberInfo_t* saber, const char** p)
 
 static void Saber_ParseNoClashFlare2(saberInfo_t* saber, const char** p)
 {
-	int n;
+	int n = 0;
 	if (COM_ParseInt(p, &n))
 	{
 		SkipRestOfLine(p);
@@ -3092,7 +3092,7 @@ static void WP_SaberSetupKeywordHash(void)
 
 qboolean WP_SaberParseParms(const char* saber_name, saberInfo_t* saber)
 {
-	const char* token, * p;
+	const char* token = NULL, * p = NULL;
 	char useSaber[SABER_NAME_LENGTH];
 	qboolean triedDefault = qfalse;
 
@@ -3183,9 +3183,9 @@ qboolean WP_SaberParseParms(const char* saber_name, saberInfo_t* saber)
 
 qboolean WP_SaberParseParm(const char* saber_name, const char* parmname, char* saberData)
 {
-	const char* token;
-	const char* value;
-	const char* p;
+	const char* token = NULL;
+	const char* value = NULL;
+	const char* p = NULL;
 
 	if (!saber_name || !saber_name[0])
 	{
@@ -3356,9 +3356,9 @@ static char bgSaberParseTBuffer[MAX_SABER_DATA_SIZE];
 
 void WP_SaberLoadParms()
 {
-	int saberExtFNLen;
+	int saberExtFNLen = 0;
 	char saberExtensionListBuf[2048]; //	The list of file names read in
-	fileHandle_t f;
+	fileHandle_t f = 0;
 
 	int len = 0;
 

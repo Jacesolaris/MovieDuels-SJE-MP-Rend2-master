@@ -1136,7 +1136,7 @@ qboolean G_MissileImpact(gentity_t* ent, trace_t* trace)
 	vec3_t   fwd;
 	qboolean hit_client = qfalse;
 	qboolean is_knocked_saber = qfalse;
-	int      missile_dmg;
+	int      missile_dmg = 0;
 	gentity_t* other = &g_entities[trace->entityNum];
 
 	// Initial bounce flag (note: mostly overridden by specific logic below)
@@ -2032,7 +2032,7 @@ void G_RunMissile(gentity_t* ent)
 
 	vec3_t origin, ground_spot;
 	trace_t tr;
-	int passent;
+	int passent = 0;
 	qboolean is_knocked_saber = qfalse;
 
 	if (ent->neverFree && ent->s.weapon == WP_SABER && ent->flags & FL_BOUNCE_HALF)
@@ -2397,7 +2397,7 @@ void WP_HandleBoltBlock(gentity_t* bolt, gentity_t* blocker, trace_t* trace, vec
 	}
 	else
 	{
-		float block_points_used;
+		float block_points_used = 0.0f;
 
 		//
 		// Very close range: send to enemy

@@ -354,7 +354,7 @@ static bool GL_CheckForExtension(const char* ext)
 
 void GLW_InitTextureCompression(void)
 {
-	bool newer_tc, old_tc;
+	bool newer_tc = false, old_tc = false;
 
 	// Check for available tc methods.
 	newer_tc = GL_CheckForExtension("ARB_texture_compression") && GL_CheckForExtension("EXT_texture_compression_s3tc");
@@ -463,11 +463,11 @@ void GLW_InitTextureCompression(void)
 static const char* TruncateGLExtensionsString(const char* extensionsString, int maxExtensions)
 {
 	const char* p = extensionsString;
-	const char* q;
+	const char* q = nullptr;
 	int numExtensions = 0;
 	size_t extensionsLen = strlen(extensionsString);
 
-	char* truncatedExtensions;
+	char* truncatedExtensions = nullptr;
 
 	while ((q = strchr(p, ' ')) != NULL && numExtensions < maxExtensions)
 	{
@@ -490,7 +490,7 @@ static const char* TruncateGLExtensionsString(const char* extensionsString, int 
 
 static const char* GetGLExtensionsString()
 {
-	GLint numExtensions;
+	GLint numExtensions = 0;
 	glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
 	size_t extensionStringLen = 0;
 
@@ -592,7 +592,7 @@ static void InitOpenGL(void)
 		GLimp_InitExtensions();
 
 		// Create the default VAO
-		GLuint vao;
+		GLuint vao = 0;
 		qglGenVertexArrays(1, &vao);
 		qglBindVertexArray(vao);
 #ifndef __APPLE__
@@ -693,9 +693,9 @@ Return value must be freed with ri->Hunk_FreeTempMemory()
 
 static byte* RB_ReadPixels(int x, int y, int width, int height, size_t* offset, int* padlen)
 {
-	byte* buffer, * bufstart;
-	int padwidth, linelen;
-	GLint packAlign;
+	byte* buffer = nullptr, * bufstart = nullptr;
+	int padwidth = 0, linelen = 0;
+	GLint packAlign = 0;
 
 	qglGetIntegerv(GL_PACK_ALIGNMENT, &packAlign);
 
@@ -866,7 +866,7 @@ R_TakeScreenshotCmd
 ==================
 */
 const void* RB_TakeScreenshotCmd(const void* data) {
-	const screenshotCommand_t* cmd;
+	const screenshotCommand_t* cmd = nullptr;
 
 	cmd = (const screenshotCommand_t*)data;
 
@@ -878,7 +878,7 @@ const void* RB_TakeScreenshotCmd(const void* data) {
 	gpuFrame_t* thisFrame = &backEndData->frames[frameNumber % MAX_FRAMES];
 	screenshotReadback_t* screenshot = &thisFrame->screenshotReadback;
 
-	GLint packAlign;
+	GLint packAlign = 0;
 	qglGetIntegerv(GL_PACK_ALIGNMENT, &packAlign);
 
 	const int linelen = cmd->width * 3;
@@ -912,7 +912,7 @@ R_TakeScreenshot
 */
 static void R_TakeScreenshot(int x, int y, int width, int height, char* name, screenshotFormat_t format) {
 	static char	fileName[MAX_OSPATH]; // bad things if two screenshots per frame?
-	screenshotCommand_t* cmd;
+	screenshotCommand_t* cmd = nullptr;
 
 	cmd = (screenshotCommand_t*)R_GetCommandBuffer(sizeof(*cmd));
 	if (!cmd) {
@@ -935,7 +935,7 @@ R_ScreenshotFilename
 ==================
 */
 static void R_ScreenshotFilename(char* buf, int bufSize, const char* ext) {
-	time_t rawtime;
+	time_t rawtime = 0;
 	char timeStr[32] = { 0 }; // should really only reach ~19 chars
 
 	time(&rawtime);
@@ -955,15 +955,15 @@ the menu system, sampled down from full screen distorted images
 #define LEVELSHOTSIZE 256
 static void R_LevelShot(void) {
 	char		checkname[MAX_OSPATH];
-	byte* buffer;
-	byte* source, * allsource;
-	byte* src, * dst;
+	byte* buffer = nullptr;
+	byte* source = nullptr, * allsource = nullptr;
+	byte* src = nullptr, * dst = nullptr;
 	size_t		offset = 0;
-	int			padlen;
-	int			x, y;
-	int			r, g, b;
-	float		xScale, yScale;
-	int			xx, yy;
+	int			padlen = 0;
+	int			x = 0, y = 0;
+	int			r = 0, g = 0, b = 0;
+	float		xScale = 0.0f, yScale = 0.0f;
+	int			xx = 0, yy = 0;
 
 	Com_sprintf(checkname, sizeof(checkname), "levelshots/%s.tga", tr.world->baseName);
 
@@ -1130,11 +1130,11 @@ RB_TakeVideoFrameCmd
 */
 const void* RB_TakeVideoFrameCmd(const void* data)
 {
-	const videoFrameCommand_t* cmd;
-	byte* cBuf;
-	size_t				memcount, linelen;
-	int				padwidth, avipadwidth, padlen, avipadlen;
-	GLint packAlign;
+	const videoFrameCommand_t* cmd = nullptr;
+	byte* cBuf = nullptr;
+	size_t				memcount = 0, linelen = 0;
+	int				padwidth = 0, avipadwidth = 0, padlen = 0, avipadlen = 0;
+	GLint packAlign = 0;
 
 	// finish any 2D drawing if needed
 	if (tess.numIndexes)
@@ -1173,8 +1173,8 @@ const void* RB_TakeVideoFrameCmd(const void* data)
 	}
 	else
 	{
-		byte* lineend, * memend;
-		byte* srcptr, * destptr;
+		byte* lineend = nullptr, * memend = nullptr;
+		byte* srcptr = nullptr, * destptr = nullptr;
 
 		srcptr = cBuf;
 		destptr = cmd->encodeBuffer;
@@ -1276,7 +1276,7 @@ Workaround for ri->Printf's 1024 characters buffer limit.
 */
 static void R_PrintLongString(const char* string) {
 	char buffer[1024];
-	const char* p;
+	const char* p = nullptr;
 	int size = strlen(string);
 
 	p = string;
@@ -1381,7 +1381,7 @@ static void GfxMemInfo_f(void)
 	break;
 	case MI_NVX:
 	{
-		int value;
+		int value = 0;
 
 		qglGetIntegerv(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX, &value);
 		ri->Printf(PRINT_ALL, "GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX: %ikb\n", value);
@@ -2056,8 +2056,8 @@ R_Init
 */
 void R_Init(void)
 {
-	byte* ptr;
-	int i;
+	byte* ptr = nullptr;
+	int i = 0;
 
 	if (r_inited)
 		return;

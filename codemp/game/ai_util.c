@@ -344,7 +344,7 @@ static int GetPairedValue(char* buf, const char* key, char* outbuf)
 
 int BotDoChat(bot_state_t* bs, const char* section, const int always)
 {
-	gentity_t* cobject;
+	gentity_t* cobject = NULL;
 
 	if (!bs->canChat)
 	{
@@ -619,7 +619,7 @@ static int ReadChatGroups(const bot_state_t* bs, const char* buf)
 
 void BotUtilizePersonality(bot_state_t* bs)
 {
-	fileHandle_t f;
+	fileHandle_t f = 0;
 	char* buf = B_TempAlloc(131072);
 
 	int len = trap->FS_Open(bs->settings.personalityfile, &f, FS_READ);
@@ -937,7 +937,7 @@ void BotUtilizePersonality(bot_state_t* bs)
 		//give bots weapon skills based on their weapon weights if they aren't a saber specialist.
 		for (i = 0; i < WP_NUM_WEAPONS; i++)
 		{
-			int skillLevel;
+			int skillLevel = 0;
 			if (bs->botWeaponWeights[i] >= 11)
 			{
 				//master level

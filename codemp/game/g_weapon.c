@@ -1640,7 +1640,7 @@ static void WP_DisruptorMainFire(gentity_t* ent)
 	qboolean render_impact = qtrue;
 	vec3_t start, end;
 	trace_t tr;
-	gentity_t* traceEnt;
+	gentity_t* traceEnt = NULL;
 	const float shot_range = 8192.0f;
 
 	const vec3_t shot_maxs = { DISRUPTOR_SHOT_SIZE, DISRUPTOR_SHOT_SIZE, DISRUPTOR_SHOT_SIZE };
@@ -1849,7 +1849,7 @@ static int DetermineDisruptorCharge(const gentity_t* ent)
 {
 	//returns the current charge level of the disruptor.
 	//WARNING: This function doesn't check ent to see if it is using a disruptor or if it is in alt-fire mode.
-	int count;
+	int count = 0;
 	const int max_count = DISRUPTOR_MAX_CHARGE;
 	if (ent->client)
 	{
@@ -2234,7 +2234,7 @@ static void WP_BowcasterMainFire(gentity_t* ent)
 		return;
 	}
 
-	int damage, count;
+	int damage = 0, count = 0;
 	vec3_t angs;
 
 	// Determine charge count
@@ -2551,7 +2551,7 @@ static void DEMP2_AltRadiusDamage(gentity_t* ent)
 	static gentity_t* entity_list[MAX_GENTITIES];
 
 	gentity_t* my_owner = NULL;
-	int i;
+	int i = 0;
 	vec3_t mins = { 0 }, maxs = { 0 };
 	vec3_t v = { 0 }, dir = { 0 };
 
@@ -3461,7 +3461,7 @@ static void WP_GrenadeBlow(gentity_t* self)
 		vec3_t dir = { 0, 0, 1 };
 		int entitys[1024];
 		vec3_t mins = { 0 }, maxs = { 0 }, v = { 0 };
-		int i;
+		int i = 0;
 		for (i = 0; i < 3; i++)
 		{
 			mins[i] = self->r.currentOrigin[i] - GRENADE_SPLASH_RAD / 2;
@@ -5745,7 +5745,7 @@ gentity_t* WP_FireVehicleWeapon(gentity_t* ent, vec3_t start, vec3_t dir, const 
 			//homing missile
 			if (ent->client && ent->client->ps.rocketLockIndex != ENTITYNUM_NONE)
 			{
-				int dif;
+				int dif = 0;
 				float r_time = ent->client->ps.rocketLockTime;
 
 				if (r_time == -1)
@@ -5846,7 +5846,7 @@ gentity_t* WP_FireVehicleWeapon(gentity_t* ent, vec3_t start, vec3_t dir, const 
 void G_VehMuzzleFireFX(const gentity_t* ent, gentity_t* broadcaster, const int muzzles_fired)
 {
 	const Vehicle_t* p_veh = ent->m_pVehicle;
-	gentity_t* b;
+	gentity_t* b = NULL;
 
 	if (!p_veh)
 	{
@@ -6159,7 +6159,7 @@ static void FireVehicleWeapon(gentity_t* ent, const qboolean alt_fire)
 		// NOTE: Wings open also denotes that it has already launched.
 	{
 		//fighters can only fire when wings are open
-		int weapon_num;
+		int weapon_num = 0;
 		qboolean linked_firing = qfalse;
 
 		if (!alt_fire)
@@ -6225,7 +6225,7 @@ static void FireVehicleWeapon(gentity_t* ent, const qboolean alt_fire)
 			//invalid vehicle weapon
 			return;
 		}
-		int i, numMuzzles = 0, numMuzzlesReady = 0, cumulativeDelay = 0, cumulativeAmmo = 0;
+		int i = 0, numMuzzles = 0, numMuzzlesReady = 0, cumulativeDelay = 0, cumulativeAmmo = 0;
 		qboolean sentAmmoWarning = qfalse;
 
 		veh_weapon = &g_vehWeaponInfo[vehweapon_index];
@@ -6671,7 +6671,7 @@ void FireWeapon(gentity_t* ent, const qboolean alt_fire)
 
 		if (emp->inuse)
 		{
-			float yaw;
+			float yaw = 0.0f;
 			vec3_t view_ang_cap;
 
 			VectorCopy(ent->client->ps.viewangles, view_ang_cap);
@@ -6961,7 +6961,7 @@ static void WP_FireEmplaced(gentity_t* ent, const qboolean alt_fire)
 {
 	vec3_t dir, angs, gunpoint;
 	vec3_t right;
-	int side;
+	int side = 0;
 
 	if (!ent->client)
 	{

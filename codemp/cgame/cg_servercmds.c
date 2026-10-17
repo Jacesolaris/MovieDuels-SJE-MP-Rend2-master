@@ -133,7 +133,7 @@ and whenever the server updates any serverinfo flagged cvars
 ================
 */
 void CG_ParseServerinfo(void) {
-	int i;
+	int i = 0;
 
 	const char* info = CG_ConfigString(CS_SERVERINFO);
 
@@ -1215,8 +1215,8 @@ void CG_CheckSVStringEdRef(char* buf, const char* str)
 
 static void CG_BodyQueueCopy(centity_t* cent, int client_num, int knownWeapon)
 {
-	animation_t* anim;
-	float			anim_speed;
+	animation_t* anim = NULL;
+	float			anim_speed = 0.0f;
 	const int				flags = BONE_ANIM_OVERRIDE_FREEZE;
 
 	if (cent->ghoul2)
@@ -1281,7 +1281,7 @@ static void CG_BodyQueueCopy(centity_t* cent, int client_num, int knownWeapon)
 
 	if (!cent->ownerRagging)
 	{
-		int aNum;
+		int aNum = 0;
 		qboolean fallBack = qfalse;
 
 		//anim = &bgAllAnims[cent->localAnimIndex].anims[ cent->currentState.torsoAnim ];
@@ -1384,7 +1384,7 @@ static void CG_AdminMenu_f(void)
 
 static void CG_inGameCinematic_f(void)
 {
-	fileHandle_t file;
+	fileHandle_t file = 0;
 	char name[MAX_STRING_CHARS];
 	strcpy(name, va("video/%s.roq", CG_Argv(1)));
 
@@ -1573,7 +1573,7 @@ static void CG_Pazaak_f(void)
 {
 	char buf[MAX_STRING_CHARS];
 	const int argc = trap->Cmd_Argc();
-	int i;
+	int i = 0;
 
 	Q_strncpyz(buf, "uipzk", sizeof buf);
 	for (i = 1; i < argc; i++)

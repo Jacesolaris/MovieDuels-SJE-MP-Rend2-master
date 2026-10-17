@@ -67,7 +67,7 @@ Hunter_MaintainHeight
 
 static void ImperialProbe_MaintainHeight(void)
 {
-	float dif;
+	float dif = 0.0f;
 	//	vec3_t	endPos;
 	//	trace_t	trace;
 
@@ -91,7 +91,7 @@ static void ImperialProbe_MaintainHeight(void)
 	}
 	else
 	{
-		const gentity_t* goal;
+		const gentity_t* goal = NULL;
 
 		if (NPCS.NPCInfo->goalEntity) // Is there a goal?
 			goal = NPCS.NPCInfo->goalEntity;
@@ -228,7 +228,7 @@ ImperialProbe_Hunt
 
 static void ImperialProbe_Hunt(const qboolean visible, const qboolean advance)
 {
-	float distance;
+	float distance = 0.0f;
 	vec3_t forward;
 
 	NPC_SetAnim(NPCS.NPC, SETANIM_BOTH, BOTH_RUN1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
@@ -340,8 +340,8 @@ static void ImperialProbe_Ranged(const qboolean visible, const qboolean advance)
 {
 	if (TIMER_Done(NPCS.NPC, "attackDelay")) // Attack?
 	{
-		int delay_max;
-		int delay_min;
+		int delay_max = 0;
+		int delay_min = 0;
 		if (g_npcspskill.integer == 0)
 		{
 			delay_min = 500;

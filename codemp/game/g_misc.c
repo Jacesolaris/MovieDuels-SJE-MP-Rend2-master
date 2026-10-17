@@ -730,7 +730,7 @@ The target for a misc_portal_director.  You can set either angles or target anot
 */
 void SP_misc_portal_camera(gentity_t* ent)
 {
-	float roll;
+	float roll = 0.0f;
 
 	VectorClear(ent->r.mins);
 	VectorClear(ent->r.maxs);
@@ -747,9 +747,9 @@ void SP_misc_portal_camera(gentity_t* ent)
 void SP_misc_bsp(gentity_t* ent)
 {
 	char temp[MAX_QPATH];
-	char* out;
-	float newAngle;
-	int tempint;
+	char* out = NULL;
+	float newAngle = 0.0f;
+	int tempint = 0;
 
 	G_SpawnFloat("angle", "0", &newAngle);
 	if (newAngle != 0.0)
@@ -909,10 +909,10 @@ will explode.
 */
 void SP_misc_skyportal(gentity_t* ent)
 {
-	char* fov;
+	char* fov = NULL;
 	vec3_t fogv; //----(SA)
-	int fogn; //----(SA)
-	int fogf; //----(SA)
+	int fogn = 0; //----(SA)
+	int fogf = 0; //----(SA)
 	int isfog = 0; // (SA)
 
 	G_SpawnString("fov", "80", &fov);
@@ -1839,7 +1839,7 @@ Rules:
 void Holocron_Loadpositions(void)
 {
 	char loadPath[MAX_QPATH];
-	fileHandle_t f;
+	fileHandle_t f = 0;
 	int len = 0;
 	char* buf = NULL;
 	int count = 0;
@@ -1952,7 +1952,7 @@ Notes:
 */
 void Holocron_Savepositions(void)
 {
-	fileHandle_t f;
+	fileHandle_t f = 0;
 	char savePath[MAX_QPATH];
 	int i = 0;
 
@@ -2302,7 +2302,7 @@ static void shield_power_converter_use(gentity_t* self, const gentity_t* other, 
 
 	if (self->setTime < level.time)
 	{
-		int maxArmor;
+		int maxArmor = 0;
 		if (!self->s.loopSound)
 		{
 			self->s.loopSound = G_SoundIndex("sound/interface/shieldcon_run");
@@ -2325,7 +2325,7 @@ static void shield_power_converter_use(gentity_t* self, const gentity_t* other, 
 
 		if (dif > 0) // Already at full armor?
 		{
-			int add;
+			int add = 0;
 			if (dif > MAX_AMMO_GIVE)
 			{
 				add = MAX_AMMO_GIVE;
@@ -2462,7 +2462,7 @@ static void ammo_generic_power_converter_use(gentity_t* self, gentity_t* other, 
 
 	if (self->setTime < level.time)
 	{
-		int add;
+		int add = 0;
 		qboolean gaveSome = qfalse;
 
 		if (!self->s.loopSound)
@@ -2986,7 +2986,7 @@ static void health_power_converter_use(gentity_t* self, gentity_t* other, gentit
 
 		if (dif > 0) // Already at full armor?
 		{
-			int add;
+			int add = 0;
 			if (dif > /*MAX_AMMO_GIVE*/5)
 			{
 				add = 5; //MAX_AMMO_GIVE;
@@ -3504,7 +3504,7 @@ static void fx_runner_link(gentity_t* ent)
 //----------------------------------------------------------
 void SP_fx_runner(gentity_t* ent)
 {
-	char* fxFile;
+	char* fxFile = NULL;
 
 	G_SpawnString("fxFile", "", &fxFile);
 	// Get our defaults
@@ -4594,7 +4594,7 @@ extern stringID_table_t WPTable[];
 
 void SP_misc_weapon_shooter(gentity_t* self)
 {
-	char* s;
+	char* s = NULL;
 
 	//alloc a client just for the weapon code to use
 	self->client = G_ClientForShooter(); //(gclient_s *)trap->Malloc(sizeof(gclient_s), TAG_G_ALLOC, qtrue);
@@ -5236,7 +5236,7 @@ extern qboolean InFOV3(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, in
 
 static void camera_aim(gentity_t* self)
 {
-	gentity_t* player;
+	gentity_t* player = NULL;
 	self->nextthink = level.time + FRAMETIME;
 	if (self->genericValue1)
 	{

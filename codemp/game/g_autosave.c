@@ -139,7 +139,7 @@ void Create_Autosave(vec3_t origin, int size, const qboolean teleportPlayers)
 }void Load_Autosaves(void)
 {
 	// load in our autosave from the .autosp
-	fileHandle_t f;
+	fileHandle_t f = 0;
 	static char buf[MAX_AUTOSAVE_FILESIZE + 1]; // +1 for guaranteed terminator
 	char loadPath[MAX_QPATH];
 	int sizeData = 0;

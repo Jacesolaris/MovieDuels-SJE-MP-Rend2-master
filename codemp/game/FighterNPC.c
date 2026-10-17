@@ -62,7 +62,7 @@ qboolean BG_FighterUpdate(Vehicle_t* p_veh, const usercmd_t* pUcmd, vec3_t trMin
 		const vec3_t lmaxs, const vec3_t end, int pass_entity_num, int content_mask))
 {
 	vec3_t bottom;
-	playerState_t* parent_ps;
+	playerState_t* parent_ps = NULL;
 #ifdef _GAME //don't do this on client
 
 	// Make sure the riders are not visible or collide able.
@@ -333,7 +333,7 @@ static void ProcessMoveCommands(Vehicle_t* p_veh)
 	/************************************************************************************/
 
 	//Client sets ucmds and such for speed alterations
-	float speedMax;
+	float speedMax = 0.0f;
 	bgEntity_t* parent = p_veh->m_pParentEntity;
 	//this function should only be called from pmove.. if it gets called else where,
 	//obviously this will explode.
@@ -1420,12 +1420,12 @@ static void ProcessOrientCommands(Vehicle_t* p_veh)
 	/********************************************************************************/
 
 	bgEntity_t* parent = p_veh->m_pParentEntity;
-	playerState_t* parent_ps, * rider_ps;
-	float angleTimeMod;
+	playerState_t* parent_ps = NULL, * rider_ps = NULL;
+	float angleTimeMod = 0.0f;
 #ifdef _GAME
 	const float groundFraction = 0.1f;
 #endif
-	float curRoll;
+	float curRoll = 0.0f;
 	qboolean isDead;
 	qboolean isLandingOrLanded;
 	const qboolean arcade = FighterArcade(p_veh); // (2026-10-13)
@@ -1659,7 +1659,7 @@ static void ProcessOrientCommands(Vehicle_t* p_veh)
 				|| parent_ps->speed > MIN_LANDING_SPEED)
 				//if ( ( p_veh->m_LandTrace.fraction >= 1.0f || p_veh->m_ucmd.forwardmove != 0 ) && p_veh->m_LandTrace.fraction >= 0.0f )
 			{
-				float fYawDelta;
+				float fYawDelta = 0.0f;
 
 				FighterPitchAdjust(p_veh, rider_ps, parent_ps);
 #ifdef VEH_CONTROL_SCHEME_4

@@ -221,8 +221,8 @@ CL_ConfigstringModified
 */
 void CL_ConfigstringModified(void)
 {
-	int i;
-	char* dup;
+	int i = 0;
+	char* dup = nullptr;
 
 	const int index = atoi(Cmd_Argv(1));
 	if (index < 0 || index >= MAX_CONFIGSTRINGS)

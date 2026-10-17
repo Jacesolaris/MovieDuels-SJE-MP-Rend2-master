@@ -310,7 +310,7 @@ int BG_SiegeGetValueGroup(const char* buf, char* group, char* outbuf)
 {
 	int i = 0;
 	char checkGroup[4096];
-	int parse_groups;
+	int parse_groups = 0;
 
 	while (buf[i])
 	{
@@ -735,7 +735,7 @@ static void BG_SiegeTranslateForcePowers(const char* buf, siegeClass_t* siegeCla
 	char checkPower[1024];
 	char checkLevel[256];
 	int i = 0;
-	int parsed_level;
+	int parsed_level = 0;
 	qboolean allPowers = qfalse;
 	qboolean noPowers = qfalse;
 
@@ -928,8 +928,8 @@ char* classTitles[SPC_MAX] =
 
 static void BG_SiegeParseClassFile(const char* filename, siegeClassDesc_t* descBuffer)
 {
-	fileHandle_t f;
-	int i;
+	fileHandle_t f = 0;
+	int i = 0;
 	char classInfo[4096];
 	char parseBuf[4096];
 
@@ -1369,7 +1369,7 @@ siegeClass_t* BG_GetClassOnBaseClass(const int team, const short classIndex, con
 
 void BG_SiegeLoadClasses(siegeClassDesc_t* descBuffer)
 {
-	int filelen;
+	int filelen = 0;
 	char filelist[4096];
 
 	bgNumSiegeClasses = 0;
@@ -1422,7 +1422,7 @@ siegeClass_t* BG_SiegeFindClassByName(const char* classname)
 
 static void BG_SiegeParseTeamFile(const char* filename)
 {
-	fileHandle_t f;
+	fileHandle_t f = 0;
 	char teamInfo[2048];
 	char parseBuf[1024];
 	qboolean success = qtrue;
@@ -1505,7 +1505,7 @@ static void BG_SiegeParseTeamFile(const char* filename)
 
 void BG_SiegeLoadTeams(void)
 {
-	int filelen;
+	int filelen = 0;
 	char filelist[4096];
 
 	bgNumSiegeTeams = 0;
@@ -1558,7 +1558,7 @@ void BG_PrecacheSabersForSiegeTeam(const int team)
 
 	if (t)
 	{
-		char* saber_name;
+		char* saber_name = NULL;
 		int i = 0;
 
 		while (i < t->numClasses)
@@ -1604,7 +1604,7 @@ void BG_PrecacheSabersForSiegeTeam(const int team)
 
 qboolean BG_SiegeCheckClassLegality(const int team, char* classname)
 {
-	siegeTeam_t** team_ptr;
+	siegeTeam_t** team_ptr = NULL;
 	int i = 0;
 
 	if (team == SIEGETEAM_TEAM1)
@@ -1665,7 +1665,7 @@ static siegeTeam_t* BG_SiegeFindTeamForTheme(const char* themeName)
 
 void BG_SiegeSetTeamTheme(const int team, const char* themeName)
 {
-	siegeTeam_t** team_ptr;
+	siegeTeam_t** team_ptr = NULL;
 
 	if (team == SIEGETEAM_TEAM1)
 	{

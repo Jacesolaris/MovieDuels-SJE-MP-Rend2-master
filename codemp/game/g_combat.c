@@ -125,7 +125,7 @@ int G_GetHitLocation(const gentity_t* target, vec3_t ppoint)
 	vec3_t point, point_dir;
 	vec3_t forward, right, up;
 	vec3_t tangles, tcenter;
-	int vertical, Forward, lateral;
+	int vertical = 0, Forward = 0, lateral = 0;
 
 	// Get target forward, right and up.
 	if (target->client)
@@ -589,7 +589,7 @@ Toss the weapon and powerups for the killed player
 
 static int WeaponRemovalTime()
 {
-	int time;
+	int time = 0;
 
 	if (g_WeaponRemovalTime.integer <= 0)
 	{
@@ -608,7 +608,7 @@ extern gentity_t* WP_DropThermal(gentity_t* ent);
 
 void TossClientItems(gentity_t* self)
 {
-	gitem_t* item;
+	gitem_t* item = NULL;
 	gentity_t* dropped = NULL;
 	gclient_t* client = self->client;
 
@@ -1972,7 +1972,7 @@ void G_AlertTeam(const gentity_t* victim, gentity_t* attacker, const float radiu
 {
 	int radius_ents[128];
 	vec3_t mins = { 0 }, maxs = { 0 };
-	int i;
+	int i = 0;
 	const float snd_dist_sq = sound_dist * sound_dist;
 
 	if (attacker == NULL || attacker->client == NULL)
@@ -2798,7 +2798,7 @@ void G_CorpseTouchPush(gentity_t* corpse)
 	// static: too big for the stack (C6262); filled by EntitiesInBox before it is read
 	static int touch[MAX_GENTITIES];
 	vec3_t mins, maxs, cur;
-	int i, num;
+	int i = 0, num = 0;
 
 	if (!G_CorpsePushable(corpse) || corpse->corpseTouchTime > level.time)
 	{
@@ -2823,7 +2823,7 @@ void G_CorpseTouchPush(gentity_t* corpse)
 	{
 		gentity_t* other = &g_entities[touch[i]];
 		vec3_t move, push;
-		float speed;
+		float speed = 0.0f;
 
 		if (other == corpse || !other->client || other->health <= 0)
 		{
@@ -2854,7 +2854,7 @@ void G_ForceThrowCorpses(gentity_t* self, const qboolean pull, const int radius,
 	// static: too big for the stack (C6262); filled by EntitiesInBox before it is read
 	static int list[MAX_GENTITIES];
 	vec3_t eye, mins, maxs;
-	int i, num;
+	int i = 0, num = 0;
 	const int level_ = self->client->ps.fd.forcePowerLevel[pull ? FP_PULL : FP_PUSH];
 	const float strength = 250.0f + 150.0f * level_;
 
@@ -2871,7 +2871,7 @@ void G_ForceThrowCorpses(gentity_t* self, const qboolean pull, const int radius,
 		gentity_t* ent = &g_entities[list[i]];
 		vec3_t dir, ang, push;
 		trace_t tr;
-		float dist, s;
+		float dist = 0.0f, s = 0.0f;
 
 		if (ent == self || !G_CorpsePushable(ent))
 		{
@@ -2902,9 +2902,9 @@ void G_ForceThrowCorpses(gentity_t* self, const qboolean pull, const int radius,
 
 void player_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker, const int damage, const int means_of_death)
 {
-	int killer;
-	int i;
-	char* killer_name, * obit;
+	int killer = 0;
+	int i = 0;
+	char* killer_name = NULL, * obit = NULL;
 	qboolean was_jedi_master = qfalse;
 	char buf[512] = { 0 };
 
@@ -2986,7 +2986,7 @@ void player_die(gentity_t* self, const gentity_t* inflictor, gentity_t* attacker
 	{
 		//kill everyone on board in the name of the attacker... if the vehicle has no death delay
 		gentity_t* murderer = NULL;
-		gentity_t* kill_ent;
+		gentity_t* kill_ent = NULL;
 
 		if (self->client->ps.otherKillerTime >= level.time)
 		{
@@ -4071,7 +4071,7 @@ void PlayerPain(gentity_t* self, const int damage)
 					&& !PM_InKnockDown(&self->client->ps))
 				{
 					//strong attacks and spins cannot be interrupted by pain, no pain when in knockdown
-					int parts;
+					int parts = 0;
 					if (self->client->ps.groundEntityNum != ENTITYNUM_NONE &&
 						!PM_SpinningSaberAnim(self->client->ps.legsAnim) &&
 						!PM_FlippingAnim(self->client->ps.legsAnim) &&
@@ -4122,7 +4122,7 @@ CheckArmor
 */
 static int CheckArmor(const gentity_t* ent, const int damage, const int dflags, const int mod)
 {
-	int save;
+	int save = 0;
 
 	if (!damage)
 		return 0;
@@ -4551,7 +4551,7 @@ RaySphereIntersections
 */
 static int RaySphereIntersections(vec3_t origin, const float radius, vec3_t point, vec3_t dir, vec3_t intersections[2])
 {
-	float t;
+	float t = 0.0f;
 
 	//	| origin - (point + t * dir) | = radius
 	//	a = dir[0]^2 + dir[1]^2 + dir[2]^2;
@@ -4694,7 +4694,7 @@ static void G_GetDismemberBolt(gentity_t* self, vec3_t bolt_point, const int lim
 	//matrix3_t legAxis;
 	mdxaBone_t boltMatrix;
 	float f_v_speed = 0;
-	const char* rotate_bone;
+	const char* rotate_bone = NULL;
 
 	switch (limbType)
 	{
@@ -5054,7 +5054,7 @@ void G_Dismember(const gentity_t* ent, const gentity_t* enemy, vec3_t point, con
 		(level.time - enemy->client->lastSaberStorageTime) < 200)
 	{
 		vec3_t dif;
-		float  total_distance;
+		float  total_distance = 0.0f;
 		const float dist_scale = 1.2f;
 
 		// Scale down initial velocity (ExPhys vs Q3 units)
@@ -5194,7 +5194,7 @@ static int G_GetHitQuad(const gentity_t* self, vec3_t hitloc)
 {
 	vec3_t diff, fwdangles = { 0, 0, 0 }, right;
 	vec3_t cl_eye;
-	int hit_loc;
+	int hit_loc = 0;
 
 	if (self->client)
 	{
@@ -5765,7 +5765,7 @@ qboolean G_GetHitLocFromSurfName(gentity_t* ent, const char* surfName, int* hit_
 void G_CheckForDismemberment(gentity_t* ent, const gentity_t* enemy, vec3_t point, const int damage)
 {
 	int hit_loc = -1;
-	int hit_loc_use;
+	int hit_loc_use = 0;
 	vec3_t bolt_point;
 	const int dismember = g_dismember.integer;
 
@@ -6152,7 +6152,7 @@ void G_Knockdown(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, fl
 		if (!PM_RollingAnim(self->client->ps.legsAnim)
 			&& !PM_InKnockDown(&self->client->ps))
 		{
-			int knock_anim; //default knockdown
+			int knock_anim = 0; //default knockdown
 
 			if (PM_CrouchAnim(self->client->ps.legsAnim))
 			{
@@ -6300,7 +6300,7 @@ void G_KnockOver(gentity_t* self, gentity_t* attacker, const vec3_t push_dir, fl
 		if (!PM_RollingAnim(self->client->ps.legsAnim)
 			&& !PM_InKnockDown(&self->client->ps))
 		{
-			int knock_anim; //default knockdown
+			int knock_anim = 0; //default knockdown
 
 			if (PM_CrouchAnim(self->client->ps.legsAnim))
 			{
@@ -6597,10 +6597,10 @@ extern void G_SetOnFire(gentity_t* self, gentity_t* attacker); // w_saber.c (bur
 void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t dir, vec3_t point, int damage,
 	int dflags, int mod)
 {
-	gclient_t* client;
-	int take;
-	int asave;
-	int knockback;
+	gclient_t* client = NULL;
+	int take = 0;
+	int asave = 0;
+	int knockback = 0;
 	float shield_absorbed = 0;
 	vec3_t new_dir;
 
@@ -6724,7 +6724,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 		if (targ->client->ps.electrifyTime > level.time + 100 && !(targ->s.eType == ET_NPC || targ->r.svFlags &
 			SVF_BOT))
 		{
-			gentity_t* tent;
+			gentity_t* tent = NULL;
 			targ->client->stunDamage = 9;
 			targ->client->stunTime = level.time + 1000;
 
@@ -6940,7 +6940,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 		&& attacker->s.eType == ET_PLAYER
 		&& level.gametype != GT_SIEGE)
 	{
-		int max;
+		int max = 0;
 		max = attacker->client->ps.stats[STAT_MAX_HEALTH];
 		damage = damage * max / 100;
 	}
@@ -7048,7 +7048,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 	if (knockback && targ->client)
 	{
 		vec3_t kvel;
-		float mass;
+		float mass = 0.0f;
 
 		mass = 200;
 
@@ -7123,7 +7123,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 			DAMAGE_SABER_KNOCKBACK1 || dflags & DAMAGE_SABER_KNOCKBACK2 || dflags & DAMAGE_SABER_KNOCKBACK1_B2 || dflags
 			& DAMAGE_SABER_KNOCKBACK2_B2))
 		{
-			int t;
+			int t = 0;
 
 			t = knockback = 0;
 			if (t < 50)
@@ -7796,10 +7796,10 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 			|| inflictor->s.weapon == WP_BRYAR_OLD
 			|| inflictor->s.weapon == WP_EMPLACED_GUN)
 		{
-			float z_rel;
-			int height;
-			float z_ratio;
-			float targ_maxs2;
+			float z_rel = 0.0f;
+			int height = 0;
+			float z_ratio = 0.0f;
+			float targ_maxs2 = 0.0f;
 			targ_maxs2 = targ->maxs[2];
 			// handling crouching
 			if (targ->client->ps.pm_flags & PMF_DUCKED)
@@ -7909,7 +7909,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 	{
 		if (targ->client && targ->s.weapon != WP_SABER)
 		{
-			gentity_t* ev_ent;
+			gentity_t* ev_ent = NULL;
 			// Send off an event to show a shield shell on the player, pointing in the right direction.
 			ev_ent = G_TempEntity(targ->r.currentOrigin, EV_SHIELD_HIT);
 			ev_ent->s.otherentityNum = targ->s.number;
@@ -8328,9 +8328,9 @@ qboolean g_radius_damage(vec3_t origin, gentity_t* attacker, const float damage,
 	vec3_t maxs = { 0 };
 	vec3_t v = { 0 };
 	vec3_t dir;
-	int i;
+	int i = 0;
 	qboolean hit_client = qfalse;
-	int dodge_dmg;
+	int dodge_dmg = 0;
 
 	//oh well.. maybe sometime? I am trying to cut down on tempent use.
 

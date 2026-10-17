@@ -131,7 +131,7 @@ static void CG_DrawClientScore(const int y, const score_t* score, float* color, 
 	if (score->client == cg.snap->ps.clientNum)
 	{
 		float hcolor[4];
-		int rank;
+		int rank = 0;
 
 		localClient = qtrue;
 
@@ -327,13 +327,13 @@ int cg_siegeWinTeam = 0;
 
 qboolean CG_DrawOldScoreboard(void)
 {
-	int x, y, n1, n2;
-	float fade;
-	float* fadeColor;
-	char* s;
-	int maxClients;
-	int lineHeight;
-	int topBorderSize, bottomBorderSize;
+	int x = 0, y = 0, n1 = 0, n2 = 0;
+	float fade = 0.0f;
+	float* fadeColor = NULL;
+	char* s = NULL;
+	int maxClients = 0;
+	int lineHeight = 0;
+	int topBorderSize = 0, bottomBorderSize = 0;
 
 	// don't draw amuthing if the menu or console is up
 	if (cl_paused.integer)

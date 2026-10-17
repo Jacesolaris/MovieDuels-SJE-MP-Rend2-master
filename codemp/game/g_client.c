@@ -93,7 +93,7 @@ static void g_Spectator(gentity_t* ent)
 
 void SP_info_player_duel(gentity_t* ent)
 {
-	int i;
+	int i = 0;
 
 	G_SpawnInt("nobots", "0", &i);
 	if (i)
@@ -115,7 +115,7 @@ Targets will be fired when someone spawns in on them.
 */
 void SP_info_player_duel1(gentity_t* ent)
 {
-	int i;
+	int i = 0;
 
 	G_SpawnInt("nobots", "0", &i);
 	if (i)
@@ -137,7 +137,7 @@ Targets will be fired when someone spawns in on them.
 */
 void SP_info_player_duel2(gentity_t* ent)
 {
-	int i;
+	int i = 0;
 
 	G_SpawnInt("nobots", "0", &i);
 	if (i)
@@ -162,7 +162,7 @@ void SP_misc_teleporter_dest(gentity_t* ent);
 
 void SP_info_player_deathmatch(gentity_t* ent)
 {
-	int i;
+	int i = 0;
 
 	SP_misc_teleporter_dest(ent);
 
@@ -858,7 +858,7 @@ static qboolean SafeSpawn_FindOffset(const vec3_t baseOrigin, vec3_t outOrigin)
 	static const float angles[] = { 0, 45, 90, 135, 180, 225, 270, 315 };
 
 	vec3_t test = { 0 };
-	int r, a;
+	int r = 0, a = 0;
 
 	for (r = 0; r < 4; r++)
 	{
@@ -914,11 +914,11 @@ static gentity_t* SelectRandomFurthestSpawnPoint(
 	const qboolean isbot)
 {
 	vec3_t delta;
-	float dist;
+	float dist = 0.0f;
 	float list_dist[MAX_SPAWN_POINTS] = { 0.0f };
 	gentity_t* list_spot[MAX_SPAWN_POINTS] = { NULL };
-	int i;
-	int j;
+	int i = 0;
+	int j = 0;
 	int numSpots = 0;
 	gentity_t* spot = NULL;
 	const char* classname = NULL;
@@ -1066,7 +1066,7 @@ static gentity_t* SelectRandomFurthestSpawnPoint(
 	   ------------------------- */
 	{
 		int halfCount = (numSpots / 2);
-		int rnd;
+		int rnd = 0;
 
 		if (halfCount <= 0)
 		{
@@ -1161,8 +1161,8 @@ static gentity_t* SelectDuelSpawnPoint(
 {
 	float list_dist[MAX_SPAWN_POINTS] = { 0.0f };
 	gentity_t* list_spot[MAX_SPAWN_POINTS] = { NULL };
-	int i;
-	char* spotName;
+	int i = 0;
+	char* spotName = NULL;
 	int numSpots = 0;
 	gentity_t* spot = NULL;
 
@@ -1195,7 +1195,7 @@ tryAgain:
 	while ((spot = G_Find(spot, FOFS(classname), spotName)) != NULL)
 	{
 		vec3_t delta;
-		float dist;
+		float dist = 0.0f;
 
 		/* SAFETY: ensure entity is valid and in use */
 		if (spot->classname == NULL || spot->inuse == qfalse)
@@ -1221,7 +1221,7 @@ tryAgain:
 		{
 			if (dist > list_dist[i])
 			{
-				int j;
+				int j = 0;
 
 				if (numSpots >= MAX_SPAWN_POINTS)
 				{
@@ -1278,7 +1278,7 @@ tryAgain:
 	   ------------------------- */
 	{
 		int halfCount = (numSpots / 2);
-		int rnd;
+		int rnd = 0;
 		vec3_t baseOrigin;
 
 		if (halfCount <= 0)
@@ -1494,8 +1494,8 @@ static qboolean CopyToBodyQue(gentity_t* ent)
 {
 	qboolean result = qfalse;
 	qboolean isLight = qfalse;
-	int contents;
-	gentity_t* body;
+	int contents = 0;
+	gentity_t* body = NULL;
 
 	/* -------------------------
 	   Validate input entity
@@ -2408,7 +2408,7 @@ static qboolean R_IsHumanoidPath(const char* path)
 
 void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 {
-	int handle;
+	int handle = 0;
 	char gla_name[MAX_QPATH] = { 0 };
 	const vec3_t tempVec = { 0, 0, 0 };
 
@@ -2537,7 +2537,7 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 
 			if (skin[0])
 			{
-				char* useSkinName;
+				char* useSkinName = NULL;
 
 				if (strchr(skin, '|'))
 				{
@@ -2710,7 +2710,7 @@ void SetupGameGhoul2Model(gentity_t* ent, char* modelname, char* skinName)
 		char strTemp[128];
 
 		// Setup the default first bolt
-		int i;
+		int i = 0;
 
 		// Setup the droid unit.
 		ent->m_pVehicle->m_iDroidUnitTag = trap->G2API_AddBolt(ent->ghoul2, 0, "*droidunit");
@@ -2889,7 +2889,7 @@ void Svcmd_ToggleUserinfoValidation_f(void)
 	   ------------------------- */
 	if (trap->Argc() == 1)
 	{
-		int i;
+		int i = 0;
 
 		/* Print known userinfo fields */
 		for (i = 0; i < numUserinfoFields; i++)
@@ -2989,11 +2989,11 @@ string on failure, or NULL on success.
 */
 static char* G_ValidateUserinfo(const char* userinfo)
 {
-	unsigned int i;
-	unsigned int count;
-	size_t length;
-	userinfoValidate_t* info;
-	const char* s;
+	unsigned int i = 0;
+	unsigned int count = 0;
+	size_t length = 0;
+	userinfoValidate_t* info = NULL;
+	const char* s = NULL;
 	unsigned int fieldCount[ARRAY_LEN(userinfoFields)] = { 0 };
 
 	// Reusable static buffers (avoid 16 KB stack frame)
@@ -3138,7 +3138,7 @@ Behaviour preserved exactly, but structure cleaned and bugs fixed.
 */
 void ScalePlayer(gentity_t* self, const int scale)
 {
-	float fc;
+	float fc = 0.0f;
 
 	/* Safety: entity must exist */
 	if (self == NULL)
@@ -3519,10 +3519,10 @@ qboolean client_userinfo_changed(const int clientNum)
 {
 	gentity_t* ent = g_entities + clientNum;
 	gclient_t* client = ent->client;
-	int team;
-	int health;
+	int team = 0;
+	int health = 0;
 	int max_health = 100;
-	const char* value;
+	const char* value = NULL;
 	char userinfo[MAX_INFO_STRING];
 	char buf[MAX_INFO_STRING] = { 0 };
 	char oldClientinfo[MAX_INFO_STRING];
@@ -4260,7 +4260,7 @@ void ClientBegin(const int clientNum, const qboolean allowTeamReset)
 	{
 		if (allowTeamReset)
 		{
-			const char* team;
+			const char* team = NULL;
 
 			//SetTeam(ent, "");
 			ent->client->sess.sessionTeam = PickTeam(-1);
@@ -4974,10 +4974,10 @@ void ClientSpawn(gentity_t* ent)
 	clientPersistant_t saved;
 	clientSession_t savedSess;
 	forcedata_t savedForce;
-	int savedDodgeMax;
+	int savedDodgeMax = 0;
 	saberInfo_t saberSaved[MAX_SABERS] = { 0 };
 	int persistant[MAX_PERSISTANT] = { 0 };
-	int flags, gameFlags, savedPing, accuracy_hits, accuracy_shots, eventSequence;
+	int flags = 0, gameFlags = 0, savedPing = 0, accuracy_hits = 0, accuracy_shots = 0, eventSequence = 0;
 	void* g2WeaponPtrs[MAX_SABERS] = { 0 };
 	char userinfo[MAX_INFO_STRING] = { 0 }, * key = NULL, * value = NULL, * saber = NULL;
 	qboolean changedSaber = qfalse, inSiegeWithClass = qfalse;
@@ -5085,7 +5085,7 @@ void ClientSpawn(gentity_t* ent)
 		if (!G_ValidSaberStyle(ent, newLevel))
 		{
 			//had an illegal style, revert to a valid one
-			int count;
+			int count = 0;
 			for (count = SS_MEDIUM; count < SS_STAFF; count++)
 			{
 				newLevel++;
@@ -5374,8 +5374,8 @@ spawn_done:
 	{
 		// MovieDuels (port of SJE MP): creature classes with a bigger bbox than a human (wampa, rancor): the spawn point
 		// picked for a human may be too tight; then use another spawn point of the same kind where the creature's bbox fits
-		float halfWidth;
-		int standheight;
+		float halfWidth = 0.0f;
+		int standheight = 0;
 
 		if (BG_ClassCreatureSize(client->pers.botclass, &halfWidth, &standheight, NULL) &&
 			(halfWidth > player_maxs[0] || standheight > player_maxs[2]))
@@ -5573,8 +5573,8 @@ spawn_done:
 	{
 		// MovieDuels (port of SJE MP): creature/droid classes get the bbox of their SP .npc file (PM_CheckDuck keeps it,
 		// from ps.botclass)
-		float halfWidth;
-		int standheight, crouchheight;
+		float halfWidth = 0.0f;
+		int standheight = 0, crouchheight = 0;
 
 		if (BG_ClassCreatureSize(client->pers.botclass, &halfWidth, &standheight, &crouchheight))
 		{
@@ -6556,7 +6556,7 @@ spawn_done:
 		}
 		else
 		{
-			int i1;
+			int i1 = 0;
 			for (i1 = LAST_SELECTABLE_WEAPON; i1 > WP_NONE; i1--)
 			{
 				if (client->ps.stats[STAT_WEAPONS] & 1 << i1)
@@ -7885,7 +7885,7 @@ void G_ClearVote(const gentity_t* ent)
 
 void G_ClearTeamVote(const gentity_t* ent, const int team)
 {
-	int voteteam;
+	int voteteam = 0;
 
 	if (team == TEAM_RED) voteteam = 0;
 	else if (team == TEAM_BLUE) voteteam = 1;

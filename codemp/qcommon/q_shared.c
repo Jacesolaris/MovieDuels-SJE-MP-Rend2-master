@@ -106,7 +106,7 @@ COM_GetExtension
 */
 const char* COM_GetExtension(const char* name)
 {
-	const char* dot = strrchr(name, '.'), * slash;
+	const char* dot = strrchr(name, '.'), * slash = NULL;
 	if (dot && (!((slash = strrchr(name, '/'))) || slash < dot))
 		return dot + 1;
 	return "";
@@ -119,7 +119,7 @@ COM_StripExtension
 */
 void COM_StripExtension(const char* in, char* out, int destsize)
 {
-	const char* dot = strrchr(in, '.'), * slash;
+	const char* dot = strrchr(in, '.'), * slash = NULL;
 	if (dot && (!((slash = strrchr(in, '/'))) || slash < dot))
 		destsize = destsize < dot - in + 1 ? destsize : dot - in + 1;
 
@@ -159,7 +159,7 @@ COM_DefaultExtension
 */
 void COM_DefaultExtension(char* path, const int maxSize, const char* extension)
 {
-	const char* dot = strrchr(path, '.'), * slash;
+	const char* dot = strrchr(path, '.'), * slash = NULL;
 	if (dot && (!((slash = strrchr(path, '/'))) || slash < dot))
 		return;
 	Q_strcat(path, maxSize, extension);
@@ -237,7 +237,7 @@ a newline.
 ==============
 */
 const char* SkipWhitespace(const char* data, qboolean* hasNewLines) {
-	int c;
+	int c = 0;
 
 	while ((c = *(const unsigned char* /*eurofix*/)data) <= ' ') {
 		if (!c) {
@@ -254,12 +254,12 @@ const char* SkipWhitespace(const char* data, qboolean* hasNewLines) {
 }
 
 int COM_Compress(char* data_p) {
-	char* out;
+	char* out = NULL;
 	qboolean newline = qfalse, whitespace = qfalse;
 
 	char* in = out = data_p;
 	if (in) {
-		int c;
+		int c = 0;
 		while ((c = *in) != 0) {
 			// skip double slash comments
 			if (c == '/' && in[1] == '/') {
@@ -330,7 +330,7 @@ int COM_Compress(char* data_p) {
 
 char* COM_ParseExt(const char** data_p, const qboolean allow_line_breaks)
 {
-	int c;
+	int c = 0;
 	qboolean hasNewLines = qfalse;
 
 	const char* data = *data_p;
@@ -499,7 +499,7 @@ COM_ParseVec4
 */
 qboolean COM_ParseVec4(const char** buffer, vec4_t* c)
 {
-	float f;
+	float f = 0.0f;
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -555,7 +555,7 @@ SkipRestOfLine
 =================
 */
 void SkipRestOfLine(const char** data) {
-	int		c;
+	int		c = 0;
 
 	const char* p = *data;
 
@@ -685,7 +685,7 @@ char* QDECL va(const char* format, ...)
 	va_list		argptr;
 	static char	string[MAX_VA_BUFFERS][MAX_VA_STRING];	// in case va is called by nested functions
 	static int	index = 0;
-	char* buf;
+	char* buf = NULL;
 
 	va_start(argptr, format);
 	buf = (char*)&string[index++ & 3];
@@ -744,8 +744,8 @@ char* Info_ValueForKey(const char* s, const char* key)
 	static char valueBuf[2][BIG_INFO_VALUE];
 	static int valueIndex = 0;
 
-	char* out;
-	const char* p;
+	char* out = NULL;
+	const char* p = NULL;
 
 	// Validate parameters
 	if (s == NULL || key == NULL)
@@ -866,8 +866,8 @@ Iterates through key/value pairs in an info string.
 */
 qboolean Info_NextPair(const char** head, char* key, char* value)
 {
-	const char* s;
-	char* o;
+	const char* s = NULL;
+	char* o = NULL;
 	qboolean result = qfalse;
 
 	if (head == NULL || *head == NULL || key == NULL || value == NULL)

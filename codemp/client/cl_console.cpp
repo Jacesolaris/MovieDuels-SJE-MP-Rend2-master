@@ -183,10 +183,10 @@ Save the console contents out to a file
 */
 static void Con_Dump_f(void)
 {
-	int l, x;
-	short* line;
-	int bufferlen;
-	char* buffer;
+	int l = 0, x = 0;
+	short* line = nullptr;
+	int bufferlen = 0;
+	char* buffer = nullptr;
 	char filename[MAX_QPATH];
 
 	if (Cmd_Argc() != 2)
@@ -280,7 +280,7 @@ If the line width has changed, reformat the buffer.
 */
 void Con_CheckResize(void)
 {
-	int i;
+	int i = 0;
 
 	//	width = (SCREEN_WIDTH / SMALLCHAR_WIDTH) - 2;
 	int width = cls.glconfig.vidWidth / SMALLCHAR_WIDTH - 2;
@@ -441,7 +441,7 @@ If no console is visible, the text will appear at the top of the game window
 */
 void CL_ConsolePrint(const char* txt)
 {
-	int c, l;
+	int c = 0, l = 0;
 	qboolean skipnotify = qfalse; // NERVE - SMF
 
 	// TTimo - prefix for text that shows up in console but not in notify
@@ -596,7 +596,7 @@ Draws the last few lines of output transparently over the game top
 */
 void Con_DrawNotify(void)
 {
-	int x;
+	int x = 0;
 
 	int currentColor = 7;
 	re->SetColor(g_color_table[currentColor]);
@@ -691,8 +691,8 @@ void Con_DrawNotify(void)
 	// draw the chat line
 	if (Key_GetCatcher() & KEYCATCH_MESSAGE)
 	{
-		const char* chattext;
-		int skip;
+		const char* chattext = nullptr;
+		int skip = 0;
 		if (chat_team)
 		{
 			chattext = SE_GetString("MD_MP_SVGAME", "SAY_TEAM");
@@ -722,7 +722,7 @@ Draws the console with the solid background
 */
 void Con_DrawSolidConsole(const float frac)
 {
-	int x;
+	int x = 0;
 
 	int lines = static_cast<int>(cls.glconfig.vidHeight * frac);
 	if (lines <= 0)

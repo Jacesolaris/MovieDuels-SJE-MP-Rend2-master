@@ -109,7 +109,7 @@ void NAVNEW_PushBlocker(const gentity_t* self, const gentity_t* blocker, vec3_t 
 	//try pushing blocker to one side
 	trace_t tr;
 	vec3_t mins, end;
-	float leftSucc;
+	float leftSucc = 0.0f;
 
 	if (self->NPC->shoveCount > 30)
 	{
@@ -154,7 +154,7 @@ void NAVNEW_PushBlocker(const gentity_t* self, const gentity_t* blocker, vec3_t 
 	}
 	else
 	{
-		float rightSucc;
+		float rightSucc = 0.0f;
 		VectorMA(blocker->r.currentOrigin, moveamt, right, end);
 		trap->Trace(&tr, blocker->r.currentOrigin, mins, blocker->r.maxs, end, blocker->s.number,
 			blocker->clipmask | CONTENTS_BOTCLIP, qfalse, 0, 0);
@@ -264,7 +264,7 @@ qboolean NAVNEW_SidestepBlocker(const gentity_t* self, const gentity_t* blocker,
 	trace_t tr;
 	vec3_t avoidAngles;
 	vec3_t avoidRight_dir, avoidLeft_dir, block_pos, mins;
-	float rightSucc, leftSucc;
+	float rightSucc = 0.0f, leftSucc = 0.0f;
 
 	VectorCopy(self->r.mins, mins);
 	mins[2] += STEPSIZE;
@@ -575,7 +575,7 @@ qboolean NAVNEW_TestNodeConnectionBlocked(const int wp1, const int wp2, const ge
 	vec3_t pos1, pos2, mins, maxs;
 	trace_t trace;
 	int clipmask = MASK_NPCSOLID | CONTENTS_BOTCLIP;
-	int ignoreEntNum;
+	int ignoreEntNum = 0;
 	vec3_t player_mins, player_maxs;
 
 	if (!checkWorld && !checkEnts)

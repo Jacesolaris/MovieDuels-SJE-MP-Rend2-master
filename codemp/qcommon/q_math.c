@@ -183,8 +183,8 @@ signed short ClampShort( int i ) {
 
 // this isn't a real cheap function to call!
 int DirToByte( vec3_t dir ) {
-	int		i, best;
-	float	d, bestd;
+	int		i = 0, best = 0;
+	float	d = 0.0f, bestd = 0.0f;
 
 	if ( !dir ) {
 		return 0;
@@ -215,7 +215,7 @@ void ByteToDir( int b, vec3_t dir ) {
 
 
 unsigned ColorBytes3 (float r, float g, float b) {
-	unsigned	i;
+	unsigned	i = 0;
 
 	( (byte *)&i )[0] = r * 255;
 	( (byte *)&i )[1] = g * 255;
@@ -225,7 +225,7 @@ unsigned ColorBytes3 (float r, float g, float b) {
 }
 
 unsigned ColorBytes4 (float r, float g, float b, float a) {
-	unsigned	i;
+	unsigned	i = 0;
 
 	( (byte *)&i )[0] = r * 255;
 	( (byte *)&i )[1] = g * 255;
@@ -236,7 +236,7 @@ unsigned ColorBytes4 (float r, float g, float b, float a) {
 }
 
 float NormalizeColor( const vec3_t in, vec3_t out ) {
-	float	max;
+	float	max = 0.0f;
 
 	max = in[0];
 	if ( in[1] > max ) {
@@ -288,7 +288,7 @@ From q3mme
 */
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees ) {
 	float   m[3][3];
-	float   c, s, t;
+	float   c = 0.0f, s = 0.0f, t = 0.0f;
 
 	degrees = DEG2RAD( degrees );
 	s = sinf( degrees );
@@ -334,8 +334,8 @@ void RotateAroundDirection( matrix3_t axis, float yaw ) {
 
 
 void vectoangles( const vec3_t value1, vec3_t angles ) {
-	float	forward;
-	float	yaw, pitch;
+	float	forward = 0.0f;
+	float	yaw = 0.0f, pitch = 0.0f;
 
 	if ( value1[1] == 0 && value1[0] == 0 ) {
 		yaw = 0;
@@ -406,9 +406,9 @@ void AxisCopy( matrix3_t in, matrix3_t out ) {
 
 void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 {
-	float d;
+	float d = 0.0f;
 	vec3_t n;
-	float inv_denom;
+	float inv_denom = 0.0f;
 
 	inv_denom =  DotProduct( normal, normal );
 	assert( Q_fabs(inv_denom) != 0.0f );
@@ -434,7 +434,7 @@ other perpendicular vectors
 ================
 */
 void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up) {
-	float		d;
+	float		d = 0.0f;
 
 	// this rotate and negate guarantees a vector
 	// not colinear with the original
@@ -465,7 +465,7 @@ void VectorRotate( const vec3_t in, matrix3_t matrix, vec3_t out )
 float Q_rsqrt( float number )
 {
 	byteAlias_t t;
-	float x2, y;
+	float x2 = 0.0f, y = 0.0f;
 	const float threehalfs = 1.5F;
 
 	x2 = number * 0.5F;
@@ -497,7 +497,7 @@ LerpAngle
 ===============
 */
 float LerpAngle (float from, float to, float frac) {
-	float	a;
+	float	a = 0.0f;
 
 	if ( to - from > 180 ) {
 		to -= 360;
@@ -519,7 +519,7 @@ Always returns a value from -180 to 180
 =================
 */
 float	AngleSubtract( float a1, float a2 ) {
-	float	a;
+	float	a = 0.0f;
 
 	a = a1 - a2;
 	a=fmod(a,360);//chop it down quickly, then level it out
@@ -595,7 +595,7 @@ SetPlaneSignbits
 =================
 */
 void SetPlaneSignbits (cplane_t *out) {
-	int	bits, j;
+	int	bits = 0, j = 0;
 
 	// for fast box on planeside test
 	bits = 0;
@@ -618,7 +618,7 @@ Returns 1, 2, or 1 + 2
 int BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 {
 	float	dist[2];
-	int		sides, b, i;
+	int		sides = 0, b = 0, i = 0;
 
 	// fast axial cases
 	if (p->type < 3)
@@ -657,9 +657,9 @@ RadiusFromBounds
 =================
 */
 float RadiusFromBounds( const vec3_t mins, const vec3_t maxs ) {
-	int		i;
+	int		i = 0;
 	vec3_t	corner;
-	float	a, b;
+	float	a = 0.0f, b = 0.0f;
 
 	for (i=0 ; i<3 ; i++) {
 		a = fabs( mins[i] );
@@ -770,7 +770,7 @@ float DistanceSquared( const vec3_t p1, const vec3_t p2 ) {
 // that length != 0, nor does it return length, uses rsqrt approximation
 void VectorNormalizeFast( vec3_t vec )
 {
-	float ilength;
+	float ilength = 0.0f;
 
 	ilength = Q_rsqrt( DotProduct( vec, vec ) );
 
@@ -780,7 +780,7 @@ void VectorNormalizeFast( vec3_t vec )
 }
 
 float VectorNormalize( vec3_t vec ) {
-	float	length, ilength;
+	float	length = 0.0f, ilength = 0.0f;
 
 	length = vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2];
 	length = sqrt( length );
@@ -796,7 +796,7 @@ float VectorNormalize( vec3_t vec ) {
 }
 
 float VectorNormalize2( const vec3_t vec, vec3_t vecOut ) {
-	float	length, ilength;
+	float	length = 0.0f, ilength = 0.0f;
 
 	length = vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2];
 	length = sqrtf( length );
@@ -897,7 +897,7 @@ void SnapVector( float *v ) {
 }
 
 int Q_log2( int val ) {
-	int answer;
+	int answer = 0;
 
 	answer = 0;
 	while ( ( val>>=1 ) != 0 ) {
@@ -955,7 +955,7 @@ void MatrixMultiply(float in1[3][3], float in2[3][3], float out[3][3]) {
 
 
 void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up) {
-	float		angle;
+	float		angle = 0.0f;
 	static float		sr, sp, sy, cr, cp, cy;
 	// static to help MS compiler fp bugs
 
@@ -994,8 +994,8 @@ void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 */
 void PerpendicularVector( vec3_t dst, const vec3_t src )
 {
-	int	pos;
-	int i;
+	int	pos = 0;
+	int i = 0;
 	float minelem = 1.0F;
 	vec3_t tempvec;
 
@@ -1051,7 +1051,7 @@ void NormalToLatLong( const vec3_t normal, byte bytes[2] )
 	}
 	else
 	{
-		int	a, b;
+		int	a = 0, b = 0;
 
 		a = (int)(RAD2DEG( (float)atan2( normal[1], normal[0] ) ) * (255.0f / 360.0f ));
 		a &= 0xff;
@@ -1079,7 +1079,7 @@ acos(*(float*) &i) == -1.#IND0
 =====================
 */
 float Q_acos(float c) {
-	float angle;
+	float angle = 0.0f;
 
 	angle = acos(c);
 
@@ -1094,7 +1094,7 @@ float Q_acos(float c) {
 
 float Q_asin(float c)
 {
-	float angle;
+	float angle = 0.0f;
 
 	angle = asin(c);
 
@@ -1125,7 +1125,7 @@ void Rand_Init(int seed)
 
 float flrand(float min, float max)
 {
-	float	result;
+	float	result = 0.0f;
 
 	holdrand = (holdrand * 214013L) + 2531011L;
 	result = (float)(holdrand >> 17);						// 0 - 32767 range
@@ -1142,7 +1142,7 @@ float Q_flrand(float min, float max)
 
 int irand(int min, int max)
 {
-	int		result;
+	int		result = 0;
 
 	assert((max - min) < QRAND_MAX);
 
@@ -1200,7 +1200,7 @@ G_FindClosestPointOnLineSegment
 qboolean G_FindClosestPointOnLineSegment( const vec3_t start, const vec3_t end, const vec3_t from, vec3_t result )
 {
 	vec3_t	vecStart2From, vecStart2End, vecEnd2Start, vecEnd2From;
-	float	distEnd2From, distEnd2Result, theta, cos_theta, dot;
+	float	distEnd2From = 0.0f, distEnd2Result = 0.0f, theta = 0.0f, cos_theta = 0.0f, dot = 0.0f;
 
 	//Find the perpendicular vector to vec from start to end
 	VectorSubtract( from, start, vecStart2From);
@@ -1282,7 +1282,7 @@ qboolean G_FindClosestPointOnLineSegment( const vec3_t start, const vec3_t end, 
 float G_PointDistFromLineSegment( const vec3_t start, const vec3_t end, const vec3_t from )
 {
 	vec3_t	vecStart2From, vecStart2End, vecEnd2Start, vecEnd2From, intersection;
-	float	distEnd2From, distStart2From, distEnd2Result, theta, cos_theta, dot;
+	float	distEnd2From = 0.0f, distStart2From = 0.0f, distEnd2Result = 0.0f, theta = 0.0f, cos_theta = 0.0f, dot = 0.0f;
 
 	//Find the perpendicular vector to vec from start to end
 	VectorSubtract( from, start, vecStart2From);

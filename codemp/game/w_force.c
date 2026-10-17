@@ -349,8 +349,8 @@ float forceSpeedValue[NUM_FORCE_POWER_LEVELS] =
 void DetermineDodgeMax(const gentity_t* ent)
 {
 	//sets the maximum number of dodge points this player should have.  This is based on their skill point allocation.
-	int i;
-	int skillCount;
+	int i = 0;
+	int skillCount = 0;
 	float dodgeMax = 0;
 
 	assert(ent && ent->client);
@@ -391,7 +391,7 @@ void DetermineDodgeMax(const gentity_t* ent)
 
 void WP_InitForcePowers(gentity_t* ent)
 {
-	int i, last_fp_known = -1;
+	int i = 0, last_fp_known = -1;
 	qboolean warn_client, did_event = qfalse;
 
 	char userinfo[MAX_INFO_STRING], forcePowers[FORCEPOWERS_MAX_LEN + 1], readBuf[FORCEPOWERS_MAX_LEN + 1] = { 0 };
@@ -1883,7 +1883,7 @@ void ForceTeamHeal(const gentity_t* self)
 	int i = 0;
 	int numpl = 0;
 	int pl[MAX_CLIENTS] = { 0 };
-	int healthadd;
+	int healthadd = 0;
 	gentity_t* te = NULL;
 
 	if (self->health <= 0)
@@ -1995,7 +1995,7 @@ void ForceTeamForceReplenish(const gentity_t* self)
 	int i = 0;
 	int numpl = 0;
 	int pl[MAX_CLIENTS] = { 0 };
-	int poweradd;
+	int poweradd = 0;
 	gentity_t* te = NULL;
 
 	if (self->health <= 0)
@@ -3188,7 +3188,7 @@ static qboolean saber_block_lightning(const gentity_t* attacker, const gentity_t
 {
 	//defender is attempting to block lightning.  Try to do it.
 	const qboolean is_holding_block_button_and_attack = defender->client->ps.ManualBlockingFlags & 1 << MBF_HOLDINGBLOCKANDATTACK ? qtrue : qfalse; //Active Blocking
-	int fp_block_cost;
+	int fp_block_cost = 0;
 	const qboolean saber_light_block = qtrue;
 
 	if (!manual_saberblocking(defender))
@@ -3625,7 +3625,7 @@ static void force_shoot_lightning(gentity_t* self)
 {
 	trace_t tr;
 	vec3_t forward;
-	gentity_t* traceEnt;
+	gentity_t* traceEnt = NULL;
 
 	if (self->health <= 0)
 	{
@@ -3646,10 +3646,10 @@ static void force_shoot_lightning(gentity_t* self)
 		vec3_t maxs = { 0 };
 		vec3_t v = { 0 };
 		const float radius = FORCE_LIGHTNING_RADIUS;
-		float dot;
+		float dot = 0.0f;
 		static gentity_t* entity_list[MAX_GENTITIES];
 		static int iEntityList[MAX_GENTITIES];
-		int i;
+		int i = 0;
 
 		VectorCopy(self->client->ps.origin, center);
 		for (i = 0; i < 3; i++)
@@ -4015,7 +4015,7 @@ int ForceShootDrain(gentity_t* self)
 
 	if (self->client->ps.fd.forcePowerDebounce[FP_DRAIN] <= level.time)
 	{
-		gentity_t* traceEnt;
+		gentity_t* traceEnt = NULL;
 		if (self->client->ps.fd.forcePowerLevel[FP_DRAIN] > FORCE_LEVEL_2) // level 3 only
 		{
 			vec3_t center;
@@ -4025,7 +4025,7 @@ int ForceShootDrain(gentity_t* self)
 			const float radius = MAX_DRAIN_DISTANCE;
 			static gentity_t* entity_list[MAX_GENTITIES];
 			static int iEntityList[MAX_GENTITIES];
-			int i;
+			int i = 0;
 
 			VectorCopy(self->client->ps.origin, center);
 			for (i = 0; i < 3; i++)
@@ -4048,7 +4048,7 @@ int ForceShootDrain(gentity_t* self)
 				vec3_t size;
 				vec3_t ent_org;
 				vec3_t dir;
-				float dot;
+				float dot = 0.0f;
 				traceEnt = entity_list[e];
 
 				if (!traceEnt)
@@ -4185,7 +4185,7 @@ static int ForceShootDestruction(gentity_t* self)
 		const float radius = MAX_DRAIN_DISTANCE;
 		static gentity_t* entity_list[MAX_GENTITIES];
 		static int iEntityList[MAX_GENTITIES];
-		int i;
+		int i = 0;
 
 		VectorCopy(self->client->ps.origin, center);
 		for (i = 0; i < 3; i++)
@@ -4208,7 +4208,7 @@ static int ForceShootDestruction(gentity_t* self)
 			vec3_t size;
 			vec3_t ent_org;
 			vec3_t dir;
-			float dot;
+			float dot = 0.0f;
 			const gentity_t* traceEnt = entity_list[e];
 
 			if (!traceEnt)
@@ -4641,7 +4641,7 @@ static qboolean ForceTelepathyCheckDirectNPCTarget(gentity_t* self, trace_t* tr,
 					if (traceEnt->s.weapon != WP_NONE)
 					{
 						//don't charm people who aren't capable of fighting... like ugnaughts and droids
-						int newPlayerTeam, newEnemyTeam;
+						int newPlayerTeam = 0, newEnemyTeam = 0;
 
 						if (traceEnt->enemy)
 						{
@@ -5110,7 +5110,7 @@ static qboolean playeris_resisting_force_throw(const gentity_t* player, gentity_
 
 static qboolean ShouldPlayerResistForceThrow(const gentity_t* self, const gentity_t* thrower, const qboolean pull)
 {
-	int power_use;
+	int power_use = 0;
 
 	if (self->client->ps.forceHandExtend != HANDEXTEND_NONE)
 	{
@@ -5296,7 +5296,7 @@ float forcePushPullRadius[NUM_FORCE_POWER_LEVELS] =
 
 void WP_ResistForcePush(gentity_t* self, const gentity_t* pusher, const qboolean no_penalty)
 {
-	int parts;
+	int parts = 0;
 	qboolean runningResist = qfalse;
 
 	if (!self || self->health <= 0 || !self->client || !pusher || !pusher->client)
@@ -5477,24 +5477,24 @@ static void PushDamage(gentity_t* self, gentity_t* enemy, vec3_t location, const
 void ForceThrow(gentity_t* self, qboolean pull)
 {
 	//shove things in front of you away
-	float dist;
-	gentity_t* ent;
+	float dist = 0.0f;
+	gentity_t* ent = NULL;
 	static int entity_list[MAX_GENTITIES];
 	static gentity_t* push_target[MAX_GENTITIES];
-	int num_listed_entities;
+	int num_listed_entities = 0;
 	static vec3_t mins, maxs;
 	static vec3_t v;
-	int i, e;
+	int i = 0, e = 0;
 	int ent_count = 0;
 	int radius = 1024; //since it's view-based now. //350;
-	int power_level;
-	int vision_arc;
-	int push_power;
+	int power_level = 0;
+	int vision_arc = 0;
+	int push_power = 0;
 	static vec3_t center, ent_org, size;
 	static vec3_t forward, right, dir;
 	static vec3_t fwdangles = { 0 };
-	float dot1;
-	float cone;
+	float dot1 = 0.0f;
+	float cone = 0.0f;
 	static trace_t tr;
 	static vec3_t thispush_org;
 	static vec3_t tfrom, tto, fwd;
@@ -5825,8 +5825,8 @@ void ForceThrow(gentity_t* self, qboolean pull)
 
 		//now check for brush based force moveable objects.
 		{
-			int i1;
-			int func_num;
+			int i1 = 0;
+			int func_num = 0;
 			// static: too big for the stack (C6262); filled by EntitiesInBox before it is read
 			static int func_list[MAX_GENTITIES];
 			gentity_t* funcEnt = NULL;
@@ -5850,7 +5850,7 @@ void ForceThrow(gentity_t* self, qboolean pull)
 	}
 	else
 	{
-		gentity_t* aiming_at;
+		gentity_t* aiming_at = NULL;
 		num_listed_entities = trap->EntitiesInBox(mins, maxs, entity_list, MAX_GENTITIES);
 
 		e = 0;
@@ -6496,8 +6496,8 @@ void ForceThrow(gentity_t* self, qboolean pull)
 
 	if (ent_count)
 	{
-		int x;
-		int push_power_mod;
+		int x = 0;
+		int push_power_mod = 0;
 		//method1:
 		for (x = 0; x < ent_count; x++)
 		{
@@ -8714,7 +8714,7 @@ static void DoGripAction(gentity_t* self, const forcePowers_t forcePower)
 
 static qboolean G_IsMindTricked(const forcedata_t* fd, const int client)
 {
-	int checkIn;
+	int checkIn = 0;
 	int sub = 0;
 
 	if (!fd)
@@ -8838,7 +8838,7 @@ static int FlamethrowerDebounceTime = 0;
 
 static void wp_force_power_run(gentity_t* self, const forcePowers_t forcePower, const usercmd_t* cmd)
 {
-	int soundduration;
+	int soundduration = 0;
 
 	switch ((int)forcePower)
 	{
@@ -9382,7 +9382,7 @@ static void FindGenericEnemyIndex(const gentity_t* self)
 static void SeekerDroneUpdate(gentity_t* self)
 {
 	vec3_t org, elevated, dir = { 0 }, a = { 0 };
-	float angle;
+	float angle = 0.0f;
 	trace_t tr;
 
 	if (!(self->client->ps.eFlags & EF_SEEKERDRONE))
@@ -9647,7 +9647,7 @@ static void HolocronUpdate(gentity_t* self)
 
 static void HolocronUpdate_GiftMode(gentity_t* self)
 {
-	int i;
+	int i = 0;
 
 	if (!self || !self->client)
 	{
@@ -9865,7 +9865,7 @@ extern qboolean Bot_Is_Allowed_to_use_force(gentity_t* ent);
 void WP_ForcePowersUpdate(gentity_t* self, usercmd_t* ucmd)
 {
 	qboolean using_force = qfalse;
-	int i;
+	int i = 0;
 	int prepower = 0;
 
 	//see if any force powers are running

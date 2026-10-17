@@ -109,7 +109,7 @@ CL_ParsePacketEntities
 */
 void CL_ParsePacketEntities(msg_t* msg, const clSnapshot_t* oldframe, clSnapshot_t* newframe)
 {
-	int oldnum;
+	int oldnum = 0;
 
 	newframe->parseEntitiesNum = cl.parseEntitiesNum;
 	newframe->numEntities = 0;
@@ -243,7 +243,7 @@ for any reason, no changes to the state will be made at all.
 */
 void CL_ParseSnapshot(msg_t* msg)
 {
-	clSnapshot_t* old;
+	clSnapshot_t* old = nullptr;
 	clSnapshot_t newSnap;
 
 	// get the reliable sequence acknowledge number

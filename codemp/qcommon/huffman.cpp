@@ -421,7 +421,7 @@ void Huff_offsetTransmit(const huff_t* huff, const int ch, byte* fout, int* offs
 
 void Huff_Decompress(msg_t* mbuf, const int offset)
 {
-	int ch;
+	int ch = 0;
 	// heap, not stack (C6262; 64 KB + ~50 KB huff_t), one set per call
 	std::vector<byte> seqBuf(65536); // zeroed as the {} was
 	byte* seq = seqBuf.data();
