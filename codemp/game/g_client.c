@@ -251,7 +251,7 @@ void SP_info_player_siegeteam1(gentity_t* ent)
 {
 	int soff = 0;
 
-	if (level.gametype != GT_SIEGE)
+	if (!G_SiegeMissionRules()) // SJE (2026-10-16): siege spawn points also in siege missions in Team FFA
 	{
 		//turn into a DM spawn if not in siege game mode
 		ent->classname = "info_player_deathmatch";
@@ -290,7 +290,7 @@ void SP_info_player_siegeteam2(gentity_t* ent)
 {
 	int soff = 0;
 
-	if (level.gametype != GT_SIEGE)
+	if (!G_SiegeMissionRules()) // SJE (2026-10-16): siege spawn points also in siege missions in Team FFA
 	{
 		//turn into a DM spawn if not in siege game mode
 		ent->classname = "info_player_deathmatch";
@@ -4241,7 +4241,8 @@ extern void Bot_GiveStartingCredits(bot_state_t* bs);
 
 void ClientBegin(const int clientNum, const qboolean allowTeamReset)
 {
-	char userinfo[MAX_INFO_VALUE];
+	char userinfo[MAX_INFO_STRING]; // SJE (2026-10-16): was MAX_INFO_VALUE (1024) - GetUserinfo / Info_SetValueForKey below
+	// write up to MAX_INFO_STRING, a bot's longer userinfo overran it and overwrote ent on the stack (the Team FFA crash)
 	char motd[1024];
 
 	gentity_t* ent = g_entities + clientNum;
@@ -4263,7 +4264,7 @@ void ClientBegin(const int clientNum, const qboolean allowTeamReset)
 
 			//SetTeam(ent, "");
 			ent->client->sess.sessionTeam = PickTeam(-1);
-			trap->GetUserinfo(clientNum, userinfo, MAX_INFO_STRING);
+			trap->GetUserinfo(clientNum, userinfo, sizeof userinfo);
 
 			if (ent->client->sess.sessionTeam == TEAM_SPECTATOR)
 			{
@@ -5221,7 +5222,7 @@ void ClientSpawn(gentity_t* ent)
 	// ------------------------------------------------------------
 	// 3. Siege spawn logic
 	// ------------------------------------------------------------
-	if (level.gametype == GT_SIEGE)
+	if (G_SiegeMissionRules()) // SJE (2026-10-16): also siege missions in Team FFA (the enabled siege points)
 	{
 		spawnPoint = SelectSiegeSpawnPoint(
 			client->siegeClass,

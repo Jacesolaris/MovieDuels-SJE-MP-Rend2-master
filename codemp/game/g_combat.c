@@ -6656,7 +6656,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 		}
 	}
 
-	if (level.gametype == GT_SIEGE &&
+	if (G_SiegeMissionRules() && // SJE (2026-10-16): also siege missions in Team FFA
 		!gSiegeRoundBegun)
 	{
 		//nothing can be damaged til the round starts.
@@ -7285,7 +7285,7 @@ void G_Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, vec3_t
 	if (attacker && !targ->client)
 	{
 		//attacker hit a non-client
-		if (level.gametype == GT_SIEGE &&
+		if (G_SiegeMissionRules() && // SJE (2026-10-16): objectives a team can't damage, also in Team FFA missions
 			!g_ff_objectives.integer)
 		{
 			//in siege mode (and...?)

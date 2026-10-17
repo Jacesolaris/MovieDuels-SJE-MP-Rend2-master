@@ -4609,7 +4609,7 @@ qboolean CG_RagDoll(centity_t* cent, vec3_t forced_angles)
 
 			// Bolt indices and positions
 			int    bolt_checks[5] = { 0 };
-			vec3_t bolt_points[5] = { {0,0,0} };
+			vec3_t bolt_points[5] = { { 0,0,0 } };
 			vec3_t t_ang;
 
 			trace_t     tr;

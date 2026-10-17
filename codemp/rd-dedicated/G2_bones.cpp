@@ -1361,9 +1361,9 @@ static int G2_Set_Bone_Angles_Rag(const CGhoul2Info& ghoul2, boneInfo_v& blist, 
 			static mdxaBone_t id =
 			{
 				{
-					{1.0f, 0.0f, 0.0f, 0.0f},
-					{0.0f, 1.0f, 0.0f, 0.0f},
-					{0.0f, 0.0f, 1.0f, 0.0f}
+					{ 1.0f, 0.0f, 0.0f, 0.0f },
+					{ 0.0f, 1.0f, 0.0f, 0.0f },
+					{ 0.0f, 0.0f, 1.0f, 0.0f }
 				}
 			};
 			memcpy(&bone.ragOverrideMatrix, &id, sizeof(mdxaBone_t));
@@ -4195,9 +4195,9 @@ static int G2_Set_Bone_Angles_IK(const CGhoul2Info& ghoul2, boneInfo_v& blist, c
 			static mdxaBone_t id =
 			{
 				{
-					{1.0f, 0.0f, 0.0f, 0.0f},
-					{0.0f, 1.0f, 0.0f, 0.0f},
-					{0.0f, 0.0f, 1.0f, 0.0f}
+					{ 1.0f, 0.0f, 0.0f, 0.0f },
+					{ 0.0f, 1.0f, 0.0f, 0.0f },
+					{ 0.0f, 0.0f, 1.0f, 0.0f }
 				}
 			};
 			memcpy(&bone.ragOverrideMatrix, &id, sizeof(mdxaBone_t));

@@ -2499,7 +2499,7 @@ static int find_close_list(const int wpNum)
 static qboolean carrying_cap_objective(const bot_state_t* bs)
 {
 	//Carrying the Capture Objective?
-	if (level.gametype == GT_SIEGE)
+	if (G_SiegeMissionRules()) // SJE (2026-10-16): also siege missions in Team FFA
 	{
 		if (bs->tacticEntity && bs->client == bs->tacticEntity->genericValue8)
 			return qtrue;
@@ -7704,7 +7704,7 @@ static int siege_takes_priority(bot_state_t* bs)
 	vec3_t dif = { 0 };
 	trace_t tr;
 
-	if (level.gametype != GT_SIEGE)
+	if (!G_SiegeMissionRules()) // SJE (2026-10-16): bots go for the siege objectives in Team FFA missions too
 	{
 		return 0;
 	}
@@ -18875,7 +18875,7 @@ static void bot_calm_movement(bot_state_t* bs, usercmd_t* ucmd)
 	}
 
 	if (bot_idlewalk.integer && !bs->currentEnemy && self->waterlevel < 2
-		&& level.gametype != GT_CTF && level.gametype != GT_CTY && level.gametype != GT_SIEGE
+		&& level.gametype != GT_CTF && level.gametype != GT_CTY && !G_SiegeMissionRules()
 		// stairs / ramps (the next waypoint well above or below): he runs up and down them
 		&& !(bs->wpCurrent && fabs(bs->wpCurrent->origin[2] - bs->origin[2]) > BOT_IDLEWALK_STAIRS_HEIGHT))
 	{

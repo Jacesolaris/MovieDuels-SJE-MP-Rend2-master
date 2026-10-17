@@ -875,7 +875,7 @@ static void NPC_SetMiscDefaultData(gentity_t* ent)
 	else
 	{
 		//for siege, want "bad" npc's allied with the "bad" team
-		if (level.gametype == GT_SIEGE && ent->s.NPC_class != CLASS_VEHICLE)
+		if (G_SiegeMissionRules() && ent->s.NPC_class != CLASS_VEHICLE) // SJE (2026-10-16): also Team FFA missions
 		{
 			if (ent->client->enemyTeam == NPCTEAM_PLAYER)
 			{

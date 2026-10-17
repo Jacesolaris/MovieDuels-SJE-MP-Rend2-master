@@ -86,53 +86,53 @@ typedef enum
 const gbuyable_t bg_buylist[] =
 {
 	// text		giTag	giType	quantity    price	wc
-	{"melee", WP_MELEE, IT_WEAPON, 0, 0, WC_MELEE}, // weaponless
-	{"BryarPistol", WP_BRYAR_PISTOL, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
-	{"Blaster", WP_BLASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
-	{"Disruptor", WP_DISRUPTOR, IT_WEAPON, 300, 2, WC_RIFLE}, // sniper rifle
-	{"Bowcaster", WP_BOWCASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
-	{"Repeater", WP_REPEATER, IT_WEAPON, 350, 2, WC_RIFLE}, // auto rifle
-	{"Demp2", WP_DEMP2, IT_WEAPON, 350, 2, WC_RIFLE}, // electro gun
-	{"Flechette", WP_FLECHETTE, IT_WEAPON, 350, 2, WC_RIFLE}, // shotgun
-	{"RocketLauncher", WP_ROCKET_LAUNCHER, IT_WEAPON, 3, 2, WC_HEAVY}, // rocket
-	{"Concussion", WP_CONCUSSION, IT_WEAPON, 300, 2, WC_HEAVY}, // mega rifle
+	{ "melee", WP_MELEE, IT_WEAPON, 0, 0, WC_MELEE }, // weaponless
+	{ "BryarPistol", WP_BRYAR_PISTOL, IT_WEAPON, 200, 1, WC_PISTOL }, // pistol
+	{ "Blaster", WP_BLASTER, IT_WEAPON, 350, 2, WC_RIFLE }, // rifle
+	{ "Disruptor", WP_DISRUPTOR, IT_WEAPON, 300, 2, WC_RIFLE }, // sniper rifle
+	{ "Bowcaster", WP_BOWCASTER, IT_WEAPON, 350, 2, WC_RIFLE }, // rifle
+	{ "Repeater", WP_REPEATER, IT_WEAPON, 350, 2, WC_RIFLE }, // auto rifle
+	{ "Demp2", WP_DEMP2, IT_WEAPON, 350, 2, WC_RIFLE }, // electro gun
+	{ "Flechette", WP_FLECHETTE, IT_WEAPON, 350, 2, WC_RIFLE }, // shotgun
+	{ "RocketLauncher", WP_ROCKET_LAUNCHER, IT_WEAPON, 3, 2, WC_HEAVY }, // rocket
+	{ "Concussion", WP_CONCUSSION, IT_WEAPON, 300, 2, WC_HEAVY }, // mega rifle
 
-	{"Battledroid", WP_BATTLEDROID, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
-	{"TheFirstOrder", WP_THEFIRSTORDER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
-	{"CloneCarbine", WP_CLONECARBINE, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
-	{"RebelBlaster", WP_REBELBLASTER, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
-	{"CloneRifle", WP_CLONERIFLE, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
-	{"CloneCommando", WP_CLONECOMMANDO, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
-	{"Z6RotaryCannon", WP_Z6_ROTARY_CANNON, IT_WEAPON, 350, 2, WC_RIFLE}, // auto rifle
-	{"RebelRifle", WP_REBELRIFLE, IT_WEAPON, 350, 2, WC_RIFLE}, // rifle
+	{ "Battledroid", WP_BATTLEDROID, IT_WEAPON, 350, 2, WC_RIFLE }, // rifle
+	{ "TheFirstOrder", WP_THEFIRSTORDER, IT_WEAPON, 350, 2, WC_RIFLE }, // rifle
+	{ "CloneCarbine", WP_CLONECARBINE, IT_WEAPON, 350, 2, WC_RIFLE }, // rifle
+	{ "RebelBlaster", WP_REBELBLASTER, IT_WEAPON, 350, 2, WC_RIFLE }, // rifle
+	{ "CloneRifle", WP_CLONERIFLE, IT_WEAPON, 350, 2, WC_RIFLE }, // rifle
+	{ "CloneCommando", WP_CLONECOMMANDO, IT_WEAPON, 350, 2, WC_RIFLE }, // rifle
+	{ "Z6RotaryCannon", WP_Z6_ROTARY_CANNON, IT_WEAPON, 350, 2, WC_RIFLE }, // auto rifle
+	{ "RebelRifle", WP_REBELRIFLE, IT_WEAPON, 350, 2, WC_RIFLE }, // rifle
 
-	{"Rey", WP_REY, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
-	{"Jango", WP_JANGO, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
-	{"Boba", WP_BOBA, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
-	{"ClonePistol", WP_CLONEPISTOL, IT_WEAPON, 200, 1, WC_PISTOL}, // pistol
-	{"Droideka", WP_DROIDEKA, IT_WEAPON, 350, 2, WC_RIFLE}, // the droideka's arm blasters
+	{ "Rey", WP_REY, IT_WEAPON, 200, 1, WC_PISTOL }, // pistol
+	{ "Jango", WP_JANGO, IT_WEAPON, 200, 1, WC_PISTOL }, // pistol
+	{ "Boba", WP_BOBA, IT_WEAPON, 200, 1, WC_PISTOL }, // pistol
+	{ "ClonePistol", WP_CLONEPISTOL, IT_WEAPON, 200, 1, WC_PISTOL }, // pistol
+	{ "Droideka", WP_DROIDEKA, IT_WEAPON, 350, 2, WC_RIFLE }, // the droideka's arm blasters
 
-	{"energy", AMMO_BLASTER, IT_AMMO, 999, 0, WC_AMMO},
-	{"powercells", AMMO_POWERCELL, IT_AMMO, 999, 0, WC_AMMO},
-	{"bolts", AMMO_METAL_BOLTS, IT_AMMO, 999, 0, WC_AMMO},
-	{"rockets", AMMO_ROCKETS, IT_AMMO, 3, 0, WC_AMMO},
-	{"Thermal", AMMO_THERMAL, IT_AMMO, 3, 0, WC_GRENADE},
-	{"Tripmine", AMMO_TRIPMINE, IT_AMMO, 3, 0, WC_GRENADE},
-	{"Detpack", AMMO_DETPACK, IT_AMMO, 3, 0, WC_GRENADE},
-	{"ammo", AMMO_NONE, IT_AMMO, 0, 0, WC_AMMO},
+	{ "energy", AMMO_BLASTER, IT_AMMO, 999, 0, WC_AMMO },
+	{ "powercells", AMMO_POWERCELL, IT_AMMO, 999, 0, WC_AMMO },
+	{ "bolts", AMMO_METAL_BOLTS, IT_AMMO, 999, 0, WC_AMMO },
+	{ "rockets", AMMO_ROCKETS, IT_AMMO, 3, 0, WC_AMMO },
+	{ "Thermal", AMMO_THERMAL, IT_AMMO, 3, 0, WC_GRENADE },
+	{ "Tripmine", AMMO_TRIPMINE, IT_AMMO, 3, 0, WC_GRENADE },
+	{ "Detpack", AMMO_DETPACK, IT_AMMO, 3, 0, WC_GRENADE },
+	{ "ammo", AMMO_NONE, IT_AMMO, 0, 0, WC_AMMO },
 
-	{"health", 4, IT_HEALTH, 25, 1, WC_ARMOR}, // heath boost
-	{"shield", 2, IT_ARMOR, 50, 1, WC_ARMOR}, // armor
+	{ "health", 4, IT_HEALTH, 25, 1, WC_ARMOR }, // heath boost
+	{ "shield", 2, IT_ARMOR, 50, 1, WC_ARMOR }, // armor
 
-	{"binoculars", HI_BINOCULARS, IT_HOLDABLE, 1, 2, WC_ITEM}, // binoculars!
-	{"jetpack", HI_JETPACK, IT_HOLDABLE, 1, 5, WC_ITEM}, // jetpack!
-	{"cloak", HI_CLOAK, IT_HOLDABLE, 1, 3, WC_ITEM}, // cloak pack!
-	{"bacta", HI_MEDPAC_BIG, IT_HOLDABLE, 1, 2, WC_ITEM}, // portable health
-	{"Flamethrower", HI_FLAMETHROWER, IT_HOLDABLE, 1, 5, WC_ITEM}, // Flamethrower
-	{"sentry", HI_SENTRY_GUN, IT_HOLDABLE, 1, 2, WC_DEPLOY}, // sentry
-	{"seeker", HI_SEEKER, IT_HOLDABLE, 1, 2, WC_DEPLOY}, // seeker drone
-	{"barrier", HI_SHIELD, IT_HOLDABLE, 1, 2, WC_DEPLOY}, // shield barrier
-	{"Sphereshield", HI_SPHERESHIELD, IT_HOLDABLE, 1, 2, WC_DEPLOY}, // shield barrier
+	{ "binoculars", HI_BINOCULARS, IT_HOLDABLE, 1, 2, WC_ITEM }, // binoculars!
+	{ "jetpack", HI_JETPACK, IT_HOLDABLE, 1, 5, WC_ITEM }, // jetpack!
+	{ "cloak", HI_CLOAK, IT_HOLDABLE, 1, 3, WC_ITEM }, // cloak pack!
+	{ "bacta", HI_MEDPAC_BIG, IT_HOLDABLE, 1, 2, WC_ITEM }, // portable health
+	{ "Flamethrower", HI_FLAMETHROWER, IT_HOLDABLE, 1, 5, WC_ITEM }, // Flamethrower
+	{ "sentry", HI_SENTRY_GUN, IT_HOLDABLE, 1, 2, WC_DEPLOY }, // sentry
+	{ "seeker", HI_SEEKER, IT_HOLDABLE, 1, 2, WC_DEPLOY }, // seeker drone
+	{ "barrier", HI_SHIELD, IT_HOLDABLE, 1, 2, WC_DEPLOY }, // shield barrier
+	{ "Sphereshield", HI_SPHERESHIELD, IT_HOLDABLE, 1, 2, WC_DEPLOY }, // shield barrier
 	// end of list marker
 	{
 		NULL
@@ -2821,16 +2821,16 @@ typedef struct voteString_s
 
 static voteString_t validVoteStrings[] = {
 	//	vote string				aliases										# args	valid gametypes							exec delay		short help
-	{"capturelimit", "caps", G_VoteCapturelimit, 1, GTB_CTF | GTB_CTY, qtrue, "<num>"},
-	{"clientkick", NULL, G_VoteClientkick, 1, GTB_ALL, qfalse, "<clientNum>"},
-	{"fraglimit", "frags", G_VoteFraglimit, 1, GTB_ALL & ~(GTB_SIEGE | GTB_CTF | GTB_CTY), qtrue, "<num>"},
-	{"g_doWarmup", "dowarmup warmup", G_VoteWarmup, 1, GTB_ALL, qtrue, "<0-1>"},
-	{"g_gametype", "gametype gt mode", G_VoteGametype, 1, GTB_ALL, qtrue, "<num or name>"},
-	{"kick", NULL, G_VoteKick, 1, GTB_ALL, qfalse, "<client name>"},
-	{"map", NULL, G_VoteMap, 0, GTB_ALL, qtrue, "<name>"},
-	{"map_restart", "restart", G_VoteMapRestart, 0, GTB_ALL, qtrue, "<optional delay>"},
-	{"nextmap", NULL, G_VoteNextmap, 0, GTB_ALL, qtrue, NULL},
-	{"timelimit", "time", G_VoteTimelimit, 1, GTB_ALL & ~GTB_SIEGE, qtrue, "<num>"},
+	{ "capturelimit", "caps", G_VoteCapturelimit, 1, GTB_CTF | GTB_CTY, qtrue, "<num>" },
+	{ "clientkick", NULL, G_VoteClientkick, 1, GTB_ALL, qfalse, "<clientNum>" },
+	{ "fraglimit", "frags", G_VoteFraglimit, 1, GTB_ALL & ~(GTB_SIEGE | GTB_CTF | GTB_CTY), qtrue, "<num>" },
+	{ "g_doWarmup", "dowarmup warmup", G_VoteWarmup, 1, GTB_ALL, qtrue, "<0-1>" },
+	{ "g_gametype", "gametype gt mode", G_VoteGametype, 1, GTB_ALL, qtrue, "<num or name>" },
+	{ "kick", NULL, G_VoteKick, 1, GTB_ALL, qfalse, "<client name>" },
+	{ "map", NULL, G_VoteMap, 0, GTB_ALL, qtrue, "<name>" },
+	{ "map_restart", "restart", G_VoteMapRestart, 0, GTB_ALL, qtrue, "<optional delay>" },
+	{ "nextmap", NULL, G_VoteNextmap, 0, GTB_ALL, qtrue, NULL },
+	{ "timelimit", "time", G_VoteTimelimit, 1, GTB_ALL & ~GTB_SIEGE, qtrue, "<num>" },
 };
 static const int validVoteStringsSize = ARRAY_LEN(validVoteStrings);
 
@@ -4639,54 +4639,54 @@ static int cmdcmp(const void* a, const void* b)
 }
 
 command_t commands[] = {
-	{"addbot", Cmd_AddBot_f, 0},
-	{"callteamvote", Cmd_CallTeamVote_f, CMD_NOINTERMISSION},
-	{"callvote", Cmd_CallVote_f, CMD_NOINTERMISSION},
-	{"allychat", Cmd_AllyChat_f, CMD_NOINTERMISSION},
-	{"debugBMove_Back", Cmd_BotMoveBack_f, CMD_CHEAT | CMD_ALIVE},
-	{"debugBMove_Forward", Cmd_BotMoveForward_f, CMD_CHEAT | CMD_ALIVE},
-	{"debugBMove_Left", Cmd_BotMoveLeft_f, CMD_CHEAT | CMD_ALIVE},
-	{"debugBMove_Right", Cmd_BotMoveRight_f, CMD_CHEAT | CMD_ALIVE},
-	{"debugBMove_Up", Cmd_BotMoveUp_f, CMD_CHEAT | CMD_ALIVE},
-	{"duelteam", Cmd_DuelTeam_f, CMD_NOINTERMISSION},
-	{"follow", Cmd_Follow_f, CMD_NOINTERMISSION},
-	{"follownext", Cmd_FollowNext_f, CMD_NOINTERMISSION},
-	{"followprev", Cmd_FollowPrev_f, CMD_NOINTERMISSION},
-	{"forcechanged", Cmd_ForceChanged_f, 0},
-	{"gc", Cmd_GameCommand_f, CMD_NOINTERMISSION},
-	{"give", Cmd_Give_f, CMD_CHEAT | CMD_ALIVE | CMD_NOINTERMISSION},
-	{"giveother", Cmd_GiveOther_f, CMD_CHEAT | CMD_NOINTERMISSION},
-	{"god", Cmd_God_f, CMD_CHEAT | CMD_ALIVE | CMD_NOINTERMISSION},
-	{"kill", Cmd_Kill_f, CMD_ALIVE | CMD_NOINTERMISSION},
-	{"killother", Cmd_KillOther_f, CMD_CHEAT | CMD_NOINTERMISSION},
-	{"levelshot", Cmd_LevelShot_f, CMD_NOINTERMISSION},
-	{"maplist", Cmd_MapList_f, CMD_NOINTERMISSION},
-	{"noclip", Cmd_Noclip_f, CMD_CHEAT | CMD_ALIVE | CMD_NOINTERMISSION},
-	{"notarget", Cmd_Notarget_f, CMD_CHEAT | CMD_ALIVE | CMD_NOINTERMISSION},
-	{"npc", Cmd_NPC_f, CMD_CHEAT | CMD_ALIVE},
-	{"say", Cmd_Say_f, 0},
-	{"say_team", Cmd_SayTeam_f, 0},
-	{"score", Cmd_Score_f, 0},
-	{"setviewpos", Cmd_SetViewpos_f, CMD_CHEAT | CMD_NOINTERMISSION},
-	{"siegeclass", Cmd_SiegeClass_f, CMD_NOINTERMISSION},
-	{"team", Cmd_Team_f, CMD_NOINTERMISSION},
-	{"teamvote", Cmd_TeamVote_f, CMD_NOINTERMISSION},
-	{"tell", Cmd_Tell_f, 0},
-	{"thedestroyer", Cmd_TheDestroyer_f, CMD_CHEAT | CMD_ALIVE | CMD_NOINTERMISSION},
-	{"t_use", Cmd_TargetUse_f, CMD_CHEAT | CMD_ALIVE},
-	{"voice_cmd", Cmd_VoiceCommand_f, CMD_NOINTERMISSION},
-	{"vote", Cmd_Vote_f, CMD_NOINTERMISSION},
-	{"where", Cmd_Where_f, CMD_NOINTERMISSION},
-	{"sje", Cmd_NPC_f, CMD_CHEATOVERRIDE | CMD_ALIVE},
+	{ "addbot", Cmd_AddBot_f, 0 },
+	{ "callteamvote", Cmd_CallTeamVote_f, CMD_NOINTERMISSION },
+	{ "callvote", Cmd_CallVote_f, CMD_NOINTERMISSION },
+	{ "allychat", Cmd_AllyChat_f, CMD_NOINTERMISSION },
+	{ "debugBMove_Back", Cmd_BotMoveBack_f, CMD_CHEAT | CMD_ALIVE },
+	{ "debugBMove_Forward", Cmd_BotMoveForward_f, CMD_CHEAT | CMD_ALIVE },
+	{ "debugBMove_Left", Cmd_BotMoveLeft_f, CMD_CHEAT | CMD_ALIVE },
+	{ "debugBMove_Right", Cmd_BotMoveRight_f, CMD_CHEAT | CMD_ALIVE },
+	{ "debugBMove_Up", Cmd_BotMoveUp_f, CMD_CHEAT | CMD_ALIVE },
+	{ "duelteam", Cmd_DuelTeam_f, CMD_NOINTERMISSION },
+	{ "follow", Cmd_Follow_f, CMD_NOINTERMISSION },
+	{ "follownext", Cmd_FollowNext_f, CMD_NOINTERMISSION },
+	{ "followprev", Cmd_FollowPrev_f, CMD_NOINTERMISSION },
+	{ "forcechanged", Cmd_ForceChanged_f, 0 },
+	{ "gc", Cmd_GameCommand_f, CMD_NOINTERMISSION },
+	{ "give", Cmd_Give_f, CMD_CHEAT | CMD_ALIVE | CMD_NOINTERMISSION },
+	{ "giveother", Cmd_GiveOther_f, CMD_CHEAT | CMD_NOINTERMISSION },
+	{ "god", Cmd_God_f, CMD_CHEAT | CMD_ALIVE | CMD_NOINTERMISSION },
+	{ "kill", Cmd_Kill_f, CMD_ALIVE | CMD_NOINTERMISSION },
+	{ "killother", Cmd_KillOther_f, CMD_CHEAT | CMD_NOINTERMISSION },
+	{ "levelshot", Cmd_LevelShot_f, CMD_NOINTERMISSION },
+	{ "maplist", Cmd_MapList_f, CMD_NOINTERMISSION },
+	{ "noclip", Cmd_Noclip_f, CMD_CHEAT | CMD_ALIVE | CMD_NOINTERMISSION },
+	{ "notarget", Cmd_Notarget_f, CMD_CHEAT | CMD_ALIVE | CMD_NOINTERMISSION },
+	{ "npc", Cmd_NPC_f, CMD_CHEAT | CMD_ALIVE },
+	{ "say", Cmd_Say_f, 0 },
+	{ "say_team", Cmd_SayTeam_f, 0 },
+	{ "score", Cmd_Score_f, 0 },
+	{ "setviewpos", Cmd_SetViewpos_f, CMD_CHEAT | CMD_NOINTERMISSION },
+	{ "siegeclass", Cmd_SiegeClass_f, CMD_NOINTERMISSION },
+	{ "team", Cmd_Team_f, CMD_NOINTERMISSION },
+	{ "teamvote", Cmd_TeamVote_f, CMD_NOINTERMISSION },
+	{ "tell", Cmd_Tell_f, 0 },
+	{ "thedestroyer", Cmd_TheDestroyer_f, CMD_CHEAT | CMD_ALIVE | CMD_NOINTERMISSION },
+	{ "t_use", Cmd_TargetUse_f, CMD_CHEAT | CMD_ALIVE },
+	{ "voice_cmd", Cmd_VoiceCommand_f, CMD_NOINTERMISSION },
+	{ "vote", Cmd_Vote_f, CMD_NOINTERMISSION },
+	{ "where", Cmd_Where_f, CMD_NOINTERMISSION },
+	{ "sje", Cmd_NPC_f, CMD_CHEATOVERRIDE | CMD_ALIVE },
 	// Movieduels secrect commands
-	{"Adminlogin", Cmd_AdminLogin, 0},
-	{"Adminlogout", Cmd_AdminLogout, 0},
-	{"Adminnpc", Cmd_AdminNPC_f, CMD_CHEATOVERRIDE | CMD_ALIVE},
-	{"Adminchangemap", Cmd_ChangeMap, CMD_NOINTERMISSION},
-	{"Adminpunish", Cmd_Punish, CMD_NOINTERMISSION},
-	{"Adminkick", Cmd_Kick, CMD_NOINTERMISSION},
-	{"Adminmenu", CG_AdminMenu, CMD_NOINTERMISSION},
-	{"noforce", Cmd_Noforce_f, CMD_ALIVE | CMD_NOINTERMISSION},
+	{ "Adminlogin", Cmd_AdminLogin, 0 },
+	{ "Adminlogout", Cmd_AdminLogout, 0 },
+	{ "Adminnpc", Cmd_AdminNPC_f, CMD_CHEATOVERRIDE | CMD_ALIVE },
+	{ "Adminchangemap", Cmd_ChangeMap, CMD_NOINTERMISSION },
+	{ "Adminpunish", Cmd_Punish, CMD_NOINTERMISSION },
+	{ "Adminkick", Cmd_Kick, CMD_NOINTERMISSION },
+	{ "Adminmenu", CG_AdminMenu, CMD_NOINTERMISSION },
+	{ "noforce", Cmd_Noforce_f, CMD_ALIVE | CMD_NOINTERMISSION },
 };
 
 static const size_t num_commands = ARRAY_LEN(commands);

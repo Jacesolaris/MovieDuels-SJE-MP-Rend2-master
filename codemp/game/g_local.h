@@ -1947,6 +1947,8 @@ void QDECL G_ClearClientLog(int client);
 
 // g_siege.c
 void InitSiegeMode(void);
+qboolean G_SiegeMissionsTFFA(void); // SJE (2026-10-16): siege missions in Team FFA (g_saga.c)
+qboolean G_SiegeMissionRules(void);
 void G_SiegeClientExData(const gentity_t* msg_targ);
 
 // g_timer

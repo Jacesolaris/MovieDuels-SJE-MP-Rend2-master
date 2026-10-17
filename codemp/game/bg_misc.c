@@ -194,35 +194,35 @@ int forceMasteryPoints[NUM_FORCE_MASTERY_LEVELS] =
 
 int bgForcePowerCost[NUM_FORCE_POWERS][NUM_FORCE_POWER_LEVELS] = //0 == neutral
 {
-	{0, 2, 4, 6}, // Heal			// FP_HEAL
-	{0, 2, 4, 6}, // Jump			//FP_LEVITATION,//hold/duration
-	{0, 2, 4, 6}, // Speed		//FP_SPEED,//duration
-	{0, 1, 3, 6}, // Push			//FP_PUSH,//hold/duration
-	{0, 1, 3, 6}, // Pull			//FP_PULL,//hold/duration
-	{0, 4, 6, 8}, // Mind Trick	//FP_TELEPATHY,//instant
-	{0, 1, 3, 6}, // Grip			//FP_GRIP,//hold/duration
-	{0, 2, 5, 8}, // Lightning	//FP_LIGHTNING,//hold/duration
-	{0, 4, 6, 8}, // Dark Rage	//FP_RAGE,//duration
-	{0, 2, 5, 8}, // Protection	//FP_PROTECT,//duration
-	{0, 1, 3, 6}, // Absorb		//FP_ABSORB,//duration
-	{0, 1, 3, 6}, // Team Heal	//FP_TEAM_HEAL,//instant
-	{0, 1, 3, 6}, // Team Force	//FP_TEAM_FORCE,//instant
-	{0, 2, 4, 6}, // Drain		//FP_DRAIN,//hold/duration
-	{0, 2, 5, 8}, // Sight		//FP_SEE,//duration
-	{0, 1, 5, 8}, // Saber Attack	//FP_SABER_OFFENSE,
-	{0, 1, 5, 8}, // Saber Defend	//FP_SABER_DEFENSE,
-	{0, 2, 6, 8}, // Saber Throw	//FP_SABERTHROW,
+	{ 0, 2, 4, 6 }, // Heal			// FP_HEAL
+	{ 0, 2, 4, 6 }, // Jump			//FP_LEVITATION,//hold/duration
+	{ 0, 2, 4, 6 }, // Speed		//FP_SPEED,//duration
+	{ 0, 1, 3, 6 }, // Push			//FP_PUSH,//hold/duration
+	{ 0, 1, 3, 6 }, // Pull			//FP_PULL,//hold/duration
+	{ 0, 4, 6, 8 }, // Mind Trick	//FP_TELEPATHY,//instant
+	{ 0, 1, 3, 6 }, // Grip			//FP_GRIP,//hold/duration
+	{ 0, 2, 5, 8 }, // Lightning	//FP_LIGHTNING,//hold/duration
+	{ 0, 4, 6, 8 }, // Dark Rage	//FP_RAGE,//duration
+	{ 0, 2, 5, 8 }, // Protection	//FP_PROTECT,//duration
+	{ 0, 1, 3, 6 }, // Absorb		//FP_ABSORB,//duration
+	{ 0, 1, 3, 6 }, // Team Heal	//FP_TEAM_HEAL,//instant
+	{ 0, 1, 3, 6 }, // Team Force	//FP_TEAM_FORCE,//instant
+	{ 0, 2, 4, 6 }, // Drain		//FP_DRAIN,//hold/duration
+	{ 0, 2, 5, 8 }, // Sight		//FP_SEE,//duration
+	{ 0, 1, 5, 8 }, // Saber Attack	//FP_SABER_OFFENSE,
+	{ 0, 1, 5, 8 }, // Saber Defend	//FP_SABER_DEFENSE,
+	{ 0, 2, 6, 8 }, // Saber Throw	//FP_SABERTHROW,
 	// the SP powers ported to MP (2026-10-12): as the MP power they are closest to
-	{0, 2, 4, 6}, // Stasis		//FP_STASIS
-	{0, 2, 5, 8}, // Destruction	//FP_DESTRUCTION
-	{0, 1, 3, 6}, // Grasp		//FP_GRASP (as grip)
-	{0, 1, 3, 6}, // Repulse	//FP_REPULSE (as push)
-	{0, 2, 5, 8}, // Lightning Strike //FP_LIGHTNING_STRIKE (as lightning)
-	{0, 2, 4, 6}, // Fear		//FP_FEAR
-	{0, 2, 5, 8}, // Deadly Sight //FP_DEADLYSIGHT
-	{0, 1, 3, 6}, // Blast		//FP_BLAST
-	{0, 2, 5, 8}, // Insanity	//FP_INSANITY
-	{0, 2, 4, 6}  // Blinding	//FP_BLINDING
+	{ 0, 2, 4, 6 }, // Stasis		//FP_STASIS
+	{ 0, 2, 5, 8 }, // Destruction	//FP_DESTRUCTION
+	{ 0, 1, 3, 6 }, // Grasp		//FP_GRASP (as grip)
+	{ 0, 1, 3, 6 }, // Repulse	//FP_REPULSE (as push)
+	{ 0, 2, 5, 8 }, // Lightning Strike //FP_LIGHTNING_STRIKE (as lightning)
+	{ 0, 2, 4, 6 }, // Fear		//FP_FEAR
+	{ 0, 2, 5, 8 }, // Deadly Sight //FP_DEADLYSIGHT
+	{ 0, 1, 3, 6 }, // Blast		//FP_BLAST
+	{ 0, 2, 5, 8 }, // Insanity	//FP_INSANITY
+	{ 0, 2, 4, 6 }  // Blinding	//FP_BLINDING
 	//NUM_FORCE_POWERS
 };
 
@@ -1967,7 +1967,7 @@ Don't place this
 {
 	"weapon_repeater",
 	"sound/weapons/w_pkup.wav",
-	{"models/weapons2/heavy_repeater/heavy_repeater_w.glm", 0, 0, 0},
+	{ "models/weapons2/heavy_repeater/heavy_repeater_w.glm", 0, 0, 0 },
 	/* view */ "models/weapons2/heavy_repeater/heavy_repeater.md3",
 	/* icon */ "gfx/hud/w_icon_repeater",
 	/* pickup */ //	"Imperial Heavy Repeater",
@@ -2245,7 +2245,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 	"DC-15s",
 	"sound/weapons/w_pkup.wav",
    { "models/weapons2/dc-15s/dc-15s_w.glm",
-		0, 0, 0},
+		0, 0, 0 },
 		/* view */		"models/weapons2/dc-15s/dc-15s.md3",
 		/* icon */		"gfx/hud/w_icon_dc-15s",
 		/* pickup *///	"DC-15 Carbine",
@@ -2263,7 +2263,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 		"DH-17",
 		"sound/weapons/w_pkup.wav",
 					  { "models/weapons2/dh-17/dh-17_w.glm",
-		0, 0, 0},
+		0, 0, 0 },
 		/* view */		"models/weapons2/dh-17/dh-17.md3",
 		/* icon */		"gfx/hud/w_icon_dh-17",
 		/* pickup *///	"DH-17",
@@ -2281,7 +2281,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 		"DC-15a",
 		"sound/weapons/w_pkup.wav",
 						 { "models/weapons2/dc-15a/dc-15a_w.glm",
-		0, 0, 0},
+		0, 0, 0 },
 		/* view */		"models/weapons2/dc-15a/dc-15a.md3",
 		/* icon */		"gfx/hud/w_icon_clonerifle",
 		/* pickup *///	"DC-15 Rifle",
@@ -2299,7 +2299,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 		"DC-17m",
 		"sound/weapons/w_pkup.wav",
 							{ "models/weapons2/DC-17m/blaster_w.glm",
-		0, 0, 0},
+		0, 0, 0 },
 		/* view */		"models/weapons2/DC-17m/blaster.md3",
 		/* icon */		"gfx/hud/w_icon_dc-17m",
 		/* pickup *///	"DC-17M",
@@ -2316,7 +2316,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 		{
 			"Rotary Cannon",
 			"sound/weapons/w_pkup.wav",
-			{ "models/weapons2/z6_rotary/rotary_cannon_w.glm",0, 0, 0},
+			{ "models/weapons2/z6_rotary/rotary_cannon_w.glm",0, 0, 0 },
 			/* view */		"models/weapons2/z6_rotary/rotary_cannon.md3",
 			/* icon */		"gfx/hud/w_icon_z6_rotary_cannon",
 			/* pickup *///	"Imperial Heavy Repeater",
@@ -2333,7 +2333,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 	{
 		"A280",
 		"sound/weapons/w_pkup.wav",
-							{ "models/weapons2/A280/a280_w.glm", 0, 0, 0},
+							{ "models/weapons2/A280/a280_w.glm", 0, 0, 0 },
 							/* view */		"models/weapons2/A280/a280.md3",
 							/* icon */		"gfx/hud/w_icon_A280",
 							/* pickup *///	"A280",
@@ -2352,7 +2352,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 		"LPA_nn-14",
 		"sound/weapons/w_pkup.wav",
 			  { "models/weapons2/lpa_nn-14/blaster_pistol_w.glm",
-		0, 0, 0},
+		0, 0, 0 },
 		/* view */		"models/weapons2/lpa_nn-14/blaster_pistol.md3",
 		/* icon */		"gfx/hud/w_icon_lpa_nn-14",//"gfx/hud/w_icon_lpa_nn-14",
 		/* pickup *///	"LPA NN-14",
@@ -2369,7 +2369,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 	{
 		"Westar_if",
 		"sound/weapons/w_pkup.wav",
-							{ "models/weapons2/westar_if/westar_w.glm", 0, 0, 0},
+							{ "models/weapons2/westar_if/westar_w.glm", 0, 0, 0 },
 							/* view */		"models/weapons2/westar_if/westar.md3",
 							/* icon */		"gfx/hud/w_icon_westar",
 							/* pickup *///	"Westar 34",
@@ -2386,7 +2386,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 	{
 		"EE-3carbine",
 		"sound/weapons/w_pkup.wav",
-							{ "models/weapons2/ee-3carbine/ee3rotj_w.glm", 0, 0, 0},
+							{ "models/weapons2/ee-3carbine/ee3rotj_w.glm", 0, 0, 0 },
 							/* view */		"models/weapons2/ee-3carbine/ee3rotj.md3",
 							/* icon */		"gfx/hud/w_icon_ee-3",
 							/* pickup *///	"EE-3",
@@ -2405,7 +2405,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 		"DC-17",
 		"sound/weapons/w_pkup.wav",
 				 { "models/weapons2/dc-17/dc-17_w.glm",
-		0, 0, 0},
+		0, 0, 0 },
 		/* view */		"models/weapons2/dc-17/dc-17.md3",
 		/* icon */		"gfx/hud/w_icon_clonepistol",//"gfx/hud/w_icon_clonepistol",
 		/* pickup *///	"DC-17 Hand Pistol",
@@ -2424,7 +2424,7 @@ NOTENOTE This weapon is not yet complete.  Don't place it.
 		"weapon_droideka",
 		"sound/weapons/w_pkup.wav",
 		{ "models/weapons2/noweap/noweap.glm",
-		0, 0, 0},
+		0, 0, 0 },
 		/* view */		"models/weapons2/noweap/noweap.md3",
 		/* icon */		"gfx/hud/w_icon_droideka",
 		/* pickup *///	"Droideka",
@@ -2674,7 +2674,7 @@ Only in One Flag CTF games
 },
 
 // end of list marker
-{NULL}
+{ NULL }
 };
 
 int bg_numItems = sizeof bg_itemlist / sizeof bg_itemlist[0] - 1;

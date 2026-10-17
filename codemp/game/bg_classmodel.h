@@ -17,4 +17,3 @@ const char* BG_CharVariantOrigin(const char* folder);
 
 // Models nobody may play (vehicles, props...): the server resets them to the default model.
 qboolean BG_ModelBlocked(const char* model);
-
